@@ -186,3 +186,64 @@ export const hasMeaningfulHtmlContent = (
     );
   }
 };
+
+type FetchPostDataOptions = {
+  /** Same as WordPress REST query param `per_page` (default 100). */
+  perPage?: number;
+};
+
+export const fetchPostData = async (type: string, config: any, options?: FetchPostDataOptions) => {
+  const pageSize = options?.perPage ?? 100;
+  const baseUrl = `${config.siteConfig.baseUrl}${config.siteConfig.restApiPath}${type}`;
+
+  const pageUrl = (pageNumber: number) => {
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}page=${pageNumber}&per_page=${pageSize}`;
+  };
+
+  async function fetchPage(pageNumber: number) {
+    const response = await fetch(pageUrl(pageNumber));
+    const json = await response.json();
+    return { response, json };
+  }
+
+  let { response, json } = await fetchPage(1);
+
+  if (!Array.isArray(json)) {
+    return json;
+  }
+
+  const combined: unknown[] = [...json];
+
+  const headerValue = response.headers.get('x-wp-totalpages');
+  const pageCount =
+    headerValue === null ? null : Number.parseInt(headerValue, 10);
+
+  if (pageCount !== null && Number.isFinite(pageCount) && pageCount > 1) {
+    for (let page = 2; page <= pageCount; page += 1) {
+      ({ json } = await fetchPage(page));
+      if (Array.isArray(json)) {
+        combined.push(...json);
+      }
+    }
+    return combined;
+  }
+
+  // Header absent: load more pages until WordPress returns a short list or none.
+  if (headerValue === null) {
+    let page = 2;
+    while (Array.isArray(json) && json.length === pageSize) {
+      ({ json } = await fetchPage(page));
+      if (!Array.isArray(json) || json.length === 0) {
+        break;
+      }
+      combined.push(...json);
+      if (json.length < pageSize) {
+        break;
+      }
+      page += 1;
+    }
+  }
+
+  return combined;
+};

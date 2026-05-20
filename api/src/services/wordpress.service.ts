@@ -12,7 +12,7 @@ import { getLogMessage } from "../utils/index.js";
 import { v4 as uuidv4 } from "uuid";
 import { orgService } from "./org.service.js";
 import * as cheerio from 'cheerio';
-import { hasMeaningfulHtmlContent, normalizeHtmlFragment, setupWordPressBlocks, stripHtmlTags } from "../utils/wordpressParseUtil.js";
+import { fetchPostData, hasMeaningfulHtmlContent, normalizeHtmlFragment, setupWordPressBlocks, stripHtmlTags } from "../utils/wordpressParseUtil.js";
 import { getMimeTypeFromExtension } from "../utils/mimeTypes.js";
 import { MEDIA_BLOCK_NAMES, WORDPRESS_MISSSING_BLOCKS  } from "../constants/index.js";
 
@@ -709,6 +709,114 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
   return schema;
 }
 
+function getAcfSourceKey(field: any): string {
+  return field?.otherCmsField || getLastUid(field?.backupFieldUid || field?.uid || '');
+}
+
+function isAcfNestedGroupChild(field: any, allFields: any[]): boolean {
+  const fieldUid = field?.contentstackFieldUid || '';
+  if (!fieldUid) return false;
+  return allFields.some(
+    (parent) =>
+      parent?.contentstackFieldType === 'group' &&
+      parent?.contentstackFieldUid &&
+      fieldUid.startsWith(`${parent.contentstackFieldUid}.`),
+  );
+}
+
+function buildAcfGroupEntry(
+  raw: any,
+  groupField: any,
+  allFields: any[],
+  assetData: any,
+): Record<string, any> | Record<string, any>[] | undefined {
+  const nestedFields = getNestedFieldsForGroup(groupField, undefined, allFields);
+
+  const processOne = (row: Record<string, any>): Record<string, any> | undefined => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return undefined;
+    const out: Record<string, any> = {};
+    for (const nestedField of nestedFields) {
+      const sourceKey = getAcfSourceKey(nestedField);
+      const rawValue = row[sourceKey];
+      if (rawValue === undefined || rawValue === null) continue;
+      const formatted = formatChildByType(null, nestedField, assetData, allFields, rawValue);
+      if (formatted !== undefined && formatted !== null && formatted !== '') {
+        out[getLastUid(nestedField?.contentstackFieldUid)] = formatted;
+      }
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  };
+
+  if (fieldIsMultipleInContentstack(groupField)) {
+    if (!Array.isArray(raw)) return undefined;
+    const rows = raw.map(processOne).filter(Boolean) as Record<string, any>[];
+    return rows.length > 0 ? rows : undefined;
+  }
+  if (Array.isArray(raw)) return processOne(raw[0]);
+  return processOne(raw);
+}
+
+async function createAcfSchema(
+  fields: any,
+  acfData: any,
+  title: string,
+  uid: string,
+  assetData: any,
+  _duplicateBlockMappings?: Record<string, string>,
+) {
+  const schema: any = {
+    title,
+    uid,
+  };
+
+  try {
+    if (!acfData || typeof acfData !== 'object' || Array.isArray(acfData)) {
+      return schema;
+    }
+
+    if (!Array.isArray(fields)) {
+      console.warn('fields is not an array:', typeof fields);
+      return schema;
+    }
+
+    for (const field of fields) {
+      const fieldType = field?.contentstackFieldType;
+
+      if (fieldType === 'modular_blocks' || fieldType === 'modular_blocks_child') {
+        continue;
+      }
+      if (isAcfNestedGroupChild(field, fields)) {
+        continue;
+      }
+
+      const outputKey = getLastUid(field?.contentstackFieldUid || field?.uid || '');
+      if (!outputKey) continue;
+
+      if (fieldType === 'group') {
+        const rawGroup = acfData[getAcfSourceKey(field)];
+        const built = buildAcfGroupEntry(rawGroup, field, fields, assetData);
+        if (built !== undefined) {
+          schema[outputKey] = built;
+        }
+        continue;
+      }
+
+      const rawValue = acfData[getAcfSourceKey(field)];
+      if (rawValue === undefined || rawValue === null) continue;
+
+      const formatted = formatChildByType(null, field, assetData, fields, rawValue);
+      if (formatted !== undefined && formatted !== null && formatted !== '') {
+        schema[outputKey] = formatted;
+      }
+    }
+  } catch (error) {
+    console.error('Error in createAcfSchema:', error);
+    schema.error = 'Failed to process ACF fields';
+  }
+
+  return schema;
+}
+
 // Recursive helper function to process nested group structures
 function processNestedGroup(
   child: any,
@@ -1158,12 +1266,18 @@ const extractTermsReference = (terms: any) => {
   return termReference;
 }
 async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>) {
-  const locale = getLocale(master_locale, project);
+  console.info("saveEntry");
+  const locale = getLocale(master_locale, project) || master_locale;
   const mapperKeys = project?.mapperKeys || {};
   const authorsCtName = mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] ? mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
-  const authorsSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG?.ENTRIES_DIR_NAME,authorsCtName, master_locale);
-  const authorsFilePath = path.join(authorsSave,`${master_locale}.json` );
-  const authorsData = JSON.parse(await fs.promises.readFile(authorsFilePath, "utf8")) || {};
+  const authorsSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG?.ENTRIES_DIR_NAME, authorsCtName, locale);
+  const authorsFilePath = path.join(authorsSave, `${locale}.json`);
+  let authorsData: Record<string, any> = {};
+  try {
+    authorsData = JSON.parse(await fs.promises.readFile(authorsFilePath, "utf8")) || {};
+  } catch {
+    console.warn(`Authors file not found at ${authorsFilePath}, proceeding without author references`);
+  }
 
   //const Jsondata = await fs.promises.readFile(file_path, "utf8");
   const xmlData = await fs.promises.readFile(file_path, "utf8");
@@ -1173,6 +1287,9 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
   try {
     if(entry ){
+      let cachedPostsForType: any[] | null = null;
+      let cachedPostType: string | null = null;
+
       // Process each entry with its corresponding XML item
       for (let i = 0; i < entry?.length; i++) {
         const taxonomies: any = [];
@@ -1229,6 +1346,39 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         // })
         // .first();
         //console.info("matching xml item 1 --> ", matchingXmlItem);
+        let wpPost: any;
+        try {
+          const postType = item?.['wp:post_type'];
+          if (postType && postType !== cachedPostType) {
+            const fetched = await fetchPostData(
+              postType,
+              project?.site_config ? { siteConfig: project.site_config } : {},
+            );
+            cachedPostsForType = Array.isArray(fetched) ? fetched : null;
+            cachedPostType = postType;
+          }
+          wpPost = cachedPostsForType?.find(
+            (p: any) => String(p?.id) === String(item?.['wp:post_id']),
+          );
+        } catch (acfFetchErr) {
+          console.warn(`ACF REST fetch failed for entry ${uid}:`, acfFetchErr);
+        }
+
+        const attachEntryMeta = (entryUid: string) => {
+          const categoryReference = extractCategoryReference(item?.['category']);
+          if (categoryReference?.length > 0) {
+            entryData[entryUid]['taxonomies'] = taxonomies;
+          }
+          const termsReference = extractTermsReference(item?.['category']);
+          if (termsReference?.length > 0) {
+            entryData[entryUid]['terms'] = terms;
+          }
+          entryData[entryUid]['tags'] = tags?.map((tag: any) => tag?.text);
+          entryData[entryUid]['author'] = authorData;
+          entryData[entryUid]['locale'] = locale;
+          entryData[entryUid]['publish_details'] = [];
+        };
+
         if (xmlItem && xmlItem?.length > 0) {
           // Extract individual content encoded for this specific item
           const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
@@ -1251,9 +1401,10 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
           // Pass individual content to createSchema
           entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings);
-          const categoryReference = extractCategoryReference(item?.['category']);
-          if (categoryReference?.length > 0) {
-            entryData[uid]['taxonomies'] = taxonomies;
+
+          if (wpPost?.acf) {
+            const acfSchema = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
+            entryData[uid] = { ...entryData[uid], ...acfSchema };
           }
           const termsReference = extractTermsReference(item?.['category']);
           if(termsReference?.length > 0) {
@@ -1277,7 +1428,13 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             }
           }
            
+
+          attachEntryMeta(uid);
           console.info(`Processed entry ${uid} with individual content`);
+        } else if (wpPost?.acf) {
+          entryData[uid] = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
+          attachEntryMeta(uid);
+          console.info(`Processed entry ${uid} from ACF only`);
         } else {
           console.warn(`No matching XML item found for entry ${uid}`);
         }
@@ -1379,9 +1536,15 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       await fs.promises.mkdir(postFolderPath, { recursive: true });
     }
     const contentTypeUid = contentType?.contentstackTitle?.toLowerCase();
+    const contentstackUid = contentType?.contentstackUid?.toLowerCase();
+    const otherCmsUid = contentType?.otherCmsUid?.toLowerCase();
     const statusArray = ["publish", "inherit"];
     const entry = entries?.filter((data: any) => {
-      const matchesType = data?.["wp:post_type"]?.toLowerCase() === contentTypeUid;
+      const postType = data?.["wp:post_type"]?.toLowerCase();
+      const matchesType =
+        postType === contentTypeUid ||
+        postType === contentstackUid ||
+        postType === otherCmsUid;
       const matchesStatus = statusArray.includes(data?.["wp:status"]);
       return matchesType && matchesStatus;
     });

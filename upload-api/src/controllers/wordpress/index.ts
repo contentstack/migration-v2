@@ -37,14 +37,18 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
     //const contentTypeData = await contentTypeMaker(affix, filePath)
 
     if(contentTypeData){
-      const fieldMapping: any = { contentTypes: [], extractPath: filePath };
+      const fieldMapping: any = {
+        contentTypes: [],
+        extractPath: filePath,
+        ...(config?.siteConfig && { siteConfig: config.siteConfig }),
+      };
       contentTypeData.forEach((contentType: any) => {
         const jsonfileContent = contentType;
         jsonfileContent.type = "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);
       })
 
-      const config = {
+      const mapperRequest = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
@@ -54,7 +58,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         },
         data: JSON.stringify(fieldMapping),
       };
-      const {data} = await axios.request(config);
+      const {data} = await axios.request(mapperRequest);
       if (data?.data?.content_mapper?.length) {
         deleteFolderSync(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA));
         logger.info('Validation success:', {

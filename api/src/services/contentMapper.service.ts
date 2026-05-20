@@ -149,6 +149,10 @@ const putTestData = async (req: Request) => {
       ProjectModelLowdb.data.projects[index].extract_path =
         req?.body?.extractPath;
 
+      if (req?.body?.siteConfig) {
+        ProjectModelLowdb.data.projects[index].site_config = req.body.siteConfig;
+      }
+
       // Update assetsConfig if provided (for Drupal asset URL configuration)
       if (
         req?.body?.assetsConfig &&

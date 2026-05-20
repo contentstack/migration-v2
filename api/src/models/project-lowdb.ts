@@ -65,6 +65,7 @@ interface Project {
   stackDetails: [];
   mapperKeys: object;
   extract_path: string;
+  site_config?: { baseUrl: string; restApiPath: string };
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;
