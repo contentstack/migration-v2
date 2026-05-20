@@ -164,6 +164,10 @@ async function processAttributes(key: WordPressBlock, parentUid: string | null =
     return attributeSchema;
 
 }
+function getBlockContentFieldType(fieldKey: string): 'single_line_text' | 'multi_line_text' {
+    return fieldKey === 'content' ? 'multi_line_text' : 'single_line_text';
+}
+
 function mapBlockAttributeValue(
     fieldKey: string,
     value: unknown,
@@ -175,14 +179,15 @@ function mapBlockAttributeValue(
     if (typeof value === 'string') {
         const fieldUid = `${baseUid}.${getFieldUid(fieldKey, affix || '')}`;
         const fieldLabel = `${baseName} > ${getFieldName(fieldKey)}`;
+        const fieldType = getBlockContentFieldType(fieldKey);
         fields.push({
             uid: fieldUid,
             otherCmsField: getFieldName(fieldKey),
             otherCmsType: getFieldName(fieldKey),
             contentstackField: fieldLabel,
             contentstackFieldUid: fieldUid,
-            contentstackFieldType: 'single_line_text',
-            backupFieldType: 'single_line_text',
+            contentstackFieldType: fieldType,
+            backupFieldType: fieldType,
             backupFieldUid: fieldUid,
             advanced: {},
         });
@@ -250,20 +255,27 @@ async function processBlockAttributes(
                 ? (blockFieldValue as Record<string, unknown>)
                 : null;
 
-        if (typeof blockFieldRecord?.content === 'string') {
-            
-            fields.push({
-                uid: blockFieldUid,
-                otherCmsField: getFieldName(blockFieldKey),
-                otherCmsType: getFieldName(blockFieldKey),
-                contentstackField: blockFieldName,
-                contentstackFieldUid: blockFieldUid,
-                contentstackFieldType: 'single_line_text',
-                backupFieldType: 'single_line_text',
-                backupFieldUid: blockFieldUid,
-                advanced: {},
-            });
-        } 
+        if (blockFieldRecord) {
+            for (const [attrKey, attrValue] of Object.entries(blockFieldRecord)) {
+                if (typeof attrValue !== 'string') continue;
+                const attrUid = `${blockFieldUid}.${getFieldUid(attrKey, affix || '')}`;
+                const attrName = `${blockFieldName} > ${getFieldName(attrKey)}`;
+                const fieldType = getBlockContentFieldType(attrKey);
+                fields.push({
+                    uid: attrUid,
+                    otherCmsField: getFieldName(attrKey),
+                    otherCmsType: getFieldName(blockFieldKey),
+                    contentstackField: attrName,
+                    contentstackFieldUid: attrUid,
+                    contentstackFieldType: fieldType,
+                    backupFieldType: fieldType,
+                    backupFieldUid: attrUid,
+                    advanced: {},
+                });
+            }
+        } else if (typeof blockFieldValue === 'string') {
+            mapBlockAttributeValue(blockFieldKey, blockFieldValue, parentUid || '', parentName, affix, fields);
+        }
     }
 
     return fields;
@@ -816,33 +828,90 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/block': {
             const blockSchema: Field[] = [];
             const blockUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
-            const fieldName = parentFieldName ? `${parentFieldName} > ${getFieldName(key?.name)}` : getFieldName(key?.name);
-            // blockSchema.push({
-            //     uid: blockUid,
-            //     otherCmsField: getFieldName(key?.name),
-            //     otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
-            //     contentstackField: fieldName,
-            //     contentstackFieldUid: blockUid,
-            //     contentstackFieldType: 'block',
-            //     backupFieldType: 'block',
-            //     backupFieldUid: blockUid,
-            //     advanced: {},
-            //     css:{
-            //         classNames: key?.attributes?.className,
-            //         id:key?.attributes?.anchor
-            //     }
-            // });
-            const innerBlocks = await processBlockAttributes(key?.attributes?.content, blockUid, fieldName, affix);
-            innerBlocks?.forEach((schemaObj) => {
-                if (schemaObj) {
-                    if (Array.isArray(schemaObj)) {
-                        blockSchema.push(...schemaObj);
-                    } else {
-                        blockSchema.push(schemaObj);
-                    }
-                }
-            });
-            if(innerBlocks?.length > 0){
+
+            const contentFields = await processBlockAttributes(key?.attributes?.content, blockUid, fieldName, affix);
+
+            if (contentFields?.length > 0) {
+                blockSchema.push({
+                    uid: blockUid,
+                    otherCmsField: getFieldName(key?.name),
+                    otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                    contentstackField: fieldName,
+                    contentstackFieldUid: blockUid,
+                    contentstackFieldType: 'group',
+                    backupFieldType: 'group',
+                    backupFieldUid: blockUid,
+                    advanced: {},
+                    css: {
+                        classNames: key?.attributes?.className,
+                        id: key?.attributes?.anchor,
+                    },
+                },{
+                    uid: `${blockUid}.heading`,
+                    otherCmsField: 'heading',
+                    otherCmsType: 'heading',
+                    contentstackField: `${fieldName} > heading`,
+                    contentstackFieldUid: `${blockUid}.heading`,
+                    contentstackFieldType: 'html',
+                    backupFieldType: 'html',
+                    backupFieldUid: `${blockUid}.heading`,
+                    advanced: {},
+                    css: {
+                        classNames: key?.attributes?.className,
+                        id: key?.attributes?.anchor,
+                    },
+                },{
+                    uid: `${blockUid}.description`,
+                    otherCmsField: 'description',
+                    otherCmsType: 'description',
+                    contentstackField: `${fieldName} > description`,
+                    contentstackFieldUid: `${blockUid}.description`,
+                    contentstackFieldType: 'html',
+                    backupFieldType: 'html',
+                    backupFieldUid: `${blockUid}.description`,
+                    advanced: {},
+                    css: {
+                        classNames: key?.attributes?.className,
+                        id: key?.attributes?.anchor,
+                    },
+                },{
+                    uid: `${blockUid}.paragraph`,
+                    otherCmsField: 'paragraph',
+                    otherCmsType: 'paragraph',
+                    contentstackField: `${fieldName} > paragraph`,
+                    contentstackFieldUid: `${blockUid}.paragraph`,
+                    contentstackFieldType: 'json',
+                    backupFieldType: 'json',
+                    backupFieldUid: `${blockUid}.paragraph`,
+                    advanced: {},
+                    css: {
+                        classNames: key?.attributes?.className,
+                        id: key?.attributes?.anchor,
+                    },
+                },{
+                    uid: `${blockUid}.image`,
+                    otherCmsField: 'badge',
+                    otherCmsType: 'badge',
+                    contentstackField: `${fieldName} > badge`,
+                    contentstackFieldUid: `${blockUid}.badge`,
+                    contentstackFieldType: 'file',
+                    backupFieldType: 'file',
+                    backupFieldUid: `${blockUid}.badge`,
+                    advanced: {},
+                    css: {
+                        classNames: key?.attributes?.className,
+                        id: key?.attributes?.anchor,
+                    },
+                });
+                // contentFields.forEach((schemaObj) => {
+                //     if (schemaObj) {
+                //         if (Array.isArray(schemaObj)) {
+                //             blockSchema.push(...schemaObj);
+                //         } else {
+                //             blockSchema.push(schemaObj);
+                //         }
+                //     }
+                // });
                 return blockSchema;
             }
             return [];

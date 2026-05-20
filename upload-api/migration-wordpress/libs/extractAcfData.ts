@@ -2,13 +2,9 @@ async function handleAcfData(postAcfData: any[]): Promise<Record<string, unknown
     if (!Array.isArray(postAcfData)) {
         return {};
     }
-    return postAcfData.reduce((acc: Record<string, unknown>, post: any) => {
-        const acf = post?.acf;
-        if (acf && typeof acf === 'object' && !Array.isArray(acf)) {
-            return { ...acc, ...acf };
-        }
-        return acc;
-    }, {});
+    const postWithAcf = postAcfData[0]?.acf;
+  
+    return (postWithAcf as Record<string, unknown>) ?? {};
 }
 
 /**
@@ -82,6 +78,7 @@ async function acfMpapperGenerator(acfData: any, parentPrefix?: string): Promise
                 const childPrefix = parentPrefix ? `${parentPrefix}.${key}` : key;
                 const firstItem =
                     Array.isArray(value) && value.length > 0 ? value[0] : null;
+              
                 const nestedMapper =
                     firstItem && typeof firstItem === 'object' && !Array.isArray(firstItem)
                         ? await acfMpapperGenerator(firstItem, childPrefix)
@@ -97,7 +94,8 @@ async function acfMpapperGenerator(acfData: any, parentPrefix?: string): Promise
                     backupFieldType: 'group',
                     backupFieldUid: compositeUid,
                     advanced: {
-                        mandatory: false
+                        mandatory: false,
+                        multiple: true
                     },
                     isDeleted: false
                 };

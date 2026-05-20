@@ -194,7 +194,7 @@ type FetchPostDataOptions = {
 
 export const fetchPostData = async (type: string, config: any, options?: FetchPostDataOptions) => {
   const pageSize = options?.perPage ?? 100;
-  const baseUrl = `${config.siteConfig.baseUrl}${config.siteConfig.restApiPath}${type}`;
+  const baseUrl = `${config?.siteConfig?.baseUrl}${config?.siteConfig?.restApiPath}${type}`;
 
   const pageUrl = (pageNumber: number) => {
     const separator = baseUrl.includes('?') ? '&' : '?';

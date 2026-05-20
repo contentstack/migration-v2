@@ -551,7 +551,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                
         }
      }
-
+    }
     // Push category only once, outside the loop
     if (categories?.length > 0 && isCategories && !isAllContentEmpty) {
         const existingCategory = CT?.find((item: Field) => 
@@ -618,13 +618,13 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
           if(metaKey === '_yoast_wpseo_metadesc' && ! CT?.find((item: Field) => item?.uid === 'yoast_wpseo_metadesc')){
               CT?.push({
                 "uid": 'yoast_wpseo_metadesc',
-                "contentstackFieldUid": 'description',
+                "contentstackFieldUid": 'yoast_wpseo_metadesc',
                 "contentstackField": 'Yoast SEO Description',
                 "contentstackFieldType": 'multi_line_text',
                 "backupFieldType": 'multi_line_text',
                 "otherCmsField": 'Yoast SEO Description',
                 "otherCmsType": 'text',
-                "backupFieldUid": 'description',
+                "backupFieldUid": 'yoast_wpseo_metadesc',
                 "advanced": {
                   "mandatory": false}
               });
