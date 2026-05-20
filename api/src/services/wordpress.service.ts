@@ -1253,9 +1253,20 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           entryData[uid]['author'] = authorData;
           entryData[uid]['locale'] = locale;
           entryData[uid]['publish_details'] = [];
-          
-            
-          
+          if(item?.['wp:postmeta']?.length > 0){
+            const postmeta = item?.['wp:postmeta'];
+            for(const meta of postmeta){
+              const metaKey = meta?.['wp:meta_key'];
+              const metaValue = meta?.['wp:meta_value'];
+              if(metaKey === '_yoast_wpseo_title'){
+                entryData[uid]['yoast_wpseo_title'] = metaValue;
+              }
+              if(metaKey === '_yoast_wpseo_metadesc'){
+                entryData[uid]['yoast_wpseo_metadesc'] = metaValue;
+              }
+            }
+          }
+           
           console.info(`Processed entry ${uid} with individual content`);
         } else {
           console.warn(`No matching XML item found for entry ${uid}`);
