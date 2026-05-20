@@ -262,19 +262,19 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
     const acfContentData = await handleAcfData(postAcfData);
     const acfContentMapper = await acfMpapperGenerator(acfContentData);
-    console.log(acfContentMapper);
+    // console.log(acfContentMapper);
 
-    const typeDir = path.join(contentTypeFolderPath);
-    await mkdirp(typeDir);
-    const postAcfOutPath = path.join(
-      typeDir,
-      `acf-${type}.json`
-    );
-    await fs.promises.writeFile(
-      postAcfOutPath,
-      JSON.stringify(acfContentData, null, 2),
-      'utf8'
-    );
+    // const typeDir = path.join(contentTypeFolderPath);
+    // await mkdirp(typeDir);
+    // const postAcfOutPath = path.join(
+    //   typeDir,
+    //   `acf-${type}.json`
+    // );
+    // await fs.promises.writeFile(
+    //   postAcfOutPath,
+    //   JSON.stringify(acfContentData, null, 2),
+    //   'utf8'
+    // );
 
     const isAllContentEmpty = item.every((data: any) =>
       !data?.['content:encoded'] || data?.['content:encoded']?.trim() === ''
@@ -545,7 +545,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 }
               } 
                        
-              }
+             // }
                  
             }
                

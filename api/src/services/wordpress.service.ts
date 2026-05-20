@@ -1348,15 +1348,13 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   
 
   
-  
   for(const contentType of postContentTypes){
     //await startingDirPosts(contentType?.contentstackUid, master_locale, project?.locales); 
     const postsFolderName = mapperKeys[contentType?.contentstackUid] ? mapperKeys[contentType?.contentstackUid] : contentType?.contentstackUid;
-
     // Create master locale folder and file
     postFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
       MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, postsFolderName, locale);
-    if(! existsSync(postFolderPath)){
+    if(postFolderPath &&! existsSync(postFolderPath)){
       await fs.promises.mkdir(postFolderPath, { recursive: true });
     }
     const contentTypeUid = contentType?.contentstackTitle?.toLowerCase();

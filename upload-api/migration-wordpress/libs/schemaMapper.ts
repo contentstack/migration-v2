@@ -163,8 +163,111 @@ async function processAttributes(key: WordPressBlock, parentUid: string | null =
     const attributeSchema = await handleAttributesSchema(schema?.properties,parentUid, parentName, affix);
     return attributeSchema;
 
- }
+}
+function mapBlockAttributeValue(
+    fieldKey: string,
+    value: unknown,
+    baseUid: string,
+    baseName: string,
+    affix: string | null,
+    fields: Field[]
+): void {
+    if (typeof value === 'string') {
+        const fieldUid = `${baseUid}.${getFieldUid(fieldKey, affix || '')}`;
+        const fieldLabel = `${baseName} > ${getFieldName(fieldKey)}`;
+        fields.push({
+            uid: fieldUid,
+            otherCmsField: getFieldName(fieldKey),
+            otherCmsType: getFieldName(fieldKey),
+            contentstackField: fieldLabel,
+            contentstackFieldUid: fieldUid,
+            contentstackFieldType: 'single_line_text',
+            backupFieldType: 'single_line_text',
+            backupFieldUid: fieldUid,
+            advanced: {},
+        });
+        return;
+    }
 
+    if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+            const itemUid = `${baseUid}.${getFieldUid(`${fieldKey}_${index}`, affix || '')}`;
+            const itemName = `${baseName} > ${getFieldName(fieldKey)}`;
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+                for (const [nestedKey, nestedValue] of Object.entries(item)) {
+                    mapBlockAttributeValue(nestedKey, nestedValue, itemUid, itemName, affix, fields);
+                }
+            } else {
+                mapBlockAttributeValue(String(index), item, baseUid, baseName, affix, fields);
+            }
+        });
+        return;
+    }
+
+    if (value && typeof value === 'object') {
+        for (const [nestedKey, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+            mapBlockAttributeValue(nestedKey, nestedValue, baseUid, baseName, affix, fields);
+        }
+    }
+}
+
+async function processBlockAttributes(
+    content: Record<string, unknown> | unknown[],
+    parentUid: string | null = null,
+    parentName: string,
+    affix: string | null = null
+): Promise<Field[]> {
+    if (!content || typeof content !== 'object') {
+        return [];
+    }
+
+    const fields: Field[] = [];
+
+    if (Array.isArray(content)) {
+        for (const [index, item] of content.entries()) {
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+                const nested = await processBlockAttributes(
+                    item as Record<string, unknown>,
+                    parentUid,
+                    parentName,
+                    affix
+                );
+                fields.push(...nested);
+            } else if (typeof item === 'string') {
+                mapBlockAttributeValue(String(index), item, parentUid || '', parentName, affix, fields);
+            }
+        }
+        return fields;
+    }
+
+    for (const [blockFieldKey, blockFieldValue] of Object.entries(content)) {
+        const blockFieldUid = parentUid
+            ? `${parentUid}.${getFieldUid(blockFieldKey, affix || '')}`
+            : getFieldUid(blockFieldKey, affix || '');
+        const blockFieldName = `${parentName} > ${getFieldName(blockFieldKey)}`;
+        const blockFieldRecord =
+            blockFieldValue && typeof blockFieldValue === 'object' && !Array.isArray(blockFieldValue)
+                ? (blockFieldValue as Record<string, unknown>)
+                : null;
+
+        if (typeof blockFieldRecord?.content === 'string') {
+            
+            fields.push({
+                uid: blockFieldUid,
+                otherCmsField: getFieldName(blockFieldKey),
+                otherCmsType: getFieldName(blockFieldKey),
+                contentstackField: blockFieldName,
+                contentstackFieldUid: blockFieldUid,
+                contentstackFieldType: 'single_line_text',
+                backupFieldType: 'single_line_text',
+                backupFieldUid: blockFieldUid,
+                advanced: {},
+            });
+        } 
+    }
+
+    return fields;
+}
 async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: string | null = null, parentFieldName: string | null = null, affix: string): Promise<any> {
     if (Array.isArray(key)) {
         const schemas: Field[] = [];
@@ -708,6 +811,41 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 }
             });
             return mediaTextSchema;
+        }
+
+        case 'core/block': {
+            const blockSchema: Field[] = [];
+            const blockUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const fieldName = parentFieldName ? `${parentFieldName} > ${getFieldName(key?.name)}` : getFieldName(key?.name);
+            // blockSchema.push({
+            //     uid: blockUid,
+            //     otherCmsField: getFieldName(key?.name),
+            //     otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+            //     contentstackField: fieldName,
+            //     contentstackFieldUid: blockUid,
+            //     contentstackFieldType: 'block',
+            //     backupFieldType: 'block',
+            //     backupFieldUid: blockUid,
+            //     advanced: {},
+            //     css:{
+            //         classNames: key?.attributes?.className,
+            //         id:key?.attributes?.anchor
+            //     }
+            // });
+            const innerBlocks = await processBlockAttributes(key?.attributes?.content, blockUid, fieldName, affix);
+            innerBlocks?.forEach((schemaObj) => {
+                if (schemaObj) {
+                    if (Array.isArray(schemaObj)) {
+                        blockSchema.push(...schemaObj);
+                    } else {
+                        blockSchema.push(schemaObj);
+                    }
+                }
+            });
+            if(innerBlocks?.length > 0){
+                return blockSchema;
+            }
+            return [];
         }
 
     }
