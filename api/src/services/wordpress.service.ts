@@ -1233,8 +1233,18 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           // Extract individual content encoded for this specific item
           const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
           const blocksJson = await setupWordPressBlocks(contentEncoded);
-
-          
+          const blocksOutDir = path.join(
+            MIGRATION_DATA_CONFIG.DATA,
+            destinationStackId,
+            'wordpress_blocks',
+            String(item?.['wp:post_type'] || 'unknown').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().replace(/\s+/g, '_').slice(0, 40)
+          );
+          await fs.promises.mkdir(blocksOutDir, { recursive: true });
+          await fs.promises.writeFile(
+            path.join(blocksOutDir, `${i}_${String(item?.title || 'untitled').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().replace(/\s+/g, '_').slice(0, 80)}.json`),
+            JSON.stringify(blocksJson, null, 2),
+            'utf8'
+          );
 
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 

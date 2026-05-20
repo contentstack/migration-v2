@@ -619,10 +619,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
               CT?.push({
                 "uid": 'yoast_wpseo_metadesc',
                 "contentstackFieldUid": 'description',
-                "contentstackField": 'Description',
+                "contentstackField": 'Yoast SEO Description',
                 "contentstackFieldType": 'multi_line_text',
                 "backupFieldType": 'multi_line_text',
-                "otherCmsField": 'Description',
+                "otherCmsField": 'Yoast SEO Description',
                 "otherCmsType": 'text',
                 "backupFieldUid": 'description',
                 "advanced": {
