@@ -75,7 +75,7 @@ router.delete("/:projectId", asyncRouter(projectController.deleteProject));
 router.patch("/:projectId", asyncRouter(projectController.revertProject));
 
 //update stack details Project Route
-router.patch("/:projectId/stack-details", asyncRouter(projectController.updateStackDetails));
+router.post("/:projectId/stack-details", asyncRouter(projectController.updateStackDetails));
 
 //update migration execution key 
 router.put("/:projectId/migration-excution",asyncRouter(projectController.updateMigrationExecution));

@@ -10,7 +10,8 @@ import { flattenContentTypes } from "../../helper/contentType.flatten";
 
 
 async function processTemplateItems(itemsOrder: string[], items: any, contentstackComponents: any) {
-  const schema = [];
+  const schema: any[] = [];
+  if (!Array.isArray(itemsOrder)) return schema;
   for (const element of itemsOrder) {
     const item = items?.[element];
     const type = item?.[':type'];
@@ -82,8 +83,8 @@ const contentTypeMaker: IContentTypeMaker = async ({ templateData, affix, conten
   for await (const [key, value] of Object.entries(templateData ?? {})) {
     if (!Array.isArray(value)) return console.warn(`Value for key "${key}" is not an array:`, value);
     for await (const template of value) {
-      const itemsOrder = template?.[':items']?.root?.[':itemsOrder'];
-      const items = template?.[':items']?.root?.[':items'];
+      const itemsOrder = template?.[':items']?.root?.[':itemsOrder'] ?? template?.[':itemsOrder'];
+      const items = template?.[':items']?.root?.[':items'] ?? template?.[':items'];
       const Schema = await processTemplateItems(itemsOrder, items, contentstackComponents);
       const contentTypeObject = createContentTypeObject({
         otherCmsTitle: key,

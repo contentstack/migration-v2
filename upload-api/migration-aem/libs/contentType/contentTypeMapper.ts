@@ -26,6 +26,8 @@ const contentTypeMappers: IContentTypeMappers = async ({ templateData, affix }) 
     // The ':items' key is from AEM template structure and not a secret
     const item = templateData?.[":items"]?.[key]
     await contentTypeProcessor({ itemSchema: item, affix, tracker })
+    const topType = extractComponentPath(item?.[":type"]) ?? null;
+    topType && tracker.pushComponent({ component: topType, props: item ?? {} })
   }
   return tracker;
 }

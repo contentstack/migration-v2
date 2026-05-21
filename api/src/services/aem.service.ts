@@ -370,6 +370,31 @@ function uidCorrector(str: string): string {
   return str?.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
 }
 
+/**
+ * Canonical key for matching component identifiers across naming conventions.
+ * `heroCarouselContainer` / `hero_carousel_container` / `HeroCarouselContainer`
+ * all reduce to `herocarouselcontainer`.
+ */
+function canonicalKey(str: string | undefined | null): string {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+/**
+ * Find a value in `items` by trying the field uid plus common case variants.
+ * Handles the snake_case (field uid) vs camelCase (AEM data) mismatch.
+ */
+function lookupItemByKey(items: any, key: string | undefined): any {
+  if (!items || !key) return undefined;
+  if (items[key] !== undefined) return items[key];
+  const target = canonicalKey(key);
+  if (!target) return undefined;
+  for (const k of Object.keys(items)) {
+    if (canonicalKey(k) === target) return items[k];
+  }
+  return undefined;
+}
+
 declare const contentstackComponents: Record<string, any> | undefined;
 
 /**
@@ -587,7 +612,8 @@ function processFieldsRecursive(
   for (const field of fields) {
     switch (field?.contentstackFieldType) {
       case 'modular_blocks': {
-        const modularData = items?.[field?.uid] ? items?.[field?.uid] : items?.[':items'];
+        const lookedUp = lookupItemByKey(items, field?.uid);
+        const modularData = lookedUp !== undefined ? lookedUp : items?.[':items'];
         if (Array.isArray(field?.schema)) {
           const itemsData = modularData?.[':items'] ?? modularData;
           const value = processFieldsRecursive(field.schema, itemsData, title, pathToUidMap, assetDetailsMap);
@@ -613,7 +639,7 @@ function processFieldsRecursive(
           if (!value || typeof value !== 'object') continue;
           const typeValue = (value as any)[':type'] || '';
           const getTypeComp = getLastKey(typeValue, '/');
-          if (getTypeComp !== blockTypeUid) continue;
+          if (canonicalKey(getTypeComp) !== canonicalKey(blockTypeUid)) continue;
 
           const compValue = processFieldsRecursive(field.schema, value, title, pathToUidMap, assetDetailsMap);
           if (compValue && Object.keys(compValue).length) {
@@ -647,7 +673,8 @@ function processFieldsRecursive(
         if (isCarouselItems) {
           groupValue = items;
         } else {
-          groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
+          const resolved = lookupItemByKey(items, field?.uid);
+          groupValue = resolved?.items ?? resolved;
         }
       
         if (isMultiple) {
@@ -835,9 +862,18 @@ function processFieldsRecursive(
           const map2 = items?.[':items'] || items;
           if (order2 && map2) {
             const baseUid = field?.uid;
-            const keysForThisGroup = order2.filter(
-              (k) => k === baseUid || new RegExp(`^${baseUid}_`).test(k)
-            );
+            const baseCanonical = canonicalKey(baseUid);
+            const keysForThisGroup = order2.filter((k: string) => {
+              if (k === baseUid) return true;
+              if (new RegExp(`^${baseUid}_`).test(k)) return true;
+              // Carousels: items are keyed by id/timestamp; match by `:type` tail instead.
+              const el = map2?.[k];
+              if (el && typeof el === 'object') {
+                const typeTail = getLastKey((el as any)[':type'] ?? '', '/');
+                if (typeTail && canonicalKey(typeTail) === baseCanonical) return true;
+              }
+              return false;
+            });
             if (Array.isArray(field?.schema) && keysForThisGroup.length > 0) {
               for (const k of keysForThisGroup) {
                 const el = map2[k];
@@ -1252,11 +1288,13 @@ const createEntry = async ({
       const parseData = JSON.parse(content);
       const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
-      const templateUid = isEFragment?.isXF ? parseData?.title : parseData?.templateName ?? parseData?.templateType;
+      const templateUid = isEFragment?.isXF
+        ? parseData?.title
+        : (parseData?.templateName ?? parseData?.title ?? parseData?.templateType);
       const contentType = (contentTypes as ContentType[] | undefined)?.find?.((element) => element?.otherCmsUid === templateUid);
       const locale = getCurrentLocale(parseData);
       const mappedLocale = locale ? getLocaleFromMapper(allLocales as Record<string, string>, locale) : Object?.keys?.(project?.master_locale ?? {})?.[0];
-      const items = parseData?.[':items']?.root?.[':items'];
+      const items = parseData?.[':items']?.root?.[':items'] ?? parseData?.[':items'];
       const data = containerCreator(contentType?.fieldMapping, items, title, pathToUidMap, assetDetailsMap);
       data.uid = uid;
       data.publish_details = [];

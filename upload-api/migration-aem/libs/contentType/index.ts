@@ -18,7 +18,19 @@ import {
   TextBannerComponent,
   ImageComponent,
   CarouselComponent,
-  BreadcrumbComponent
+  BreadcrumbComponent,
+  DnaMediaCarouselComponent,
+  ExploreBarComponent,
+  HeroCarouselContainerComponent,
+  HeroCarouselContentCardComponent,
+  IndustrySelectorComponent,
+  NotificationBannerComponent,
+  NocacheComponent,
+  SharedWidgetComponent,
+  ConfigurableFooterComponent,
+  GenericHtmlComponent,
+  Hero2020Component,
+  SdpSecondaryNavigationComponent
 } from './components';
 import { mergeComponentObjects, readFiles, writeJsonFile } from "../../helper/index";
 
@@ -56,7 +68,18 @@ function processComponents(components: Record<string, any> | Record<string, any>
       () => ButtonComponent.isButton(component) && ButtonComponent.mapButtonToContentstack(component, key),
       () => ImageComponent.isImage(component) && ImageComponent.mapImageToContentstack(component, key),
       () => CarouselComponent.isCarousel(component) && CarouselComponent.mapCarouselToContentstack(component, key),
-
+      () => DnaMediaCarouselComponent.isDnaMediaCarousel(component) && DnaMediaCarouselComponent.mapDnaMediaCarouselToContentstack(component, key),
+      () => ExploreBarComponent.isExploreBar(component) && ExploreBarComponent.mapExploreBarToContentstack(component, key),
+      () => HeroCarouselContainerComponent.isHeroCarouselContainer(component) && HeroCarouselContainerComponent.mapHeroCarouselContainerToContentstack(component, key),
+      () => HeroCarouselContentCardComponent.isHeroCarouselContentCard(component) && HeroCarouselContentCardComponent.mapHeroCarouselContentCardToContentstack(component, key),
+      () => IndustrySelectorComponent.isIndustrySelector(component) && IndustrySelectorComponent.mapIndustrySelectorToContentstack(component, key),
+      () => NotificationBannerComponent.isNotificationBanner(component) && NotificationBannerComponent.mapNotificationBannerToContentstack(component, key),
+      () => NocacheComponent.isNocache(component) && NocacheComponent.mapNocacheToContentstack(component, key),
+      () => SharedWidgetComponent.isSharedWidget(component) && SharedWidgetComponent.mapSharedWidgetToContentstack(component, key),
+      () => ConfigurableFooterComponent.isConfigurableFooter(component) && ConfigurableFooterComponent.mapConfigurableFooterToContentstack(component, key),
+      () => GenericHtmlComponent.isGenericHtml(component) && GenericHtmlComponent.mapGenericHtmlToContentstack(component, key),
+      () => Hero2020Component.isHero2020(component) && Hero2020Component.mapHero2020ToContentstack(component, key),
+      () => SdpSecondaryNavigationComponent.isSdpSecondaryNavigation(component) && SdpSecondaryNavigationComponent.mapSdpSecondaryNavigationToContentstack(component, key),
     ];
     result[key] = mappingRules.map(fn => fn()).find(Boolean);
   }
