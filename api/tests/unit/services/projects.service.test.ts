@@ -776,4 +776,198 @@ describe('projects.service', () => {
       ).rejects.toThrow('Token payload is required');
     });
   });
+
+  describe('updateSourceConfig', () => {
+    it('should update source details successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [{ id: 'proj-1', legacy_cms: {} }] };
+        fn(data);
+        return data;
+      });
+
+      const result = await projectService.updateSourceConfig(
+        makeReq(
+          { orgId: 'org-123', projectId: 'proj-1' },
+          {
+            token_payload: tokenPayload,
+            source_details: {
+              source_mode: 'credentials',
+              source_region_id: 'NA',
+              source_org_id: 'org-1',
+              source_stack_id: 'stack-1',
+              source_branch: 'main',
+            },
+          }
+        )
+      );
+
+      expect(result.status).toBe(200);
+      expect(result.data.message).toMatch(/updated/i);
+      expect(mockProjectUpdate).toHaveBeenCalled();
+    });
+
+    it('should accept imported_export as source_mode', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [{ id: 'proj-1', legacy_cms: {} }] };
+        fn(data);
+        return data;
+      });
+
+      const result = await projectService.updateSourceConfig(
+        makeReq(
+          { orgId: 'org-123', projectId: 'proj-1' },
+          {
+            token_payload: tokenPayload,
+            source_details: {
+              source_mode: 'imported_export',
+              imported_data_path: '/some/path',
+            },
+          }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw when params missing', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq({}, { token_payload: tokenPayload, source_details: {} })
+        )
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+
+    it('should throw when token_payload missing', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq({ orgId: 'org-123', projectId: 'proj-1' }, { source_details: {} })
+        )
+      ).rejects.toThrow('Token payload is required');
+    });
+
+    it('should throw when source_details missing', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            { token_payload: tokenPayload }
+          )
+        )
+      ).rejects.toThrow('source_details is required');
+    });
+
+    it('should throw when source_mode is invalid', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            {
+              token_payload: tokenPayload,
+              source_details: { source_mode: 'bogus' },
+            }
+          )
+        )
+      ).rejects.toThrow(/source_mode/);
+    });
+
+    it('should throw NotFoundError when project index invalid during update', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [] };
+        fn(data);
+      });
+
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            {
+              token_payload: tokenPayload,
+              source_details: { source_mode: 'credentials' },
+            }
+          )
+        )
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('updateAuditSelections', () => {
+    it('should update audit selections successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = {
+        projects: [
+          {
+            id: 'proj-1',
+            legacy_cms: { audit: {} },
+          },
+        ],
+      };
+      mockProjectWrite.mockResolvedValue(undefined);
+
+      const result = await projectService.updateAuditSelections(
+        makeReq(
+          { orgId: 'org-123', projectId: 'proj-1' },
+          {
+            token_payload: tokenPayload,
+            excludedItems: [{ uid: 'x1' }],
+            selectionStats: { total: 5 },
+          }
+        )
+      );
+
+      expect(result).toBeDefined();
+      expect(result.legacy_cms.audit.excludedItems).toEqual([{ uid: 'x1' }]);
+      expect(mockProjectWrite).toHaveBeenCalled();
+    });
+
+    it('should throw when params missing', async () => {
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq({}, { token_payload: tokenPayload, excludedItems: [] })
+        )
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+
+    it('should throw when token_payload missing', async () => {
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            { excludedItems: [] }
+          )
+        )
+      ).rejects.toThrow('Token payload is required');
+    });
+
+    it('should throw when excludedItems is not array', async () => {
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            { token_payload: tokenPayload, excludedItems: 'not array' }
+          )
+        )
+      ).rejects.toThrow('excludedItems must be an array');
+    });
+
+    it('should throw NotFoundError when project not found', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [] };
+
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            {
+              token_payload: tokenPayload,
+              excludedItems: [],
+            }
+          )
+        )
+      ).rejects.toThrow();
+    });
+  });
 });
