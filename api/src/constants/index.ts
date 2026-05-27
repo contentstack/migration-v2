@@ -128,7 +128,7 @@ export const HTTP_TEXTS = {
   CONTENTMAPPER_NOT_FOUND:
     'Sorry, the requested content mapper id does not exists.',
   ADMIN_LOGIN_ERROR:
-    "Sorry, You Don't have admin access in any of the Organisation",
+    'You are not a member of any Contentstack organization in this region (or organization list is empty).',
   PROJECT_DELETE: 'Project Deleted Successfully',
   PROJECT_REVERT: 'Project Reverted Successfully',
   LOGS_NOT_FOUND: 'Sorry, no logs found for requested stack migration.',
