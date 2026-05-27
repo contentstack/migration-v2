@@ -9,9 +9,18 @@ const options = () => ({
   }
 });
 
-export const getAllStacksInOrg = async (orgId: string, searchText: string) => {
+export const getAllStacksInOrg = async (
+  orgId: string,
+  searchText: string,
+  sourceRegion?: string,
+  appTokenOverride?: string
+) => {
   try {
-    return await getCall(`${API_VERSION}/org/${orgId}/stacks/${searchText}?`, options());
+    const query = sourceRegion ? `?source_region=${encodeURIComponent(sourceRegion)}` : '?';
+    const token = appTokenOverride ?? getDataFromLocalStorage('app_token');
+    return await getCall(`${API_VERSION}/org/${orgId}/stacks/${searchText}${query}`, {
+      headers: { app_token: token || '' }
+    });
   } catch (error) {
     return error;
   }

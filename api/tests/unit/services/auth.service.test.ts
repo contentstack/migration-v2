@@ -102,7 +102,7 @@ describe('auth.service', () => {
       expect(result.data.app_token).toBe('jwt-token');
     });
 
-    it('should throw BadRequestError for non-admin/non-owner user', async () => {
+    it('should return app_token when user has org membership without admin flags (role payload fallback)', async () => {
       mockHttps.mockResolvedValue({
         status: 200,
         data: {
@@ -116,9 +116,29 @@ describe('auth.service', () => {
           },
         },
       });
+      mockGenerateToken.mockReturnValue('jwt-token');
+
+      const result = await authService.login(createReq() as any);
+
+      expect(result.status).toBe(200);
+      expect(result.data.app_token).toBe('jwt-token');
+    });
+
+    it('should throw BadRequestError when user has no organizations', async () => {
+      mockHttps.mockResolvedValue({
+        status: 200,
+        data: {
+          user: {
+            uid: 'user-123',
+            email: 'test@example.com',
+            authtoken: 'cs-token',
+            organizations: [],
+          },
+        },
+      });
 
       await expect(authService.login(createReq() as any)).rejects.toThrow(
-        "Sorry, You Don't have admin access in any of the Organisation"
+        'You are not a member of any Contentstack organization in this region (or organization list is empty).'
       );
     });
 

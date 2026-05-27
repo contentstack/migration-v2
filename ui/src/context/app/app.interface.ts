@@ -175,6 +175,26 @@ export interface ILegacyCms {
   selectedCms: ICMSType;
   selectedFileFormat: ICardType;
   uploadedFile: IFile;
+  source_details?: {
+    source_mode: 'credentials' | 'imported_export';
+    source_region_id: string;
+    source_org_id: string;
+    source_stack_id: string;
+    source_branch: string;
+    imported_data_path: string;
+    exported_at?: string;
+    export_path?: string;
+  };
+  audit?: {
+    generated_at?: string;
+    summary?: {
+      unused_assets?: number;
+      unpublished_entries?: number;
+      empty_content_types?: number;
+      unused_global_fields?: number;
+    };
+    is_mapper_generated?: boolean;
+  };
   affix: string;
   isRestictedKeywordCheckboxChecked: boolean;
   isFileFormatCheckboxChecked: boolean;
@@ -217,6 +237,7 @@ export interface INewMigration {
   project_current_step: number;
   settings:ISetting;
   iteration: number;
+  /** Primary migration flow CTA label (MigrationFlowHeader) */
   stepValue?: string;
 }
 
@@ -351,6 +372,14 @@ export const DEFAULT_LEGACY_CMS: ILegacyCms = {
   selectedCms: DEFAULT_CMS_TYPE,
   selectedFileFormat: defaultCardType,
   uploadedFile: DEFAULT_FILE,
+  source_details: {
+    source_mode: 'imported_export',
+    source_region_id: '',
+    source_org_id: '',
+    source_stack_id: '',
+    source_branch: '',
+    imported_data_path: ''
+  },
   affix: '',
   isRestictedKeywordCheckboxChecked: false,
   isFileFormatCheckboxChecked: false,

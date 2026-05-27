@@ -21,25 +21,32 @@ import { Server } from 'socket.io';
 import fs from 'fs';
 import path from 'path';
 import { getSafePath } from './utils/sanitize-path.utils.js';
-// Initialize file watcher for the log file
+// Tail log file for Socket.IO. awaitWriteFinish must be OFF: the CLI appends frequently via
+// appendFileSync; each write resets awaitWriteFinish’s stability timer so "change" fired only
+// after long quiet periods — logs appeared very late. Polling interval trades CPU vs latency.
 const watcher = chokidar.watch(config.LOG_FILE_PATH, {
-  usePolling: true, // Enables polling to detect changes in all environments
-  interval: 1, // Poll every 100ms (you can adjust this if needed)
-  awaitWriteFinish: {
-    // Wait for file to finish being written before triggering
-    stabilityThreshold: 10, // Time to wait before considering the file stable
-    pollInterval: 1, // Interval at which to poll for file stability
-  },
-  persistent: true, // Keeps watching the file even after initial change
-}); // Initialize with initial log path
+  usePolling: true,
+  interval: 15,
+  awaitWriteFinish: false,
+  persistent: true,
+});
 
 let io: Server; // Socket.IO server instance
+
+/** Byte offset for tailing the active log file; must reset when switching files. */
+let logTailByteOffset = 0;
 
 // Dynamically change the log file path and update the watcher
 export async function setLogFilePath(newPath: string) {
   try {
     // Ensure the new log file path is absolute and valid
     const absolutePath = getSafePath(path.resolve(newPath));
+    const previousResolved = config.LOG_FILE_PATH
+      ? path.resolve(config.LOG_FILE_PATH)
+      : '';
+    if (previousResolved && previousResolved !== absolutePath) {
+      logTailByteOffset = 0;
+    }
     // Check if the new log file exists
     // Stop watching the old log file
     if (config.LOG_FILE_PATH) {
@@ -111,7 +118,6 @@ try {
         credentials: true,
       },
     });
-    let fileOffset = 0;
     const CHUNK_SIZE = 1024 * 1024; // Limit batch size to 1MB
 
     // Emit initial log file content to connected clients
@@ -121,7 +127,7 @@ try {
         const fileStats = await fs.promises.stat(path);
 
         // Read the entire file if there is an update (new logs or changes)
-        const stream = fs.createReadStream(path, { start: fileOffset });
+        const stream = fs.createReadStream(path, { start: logTailByteOffset });
         let fileData = '';
 
         stream.on('data', (chunk) => {
@@ -139,7 +145,7 @@ try {
           }
 
           // Update the file offset for the next read
-          fileOffset = fileStats.size;
+          logTailByteOffset = fileStats.size;
         });
 
         stream.on('error', (err) => {

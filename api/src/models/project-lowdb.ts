@@ -27,6 +27,42 @@ interface LegacyCMS {
   file_path: string;
   is_fileValid: boolean;
   is_localPath: boolean;
+  source_details?: {
+    source_mode: 'credentials' | 'imported_export';
+    source_region_id: string;
+    source_org_id: string;
+    source_stack_id: string;
+    source_branch: string;
+    imported_data_path: string;
+    exported_at?: string;
+    export_path?: string;
+  };
+  audit?: {
+    generated_at?: string;
+    summary?: {
+      unused_assets?: number;
+      unpublished_entries?: number;
+      empty_content_types?: number;
+      unused_global_fields?: number;
+    };
+    is_mapper_generated?: boolean;
+    excludedItems?: Array<{
+      uid: string;
+      type: string;
+      contentType?: string;
+      locale?: string;
+    }>;
+    selectionStats?: {
+      totalItems: number;
+      selectedItems: number;
+      excludedItems: number;
+    };
+  };
+  validation?: {
+    isValid?: boolean;
+    missing?: string[];
+    message?: string;
+  };
 }
 
 /**
@@ -66,6 +102,13 @@ interface Project {
   stackDetails: [];
   mapperKeys: object;
   extract_path: string;
+  source_locales?: Array<{
+    label: string;
+    value: string;
+    uid: string;
+    code: string;
+    name: string;
+  }>;
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;

@@ -230,6 +230,38 @@ describe('migration.service', () => {
       expect(mockProjectUpdate).toHaveBeenCalled();
     });
 
+    it('should set status to 4 when moving project to TESTING step (matches updateCurrentStep)', async () => {
+      mockHttps.mockResolvedValue({
+        status: 201,
+        data: { stack: { api_key: 'test-stack-status', name: 'T' } },
+      });
+
+      mockProjectUpdate.mockImplementationOnce((fn: (data: any) => void) => {
+        const data = {
+          projects: [
+            {
+              ...mockProjects[0],
+              status: 3,
+              current_step: 4,
+              test_stacks: [] as any[],
+            },
+          ],
+        };
+        fn(data);
+        expect(data.projects[0].current_step).toBe(5);
+        expect(data.projects[0].status).toBe(4);
+      });
+
+      const req = createMockReq({
+        body: {
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
+          name: 'MyStack',
+        },
+      });
+
+      await migrationService.createTestStack(req);
+    });
+
     it('should return error when create stack API fails', async () => {
       vi.spyOn(
         await import('../../../src/utils/index.js'),

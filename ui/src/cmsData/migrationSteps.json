@@ -216,16 +216,24 @@
       "group_name": "Stacks"
     },
     {
+      "flow_id": "auditReport",
+      "_metadata": { "uid": "csauditstep0001" },
+      "name": 3,
+      "title": "Audit Report",
+      "description": "Review source stack audit before mapping and migration",
+      "group_name": "Audit"
+    },
+    {
       "flow_id": "contentMapping",
       "_metadata": { "uid": "cs82c582021cc46a87" },
-      "name": 3,
+      "name": 4,
       "title": "Content Mapping",
       "description": "Review of content mapping on the target stack",
       "group_name": "Layout"
     },
     {
       "flow_id": "testMigration",
-      "name": 4,
+      "name": 5,
       "title": "Test Migration",
       "description": "Preview the migration process",
       "group_name": "Layout"
@@ -233,7 +241,7 @@
     {
       "flow_id": "migrationExecution",
       "_metadata": { "uid": "csb100b7a598d9c333" },
-      "name": 5,
+      "name": 6,
       "title": "Migration Execution",
       "description": "Wait for the execution for migration complete.",
       "group_name": "SeeDetails"

@@ -57,6 +57,26 @@ export const updateFileFormatData = (orgId: string, projectId: string, data: Obj
   }
 };
 
+export const updateSourceConfigData = (
+  orgId: string,
+  projectId: string,
+  data: ObjectType
+) => {
+  try {
+    return putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/source-config`,
+      data,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
 export const updateDestinationStack = (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return putCall(
@@ -305,20 +325,122 @@ export const createTestStack = async (orgId: string, projectId: string, data: Ob
   }
 };
 
+/** Test migration can run for a long time (full Contentstack import). */
+const TEST_MIGRATION_TIMEOUT_MS = 3 * 60 * 60 * 1000;
+
 export const createTestMigration = async (orgId: string, projectId: string) => {
   try {
     return await postCall(
-      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`, {}, options());
+      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`,
+      {},
+      { ...options(), timeout: TEST_MIGRATION_TIMEOUT_MS }
+    );
   } catch (error) {
     return error;
   }
 };
 
+const FINAL_MIGRATION_TIMEOUT_MS = 6 * 60 * 60 * 1000;
+
 export const startMigration = async (orgId: string, projectId: string) => {
   try {
     return await postCall(
-      `${API_VERSION}/migration/start/${orgId}/${projectId}`, {}, options());
+      `${API_VERSION}/migration/start/${orgId}/${projectId}`,
+      {},
+      { ...options(), timeout: FINAL_MIGRATION_TIMEOUT_MS }
+    );
   } catch (error) {
+    return error;
+  }
+};
+
+export const exportSourceStack = async (orgId: string, projectId: string) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/source/export/${orgId}/${projectId}`,
+      {},
+      options()
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
+export const validateSourceExport = async (orgId: string, projectId: string) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/source/validate/${orgId}/${projectId}`,
+      {},
+      options()
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
+export const runSourceAudit = async (orgId: string, projectId: string) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/audit/run/${orgId}/${projectId}`,
+      {},
+      options()
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
+export const getSourceAudit = async (projectId: string, moduleName = 'all') => {
+  try {
+    return await getCall(
+      `${API_VERSION}/migration/audit/${projectId}/${moduleName}`,
+      options()
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
+export const updateAuditSelections = async (orgId: string, projectId: string, excludedItems: any[], selectionStats: any) => {
+  const url = `${API_VERSION}/org/${orgId}/project/${projectId}`;
+  const payload = { 
+    legacy_cms: {
+      audit: {
+        excludedItems, 
+        selectionStats,
+        updated_at: new Date().toISOString()
+      }
+    }
+  };
+  
+  try {
+    const response = await putCall(url, payload, options());
+    return response;
+  } catch (error) {
+    console.error('API Error - updateAuditSelections:', error);
+    return error;
+  }
+};
+
+/** Persists audit summary to project JSON so updateCurrentStep(AUDIT→CONTENT_MAPPING) can pass. */
+export const persistAuditSummary = async (
+  orgId: string,
+  projectId: string,
+  summary: unknown
+) => {
+  const url = `${API_VERSION}/org/${orgId}/project/${projectId}`;
+  const payload = {
+    legacy_cms: {
+      audit: {
+        summary,
+        summary_generated_at: new Date().toISOString()
+      }
+    }
+  };
+  try {
+    return await putCall(url, payload, options());
+  } catch (error) {
+    console.error('API Error - persistAuditSummary:', error);
     return error;
   }
 };

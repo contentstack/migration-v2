@@ -20,6 +20,23 @@ export const getUser = async () => {
   }
 };
 
+/** Profile for a specific JWT (e.g. regional source login) without replacing main `app_token`. */
+export const getUserProfileWithToken = async (appToken: string) => {
+  const options = {
+    headers: {
+      app_token: appToken
+    }
+  };
+  try {
+    return await getCall(`${API_VERSION}/user/profile`, options);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in getUserProfileWithToken: ${error.message}`);
+    }
+    throw new Error('Unknown error in getUserProfileWithToken');
+  }
+};
+
 export const getAllLocales = async (orgId: string) => {
   const options = {
     headers: {
@@ -37,3 +54,4 @@ export const getAllLocales = async (orgId: string) => {
     }
   }
 };
+

@@ -80,6 +80,7 @@ describe('user.service', () => {
 
       expect(result.status).toBe(200);
       expect(result.data.user.email).toBe('test@example.com');
+      expect(result.data.user.region).toBe('NA');
       expect(result.data.user.orgs).toHaveLength(2);
       expect(getAppOrganization).not.toHaveBeenCalled();
     });
@@ -142,6 +143,7 @@ describe('user.service', () => {
 
       expect(result?.status).toBe(200);
       expect(result?.data?.user?.email).toBe('sso@example.com');
+      expect(result?.data?.user?.region).toBe('NA');
       expect(result?.data?.user?.orgs).toEqual([
         { org_id: 'org-1', org_name: 'Test Org' },
       ]);

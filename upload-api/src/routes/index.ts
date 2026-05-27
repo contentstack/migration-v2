@@ -22,6 +22,13 @@ const router: Router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+type FileProcessingResponse = {
+  status: number;
+  message: string;
+  file_details: any;
+  file?: string;
+};
+
 // Copy a file or directory from the host into the container's shared extracted_files volume.
 // Host filesystem is mounted at /host (read-only) via docker-compose.
 // Accepts: { localPath: string } — the path the user typed in the UI.
@@ -471,7 +478,12 @@ router.get(
                 return;
               }
 
-              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
+              const data = (await handleFileProcessing(
+                fileExt,
+                zipBuffer,
+                cmsType,
+                name
+              )) as FileProcessingResponse;
 
               if (!res.headersSent) {
                 res.status(data?.status || 200).json(data);
@@ -481,7 +493,7 @@ router.get(
                 const safeName = sanitizeFilename(name);
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
                 let filePath = path.join(baseDir, safeName);
-                if (data?.file !== undefined) {
+                if (typeof data?.file === 'string' && data.file.length > 0) {
                   const safeFile = sanitizeFilename(data.file);
                   filePath = path.join(baseDir, safeName, safeFile);
                 }
@@ -536,14 +548,19 @@ router.get(
             }
           });
 
-          //buffer fully stremd
+          //buffer fully streamed
           bodyStream.on('end', async () => {
             try {
               if (!zipBuffer) {
                 throw new Error('No data collected from the stream.');
               }
 
-              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
+              const data = (await handleFileProcessing(
+                fileExt,
+                zipBuffer,
+                cmsType,
+                fileName
+              )) as FileProcessingResponse;
 
               res.status(data?.status || 200).json(data);
 
@@ -554,7 +571,7 @@ router.get(
                 let filePath = path.join(baseDir, safeFileName);
 
                 // If the processor returned a specific file/folder, update the path
-                if (data?.file) {
+                if (typeof data?.file === 'string' && data.file.length > 0) {
                   const safeDataFile = sanitizeFilename(data.file);
                   filePath = path.join(baseDir, safeFileName, safeDataFile);
                 }

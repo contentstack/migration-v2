@@ -1,0 +1,539 @@
+@import '../../scss/variables';
+
+.audit-report-content-block {
+  padding: $px-24 $px-30 $px-60 $px-24; // Added more bottom padding
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 70vh;
+  position: relative;
+
+  .audit-intro {
+    margin-bottom: $space-24;
+    
+    h2 {
+      font-family: $font-family-primary;
+      font-size: $size-font-5-xl; // 28px
+      font-weight: $font-weight-bold;
+      color: $color-font-black;
+      margin-bottom: $space-12;
+      line-height: $line-height-condensed;
+    }
+    
+    .pb-3 {
+      font-family: $font-family-primary;
+      font-size: $size-font-xl; // 16px
+      font-weight: $font-weight-regular;
+      color: $color-font-base;
+      line-height: $line-height-default;
+      max-width: 700px;
+      padding-bottom: $space-20;
+    }
+  }
+
+  .audit-generate-section {
+    margin-bottom: $space-24;
+  }
+
+  .audit-placeholder {
+    text-align: center;
+    padding: $px-40 $px-20;
+    color: $color-font-gray;
+    
+    p {
+      font-family: $font-family-primary;
+      font-size: $size-font-xl;
+      font-weight: $font-weight-regular;
+      color: $color-font-base;
+      margin-top: $space-16;
+      line-height: $line-height-default;
+    }
+  }
+
+  .audit-summary-stats {
+    margin-bottom: $space-32;
+    
+    h3 {
+      font-family: $font-family-primary;
+      font-size: $size-font-20; // 20px
+      font-weight: $font-weight-semi-bold;
+      color: $color-font-black;
+      margin-bottom: $space-16;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: $space-16;
+
+      .stat-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: $space-20;
+        background: $color-brand-white-base;
+        border: 1px solid $color-base-gray-40;
+        border-radius: $radii-4;
+        text-align: center;
+
+        .stat-number {
+          font-family: $font-family-primary;
+          font-size: $size-font-4-xl; // 30px
+          font-weight: $font-weight-bold;
+          color: $color-brand-primary-base;
+          margin: $space-10 0 $space-6 0;
+        }
+
+        .stat-label {
+          font-family: $font-family-primary;
+          font-size: $size-font-large; // 14px
+          font-weight: $font-weight-medium;
+          color: $color-font-base;
+        }
+      }
+    }
+    
+    .view-details-section {
+      margin-top: $space-20;
+      text-align: center;
+      padding: $space-16;
+      border-top: 1px solid $color-base-gray-40;
+    }
+  }
+
+  .audit-placeholder, .audit-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: $space-50;
+    background: $color-base-white-10;
+    border: 2px dashed $color-base-gray-40;
+    border-radius: $radii-4;
+    text-align: center;
+    margin: $space-24 0;
+
+    p {
+      font-family: $font-family-primary;
+      font-size: $size-font-large;
+      color: $color-font-base;
+      margin-top: $space-16;
+      margin-bottom: 0;
+    }
+  }
+
+  .audit-loading {
+    border-color: $color-brand-primary-base;
+    background: $color-brand-draft-light;
+  }
+
+  .audit-table-section {
+    
+    .table-header-controls {
+      display: flex;
+      align-items: center;
+      gap: $space-16;
+      padding: $space-12 $space-16;
+      background: $color-brand-white-base;
+      border: 1px solid $color-base-gray-40;
+      border-bottom: none;
+      border-radius: $radii-4 $radii-4 0 0;
+      min-height: 52px;
+
+      .search-section {
+        flex: 1;
+        max-width: 300px;
+      }
+
+      .filter-section {
+        flex: 0 0 auto;
+        width: 180px;
+        margin-left: auto;
+        margin-right: 16px;
+
+        .type-filter {
+          min-width: 150px;
+        }
+      }
+    }
+    
+    // Make sure table connects seamlessly
+    & > div:last-child {
+      border: 1px solid $color-base-gray-40;
+      border-top: none;
+      border-radius: 0 0 $radii-4 $radii-4;
+    }
+    
+    // Venus InfiniteScrollTable uses flex + block layout; min-width: 0 lets columns honor
+    // their width so long UIDs/filenames do not spill into the next column.
+    .Table__body__column,
+    .Table__head__column {
+      min-width: 0;
+    }
+
+    .Table__head__column-text {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .table-cell-tooltip {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+
+      .tippy-wrapper {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+    }
+
+    .table-cell {
+      box-sizing: border-box;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      padding: 8px 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // Keep pagination footer opaque above virtualized rows.
+    .TablePagination {
+      position: relative;
+      z-index: 4;
+      background: $color-brand-white-base;
+      border-top: 1px solid $color-base-gray-40;
+    }
+
+    .TablePagination__info,
+    .TablePagination__navigation {
+      background: $color-brand-white-base;
+    }
+    
+    // Minimal badge styling only - let Venus handle everything else
+    .type-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+
+      &.type-asset {
+        background: $color-brand-attention-light;
+        color: $color-brand-attention-dark;
+      }
+
+      &.type-entry {
+        background: $color-brand-draft-light;
+        color: $color-brand-draft-base;
+      }
+
+      &.type-content_type {
+        background: $color-brand-success-light;
+        color: $color-brand-success-base;
+      }
+
+      &.type-global_field {
+        background: $color-base-white-10;
+        color: $color-stepper-title;
+      }
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+
+      &.published {
+        background: $color-brand-success-light;
+        color: $color-brand-success-base;
+      }
+
+      &.unpublished {
+        background: $color-brand-attention-light;
+        color: $color-brand-attention-dark;
+      }
+
+      &.empty {
+        background: $color-brand-fail-light;
+        color: $color-brand-fail-base;
+      }
+
+      &.has-content {
+        background: $color-brand-success-light;
+        color: $color-brand-success-base;
+      }
+
+      &.unused {
+        background: $color-brand-fail-light;
+        color: $color-brand-fail-base;
+      }
+
+      &.in-use {
+        background: $color-brand-success-light;
+        color: $color-brand-success-base;
+      }
+    }
+  }
+}
+
+// Legacy styles for old audit report (keeping for fallback)
+.audit-summary {
+  background: $color-brand-white-base;
+  border: 1px solid $color-base-gray-40;
+  border-radius: $radii-4;
+  padding: $space-24;
+  margin-top: $space-16;
+  
+  .audit-summary-title {
+    font-family: $font-family-primary;
+    font-size: $size-font-2-xl; // 18px
+    font-weight: $font-weight-semi-bold;
+    color: $color-font-black;
+    margin-bottom: $space-20;
+  }
+  
+  .audit-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: $space-16;
+    margin-bottom: $space-24;
+    
+    .audit-stat-item {
+      display: flex;
+      align-items: center;
+      padding: $space-20;
+      background: $color-base-white-10;
+      border: 1px solid $color-base-gray-40;
+      border-radius: $radii-4;
+      gap: $space-16;
+      
+      .stat-content {
+        display: flex;
+        flex-direction: column;
+        
+        .stat-number {
+          font-family: $font-family-primary;
+          font-size: $size-font-4-xl; // 30px
+          font-weight: $font-weight-bold;
+          color: $color-brand-primary-base;
+          margin-bottom: $space-6;
+        }
+        
+        .stat-label {
+          font-family: $font-family-primary;
+          font-size: $size-font-large; // 14px
+          font-weight: $font-weight-medium;
+          color: $color-font-base;
+        }
+      }
+    }
+  }
+
+  .audit-actions {
+    display: flex;
+    justify-content: center;
+    margin-bottom: $space-20;
+  }
+
+
+  // Selection summary styles
+  .selection-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $space-12 $space-16;
+    background-color: $color-brand-draft-light;
+    border: 1px solid $color-brand-secondary-lightest;
+    border-radius: 4px;
+    margin-bottom: $space-16;
+
+    .selection-stats {
+      display: flex;
+      align-items: center;
+      gap: $space-6;
+      
+      .selected-count {
+        font-size: $size-font-large;
+        color: $color-font-base;
+        font-weight: $font-weight-medium;
+      }
+      
+      .excluded-count {
+        font-size: $size-font-medium;
+        color: $color-font-gray;
+        font-style: italic;
+      }
+    }
+
+    .selection-actions {
+      display: flex;
+      gap: $space-6;
+    }
+  }
+
+  // Style for excluded/unselected rows
+  .audit-table-row {
+    &.excluded {
+      opacity: 0.6;
+      background-color: $color-base-white-10;
+      
+      .table-cell {
+        color: $color-font-gray;
+      }
+      
+      .type-badge, .status-badge {
+        opacity: 0.7;
+      }
+    }
+  }
+
+  // Selection summary section
+  .selection-summary {
+    margin-bottom: $space-6;
+    padding: $space-4;
+    background: $color-base-white-10;
+    border: 1px solid $color-base-gray-40;
+    border-radius: $radii-4;
+
+    .selection-stats {
+      display: flex;
+      gap: $space-6;
+      margin-bottom: $space-4;
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .stat-label {
+          font-size: 12px;
+          color: $color-font-gray;
+          margin-bottom: $space-4;
+        }
+
+        .stat-value {
+          font-size: 18px;
+          font-weight: 600;
+
+          &.selected {
+            color: $color-brand-success-base;
+          }
+
+          &.excluded {
+            color: $color-brand-attention-base;
+          }
+        }
+      }
+    }
+
+    .excluded-items-info {
+      .excluded-details {
+        summary {
+          cursor: pointer;
+          font-weight: 500;
+          color: $color-brand-attention-base;
+          font-size: 14px;
+          
+          &:hover {
+            color: $color-brand-attention-dark;
+          }
+        }
+
+        .excluded-list {
+          margin-top: $space-4;
+          max-height: 200px;
+          overflow-y: auto;
+          border: 1px solid $color-base-gray-40;
+          border-radius: $radii-4;
+          background: $color-brand-white-base;
+
+          .excluded-item {
+            padding: $space-4 $space-4;
+            border-bottom: 1px solid $color-base-gray-40;
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            .excluded-item-info {
+              display: flex;
+              gap: $space-4;
+              align-items: center;
+
+              .excluded-uid {
+                font-family: monospace;
+                font-size: 12px;
+                color: $color-font-gray;
+                min-width: 150px;
+              }
+
+              .excluded-type {
+                background: $color-brand-attention-light;
+                color: $color-brand-attention-dark;
+                padding: 2px 6px;
+                border-radius: $radii-4;
+                font-size: 11px;
+                font-weight: 500;
+                text-transform: uppercase;
+                min-width: 80px;
+                text-align: center;
+              }
+
+              .excluded-title {
+                font-weight: 500;
+                flex: 1;
+              }
+
+              .excluded-content-type {
+                color: $color-font-gray;
+                font-size: 12px;
+                font-style: italic;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Increase search input width in table
+  :global(.venus-table) {
+    :global(.search-input) {
+      min-width: 350px !important;
+      width: 350px !important;
+    }
+
+    :global([data-testid="search-input"]) {
+      min-width: 350px !important;
+      width: 350px !important;
+    }
+
+    :global(.venus-text-input) {
+      min-width: 350px !important;
+      width: 350px !important;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+  }
+  to {
+    opacity: 1;
+    max-height: 400px;
+    overflow: visible;
+  }
+}

@@ -10,6 +10,8 @@ export const API_VERSION = import.meta.env.VITE_API_VERSION ?? 'v2';
 export const AUTH_ROUTES = `${API_VERSION}/auth`;
 
 export const LOGIN_SUCCESSFUL_MESSAGE = 'Login Successful.';
+/** postMessage `data.source` when regional re-login completes in a popup (must match listener in LoadUploadFile). */
+export const REGION_LOGIN_POPUP_POSTMESSAGE_SOURCE = 'cs-migration-region-login';
 export const TFA_MESSAGE = 'Please login using the Two-Factor verification Token';
 export const TFA_VIA_SMS_MESSAGE = 'Two-Factor Authentication Token sent via SMS.';
 

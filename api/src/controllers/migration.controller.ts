@@ -16,6 +16,26 @@ const getAuditData = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getAuditData(req);
   res.status(resp?.status).json(resp);
 };
+
+const exportSourceStack = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.exportSourceStack(req);
+  res.status(resp?.status).json(resp);
+};
+
+const validateSourceExport = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.validateSourceExport(req);
+  res.status(resp?.status).json(resp);
+};
+
+const runSourceAudit = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.runSourceAudit(req);
+  res.status(resp?.status).json(resp);
+};
+
+const getSourceAuditSummary = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.getSourceAuditSummary(req);
+  res.status(resp?.status).json(resp);
+};
 /**
  * Start Test Migartion.
  *
@@ -24,8 +44,8 @@ const getAuditData = async (req: Request, res: Response): Promise<void> => {
  * @returns {Promise<void>} - A Promise that resolves when the stack is deleted.
  */
 const startTestMigration = async (req: Request, res: Response): Promise<void> => {
-  const resp = migrationService.startTestMigration(req);
-  res.status(200).json(resp);
+  const resp = await migrationService.startTestMigration(req);
+  res.status(resp?.status ?? 200).json(resp);
 };
 
 
@@ -37,8 +57,8 @@ const startTestMigration = async (req: Request, res: Response): Promise<void> =>
  * @returns {Promise<void>} - A Promise that resolves when the stack is deleted.
  */
 const startMigration = async (req: Request, res: Response): Promise<void> => {
-  const resp = migrationService.startMigration(req);
-  res.status(200).json(resp);
+  const resp = await migrationService.startMigration(req);
+  res.status(resp?.status ?? 200).json(resp);
 };
 
 /**
@@ -75,6 +95,10 @@ const restartMigration = async (req: Request, res: Response): Promise<void> => {
 
 export const migrationController = {
   createTestStack,
+  exportSourceStack,
+  validateSourceExport,
+  runSourceAudit,
+  getSourceAuditSummary,
   deleteTestStack,
   startTestMigration,
   startMigration,

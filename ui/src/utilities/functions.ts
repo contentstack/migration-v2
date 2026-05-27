@@ -52,9 +52,13 @@ export const failureNotification = (
   errorMessage: string,
   options?: FailureNotificationOptions
 ) => {
+  const text =
+    typeof errorMessage === 'string' && errorMessage.trim().length > 0
+      ? errorMessage.trim()
+      : 'Something went wrong. Please try again.';
   Notification({
-    text: errorMessage,
-    notificationContent: { text: errorMessage },
+    text,
+    notificationContent: { text },
     notificationProps: {
       hideProgressBar: true,
       position: 'bottom-center',

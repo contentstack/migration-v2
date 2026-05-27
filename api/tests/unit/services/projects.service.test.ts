@@ -475,7 +475,7 @@ describe('projects.service', () => {
       expect(result).toBeDefined();
     });
 
-    it('should advance from DESTINATION_STACK to CONTENT_MAPPING', async () => {
+    it('should advance from DESTINATION_STACK to AUDIT_REPORT', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 0,
@@ -493,11 +493,35 @@ describe('projects.service', () => {
       expect(result).toBeDefined();
     });
 
-    it('should advance from CONTENT_MAPPING to TESTING', async () => {
+    it('should advance from AUDIT_REPORT to CONTENT_MAPPING', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 3,
         current_step: 3,
+        legacy_cms: {
+          cms: 'wordpress',
+          file_format: 'json',
+          audit: { summary: { unused_assets: 0 } },
+        },
+        destination_stack_id: 'stack-1',
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+      expect(result.current_step).toBe(4);
+      expect(result.status).toBe(3);
+    });
+
+    it('should advance from CONTENT_MAPPING to TESTING', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 3,
+        current_step: 4,
         legacy_cms: { cms: 'wordpress', file_format: 'json' },
         destination_stack_id: 'stack-1',
         content_mapper: ['ct-1'],
@@ -516,7 +540,7 @@ describe('projects.service', () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 4,
-        current_step: 4,
+        current_step: 5,
         legacy_cms: { cms: 'wordpress', file_format: 'json' },
         destination_stack_id: 'stack-1',
         content_mapper: ['ct-1'],
@@ -537,7 +561,7 @@ describe('projects.service', () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 4,
-        current_step: 5,
+        current_step: 6,
         legacy_cms: { cms: 'wordpress', file_format: 'json' },
         destination_stack_id: 'stack-1',
         content_mapper: ['ct-1'],
@@ -683,20 +707,57 @@ describe('projects.service', () => {
   });
 
   describe('getMigratedStacks', () => {
-    it('should return destination stacks of completed projects', async () => {
+    it('should return destination stacks of other completed projects (not current project)', async () => {
       const mockModel = await import('../../../src/models/project-lowdb.js');
       (mockModel.default as any).data = {
         projects: [
-          { status: 5, current_step: 5, destination_stack_id: 'stack-1' },
+          {
+            id: 'proj-self',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-a',
+          },
+          {
+            id: 'proj-other',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-b',
+          },
+          {
+            id: 'proj-deleted',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-c',
+            isDeleted: true,
+          },
           { status: 0, current_step: 1, destination_stack_id: '' },
         ],
       };
 
       const result = await projectService.getMigratedStacks(
-        makeReq({}, { token_payload: tokenPayload })
+        makeReq({ projectId: 'proj-self' }, { token_payload: tokenPayload })
       );
       expect(result.status).toBe(200);
-      expect(result.destinationStacks).toEqual(['stack-1']);
+      expect(result.destinationStacks).toEqual(['stack-b']);
+    });
+
+    it('should return empty when only the current project is completed for its stack', async () => {
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = {
+        projects: [
+          {
+            id: 'proj-self',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-a',
+          },
+        ],
+      };
+
+      const result = await projectService.getMigratedStacks(
+        makeReq({ projectId: 'proj-self' }, { token_payload: tokenPayload })
+      );
+      expect(result.destinationStacks).toEqual([]);
     });
 
     it('should return empty array when no completed projects', async () => {
@@ -704,14 +765,14 @@ describe('projects.service', () => {
       (mockModel.default as any).data = { projects: [] };
 
       const result = await projectService.getMigratedStacks(
-        makeReq({}, { token_payload: tokenPayload })
+        makeReq({ projectId: 'any' }, { token_payload: tokenPayload })
       );
       expect(result.destinationStacks).toEqual([]);
     });
 
     it('should throw BadRequestError when token_payload missing', async () => {
       await expect(
-        projectService.getMigratedStacks(makeReq({}, {}))
+        projectService.getMigratedStacks(makeReq({ projectId: 'p1' }, {}))
       ).rejects.toThrow('Token payload is required');
     });
   });

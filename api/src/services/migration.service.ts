@@ -18,6 +18,7 @@ import {
   CMS,
   GET_AUDIT_DATA,
   MIGRATION_DATA_CONFIG,
+  NEW_PROJECT_STATUS,
 } from '../constants/index.js';
 import {
   BadRequestError,
@@ -52,6 +53,46 @@ import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
 import { clearStaleEntries, enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
 import { removeExistingAssets, saveAssetMetadata } from '../utils/asset-update.utils.js';
+import { contentMapperService } from './contentMapper.service.js';
+import { exportStackCli } from './exportCli.service.js';
+import {
+  validateExportStructure,
+  resolveContentstackExportRoot,
+} from './validation.service.js';
+import { generateAuditData } from './audit.service.js';
+import auditDb from '../models/audit-lowdb.js';
+
+/** Cleans up Contentstack CLI backup folders after migration (stack-to-stack). */
+const cleanupBackupFolders = async (apiPath: string, cms: string) => {
+  try {
+    if (cms !== CMS.CONTENTSTACK) {
+      console.log(
+        `Skipping backup cleanup for ${cms} migration - no backups expected`,
+      );
+      return;
+    }
+
+    const backupPattern = /_backup_\d+$/;
+    const items = await fsPromises.readdir(apiPath);
+
+    const backupFolders = items.filter((item) => backupPattern.test(item));
+
+    if (backupFolders.length === 0) {
+      console.log('No backup folders found to cleanup');
+      return;
+    }
+
+    for (const item of backupFolders) {
+      const backupPath = path.join(apiPath, item);
+      console.log(`Cleaning up Contentstack backup folder: ${backupPath}`);
+      await fsPromises.rm(backupPath, { recursive: true, force: true });
+    }
+
+    console.log(`Cleaned up ${backupFolders.length} backup folder(s)`);
+  } catch (error) {
+    console.warn('Failed to cleanup backup folders:', error);
+  }
+};
 
 /**
  * Creates a test stack.  
@@ -151,7 +192,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       
 
       ProjectModelLowdb.update((data: any) => {
-        data.projects[index].current_step = STEPPER_STEPS['TESTING'];
+        // Match projects.service updateCurrentStep(CONTENT_MAPPING → TESTING)
+        data.projects[index].current_step = STEPPER_STEPS.TESTING;
+        data.projects[index].status = NEW_PROJECT_STATUS[4];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
         data.projects[index].test_stacks.push({
           stackUid: res?.data?.stack?.api_key,
@@ -303,8 +346,17 @@ const startTestMigration = async (req: Request): Promise<any> => {
     .get('projects')
     .find({ id: projectId })
     .value();
+  if (!project) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+  const targetTestStackId = `${project?.current_test_stack_id || ""}`.trim();
+  if (!targetTestStackId) {
+    throw new BadRequestError(
+      "Test stack API key is missing. Please create/select a test stack and retry.",
+    );
+  }
   const packagePath = project?.extract_path;
-  if (project?.current_test_stack_id) {
+  if (targetTestStackId) {
     const {
       legacy_cms: { cms, file_path },
     } = project;
@@ -319,24 +371,19 @@ const startTestMigration = async (req: Request): Promise<any> => {
     const loggerPath = path.join(
       logsBase,
       safeTestProjectId,
-      `${safeTestStackId}.log`
+      `${safeTestStackId}.log`,
     );
     assertResolvedPathUnderBase(logsBase, loggerPath);
     const message = getLogMessage(
-      'startTestMigration',
-      'Starting Test Migration...',
-      {}
+      "startTestMigration",
+      "Starting Test Migration...",
+      {},
     );
-    await customLogger(
-      projectId,
-      project?.current_test_stack_id,
-      'info',
-      message
-    );
+    await customLogger(projectId, targetTestStackId, "info", message);
     await setLogFilePath(loggerPath);
     const copyLogsToTestStack = async (
       stackUid: string,
-      projectLogPath: string
+      projectLogPath: string,
     ) => {
       try {
         // Sanitize stackUid using dedicated sanitization function to prevent path traversal
@@ -344,28 +391,28 @@ const startTestMigration = async (req: Request): Promise<any> => {
 
         // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
         if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
+          console.error("Invalid stack UID provided");
           return;
         }
 
         // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
+        const baseDir = path.join(process.cwd(), "migration-data");
         const resolvedBaseDir = path.resolve(baseDir);
 
         // Construct safe paths using only the validated sanitized stackUid
         const errorLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
-          'logs',
-          'import',
-          'error.log'
+          "logs",
+          "import",
+          "error.log",
         );
         const successLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          "logs",
+          "import",
+          "success.log",
         );
 
         // Final validation to ensure paths are within the expected base directory
@@ -374,12 +421,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
           !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
         ) {
           console.error(
-            'Invalid path detected, potential path traversal attempt'
+            "Invalid path detected, potential path traversal attempt",
           );
           return;
         }
 
-        let combinedLogs = '';
+        let combinedLogs = "";
 
         // Read and combine error logs - use realpath to canonicalize and validate path
         try {
@@ -390,9 +437,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const errorLogs = await fsPromises.readFile(
               canonicalErrorPath,
-              'utf8'
+              "utf8",
             );
-            combinedLogs += errorLogs + '\n';
+            combinedLogs += errorLogs + "\n";
           }
         } catch {
           // File doesn't exist or access denied - skip
@@ -401,7 +448,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         // Read and combine success logs - use realpath to canonicalize and validate path
         try {
           const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
+            successLogPath,
           );
           // Verify canonical path is still within base directory
           if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
@@ -409,7 +456,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const successLogs = await fsPromises.readFile(
               canonicalSuccessPath,
-              'utf8'
+              "utf8",
             );
             combinedLogs += successLogs;
           }
@@ -422,7 +469,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await fsPromises.appendFile(projectLogPath, combinedLogs);
         }
       } catch (error) {
-        console.error('Error copying logs:', error);
+        console.error("Error copying logs:", error);
       }
     };
 
@@ -449,7 +496,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       user_id,
       is_sso,
     });
-    
+
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.current_test_stack_id,
@@ -482,6 +529,19 @@ const startTestMigration = async (req: Request): Promise<any> => {
     });
 
     switch (cms) {
+      case CMS.CONTENTSTACK: {
+        const sourceExportPath =
+          project?.legacy_cms?.source_details?.export_path ||
+          project?.legacy_cms?.source_details?.imported_data_path ||
+          project?.extract_path;
+        if (!sourceExportPath) {
+          throw new BadRequestError(
+            "Source export path is required for Contentstack stack migration",
+          );
+        }
+        // Note: CLI import will be handled by runCli() below for consistent logging
+        break;
+      }
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
       case CMS.SITECORE_V10: {
@@ -499,55 +559,86 @@ const startTestMigration = async (req: Request): Promise<any> => {
             req,
             project?.current_test_stack_id,
             projectId,
-            project
+            project,
           );
           await siteCoreService?.createEnvironment(
-            project?.current_test_stack_id
+            project?.current_test_stack_id,
           );
           await siteCoreService?.createVersionFile(
-            project?.current_test_stack_id
+            project?.current_test_stack_id,
           );
         }
         break;
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId);
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
+          await wordpressService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+          );
+          await wordpressService?.createTaxonomy(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project,
+          );
+          await wordpressService?.createEntry(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project,
+          );
+          await wordpressService?.createLocale(
+            req,
+            project?.current_test_stack_id,
+            projectId,
+            project,
+          );
+          await wordpressService?.createVersionFile(
+            project?.current_test_stack_id,
+            projectId,
+          );
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        const cleanLocalPath = file_path?.replace?.(/\/$/, "");
         await contentfulService?.createLocale(
           cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
-          project
+          project,
         );
         await contentfulService?.createRefrence(
           cleanLocalPath,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createWebhooks(
           cleanLocalPath,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createEnvironment(
           cleanLocalPath,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createAssets(
           cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
-          true
+          true,
         );
         await contentfulService?.createTaxonomy(
           cleanLocalPath,
@@ -561,11 +652,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
           contentTypes,
           project?.mapperKeys,
           project?.stackDetails?.master_locale,
-          project
+          project,
         );
         await contentfulService?.createVersionFile(
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         break;
       }
@@ -589,7 +680,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           req,
           project?.current_test_stack_id,
           projectId,
-          project
+          project,
         );
         await aemService?.createVersionFile(project?.current_test_stack_id);
         break;
@@ -600,7 +691,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         const dbConfig = {
           host: project?.legacy_cms?.mySQLDetails?.host,
           user: project?.legacy_cms?.mySQLDetails?.user,
-          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          password: project?.legacy_cms?.mySQLDetails?.password || "",
           database: project?.legacy_cms?.mySQLDetails?.database,
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
@@ -612,12 +703,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
             project?.legacy_cms?.assetsConfig?.base_url ||
             req.body?.assetsConfig?.base_url ||
             process.env.DRUPAL_ASSETS_BASE_URL ||
-            '',
+            "",
           public_path:
             project?.legacy_cms?.assetsConfig?.public_path ||
             req.body?.assetsConfig?.public_path ||
             process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
-            '',
+            "",
         };
 
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
@@ -625,9 +716,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await drupalService?.createQuery(
           dbConfig,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
-
 
         // Step 3: Create assets from Drupal database
         await drupalService?.createAssets(
@@ -635,7 +725,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           project?.current_test_stack_id,
           projectId,
           true,
-          drupalAssetsConfig
+          drupalAssetsConfig,
         );
 
         // Step 4: Create references
@@ -643,14 +733,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
           dbConfig,
           project?.current_test_stack_id,
           projectId,
-          true
+          true,
         );
 
         // Step 5: Create taxonomy
         await drupalService?.createTaxonomy(
           dbConfig,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
 
         // Step 6: Create entries
@@ -661,7 +751,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           true,
           project?.stackDetails?.master_locale,
           project,
-          contentTypes
+          contentTypes,
         );
 
         // Step 7: Create locale
@@ -669,13 +759,13 @@ const startTestMigration = async (req: Request): Promise<any> => {
           dbConfig,
           project?.current_test_stack_id,
           projectId,
-          project
+          project,
         );
 
         // Step 8: Create version file
         await drupalService?.createVersionFile(
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         break;
       }
@@ -683,7 +773,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    if (cms !== CMS.AEM) {
+    if (cms !== CMS.AEM && cms !== CMS.CONTENTSTACK) {
       await testFolderCreator?.({
         destinationStackId: project?.current_test_stack_id,
       });
@@ -691,12 +781,40 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await utilsCli?.runCli(
       region,
       user_id,
-      project?.current_test_stack_id,
+      targetTestStackId,
       projectId,
       true,
-      loggerPath
+      loggerPath,
     );
+
+    // Handle CMS-specific post-migration tasks
+    if (cms === CMS.CONTENTSTACK) {
+      // Cleanup backup folders after successful test migration
+      const apiPath = path.resolve(process.cwd());
+      await cleanupBackupFolders(apiPath, cms);
+
+      // Update database to mark test stack as migrated
+      const projectIndex = ProjectModelLowdb.chain
+        .get("projects")
+        .findIndex({ id: projectId })
+        .value();
+      if (projectIndex > -1) {
+        await ProjectModelLowdb.update((data: any) => {
+          const testStacks = data.projects[projectIndex].test_stacks || [];
+          testStacks.forEach((item: any) => {
+            if (item.stackUid === targetTestStackId) {
+              item.isMigrated = true;
+            }
+          });
+        });
+      }
+    }
   }
+
+  return {
+    status: HTTP_CODES.OK,
+    data: { message: "Test migration completed successfully" },
+  };
 };
 
 /**
@@ -708,20 +826,20 @@ const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
 
-  if (typeof is_sso !== 'boolean') {
+  if (typeof is_sso !== "boolean") {
     throw new BadRequestError(
       'Missing or invalid SSO flag in token payload: expected boolean "is_sso".',
     );
   }
-  
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
-    .get('projects')
+    .get("projects")
     .find({ id: projectId })
     .value();
 
   const index = ProjectModelLowdb.chain
-    .get('projects')
+    .get("projects")
     .findIndex({ id: projectId })
     .value();
   if (index > -1) {
@@ -753,25 +871,25 @@ const startMigration = async (req: Request): Promise<any> => {
     const loggerPath = path.join(
       logsBase,
       safeFinalProjectId,
-      `${safeFinalStackId}.log`
+      `${safeFinalStackId}.log`,
     );
     assertResolvedPathUnderBase(logsBase, loggerPath);
     const message = getLogMessage(
-      'start Migration',
-      'Starting Migration...',
-      {}
+      "start Migration",
+      "Starting Migration...",
+      {},
     );
     await customLogger(
       projectId,
       project?.destination_stack_id,
-      'info',
-      message
+      "info",
+      message,
     );
     await setLogFilePath(loggerPath);
 
     const copyLogsToStack = async (
       stackUid: string,
-      projectLogPath: string
+      projectLogPath: string,
     ) => {
       try {
         // Sanitize stackUid using dedicated sanitization function to prevent path traversal
@@ -779,28 +897,28 @@ const startMigration = async (req: Request): Promise<any> => {
 
         // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
         if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
+          console.error("Invalid stack UID provided");
           return;
         }
 
         // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
+        const baseDir = path.join(process.cwd(), "migration-data");
         const resolvedBaseDir = path.resolve(baseDir);
 
         // Construct safe paths using only the validated sanitized stackUid
         const errorLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
-          'logs',
-          'import',
-          'error.log'
+          "logs",
+          "import",
+          "error.log",
         );
         const successLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          "logs",
+          "import",
+          "success.log",
         );
 
         // Final validation to ensure paths are within the expected base directory
@@ -809,12 +927,12 @@ const startMigration = async (req: Request): Promise<any> => {
           !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
         ) {
           console.error(
-            'Invalid path detected, potential path traversal attempt'
+            "Invalid path detected, potential path traversal attempt",
           );
           return;
         }
 
-        let combinedLogs = '';
+        let combinedLogs = "";
 
         // Read and combine error logs - use realpath to canonicalize and validate path
         try {
@@ -825,9 +943,9 @@ const startMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const errorLogs = await fsPromises.readFile(
               canonicalErrorPath,
-              'utf8'
+              "utf8",
             );
-            combinedLogs += errorLogs + '\n';
+            combinedLogs += errorLogs + "\n";
           }
         } catch {
           // File doesn't exist or access denied - skip
@@ -836,7 +954,7 @@ const startMigration = async (req: Request): Promise<any> => {
         // Read and combine success logs - use realpath to canonicalize and validate path
         try {
           const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
+            successLogPath,
           );
           // Verify canonical path is still within base directory
           if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
@@ -844,7 +962,7 @@ const startMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const successLogs = await fsPromises.readFile(
               canonicalSuccessPath,
-              'utf8'
+              "utf8",
             );
             combinedLogs += successLogs;
           }
@@ -857,7 +975,7 @@ const startMigration = async (req: Request): Promise<any> => {
           await fsPromises.appendFile(projectLogPath, combinedLogs);
         }
       } catch (error) {
-        console.error('Error copying logs:', error);
+        console.error("Error copying logs:", error);
       }
     };
 
@@ -917,6 +1035,19 @@ const startMigration = async (req: Request): Promise<any> => {
       current_test_stack_id: project?.destination_stack_id,
     });
     switch (cms) {
+      case CMS.CONTENTSTACK: {
+        const sourceExportPath =
+          project?.legacy_cms?.source_details?.export_path ||
+          project?.legacy_cms?.source_details?.imported_data_path ||
+          project?.extract_path;
+        if (!sourceExportPath) {
+          throw new BadRequestError(
+            "Source export path is required for Contentstack stack migration",
+          );
+        }
+        // Note: CLI import will be handled by runCli() below for consistent logging
+        break;
+      }
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
       case CMS.SITECORE_V10: {
@@ -934,10 +1065,10 @@ const startMigration = async (req: Request): Promise<any> => {
             req,
             project?.destination_stack_id,
             projectId,
-            project
+            project,
           );
           await siteCoreService?.createVersionFile(
-            project?.destination_stack_id
+            project?.destination_stack_id,
           );
         }
         break;
@@ -948,52 +1079,70 @@ const startMigration = async (req: Request): Promise<any> => {
             req,
             project?.current_test_stack_id,
             projectId,
-            project
+            project,
           );
           await wordpressService?.getAllAssets(
             file_path,
             packagePath,
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-       
+          await wordpressService?.createTaxonomy(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project,
+          );
+          await wordpressService?.createEntry(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project,
+          );
+
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.createVersionFile(
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        const cleanLocalPath = file_path?.replace?.(/\/$/, "");
         await contentfulService?.createLocale(
           cleanLocalPath,
           project?.destination_stack_id,
           projectId,
-          project
+          project,
         );
         await contentfulService?.createRefrence(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createWebhooks(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createEnvironment(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createAssets(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createTaxonomy(
           cleanLocalPath,
@@ -1007,11 +1156,11 @@ const startMigration = async (req: Request): Promise<any> => {
           contentTypes,
           project?.mapperKeys,
           project?.stackDetails?.master_locale,
-          project
+          project,
         );
         await contentfulService?.createVersionFile(
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         break;
       }
@@ -1034,7 +1183,7 @@ const startMigration = async (req: Request): Promise<any> => {
           req,
           project?.destination_stack_id,
           projectId,
-          project
+          project,
         );
         await aemService?.createVersionFile(project?.destination_stack_id);
         break;
@@ -1045,7 +1194,7 @@ const startMigration = async (req: Request): Promise<any> => {
         const dbConfig = {
           host: project?.legacy_cms?.mySQLDetails?.host,
           user: project?.legacy_cms?.mySQLDetails?.user,
-          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          password: project?.legacy_cms?.mySQLDetails?.password || "",
           database: project?.legacy_cms?.mySQLDetails?.database,
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
@@ -1056,12 +1205,12 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.legacy_cms?.assetsConfig?.base_url ||
             req.body?.assetsConfig?.base_url ||
             process.env.DRUPAL_ASSETS_BASE_URL ||
-            '',
+            "",
           public_path:
             project?.legacy_cms?.assetsConfig?.public_path ||
             req.body?.assetsConfig?.public_path ||
             process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
-            '',
+            "",
         };
 
         // Run Drupal migration services in proper order
@@ -1069,7 +1218,7 @@ const startMigration = async (req: Request): Promise<any> => {
         await drupalService?.createQuery(
           dbConfig,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
 
         // Step 3: Create assets from Drupal database
@@ -1078,7 +1227,7 @@ const startMigration = async (req: Request): Promise<any> => {
           project?.destination_stack_id,
           projectId,
           false, // Not a test migration
-          drupalAssetsConfig
+          drupalAssetsConfig,
         );
 
         // Step 4: Create references
@@ -1086,14 +1235,14 @@ const startMigration = async (req: Request): Promise<any> => {
           dbConfig,
           project?.destination_stack_id,
           projectId,
-          false // Not a test migration
+          false, // Not a test migration
         );
 
         // Step 5: Create taxonomy
         await drupalService?.createTaxonomy(
           dbConfig,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
 
         // Step 6: Create entries
@@ -1104,7 +1253,7 @@ const startMigration = async (req: Request): Promise<any> => {
           false, // Not a test migration
           project?.stackDetails?.master_locale,
           project,
-          contentTypes
+          contentTypes,
         );
 
         // Step 7: Create locale
@@ -1112,13 +1261,13 @@ const startMigration = async (req: Request): Promise<any> => {
           dbConfig,
           project?.destination_stack_id,
           projectId,
-          project
+          project,
         );
 
         // Step 8: Create version file
         await drupalService?.createVersionFile(
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         break;
       }
@@ -1232,7 +1381,363 @@ const startMigration = async (req: Request): Promise<any> => {
       project?.destination_stack_id,
       projectId,
       false,
-      loggerPath
+      loggerPath,
+    );
+
+    // Contentstack stack-to-stack: backup cleanup + persist completion (dev leaves this to runCli only for other CMS)
+    if (cms === CMS.CONTENTSTACK) {
+      const apiPath = path.resolve(process.cwd());
+      await cleanupBackupFolders(apiPath, cms);
+
+      await ProjectModelLowdb.update((data: any) => {
+        if (data?.projects?.[index]) {
+          data.projects[index].isMigrationCompleted = true;
+          data.projects[index].isMigrationStarted = false;
+          data.projects[index].status = 5;
+          data.projects[index].current_step = STEPPER_STEPS.MIGRATION;
+        }
+      });
+    }
+  }
+
+  return {
+    status: HTTP_CODES.OK,
+    data: { message: "Final migration completed successfully" },
+  };
+};
+
+const exportSourceStack = async (req: Request): Promise<any> => {
+  const { orgId, projectId } = req?.params ?? {};
+  const tokenPayload = req?.body?.token_payload ?? {};
+  const { user_id, region } = tokenPayload;
+
+  await ProjectModelLowdb.read();
+  const projectIndex = ProjectModelLowdb.chain
+    .get("projects")
+    .findIndex({ id: projectId, org_id: orgId })
+    .value();
+  if (projectIndex < 0) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const sourceDetails: any = project?.legacy_cms?.source_details || {};
+  const sourceStackId = sourceDetails?.source_stack_id;
+  if (!sourceStackId) {
+    throw new BadRequestError("Source stack is required for credentials mode");
+  }
+
+  const sourceRegion = sourceDetails?.source_region_id || region;
+  const sourceBranch = sourceDetails?.source_branch || "main";
+  const exportPath = await exportStackCli(sourceStackId, sourceRegion, user_id);
+
+  await ProjectModelLowdb.update((data: any) => {
+    const timestamp = new Date().toISOString();
+    data.projects[projectIndex].extract_path = exportPath;
+    data.projects[projectIndex].legacy_cms.source_details = {
+      ...data.projects[projectIndex].legacy_cms.source_details,
+      source_branch: sourceBranch || "main",
+      exported_at: timestamp,
+      export_path: exportPath,
+    };
+    data.projects[projectIndex].updated_at = timestamp;
+  });
+
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: "Source stack export completed",
+      export_path: exportPath,
+      branch: sourceBranch || "main",
+    },
+  };
+};
+
+const validateSourceExport = async (req: Request): Promise<any> => {
+  const { orgId, projectId } = req?.params ?? {};
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId, org_id: orgId })
+    .value();
+  if (!project) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+  const legacyFilePath = project?.legacy_cms?.file_path;
+  let exportPath =
+    project?.legacy_cms?.source_details?.export_path ||
+    project?.legacy_cms?.source_details?.imported_data_path ||
+    project?.extract_path ||
+    legacyFilePath;
+
+  if (exportPath?.toLowerCase().endsWith(".zip")) {
+    const baseName = path.basename(exportPath, path.extname(exportPath));
+    const candidates = [
+      path.join("/app", "extracted_files", baseName),
+      path.resolve(process.cwd(), "extracted_files", baseName),
+      path.resolve(
+        process.cwd(),
+        "..",
+        "upload-api",
+        "extracted_files",
+        baseName,
+      ),
+    ];
+    for (const candidate of candidates) {
+      const resolved = resolveContentstackExportRoot(candidate);
+      if (resolved) {
+        exportPath = candidate;
+        break;
+      }
+    }
+  }
+
+  if (!exportPath) {
+    console.error("validateSourceExport: No export path available", {
+      projectId,
+      orgId,
+      exportPath: project?.legacy_cms?.source_details?.export_path,
+      importedDataPath: project?.legacy_cms?.source_details?.imported_data_path,
+      extractPath: project?.extract_path,
+    });
+    throw new BadRequestError("No export path available for validation");
+  }
+
+  const result = await validateExportStructure(exportPath);
+  await ProjectModelLowdb.update((data: any) => {
+    if (!data.projects || !Array.isArray(data.projects)) {
+      throw new Error("Invalid projects data structure");
+    }
+    const index = data.projects.findIndex(
+      (item: any) => item && item.id === projectId,
+    );
+    if (index === -1) {
+      throw new NotFoundError(
+        `Project with ID ${projectId} not found in database`,
+      );
+    }
+    data.projects[index].legacy_cms.validation = result;
+    const exportContentRoot =
+      result.isValid && result.resolvedRoot ? result.resolvedRoot : exportPath;
+    data.projects[index].extract_path = exportContentRoot;
+
+    // For successful validation of Contentstack source, mark the legacy CMS step as completed
+    if (result.isValid) {
+      data.projects[index].legacy_cms.cms = "contentstack";
+      data.projects[index].legacy_cms.file_format = "json"; // Default file format for Contentstack
+      data.projects[index].legacy_cms.is_fileValid = true;
+      data.projects[index].current_step = STEPPER_STEPS.DESTINATION_STACK;
+      data.projects[index].status = NEW_PROJECT_STATUS[0]; // Set status to DRAFT
+      if (result.resolvedRoot) {
+        data.projects[index].legacy_cms.source_details = {
+          ...data.projects[index].legacy_cms.source_details,
+          export_path: result.resolvedRoot,
+        };
+      }
+    }
+
+    data.projects[index].updated_at = new Date().toISOString();
+  });
+
+  // Extract and save source locales for Contentstack (credentials and imported export)
+  if (result.isValid && result.resolvedRoot) {
+    try {
+      const locales = await extractContentstackLocales(result.resolvedRoot);
+
+      if (locales && locales.length > 0) {
+        await ProjectModelLowdb.update((data: any) => {
+          const index = data.projects.findIndex(
+            (item: any) => item && item.id === projectId,
+          );
+          if (index > -1) {
+            data.projects[index].source_locales = locales;
+          } else {
+            console.error(
+              `Project ${projectId} not found in database when saving locales`,
+            );
+          }
+        });
+      } else {
+        console.warn(`No locales extracted for project ${projectId}`);
+      }
+    } catch (error) {
+      console.error(
+        "Error extracting Contentstack locales during validation:",
+        error,
+      );
+      // Don't fail validation if locale extraction fails
+    }
+  }
+
+  return {
+    status: result.isValid ? HTTP_CODES.OK : HTTP_CODES.UNPROCESSABLE_CONTENT,
+    data: result,
+  };
+};
+
+const extractContentstackLocales = async (exportPath: string) => {
+  try {
+    const masterLocalePath = path.join(
+      exportPath,
+      "locales",
+      "master-locale.json",
+    );
+    const localesPath = path.join(exportPath, "locales", "locales.json");
+
+    // Read master locale (required)
+    const masterLocaleRaw = await fsPromises.readFile(masterLocalePath, "utf8");
+    const masterLocales = JSON.parse(masterLocaleRaw || "{}");
+
+    // Read additional locales (optional)
+    let additionalLocales = {};
+    try {
+      const localesRaw = await fsPromises.readFile(localesPath, "utf8");
+      additionalLocales = JSON.parse(localesRaw || "{}");
+    } catch (error) {
+      // locales.json might be empty or missing, that's okay
+    }
+
+    // Merge master and additional locales
+    const allLocales = { ...masterLocales, ...additionalLocales };
+
+    // Convert to array format expected by the system
+    return Object.values(allLocales).map((locale: any) => ({
+      label: `${locale.name} (${locale.code})`,
+      value: locale.code,
+      uid: locale.uid,
+      code: locale.code,
+      name: locale.name,
+    }));
+  } catch (error) {
+    console.error("Error extracting Contentstack locales:", error);
+    // Return default locale if extraction fails
+    return [
+      {
+        label: "English - United States (en-us)",
+        value: "en-us",
+        uid: "default",
+        code: "en-us",
+        name: "English - United States",
+      },
+    ];
+  }
+};
+
+const buildContentstackMapperPayload = async (exportPath: string) => {
+  const schemaPath = path.join(exportPath, "content_types", "schema.json");
+  const raw = await fsPromises.readFile(schemaPath, "utf8");
+  const schema = JSON.parse(raw || "[]");
+  if (!Array.isArray(schema)) return [];
+
+  const mapField = (field: any, prefix = ""): any[] => {
+    const uid = prefix ? `${prefix}.${field.uid}` : field.uid;
+    const display = prefix
+      ? `${prefix.replace(/\./g, " > ")} > ${field.display_name || field.uid}`
+      : field.display_name || field.uid;
+    const base = {
+      otherCmsField: display,
+      otherCmsType: field.data_type,
+      contentstackField: display,
+      contentstackFieldUid: uid,
+      contentstackFieldType: field.data_type,
+      uid,
+      refrenceTo: field.reference_to
+        ? { uid: field.reference_to, title: field.reference_to }
+        : { uid: "", title: "" },
+      advanced: {
+        validationRegex: "",
+        mandatory: !!field.mandatory,
+        multiple: !!field.multiple,
+        unique: !!field.unique,
+        nonLocalizable: !!field.non_localizable,
+        embedObject: false,
+        embedObjects: null,
+        minChars: "",
+        maxChars: 0,
+        default_value: "",
+        description: "",
+        validationErrorMessage: "",
+        options: [],
+      },
+    };
+    let nested: any[] = [];
+    if (Array.isArray(field?.schema)) {
+      nested = field.schema.flatMap((sub: any) => mapField(sub, uid));
+    }
+    if (field?.data_type === "blocks" && Array.isArray(field?.blocks)) {
+      for (const block of field.blocks) {
+        const blockUid = `${uid}.${block.uid}`;
+        nested.push({
+          ...base,
+          uid: blockUid,
+          otherCmsField: `${display} > ${block.title}`,
+          otherCmsType: "block",
+          contentstackFieldUid: blockUid,
+          contentstackFieldType: "block",
+        });
+        if (Array.isArray(block?.schema)) {
+          nested.push(
+            ...block.schema.flatMap((sub: any) => mapField(sub, blockUid)),
+          );
+        }
+      }
+    }
+    return [base, ...nested];
+  };
+
+  return schema.map((contentType: any) => ({
+    otherCmsTitle: contentType?.title || contentType?.uid,
+    otherCmsUid: contentType?.uid,
+    contentstackTitle: contentType?.title || contentType?.uid,
+    contentstackUid: contentType?.uid,
+    type: "content_type",
+    status: 1,
+    isUpdated: false,
+    updateAt: new Date().toISOString(),
+    fieldMapping: Array.isArray(contentType?.schema)
+      ? contentType.schema.flatMap((field: any) => mapField(field))
+      : [],
+    entryMapping: [],
+  }));
+};
+
+const runSourceAudit = async (req: Request): Promise<any> => {
+  const { orgId, projectId } = req?.params ?? {};
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId, org_id: orgId })
+    .value();
+  if (!project) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+
+  // Check multiple possible locations for export path
+  const exportPath =
+    project?.legacy_cms?.source_details?.export_path ||
+    project?.legacy_cms?.file_path ||
+    project?.file_path ||
+    project?.extract_path;
+
+  // Check if we already have an audit report AND the mapper was already generated
+  const existingAudit = project?.legacy_cms?.audit;
+  if (
+    existingAudit &&
+    existingAudit.summary &&
+    existingAudit.is_mapper_generated
+  ) {
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        summary: existingAudit.summary,
+        message: "Audit report retrieved from cache",
+      },
+    };
+  }
+
+  // No existing audit (or mapper not yet generated), so generate now
+  if (!exportPath) {
+    throw new BadRequestError(
+      "Export path is required before running audit. Please complete Step 1 (Export) first.",
     );
 
     if (configFilePath) {
@@ -1254,6 +1759,84 @@ const startMigration = async (req: Request): Promise<any> => {
       await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
     }
   }
+  const stackId =
+    project?.legacy_cms?.source_details?.source_stack_id ||
+    project?.destination_stack_id;
+  const region =
+    project?.legacy_cms?.source_details?.source_region_id ||
+    project?.region ||
+    "US"; // Default to US if no region specified
+  const audit = await generateAuditData({
+    projectId,
+    orgId,
+    stackId,
+    exportPath,
+    region,
+  });
+  const mapperPayload = await buildContentstackMapperPayload(exportPath);
+  if (mapperPayload.length > 0) {
+    const mapperReq = {
+      params: { projectId },
+      body: { contentTypes: mapperPayload },
+    } as unknown as Request;
+    await contentMapperService.putTestData(mapperReq);
+  }
+  await ProjectModelLowdb.update((data: any) => {
+    const index = data.projects.findIndex(
+      (item: any) => item && item.id === projectId,
+    );
+    if (index > -1) {
+      // Preserve existing audit data (like excludedItems) when regenerating audit
+      const existingAudit = data.projects[index].legacy_cms.audit || {};
+      data.projects[index].legacy_cms.audit = {
+        ...existingAudit, // Preserve existing data
+        generated_at: new Date().toISOString(),
+        summary: audit.summary,
+        is_mapper_generated: mapperPayload.length > 0,
+      };
+      data.projects[index].updated_at = new Date().toISOString();
+    }
+  });
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      summary: audit.summary,
+      message: "Audit report generated successfully",
+    },
+  };
+};
+
+const getSourceAuditSummary = async (req: Request): Promise<any> => {
+  const { projectId, moduleName = "all" } = req?.params ?? {};
+  if (!projectId) {
+    throw new BadRequestError("Project ID is required");
+  }
+  const moduleMap: Record<
+    string,
+    "assets" | "content_types" | "entries" | "global_fields"
+  > = {
+    assets: "assets",
+    content_types: "content_types",
+    entries: "entries",
+    global_fields: "global_fields",
+  };
+  if (moduleName !== "all" && !moduleMap[moduleName]) {
+    throw new BadRequestError("Invalid module name");
+  }
+
+  if (moduleName === "all") {
+    const audit = await auditDb.getAuditByProjectId(projectId);
+    return {
+      status: HTTP_CODES.OK,
+      data: audit,
+    };
+  }
+
+  const data = await auditDb.getDataByType(projectId, moduleMap[moduleName]);
+  return {
+    status: HTTP_CODES.OK,
+    data,
+  };
 };
 const getAuditData = async (req: Request): Promise<any> => {
   const projectId = path?.basename(req?.params?.projectId);
@@ -1392,11 +1975,11 @@ const getAuditData = async (req: Request): Promise<any> => {
       );
     }
     let transformedData = transformAndFlattenData(fileData);
-    if (moduleName === 'Entries_Select_feild') {
+    if (moduleName === "Entries_Select_feild") {
       if (filter != GET_AUDIT_DATA?.FILTERALL) {
-        const filters = filter?.split('-');
+        const filters = filter?.split("-");
         transformedData = transformedData?.filter((log) => {
-          return filters?.some((filter) => {
+          return filters?.some((filter: string) => {
             return (
               log?.display_type
                 ?.toLowerCase()
@@ -1406,13 +1989,13 @@ const getAuditData = async (req: Request): Promise<any> => {
           });
         });
       }
-      if (searchText && searchText !== null && searchText !== 'null') {
+      if (searchText && searchText !== null && searchText !== "null") {
         transformedData = transformedData?.filter((item) => {
           return Object?.values(item)?.some(
             (value) =>
               value &&
-              typeof value === 'string' &&
-              value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
+              typeof value === "string" &&
+              value?.toLowerCase?.()?.includes(searchText?.toLowerCase()),
           );
         });
       }
@@ -1424,9 +2007,9 @@ const getAuditData = async (req: Request): Promise<any> => {
       };
     }
     if (filter != GET_AUDIT_DATA?.FILTERALL) {
-      const filters = filter?.split('-');
+      const filters = filter?.split("-");
       transformedData = transformedData?.filter((log) => {
-        return filters?.some((filter) => {
+        return filters?.some((filter: string) => {
           return log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase());
         });
       });
@@ -1573,10 +2156,10 @@ const getLogs = async (req: Request): Promise<any> => {
       if (filter !== 'all') {
         const filters = filter?.split('-') ?? [];
         logEntries = logEntries?.filter((log) => {
-          return filters?.some((filter) => {
+          return filters?.some((filter: string) => {
             return log?.level
               ?.toLowerCase()
-              ?.includes?.(filter?.toLowerCase() ?? '');
+              ?.includes?.(filter?.toLowerCase() ?? "");
           });
         });
       }
@@ -1615,6 +2198,7 @@ const getLogs = async (req: Request): Promise<any> => {
 export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const locales = req?.body?.locale;
+  const extractPath = req?.body?.extractPath;
 
   try {
     // Find the project with the specified projectId
@@ -1626,6 +2210,9 @@ export const createSourceLocales = async (req: Request) => {
     if (index > -1) {
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].source_locales = locales;
+        if (extractPath) {
+          data.projects[index].extract_path = extractPath;
+        }
       });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
@@ -1748,6 +2335,10 @@ const restartMigration = async (req: Request): Promise<any> => {
 export const migrationService = {
   createTestStack,
   deleteTestStack,
+  exportSourceStack,
+  validateSourceExport,
+  runSourceAudit,
+  getSourceAuditSummary,
   startTestMigration,
   startMigration,
   getLogs,

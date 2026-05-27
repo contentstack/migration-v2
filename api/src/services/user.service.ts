@@ -11,6 +11,7 @@ import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
 import { getAppOrganization } from "../utils/auth.utils.js";
+import { mapOrganizationsForMigration } from "../utils/contentstack-user-orgs.utils.js";
 import { requestWithSsoTokenRefresh } from "../utils/sso-request.utils.js";
 
 /**
@@ -80,6 +81,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
             email: res?.data?.user?.email,
             first_name: res?.data?.user?.first_name,
             last_name: res?.data?.user?.last_name,
+            region: appTokenPayload?.region,
             orgs: [
               {
                 org_id: org_uid,
@@ -121,21 +123,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       };
     }
 
-    const adminOrgs = res?.data?.user?.organizations
-        ?.filter((org: any) =>
-          org?.org_roles?.some((r: any) => r?.admin)
-        )
-        ?.map(({ uid, name }: any) => ({
-          org_id: uid,
-          org_name: name,
-        })) || [];
-
-    const ownerOrgs = res?.data?.user?.organizations
-        ?.filter((org: any) => org?.is_owner)
-        ?.map(({ uid, name }: any) => ({
-          org_id: uid,
-          org_name: name,
-        })) || [];
+    const orgs = mapOrganizationsForMigration(res?.data?.user?.organizations);
 
     return {
       data: {
@@ -143,7 +131,8 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
           email: res?.data?.user?.email,
           first_name: res?.data?.user?.first_name,
           last_name: res?.data?.user?.last_name,
-          orgs: [...adminOrgs, ...ownerOrgs],
+          region: appTokenPayload?.region,
+          orgs,
         },
       },
       status: res?.status,

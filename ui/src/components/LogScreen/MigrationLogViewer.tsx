@@ -1,6 +1,6 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon, Link, Notification } from '@contentstack/venus-components';
+import { Icon, Link } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router';
@@ -11,9 +11,6 @@ import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
 import { CS_URL } from '../../utilities/constants';
-
-// Interface
-import { INewMigration } from '../../context/app/app.interface';
 
 // Components
 import useBlockNavigation from '../../hooks/userNavigation';
@@ -29,6 +26,14 @@ const logStyles: { [key: string]: React.CSSProperties } = {
   warn: { backgroundColor: '#ffeeba', color: '#856404' },
   error: { backgroundColor: '#f8d7da', color: '#721c24' },
   success: { backgroundColor: '#d4edda', color: '#155724' }
+};
+
+const inferLogLevel = (message: string): string => {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('error') || normalized.includes('failed')) return 'error';
+  if (normalized.includes('warn')) return 'warn';
+  if (normalized.includes('success') || normalized.includes('completed')) return 'success';
+  return 'info';
 };
 
 type LogsType = {
@@ -52,7 +57,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   ]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [hasShownCompletionNotification, setHasShownCompletionNotification] = useState(false);
+  const pendingLogChunkRef = useRef('');
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector(
@@ -84,9 +89,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
      */
     socket.on('logUpdate', (newLogs: string) => {
       const parsedLogsArray: LogEntry[] = [];
-      const logArray = newLogs?.split('\n');
+      const bufferedLogs = `${pendingLogChunkRef.current}${newLogs || ''}`;
+      const logArray = bufferedLogs.split('\n');
+      pendingLogChunkRef.current = logArray.pop() || '';
 
-      logArray?.forEach((logLine) => {
+      logArray?.forEach((rawLine) => {
+        const logLine = rawLine?.trim();
+        if (!logLine) return;
         try {
           //parse each log entry as a JSON object
           const parsedLog = JSON?.parse(logLine);
@@ -98,8 +107,23 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
             timestamp: parsedLog.timestamp || null
           };
           parsedLogsArray.push(plogs);
-        } catch (error) {
-          console.error('error in parsing logs : ', error);
+        } catch {
+          const structuredMatch = logLine.match(
+            /^\[([^\]]+)\]\s*(INFO|WARN|ERROR)\s*:\s*(.*)$/i
+          );
+          if (structuredMatch) {
+            parsedLogsArray.push({
+              timestamp: structuredMatch[1],
+              level: structuredMatch[2].toLowerCase(),
+              message: structuredMatch[3] || 'Unknown message'
+            });
+            return;
+          }
+          parsedLogsArray.push({
+            level: inferLogLevel(logLine),
+            message: logLine,
+            timestamp: null
+          });
         }
       });
 
@@ -112,6 +136,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     });
 
     return () => {
+      pendingLogChunkRef.current = '';
       socket.disconnect(); // Cleanup on component unmount
     };
   }, []);
@@ -184,52 +209,71 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   };
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  /** Avoid stacking duplicate toasts/dispatches when `logs` updates many times after completion. */
+  const finalMigrationCompletionHandledRef = useRef(false);
+  /** Only reset the log buffer on false → true (new run), not on every Redux refresh with started still true. */
+  const prevFinalMigrationStartedRef = useRef<boolean | undefined>(undefined);
+  const newMigrationDataRef = useRef(newMigrationData);
+  newMigrationDataRef.current = newMigrationData;
+
+  useEffect(() => {
+    const started = newMigrationData?.migration_execution?.migrationStarted === true;
+    const prev = prevFinalMigrationStartedRef.current;
+    prevFinalMigrationStartedRef.current = started;
+
+    if (started && prev === false) {
+      finalMigrationCompletionHandledRef.current = false;
+      // Never replace streamed lines with the placeholder: when the API awaits the full import,
+      // Redux often flips `migrationStarted` only after logs have already arrived — wiping them
+      // leaves only this placeholder until the next file change (often never).
+      setLogs((prevLogs) => {
+        const hasReal = prevLogs.some(
+          (l) =>
+            l.message &&
+            l.message !== 'Migration logs will appear here once the process begins.'
+        );
+        if (hasReal) {
+          return prevLogs;
+        }
+        return [{ message: 'Migration logs will appear here once the process begins.', level: '' }];
+      });
+    }
+  }, [newMigrationData?.migration_execution?.migrationStarted]);
 
   useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
-
-    logs?.forEach((log) => {
-      try {
-        //const logObject = JSON.parse(log);
-        const message = log.message;
-
-        if (message === 'Migration Process Completed' && !hasShownCompletionNotification) {
-          setIsModalOpen(true);
-          setHasShownCompletionNotification(true);
-
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            migration_execution: {
-              ...newMigrationData?.migration_execution,
-              migrationStarted: false,
-              migrationCompleted: true
-            },
-            stepValue: 'Restart Migration'
-          };
-
-          dispatch(updateNewMigrationData(newMigrationDataObj));
-
-          /**
-           * Updates the Migration excution step as completed in backend if migration completes.
-           */
-          //await updateCurrentStepData(selectedOrganisation.value, projectId);
-
-          Notification({
-            notificationContent: { text: message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
-        }
-      } catch (error) {
-        console.error('Invalid JSON string', error);
-      }
-    });
   }, [logs]);
+
+  useEffect(() => {
+    if (finalMigrationCompletionHandledRef.current) {
+      return;
+    }
+    const hasCompletion = logs?.some(
+      (log) => log.message === 'Migration Process Completed'
+    );
+    if (!hasCompletion) {
+      return;
+    }
+
+    finalMigrationCompletionHandledRef.current = true;
+    setIsModalOpen(true);
+
+    dispatch(
+      updateNewMigrationData({
+        ...newMigrationDataRef.current,
+        migration_execution: {
+          ...newMigrationDataRef.current?.migration_execution,
+          migrationStarted: false,
+          migrationCompleted: true
+        },
+        // Delta migration: surface restart CTA so the user can run another iteration.
+        stepValue: 'Restart Migration'
+      })
+    );
+    // Success toast is shown from Migration page after startMigration HTTP 200 (avoids duplicate toasts).
+  }, [logs, dispatch]);
 
   const navigate = useNavigate();
 
@@ -276,29 +320,28 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               transition: 'transform 0.1s ease'
             }}
           >
+            {/** Stack may already be in migratedStacks after test migration; still show live CLI logs while running. */}
+            {newMigrationData?.destination_stack?.migratedStacks?.includes(
+              newMigrationData?.destination_stack?.selectedStack?.value
+            ) &&
+              !newMigrationData?.migration_execution?.migrationStarted &&
+              !newMigrationData?.migration_execution?.migrationCompleted && (
+              <div
+                style={logStyles.warn}
+                className="log-entry text-center mb-2"
+              >
+                <div className="log-message generic-log-message">
+                  Migration has already been run on this stack. You can still start another run; live
+                  logs will appear below when migration is in progress.
+                </div>
+              </div>
+            )}
             {logs.map((log, index) => {
               try {
-                //const logObject = JSON.parse(log);
                 const { level, timestamp, message } = log;
 
-                return newMigrationData?.destination_stack?.migratedStacks?.includes(
-                  newMigrationData?.destination_stack?.selectedStack?.value
-                ) ? (
-                  <div
-                    key={`${index?.toString}`}
-                    style={logStyles[level || ''] || logStyles.info}
-                    className="log-entry text-center"
-                  >
-                    <div className="log-message generic-log-message">
-                      Migration has already done in selected stack. Please create a new project.
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    key={index}
-                    // style={logStyles[level || ''] || logStyles.info}
-                    // className="log-entry logs-bg"
-                  >
+                return (
+                  <div key={index}>
                     {message === 'Migration logs will appear here once the process begins.' ? (
                       <div
                         style={logStyles[level || ''] || logStyles.info}

@@ -38,13 +38,14 @@ export const regionalApiHosts = {
   GCP_EU: 'gcp-eu-api.contentstack.com',
 };
 export const CMS = {
-  CONTENTFUL: 'contentful',
-  SITECORE_V8: 'sitecore v8',
-  SITECORE_V9: 'sitecore v9',
-  SITECORE_V10: 'sitecore v10',
-  WORDPRESS: 'wordpress',
-  DRUPAL: 'drupal',
-  AEM: 'aem',
+  CONTENTSTACK: "contentstack",
+  CONTENTFUL: "contentful",
+  SITECORE_V8: "sitecore v8",
+  SITECORE_V9: "sitecore v9",
+  SITECORE_V10: "sitecore v10",
+  WORDPRESS: "wordpress",
+  DRUPAL: "drupal",
+  AEM: "aem",
 };
 export const MODULES = [
   'Project',
@@ -175,9 +176,10 @@ export const PROJECT_STATUS = {
 export const STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
-  CONTENT_MAPPING: 3,
-  TESTING: 4,
-  MIGRATION: 5,
+  AUDIT_REPORT: 3,
+  CONTENT_MAPPING: 4,
+  TESTING: 5,
+  MIGRATION: 6,
 };
 export const PREDEFINED_STATUS = [
   'Draft',
@@ -186,7 +188,7 @@ export const PREDEFINED_STATUS = [
   'Failed',
   'Success',
 ];
-export const PREDEFINED_STEPS = [1, 2, 3, 4, 5];
+export const PREDEFINED_STEPS = [1, 2, 3, 4, 5, 6];
 
 export const NEW_PROJECT_STATUS = {
   0: 0, //DRAFT
@@ -334,6 +336,11 @@ export const DATABASE_FILES = {
   ASSET_METADATA: 'asset-metadata.json',
 };
 
+
+export const DB_CONFIG = {
+  AUDIT_THRESHOLD: 250,
+  AUDIT_DIR: "database/audit",
+};
 export const GET_AUDIT_DATA = {
   MIGRATION: 'migration-v2',
   API_DIR: 'api',

@@ -548,10 +548,27 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   useEffect(() => {
     
     if (reduxSourceLocale && Array.isArray(reduxSourceLocale) && reduxSourceLocale.length > 0) {
-      const mappedLocales = reduxSourceLocale.map((item: string) => ({
-        label: item,
-        value: item
-      }));
+      const mappedLocales = reduxSourceLocale.map((item: any) => {
+        // Handle both string format (legacy) and object format (Contentstack)
+        if (typeof item === 'string') {
+          return {
+            label: item,
+            value: item
+          };
+        } else if (typeof item === 'object' && item.label && item.value) {
+          // For Contentstack format: {label, value, uid, code, name}
+          return {
+            label: item.label,
+            value: item.value
+          };
+        } else {
+          // Fallback
+          return {
+            label: String(item),
+            value: String(item)
+          };
+        }
+      });
       setsourceLocales(mappedLocales);
     }
   }, [reduxSourceLocale]);
@@ -567,12 +584,36 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           label: key,
           value: key
         }));
-        const sourceLocale = newMigrationData?.destination_stack?.sourceLocale?.map((item: string) => ({
-          label: item,
-          value: item
-        }));
-        
-        setsourceLocales(sourceLocale);
+        // Enhanced source locale handling for both string and object formats
+        const rawSource = newMigrationData?.destination_stack?.sourceLocale;
+        const mappedSource =
+          Array.isArray(rawSource) && rawSource.length > 0
+            ? rawSource.map((item: any) => {
+                // Handle both string format (legacy CMS) and object format (Contentstack)
+                if (typeof item === 'string') {
+                  return {
+                    label: item,
+                    value: item
+                  };
+                } else if (typeof item === 'object' && item.label && item.value) {
+                  // For Contentstack format: {label, value, uid, code, name}
+                  return {
+                    label: item.label,
+                    value: item.value
+                  };
+                } else {
+                  // Fallback for any other format
+                  return {
+                    label: String(item),
+                    value: String(item)
+                  };
+                }
+              })
+            : null;
+
+        if (mappedSource) {
+          setsourceLocales(mappedSource);
+        }
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
         if((Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || 

@@ -143,6 +143,14 @@ const createProject = async (req: Request) => {
         bucketName: '',
         bucketKey: '',
       },
+      source_details: {
+        source_mode: 'imported_export',
+        source_region_id: '',
+        source_org_id: '',
+        source_stack_id: '',
+        source_branch: '',
+        imported_data_path: '',
+      },
     },
     content_mapper: [],
     execution_log: [],
@@ -262,8 +270,12 @@ const updateProject = async (req: Request) => {
       ) {
         throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
       }
-      data.projects[projectIndex].name = updateData?.name;
-      data.projects[projectIndex].description = updateData?.description;
+      if (updateData?.name !== undefined && updateData?.name !== null) {
+        data.projects[projectIndex].name = updateData.name;
+      }
+      if (updateData?.description !== undefined && updateData?.description !== null) {
+        data.projects[projectIndex].description = updateData.description;
+      }
       if (
         data.projects[projectIndex].isNewStack === false &&
         updateData?.isNewStack === true
@@ -273,8 +285,28 @@ const updateProject = async (req: Request) => {
       }
       data.projects[projectIndex].updated_by = user_id;
       data.projects[projectIndex].updated_at = new Date().toISOString();
-      data.projects[projectIndex].stackDetails = updateData?.stackDetails;
-      data.projects[projectIndex].mapperKeys = updateData?.mapperKeys;
+      if (updateData?.stackDetails !== undefined) {
+        data.projects[projectIndex].stackDetails = updateData.stackDetails;
+      }
+      if (updateData?.mapperKeys !== undefined) {
+        data.projects[projectIndex].mapperKeys = updateData.mapperKeys;
+      }
+      
+      // Handle legacy_cms updates (like audit data)
+      if (updateData?.legacy_cms) {
+        data.projects[projectIndex].legacy_cms = {
+          ...data.projects[projectIndex].legacy_cms,
+          ...updateData.legacy_cms
+        };
+        
+        // Special handling for nested audit data
+        if (updateData.legacy_cms.audit) {
+          data.projects[projectIndex].legacy_cms.audit = {
+            ...data.projects[projectIndex].legacy_cms?.audit,
+            ...updateData.legacy_cms.audit
+          };
+        }
+      }
 
       project = data.projects[projectIndex];
     });
@@ -557,6 +589,7 @@ const updateFileFormat = async (req: Request) => {
     is_localPath,
     is_fileValid,
     awsDetails,
+    source_details,
   } = req?.body || {};
 
   if (!token_payload) {
@@ -641,6 +674,38 @@ const updateFileFormat = async (req: Request) => {
         data.projects[projectIndex].legacy_cms.awsDetails.bucketKey =
           awsDetails.bucketKey || '';
       }
+      if (source_details && typeof source_details === 'object') {
+        data.projects[projectIndex].legacy_cms.source_details = {
+          ...(data.projects[projectIndex].legacy_cms.source_details || {}),
+          source_mode:
+            source_details.source_mode ||
+            data.projects[projectIndex].legacy_cms.source_details?.source_mode ||
+            'imported_export',
+          source_region_id:
+            source_details.source_region_id ||
+            data.projects[projectIndex].legacy_cms.source_details
+              ?.source_region_id ||
+            '',
+          source_org_id:
+            source_details.source_org_id ||
+            data.projects[projectIndex].legacy_cms.source_details?.source_org_id ||
+            '',
+          source_stack_id:
+            source_details.source_stack_id ||
+            data.projects[projectIndex].legacy_cms.source_details
+              ?.source_stack_id ||
+            '',
+          source_branch:
+            source_details.source_branch ||
+            data.projects[projectIndex].legacy_cms.source_details?.source_branch ||
+            '',
+          imported_data_path:
+            source_details.imported_data_path ||
+            data.projects[projectIndex].legacy_cms.source_details
+              ?.imported_data_path ||
+            '',
+        };
+      }
     });
 
     logger.info(
@@ -670,6 +735,72 @@ const updateFileFormat = async (req: Request) => {
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
+};
+
+const updateSourceConfig = async (req: Request) => {
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, source_details } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+  if (!source_details || typeof source_details !== 'object') {
+    throw new BadRequestError('source_details is required');
+  }
+
+  const sourceMode = String(source_details?.source_mode || '').toLowerCase();
+  if (!['credentials', 'imported_export'].includes(sourceMode)) {
+    throw new BadRequestError(
+      'source_mode must be one of credentials or imported_export'
+    );
+  }
+
+  const srcFunc = 'updateSourceConfig';
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  await ProjectModelLowdb.update((data: any) => {
+    if (
+      !data?.projects ||
+      !Array.isArray(data.projects) ||
+      !data.projects[projectIndex]
+    ) {
+      throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
+    if (!data.projects[projectIndex].legacy_cms) {
+      data.projects[projectIndex].legacy_cms = {};
+    }
+    data.projects[projectIndex].legacy_cms.source_details = {
+      ...(data.projects[projectIndex].legacy_cms.source_details || {}),
+      source_mode: sourceMode,
+      source_region_id: source_details?.source_region_id || '',
+      source_org_id: source_details?.source_org_id || '',
+      source_stack_id: source_details?.source_stack_id || '',
+      source_branch: source_details?.source_branch || '',
+      imported_data_path: source_details?.imported_data_path || '',
+    };
+    data.projects[projectIndex].updated_at = new Date().toISOString();
+  });
+
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: 'Source details updated successfully',
+    },
+  };
 };
 
 /**
@@ -992,6 +1123,39 @@ const updateCurrentStep = async (req: Request) => {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
           data.projects[projectIndex].current_step =
+            STEPPER_STEPS.AUDIT_REPORT;
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case STEPPER_STEPS.AUDIT_REPORT: {
+        if (
+          !project?.legacy_cms?.audit?.summary ||
+          project.status === NEW_PROJECT_STATUS[0] ||
+          !isStepCompleted ||
+          !project?.destination_stack_id
+        ) {
+          const reason = !project?.legacy_cms?.audit?.summary
+            ? 'Audit summary is missing on the project (generate the audit on this step so it can be saved).'
+            : project.status === NEW_PROJECT_STATUS[0]
+              ? 'Project is still in draft status.'
+              : !isStepCompleted
+                ? 'Legacy CMS or file format is incomplete.'
+                : 'Destination stack is not set.';
+          throw new BadRequestError(
+            `You cannot proceed from the audit step. ${reason}`
+          );
+        }
+        await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
+          data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -1096,14 +1260,21 @@ const updateCurrentStep = async (req: Request) => {
         break;
       }
     }
+
+    await ProjectModelLowdb.read();
+    const updatedProject = ProjectModelLowdb.data?.projects?.[projectIndex];
+    if (!updatedProject) {
+      throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
+
     logger.info(
       getLogMessage(
         srcFunc,
-        `Successfully progressed to the next step: ${project?.current_step} for project [Id : ${projectId}].`,
+        `Successfully progressed to the next step: ${updatedProject?.current_step} for project [Id : ${projectId}].`,
         token_payload
       )
     );
-    return project;
+    return updatedProject;
   } catch (error: any) {
     logger.error(
       getLogMessage(
@@ -1551,6 +1722,7 @@ const updateMigrationExecution = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the process.
  */
 const getMigratedStacks = async (req: Request) => {
+  const { projectId } = req?.params || {};
   const { token_payload } = req?.body || {};
   if (!token_payload) {
     throw new BadRequestError('Token payload is required');
@@ -1569,13 +1741,16 @@ const getMigratedStacks = async (req: Request) => {
       };
     }
 
-    // Map through projects to extract `destinationstack` key
+    // Stacks that finished migration on *other* projects (exclude current project so re-runs on
+    // the same migration project are not flagged from this project's own completed record).
     const destinationStacks = projects
       .filter(
         (project: any) =>
           project != null &&
+          project?.isDeleted !== true &&
+          project?.id !== projectId &&
           project?.status === 5 &&
-          project?.current_step === 5 &&
+          project?.current_step === STEPPER_STEPS.MIGRATION &&
           project?.destination_stack_id
       )
       .map((project: any) => project.destination_stack_id)
@@ -1604,6 +1779,103 @@ const getMigratedStacks = async (req: Request) => {
   }
 };
 
+/**
+ * Updates audit report selections (excluded items) for a project
+ */
+const updateAuditSelections = async (req: Request) => {
+  const orgId = req?.params?.orgId;
+  const projectId = req?.params?.projectId;
+  
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { excludedItems, selectionStats, token_payload } = req?.body || {};
+  
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+
+  if (!Array.isArray(excludedItems)) {
+    throw new BadRequestError('excludedItems must be an array');
+  }
+
+  const { user_id = '', region = '' } = token_payload;
+  const srcFunc = 'updateAuditSelections';
+
+  try {
+    // Find the project
+    const projectIndex = (await getProjectUtil(
+      projectId,
+      {
+        id: projectId,
+        org_id: orgId,
+        region: region,
+        owner: user_id,
+      },
+      srcFunc,
+    )) as number;
+
+    if (projectIndex === -1) {
+      throw new NotFoundError('Project not found');
+    }
+
+    await ProjectModelLowdb.read();
+    const projects = ProjectModelLowdb.data?.projects || [];
+    const project = projects[projectIndex];
+
+    if (!project) {
+      throw new NotFoundError('Project not found');
+    }
+
+    // Update the audit selections
+    const updatedProject = {
+      ...project,
+      legacy_cms: {
+        ...project.legacy_cms,
+        audit: {
+          ...project.legacy_cms?.audit,
+          excludedItems,
+          selectionStats,
+          updated_at: new Date().toISOString(),
+        }
+      },
+      updated_at: new Date().toISOString(),
+    };
+
+    projects[projectIndex] = updatedProject;
+    await ProjectModelLowdb.write();
+
+    // Log success message
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        'Audit selections updated successfully',
+        token_payload,
+        { projectId, excludedItemsCount: excludedItems.length }
+      )
+    );
+
+    return updatedProject;
+  } catch (error: any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        'Error occurred while updating audit selections',
+        token_payload,
+        error
+      )
+    );
+
+    // Throw a custom exception with the error details
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const projectService = {
   getAllProjects,
   getProject,
@@ -1613,6 +1885,7 @@ export const projectService = {
   updateAffix,
   affixConfirmation,
   updateFileFormat,
+  updateSourceConfig,
   fileformatConfirmation,
   updateDestinationStack,
   updateCurrentStep,
@@ -1622,4 +1895,5 @@ export const projectService = {
   updateContentMapper,
   updateMigrationExecution,
   getMigratedStacks,
+  updateAuditSelections,
 };

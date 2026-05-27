@@ -46,7 +46,7 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
             buttonType="destructive"
             type="submit"
             icon="v2-Delete"
-            tabindex={0}
+            tabIndex={0}
             isLoading={isLoading}
             onClick={() => handleDeleteProject()}
           >
