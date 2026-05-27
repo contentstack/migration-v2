@@ -426,59 +426,63 @@ const createAssets = async ({
   const seenFilenames = new Map<string, { uid: string; metadata: any; blobPath: string }>();
   const pathToFilenameMap = new Map<string, string>();
   
-  // Discover assets and deduplicate by filename
+  // Walk DAM once to discover ALL assets (whether referenced in entries or not)
+  const damAssets: { metadataPath: string; filename: string }[] = [];
+  for await (const damFile of read(damPath)) {
+    if (!damFile?.endsWith?.('.metadata.json')) continue;
+
+    const metadataPath = path.join(damPath, damFile);
+    try {
+      const content = await fs.promises.readFile(metadataPath, 'utf-8');
+      const metadata = JSON.parse(content);
+      const filename = metadata?.asset?.name;
+      if (!filename) continue;
+
+      damAssets.push({ metadataPath, filename });
+
+      if (!seenFilenames.has(filename)) {
+        const uid = uuidv4().replace(/-/g, '');
+        const blobPath = metadataPath.replace('.metadata.json', '');
+        seenFilenames.set(filename, { uid, metadata, blobPath });
+      }
+    } catch (err) {
+      console.error(`Failed to parse DAM metadata at ${metadataPath}:`, err);
+    }
+  }
+
+  // Walk entries to map their image references back to DAM assets (for linking only)
   for await (const fileName of read(assetsDir)) {
     const filePath = path.join(assetsDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
       continue;
     }
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    if (fileName?.endsWith?.('.json')) {
-      try {
-        const parseData = JSON.parse(content);
-        const flatData = deepFlattenObject(parseData);
-        
-        for await (const [, value] of Object.entries(flatData)) {
-          if (typeof value === 'string' && isImageType?.(value)) {
-            const lastSegment = value?.split?.('/')?.pop?.();
-            if (typeof lastSegment === 'string') {
-              const assetsQueryPath = await fetchFilesByQuery(damPath, lastSegment);
-              const firstJson = assetsQueryPath?.find((fp: string) => fp?.endsWith?.('.json')) ?? null;
-              
-              if (typeof firstJson === 'string' && firstJson?.endsWith('.json')) {
-                const contentAst = await fs.promises.readFile(firstJson, 'utf-8');
-                if (typeof contentAst === 'string') {
-                  const parseData = JSON.parse(contentAst);
-                  const filename = parseData?.asset?.name;
-                  // Store mapping from this AEM path to filename
-                  pathToFilenameMap.set(value, filename);
-                  // Only create asset ONCE per unique filename
-                  if (!seenFilenames?.has(filename)) {
-                    const uid = uuidv4?.()?.replace?.(/-/g, '');
-                    const blobPath = firstJson?.replace?.('.metadata.json', '');
-                    
-                    seenFilenames?.set(filename, {
-                      uid,
-                      metadata: parseData,
-                      blobPath
-                    });
-                  }
-                }
-              }
-            }
-          }
+    if (!fileName?.endsWith?.('.json')) continue;
+
+    try {
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      const parseData = JSON.parse(content);
+      const flatData = deepFlattenObject(parseData);
+
+      for (const [, value] of Object.entries(flatData)) {
+        if (typeof value !== 'string' || !isImageType?.(value)) continue;
+        const lastSegment = value?.split?.('/')?.pop?.();
+        if (typeof lastSegment !== 'string') continue;
+
+        const match = damAssets.find(a => a.metadataPath.includes(lastSegment));
+        if (match) {
+          pathToFilenameMap.set(value, match.filename);
         }
-      } catch (err) {
-        console.error(`Failed to parse JSON in ${fileName}:`, err);
       }
+    } catch (err) {
+      console.error(`Failed to parse JSON in ${fileName}:`, err);
     }
   }
   
   // Create physical asset files (one per unique filename)
   for (const [filename, assetInfo] of seenFilenames?.entries()) {
-    const { uid, metadata, blobPath } = assetInfo;
-    const nameWithoutExt = typeof filename === 'string'
-      ? filename.split('.').slice(0, -1).join('.')
+    const { uid, blobPath } = assetInfo;
+    const nameWithoutExt = typeof filename === 'string' ?
+      filename.split('.').slice(0, -1).join('.')
       : filename;
 
     try {
@@ -529,8 +533,8 @@ const createAssets = async ({
   // Create UID-based index.json
   for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata } = assetInfo;
-    const nameWithoutExt = typeof filename === 'string'
-      ? filename?.split('.').slice(0, -1).join('.')
+    const nameWithoutExt = typeof filename === 'string' ?
+      filename?.split('.').slice(0, -1).join('.')
       : filename;
 
     allAssetJSON[uid] = {
@@ -918,8 +922,8 @@ function processFieldsRecursive(
       }
       
       case 'boolean': {
-        const aemFieldName = field?.otherCmsField
-          ? getLastKey(field.otherCmsField, ' > ')
+        const aemFieldName = field?.otherCmsField ?
+          getLastKey(field.otherCmsField, ' > ')
           : getLastKey(field?.uid);
         const uid = getLastKey(field?.contentstackFieldUid);
         const value = getFieldValue(items, aemFieldName);
@@ -993,7 +997,7 @@ function processFieldsRecursive(
         const fieldKey = getLastKey(field?.contentstackFieldUid);
         const refCtUid = field?.referenceTo?.[0] || field?.uid;
         const references = [];
-        for (const [key, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
+        for (const [, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
           if (!val?.configured || (val[':type'] as string) === 'nt:folder') {
             continue;
           }
@@ -1068,8 +1072,8 @@ function processFieldsRecursive(
       case 'link': {
         const uid = getLastKey(field?.contentstackFieldUid);
         
-        const aemFieldName = field?.otherCmsField 
-          ? getLastKey(field.otherCmsField, ' > ') 
+        const aemFieldName = field?.otherCmsField ?
+          getLastKey(field.otherCmsField, ' > ')
           : 'link';
         
         let linkUrl = getFieldValue(items, aemFieldName);
@@ -1288,8 +1292,8 @@ const createEntry = async ({
       const parseData = JSON.parse(content);
       const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
-      const templateUid = isEFragment?.isXF
-        ? parseData?.title
+      const templateUid = isEFragment?.isXF ?
+        parseData?.title
         : (parseData?.templateName ?? parseData?.title ?? parseData?.templateType);
       const contentType = (contentTypes as ContentType[] | undefined)?.find?.((element) => element?.otherCmsUid === templateUid);
       const locale = getCurrentLocale(parseData);
