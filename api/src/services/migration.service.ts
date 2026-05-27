@@ -350,11 +350,6 @@ const startTestMigration = async (req: Request): Promise<any> => {
     throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
   const targetTestStackId = `${project?.current_test_stack_id || ""}`.trim();
-  if (!targetTestStackId) {
-    throw new BadRequestError(
-      "Test stack API key is missing. Please create/select a test stack and retry.",
-    );
-  }
   const packagePath = project?.extract_path;
   if (targetTestStackId) {
     const {
