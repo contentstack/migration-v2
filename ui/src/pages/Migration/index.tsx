@@ -900,7 +900,8 @@ const Migration = () => {
       },
       migration_execution: {
         ...newMigrationData?.migration_execution,
-        migrationStarted: false
+        migrationStarted: false,
+        migrationCompleted: false
       },
       project_current_step: 1,
       iteration: newMigrationData?.iteration ? newMigrationData?.iteration + 1 : 1
@@ -958,9 +959,6 @@ const Migration = () => {
           ref={stepperRef}
           steps={createStepper(projectData ?? defaultMigrationResponse, handleStepChange)}
           handleSaveCT={saveRef?.current?.handleSaveContentType}
-          handleUpdateAutoMappedContentMapping={() =>
-            saveRef?.current?.handleUpdateAutoMappedContentMapping?.() ?? Promise.resolve()
-          }
           changeDropdownState={changeDropdownState}
           projectData={projectData || defaultMigrationResponse}
           isProjectMapped={isProjectMapper}

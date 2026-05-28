@@ -44,7 +44,6 @@ export type stepperProps = {
   stepTitleClassName?: string;
   testId?: string;
   handleSaveCT?: () => void;
-  handleUpdateAutoMappedContentMapping?: () => Promise<void>;
   changeDropdownState: () => void;
   projectData: MigrationResponse;
   isProjectMapped: boolean;
@@ -84,15 +83,9 @@ const HorizontalStepper = forwardRef(
     const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
     const { steps, className, emptyStateMsg, hideTabView, testId } = props;
-    
-    // Initialize showStep based on current state - if restarted, start from 0
-    const initialStep = (newMigrationData?.project_current_step === 1 && 
-                        newMigrationData?.legacy_cms?.projectStatus === 0) ? 0 : stepIndex;
-    
-    const [showStep, setShowStep] = useState(initialStep);
+    const [showStep, setShowStep] = useState(stepIndex);
     const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [lastIteration, setLastIteration] = useState(newMigrationData?.iteration || 1);
 
     const navigate = useNavigate();
     const { projectId = '' } = useParams();
@@ -106,75 +99,31 @@ const HorizontalStepper = forwardRef(
       newMigrationDataRef.current = newMigrationData;
     }, [newMigrationData]);
 
-    // Reset stepper when migration is restarted (detected by iteration increment)
-    useEffect(() => {
-      const currentIteration = newMigrationData?.iteration || 1;
-      
-      // If iteration has increased, it means migration was restarted
-      if (currentIteration > lastIteration) {
-        setStepsCompleted([]);
-        setShowStep(0);
-        setLastIteration(currentIteration);
-      }
-    }, [newMigrationData?.iteration, lastIteration]);
-
-    // Also reset stepper when migration is restarted (fallback detection)
-    useEffect(() => {
-      // Check if migration was restarted by looking at multiple indicators
-      const isRestarted = 
-        newMigrationData?.project_current_step === 1 &&
-        newMigrationData?.legacy_cms?.projectStatus === 0 &&
-        newMigrationData?.legacy_cms?.currentStep === 1 &&
-        !newMigrationData?.migration_execution?.migrationCompleted &&
-        !newMigrationData?.migration_execution?.migrationStarted;
-
-      if (isRestarted && stepsCompleted?.length > 0) {
-        setStepsCompleted([]);
-        setShowStep(0);
-      }
-    }, [
-      newMigrationData?.project_current_step, 
-      newMigrationData?.legacy_cms?.projectStatus,
-      newMigrationData?.legacy_cms?.currentStep,
-      newMigrationData?.migration_execution?.migrationCompleted, 
-      newMigrationData?.migration_execution?.migrationStarted,
-      stepsCompleted?.length
-    ]);
-
     useEffect(() => {
       const stepIndex = parseInt(stepId || '', 10) - 1;
 
       if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
         !newMigrationDataRef?.current?.isprojectMapped && setShowStep(stepIndex);
-        
-        // Only auto-complete previous steps if migration hasn't been restarted recently
-        // Check if this is a fresh restart (project_current_step = 1 and low projectStatus)
-        const isFreshRestart = 
-          newMigrationData?.project_current_step === 1 && 
-          newMigrationData?.legacy_cms?.projectStatus === 0;
-          
-        if (!isFreshRestart) {
-          setStepsCompleted((prev) => {
-            const updatedStepsCompleted = [...prev];
-            if (
-              stepIndex === 4 &&
-              (props?.projectData?.isMigrationCompleted ||
-                newMigrationData?.migration_execution?.migrationCompleted)
-            ) {
-              if (!updatedStepsCompleted?.includes(4)) {
-                updatedStepsCompleted.push(4);
-              }
+        setStepsCompleted((prev) => {
+          const updatedStepsCompleted = [...prev];
+          if (
+            stepIndex === 4 &&
+            (props?.projectData?.isMigrationCompleted ||
+              newMigrationData?.migration_execution?.migrationCompleted)
+          ) {
+            if (!updatedStepsCompleted?.includes(4)) {
+              updatedStepsCompleted.push(4);
             }
-            for (let i = 0; i < stepIndex; i++) {
-              if (!updatedStepsCompleted?.includes(i)) {
-                updatedStepsCompleted?.push(i);
-              }
+          }
+          for (let i = 0; i < stepIndex; i++) {
+            if (!updatedStepsCompleted?.includes(i)) {
+              updatedStepsCompleted?.push(i);
             }
-            return updatedStepsCompleted;
-          });
-        }
+          }
+          return updatedStepsCompleted;
+        });
       }
-    }, [stepId, newMigrationData?.migration_execution?.migrationCompleted, newMigrationData?.project_current_step, newMigrationData?.legacy_cms?.projectStatus]);
+    }, [stepId, newMigrationData?.migration_execution?.migrationCompleted]);
 
     useImperativeHandle(ref, () => ({
       handleStepChange: (currentStep: number) => {
@@ -195,26 +144,13 @@ const HorizontalStepper = forwardRef(
       if (newMigrationData?.content_mapping?.isDropDownChanged) {
         setIsModalOpen(true);
         return cbModal({
-          component: (modalProps: ModalObj) => (
+          component: (props: ModalObj) => (
             <SaveChangesModal
-              {...modalProps}
+              {...props}
               isopen={setIsModalOpen}
               otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
               saveContentType={handleSaveCT}
-              changeStep={async () => {
-                try {
-                  await handleUpdateAutoMappedContentMapping?.();
-                } catch {
-                  Notification({
-                    notificationContent: {
-                      text: 'Could not save content type mapping. Please try again.'
-                    },
-                    type: 'error'
-                  });
-                  return;
-                }
-                setTabStep(idx);
-              }}
+              changeStep={() => setTabStep(idx)}
               dropdownStateChange={handleDropdownChange}
             />
           ),

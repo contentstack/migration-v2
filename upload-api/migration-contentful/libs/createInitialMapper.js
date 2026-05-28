@@ -58,7 +58,6 @@ const buildContentfulTaxonomyFields = (metadata) => {
     }
   ];
 };
-const extractEntries = require('./extractEntries');
 
 /**
  * Internal module dependencies.

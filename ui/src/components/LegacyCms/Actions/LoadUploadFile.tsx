@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FileDetails, ICMSType, INewMigration } from '../../../context/app/app.interface';
-import { fileValidation } from '../../../services/api/upload.service';
+import { fileValidation, uploadLocalFileToContainer } from '../../../services/api/upload.service';
 import { getMigrationData } from '../../../services/api/migration.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
@@ -9,6 +9,7 @@ import { Button, Icon, Paragraph, TextInput } from '@contentstack/venus-componen
 import { isEmptyString } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { ICardType } from '../../../components/Common/Card/card.interface';
+
 
 //import progressbar
 import ProgressBar from '../../../components/Common/ProgressBar';
@@ -57,8 +58,6 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
   const dispatch = useDispatch();
   const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
-  const iteration = newMigrationData?.iteration || 1;
-
   const handleEditFile = async () => {
     setIsEditing(true);
     setLocalPath(currentPath);
@@ -117,11 +116,9 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
             <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
           )}
         </div>
-        { iteration > 1 && (
-          <div className="edit-icon">
-            <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
-          </div>
-        )}
+        <div className="edit-icon">
+          <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
+        </div>
       </div>
       ) : (
         // ✅ AWS S3 details (isLocalPath is false)
@@ -197,7 +194,20 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
 
       await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
 
-      const { data, status } = await fileValidation( projectId, newMigrationData?.legacy_cms?.affix );
+      // Upload file/dir to container if path is a new local path (not already in container, not SQL).
+      // upload-api reads from host filesystem mounted at /host and copies to /app/extracted_files.
+      let resolvedPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '';
+      const isSQLFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() === 'sql';
+      const isAlreadyContainerPath = resolvedPath.startsWith( '/app/extracted_files' ) || resolvedPath.startsWith( '/data/' );
+
+      if ( !isSQLFormat && !isAlreadyContainerPath ) {
+        const uploadResult = await uploadLocalFileToContainer( resolvedPath );
+        if ( uploadResult?.containerPath ) {
+          resolvedPath = uploadResult.containerPath;
+        }
+      }
+
+      const { data, status } = await fileValidation( projectId, newMigrationData?.legacy_cms?.affix, resolvedPath );
 
       setProgressPercentage( 70 );
       setProcessing( 'Processing...70%' );
@@ -213,7 +223,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
       const newMigrationDataObj: INewMigration = {
         ...newMigrationDataRef?.current,
         legacy_cms: {
-          ...newMigrationDataRef?.current?.legacy_cms,
+          ...newMigrationDataRef?.current?.legacy_cms, 
           uploadedFile: {
             ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
             name: isSuccess ? ( responseFileDetails?.localPath || '' ) : ( newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.name || '' ),

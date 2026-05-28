@@ -8,12 +8,22 @@ const {
   mockHandleFileProcessing,
   mockCreateMapper,
   mockConfig,
+  mockFsAccess,
+  mockFsCopyFile,
+  mockFsMkdir,
+  mockFsReaddir,
+  mockRunningInDocker,
 } = vi.hoisted(() => ({
   mockStatSync: vi.fn(),
   mockCreateReadStream: vi.fn(),
   mockClientSend: vi.fn(),
   mockHandleFileProcessing: vi.fn(),
   mockCreateMapper: vi.fn(),
+  mockFsAccess: vi.fn(),
+  mockFsCopyFile: vi.fn(),
+  mockFsMkdir: vi.fn(),
+  mockFsReaddir: vi.fn(),
+  mockRunningInDocker: vi.fn(),
   mockConfig: {
     cmsType: 'wordpress',
     isLocalPath: true,
@@ -32,10 +42,20 @@ const {
 vi.mock('fs', () => ({
   createReadStream: (...args: any[]) => mockCreateReadStream(...args),
   statSync: (...args: any[]) => mockStatSync(...args),
+  promises: {
+    access: (...args: any[]) => mockFsAccess(...args),
+    copyFile: (...args: any[]) => mockFsCopyFile(...args),
+    mkdir: (...args: any[]) => mockFsMkdir(...args),
+    readdir: (...args: any[]) => mockFsReaddir(...args),
+  },
   default: {
     createReadStream: (...args: any[]) => mockCreateReadStream(...args),
     statSync: (...args: any[]) => mockStatSync(...args),
   },
+}));
+
+vi.mock('../../../src/utils/hydrate-config', () => ({
+  runningInDocker: () => mockRunningInDocker(),
 }));
 
 vi.mock('../../../src/services/aws/client', () => ({
@@ -113,10 +133,10 @@ describe('routes/index', () => {
     router = mod.default;
   });
 
-  it('should export a router with 3 routes', () => {
+  it('should export a router with 4 routes', () => {
     expect(router).toBeDefined();
     const routes = router.stack.filter((l: any) => l.route);
-    expect(routes.length).toBe(3);
+    expect(routes.length).toBe(4);
   });
 
   describe('GET /config', () => {
@@ -526,6 +546,86 @@ describe('routes/index', () => {
       await waitFor(() => res.status.mock.calls.length > 0);
 
       expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('POST /upload-to-container', () => {
+    function postHandler() {
+      return getHandler(router, 'post', '/upload-to-container');
+    }
+
+    it('should return 400 when localPath is missing', async () => {
+      const handler = postHandler();
+      const res = mockRes();
+      await handler(mockReq({ body: {} }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return raw path and update config when not running in Docker', async () => {
+      mockRunningInDocker.mockReturnValue(false);
+      const { updateConfigFile } = await import('../../../src/helper');
+      (updateConfigFile as any).mockResolvedValue(mockConfig);
+
+      const handler = postHandler();
+      const res = mockRes();
+      await handler(mockReq({ body: { localPath: '/some/local/path.json' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const sent = res.json.mock.calls[0][0];
+      expect(sent.containerPath).toBe('/some/local/path.json');
+    });
+
+    it('should return 500 when hostdata path is not accessible in Docker', async () => {
+      mockRunningInDocker.mockReturnValue(true);
+      mockFsAccess.mockRejectedValue(new Error('ENOENT'));
+
+      const handler = postHandler();
+      const res = mockRes();
+      await handler(mockReq({ body: { localPath: '/Users/test/file.json' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    it('should respond with destPath and start background file copy in Docker', async () => {
+      mockRunningInDocker.mockReturnValue(true);
+      mockFsAccess.mockResolvedValue(undefined);
+      mockFsMkdir.mockResolvedValue(undefined);
+      mockFsCopyFile.mockResolvedValue(undefined);
+      const { updateConfigFile } = await import('../../../src/helper');
+      (updateConfigFile as any).mockResolvedValue(mockConfig);
+
+      const handler = postHandler();
+      const res = mockRes();
+      await handler(mockReq({ body: { localPath: '/Users/test/file.json' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const sent = res.json.mock.calls[0][0];
+      expect(sent.containerPath).toContain('extracted_files');
+      expect(sent.containerPath).toContain('file.json');
+
+      // Wait for background copy
+      await waitFor(() => mockFsCopyFile.mock.calls.length > 0);
+      expect(mockFsCopyFile).toHaveBeenCalled();
+    });
+
+    it('should copy directory recursively in Docker when path has no extension', async () => {
+      mockRunningInDocker.mockReturnValue(true);
+      mockFsAccess.mockResolvedValue(undefined);
+      mockFsMkdir.mockResolvedValue(undefined);
+      mockFsReaddir.mockResolvedValue([]);
+      const { updateConfigFile } = await import('../../../src/helper');
+      (updateConfigFile as any).mockResolvedValue(mockConfig);
+
+      const handler = postHandler();
+      const res = mockRes();
+      await handler(mockReq({ body: { localPath: '/Users/test/mydir' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const sent = res.json.mock.calls[0][0];
+      expect(sent.containerPath).toContain('mydir');
+
+      await waitFor(() => mockFsMkdir.mock.calls.length > 0);
+      expect(mockFsMkdir).toHaveBeenCalled();
     });
   });
 });

@@ -4,6 +4,7 @@ import path from 'path';
 import xml2js from 'xml2js';
 import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from '../utils/logger';
+import { getConfigFilePaths } from '../utils/hydrate-config';
 
 const getFileName = (params: { Key: string }) => {
   const obj: { fileName?: string; fileExt?: string } = {};
@@ -211,7 +212,7 @@ function deleteFolderSync(folderPath: string): void {
 
 async function updateConfigFile(filePath?: string): Promise<any | undefined> {
   try {
-    const configFilePath = path.join(process.cwd(), 'src', 'config', 'index.json');
+    const { src: configFilePath } = getConfigFilePaths();
     const config: any = JSON.parse(await fs.promises.readFile(configFilePath, 'utf8'));
 
     // If filePath is provided and not empty, update the config file

@@ -122,6 +122,7 @@ describe('auth.service SSO helpers', () => {
       await expect(checkSSOAuthStatus('u1')).resolves.toEqual({
         authenticated: false,
         message: 'SSO authentication not completed',
+        terminal: false,
       });
     });
 
@@ -177,6 +178,7 @@ describe('auth.service SSO helpers', () => {
       await expect(checkSSOAuthStatus('u1')).resolves.toEqual({
         authenticated: false,
         message: 'Organization not linked to user',
+        terminal: false,
       });
     });
 
@@ -194,6 +196,7 @@ describe('auth.service SSO helpers', () => {
       await expect(checkSSOAuthStatus('u1')).resolves.toEqual({
         authenticated: false,
         message: 'SSO authentication expired',
+        terminal: true,
       });
     });
 

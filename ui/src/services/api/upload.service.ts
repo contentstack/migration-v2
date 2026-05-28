@@ -40,13 +40,42 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-export const fileValidation = async (projectId: string, affix = 'cs') => {
+/**
+ * Copies a local file or directory into the container's shared volume via the upload-api.
+ * The upload-api reads from the host filesystem mounted at /host.
+ * Skip if: path is already a container path or SQL connection.
+ * Returns the container-side path to pass to fileValidation.
+ */
+export const uploadLocalFileToContainer = async (
+  localPath: string
+): Promise<{ containerPath: string } | null> => {
+  try {
+    if (!localPath || localPath.toLowerCase() === 'sql' || localPath.startsWith('/app/extracted_files')) {
+      return null;
+    }
+
+    const response = await axios.post(`${UPLOAD_FILE_RELATIVE_URL}upload-to-container`, { localPath });
+
+    if (response?.data?.containerPath) {
+      return { containerPath: response.data.containerPath };
+    }
+    return null;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`uploadLocalFileToContainer failed: ${error.message}`);
+    }
+    throw new Error('Unknown error in uploadLocalFileToContainer');
+  }
+};
+
+export const fileValidation = async (projectId: string, affix = 'cs', localPath: string) => {
   try {
     const options = {
       headers: {
         app_token: getDataFromLocalStorage('app_token'),
         projectId: projectId,
-        affix: affix
+        affix: affix,
+        file_path: localPath  
       }
     };
     return await getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);

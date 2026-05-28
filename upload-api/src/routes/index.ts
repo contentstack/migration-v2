@@ -2,7 +2,7 @@ import path from 'path';
 import multer from 'multer';
 import { Readable } from 'stream';
 import express, { Router, Request, Response } from 'express';
-import { createReadStream, statSync } from 'fs';
+import { createReadStream, statSync, promises as fsPromises } from 'fs';
 import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
@@ -14,12 +14,87 @@ import { fileOperationLimiter, updateConfigFile } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
+import { runningInDocker } from '../utils/hydrate-config';
 import logger from '../utils/logger';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Copy a file or directory from the host into the container's shared extracted_files volume.
+// Host filesystem is mounted at /host (read-only) via docker-compose.
+// Accepts: { localPath: string } — the path the user typed in the UI.
+// If localPath has a file extension → copy single file.
+// If no extension → treat as directory, copy recursively.
+router.post('/upload-to-container', express.json(), async function (req: Request, res: Response) {
+  try {
+    const rawPath: string = req.body?.localPath || '';
+    if (!rawPath) {
+      return res.status(400).json({ status: 400, message: 'localPath is required.' });
+    }
+
+    if (!runningInDocker()) {
+      // Local: no file copy needed, just update config with the raw path
+      await updateConfigFile(rawPath);
+      return res.status(200).json({ status: 200, containerPath: rawPath });
+    }
+
+    // Docker: resolve host path via /hostdata mount (/Users is mounted at /hostdata)
+    const hostDataDir = process.env.HOST_DATA_DIR || '/Users';
+    const relativePath = rawPath.startsWith(hostDataDir)
+      ? rawPath.slice(hostDataDir.length)
+      : rawPath;
+    const hostPath = path.join('/hostdata', relativePath);
+
+    // Verify the path is accessible via the /hostdata mount before responding.
+    await fsPromises.access(hostPath);
+
+    // Compute the final shared_data destination path.
+    // Return destPath immediately so the UI saves it to the project DB —
+    // migration-api will find the file there once the background copy finishes.
+    const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+    const name = sanitizeFilename(path.basename(rawPath));
+    const destPath = path.join(baseDir, name);
+
+    // Respond with destPath so file_path saved in project DB points to shared_data.
+    res.status(200).json({ status: 200, containerPath: destPath });
+
+    // Background: copy file/dir into shared_data volume so migration-api can access it.
+    (async () => {
+      try {
+        const hasExtension = path.extname(rawPath) !== '';
+        if (hasExtension) {
+          await fsPromises.mkdir(baseDir, { recursive: true });
+          await fsPromises.copyFile(hostPath, destPath);
+        } else {
+          await copyDirRecursive(hostPath, destPath);
+        }
+        await updateConfigFile(destPath);
+        logger.info('Background copy complete', { destPath });
+      } catch (copyErr) {
+        logger.error('Background copy failed', { err: copyErr });
+      }
+    })();
+  } catch (err: any) {
+    logger.error('upload-to-container error', { err });
+    return res.status(500).json({ status: 500, message: 'Upload failed.', error: err.message });
+  }
+});
+
+async function copyDirRecursive(src: string, dest: string): Promise<void> {
+  await fsPromises.mkdir(dest, { recursive: true });
+  const entries = await fsPromises.readdir(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      await copyDirRecursive(srcPath, destPath);
+    } else {
+      await fsPromises.copyFile(srcPath, destPath);
+    }
+  }
+}
 
 // Define your routes
 router.post('/upload', upload.single('file'), async function (req: Request, res: Response) {
@@ -98,7 +173,9 @@ router.get(
       const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
-      const config = await updateConfigFile();
+      const rawFilePath = Array.isArray(req?.headers?.file_path) ? req?.headers?.file_path?.[0] : req?.headers?.file_path;
+      const filePath: string | undefined = rawFilePath && typeof rawFilePath === 'string' && rawFilePath.trim() !== '' ? rawFilePath.trim() : undefined;
+      const config = await updateConfigFile(filePath);
       if (!config) {
         logger.error('Failed to load application config');
         return res.status(500).json({
