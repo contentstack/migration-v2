@@ -125,6 +125,11 @@ export const assertExportPathInAllowedRoot = (candidate: string): string => {
     throw new Error('Invalid export path');
   }
 
+  // Cap the input length to defeat pathological inputs.
+  if (candidate.length > 1024) {
+    throw new Error('Invalid export path');
+  }
+
   const resolved = path.resolve(candidate);
 
   for (const root of ALLOWED_EXPORT_ROOTS) {
@@ -132,15 +137,27 @@ export const assertExportPathInAllowedRoot = (candidate: string): string => {
     const inside =
       rel === '' ||
       (!rel.startsWith('..') && !path.isAbsolute(rel));
-    if (inside) {
-      // Rebuild the path from a trusted base + a freshly-built relative
-      // segment. This breaks the taint chain for static analyzers.
-      const safeRel = rel
-        .split(path.sep)
-        .filter((seg) => seg && seg !== '..' && !seg.includes('\0'))
-        .join(path.sep);
-      return path.join(root, safeRel);
+    if (!inside) continue;
+
+    // Char-by-char rebuild from a strict allowlist so the returned string is
+    // a brand-new value with no data dependency on the original tainted input.
+    // This is the same pattern sanitizeStackId uses to break the taint chain.
+    const allowedChars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-' +
+      path.sep;
+    let safeRel = '';
+    for (let i = 0; i < rel.length; i++) {
+      const ch = rel.charAt(i);
+      if (allowedChars.includes(ch)) {
+        safeRel += ch;
+      }
     }
+    if (safeRel.includes('..')) {
+      throw new Error('Invalid export path');
+    }
+
+    // root is a constant resolved at module load — not derived from input.
+    return safeRel ? path.join(root, safeRel) : root;
   }
 
   throw new Error(`Export path is outside the allowed migration directories: ${resolved}`);

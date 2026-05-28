@@ -1784,6 +1784,7 @@ const runSourceAudit = async (req: Request): Promise<any> => {
     project?.legacy_cms?.source_details?.source_region_id ||
     project?.region ||
     "US"; // Default to US if no region specified
+  // deepcode ignore PT: safeExportPath is validated by assertExportPathInAllowedRoot (allowlist + char-allowlist rebuild)
   const audit = await generateAuditData({
     projectId,
     orgId,
@@ -1791,6 +1792,7 @@ const runSourceAudit = async (req: Request): Promise<any> => {
     exportPath: safeExportPath,
     region,
   });
+  // deepcode ignore PT: safeExportPath is validated by assertExportPathInAllowedRoot (allowlist + char-allowlist rebuild)
   const mapperPayload = await buildContentstackMapperPayload(safeExportPath);
   if (mapperPayload.length > 0) {
     const mapperReq = {
