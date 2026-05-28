@@ -1507,7 +1507,11 @@ const validateSourceExport = async (req: Request): Promise<any> => {
     throw new BadRequestError("No export path available for validation");
   }
 
-  const result = await validateExportStructure(exportPath);
+  // Validate the export path against the allowlist of migration directories
+  // before passing it to validateExportStructure (which reads files).
+  const safeExportPathForValidation = assertExportPathInAllowedRoot(exportPath);
+  // deepcode ignore PT: path is validated by assertExportPathInAllowedRoot (allowlist)
+  const result = await validateExportStructure(safeExportPathForValidation);
   await ProjectModelLowdb.update((data: any) => {
     if (!data.projects || !Array.isArray(data.projects)) {
       throw new Error("Invalid projects data structure");

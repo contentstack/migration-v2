@@ -27,7 +27,8 @@ vi.mock('../../../src/models/audit-lowdb.js', () => ({
 }));
 
 describe('audit.service', () => {
-  const base = '/exp';
+  // Path inside the allowlist used by assertExportPathInAllowedRoot.
+  const base = path.join(process.cwd(), 'export-stack', 'test-audit');
   const assetsDir = path.join(base, 'assets');
   const assetsJson = path.join(assetsDir, 'assets.json');
   const entriesDir = path.join(base, 'entries');

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import auditDb from '../models/audit-lowdb.js';
+import { assertExportPathInAllowedRoot } from '../utils/sanitize-path.utils.js';
 
 // Helper function to build Contentstack management URLs
 const buildContentstackUrl = (region: string, stackId: string, type: 'asset' | 'entry' | 'content-type' | 'global-field', uid: string, contentType?: string, locale?: string) => {
@@ -66,15 +67,18 @@ export const generateAuditData = async ({
   exportPath: string;
   region?: string;
 }) => {
-  const assetsPath = path.join(exportPath, 'assets', 'assets.json');
-  const entriesDir = path.join(exportPath, 'entries');
-  const contentTypesDir = path.join(exportPath, 'content_types');
-  const globalFieldsDir = path.join(exportPath, 'global_fields');
+  // Re-validate against the allowlist of export roots and rebuild a fresh
+  // path string. Breaks the taint chain from HTTP params → fs.readFile.
+  const safeExportPath = assertExportPathInAllowedRoot(exportPath);
+  const assetsPath = path.join(safeExportPath, 'assets', 'assets.json');
+  const entriesDir = path.join(safeExportPath, 'entries');
+  const contentTypesDir = path.join(safeExportPath, 'content_types');
+  const globalFieldsDir = path.join(safeExportPath, 'global_fields');
 
   const assetIndex = await readJson(assetsPath);
   const assets: any[] = [];
   for (const value of Object.values(assetIndex as Record<string, string>)) {
-    const shardPath = path.join(exportPath, 'assets', String(value));
+    const shardPath = path.join(safeExportPath, 'assets', String(value));
     if (!fs.existsSync(shardPath)) continue;
     const shardData = await readJson(shardPath);
     const normalized = flattenAssetRecords(shardData);
