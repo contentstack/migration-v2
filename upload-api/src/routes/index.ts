@@ -45,7 +45,13 @@ router.post('/upload-to-container', express.json(), async function (req: Request
     const relativePath = rawPath.startsWith(hostDataDir)
       ? rawPath.slice(hostDataDir.length)
       : rawPath;
-    const hostPath = path.join('/hostdata', relativePath);
+    const hostMountBase = '/hostdata';
+    const hostPath = path.resolve(hostMountBase, '.' + path.sep + relativePath);
+
+    // Reject any path that escapes the /hostdata mount via traversal (e.g., "../").
+    if (!isPathWithinBase(hostPath, hostMountBase)) {
+      return res.status(400).json({ status: 400, message: 'Invalid path.' });
+    }
 
     // Verify the path is accessible via the /hostdata mount before responding.
     await fsPromises.access(hostPath);
@@ -55,7 +61,11 @@ router.post('/upload-to-container', express.json(), async function (req: Request
     // migration-api will find the file there once the background copy finishes.
     const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
     const name = sanitizeFilename(path.basename(rawPath));
-    const destPath = path.join(baseDir, name);
+    const destPath = path.resolve(baseDir, name);
+
+    if (!isPathWithinBase(destPath, baseDir)) {
+      return res.status(400).json({ status: 400, message: 'Invalid destination path.' });
+    }
 
     // Respond with destPath so file_path saved in project DB points to shared_data.
     res.status(200).json({ status: 200, containerPath: destPath });
@@ -68,7 +78,7 @@ router.post('/upload-to-container', express.json(), async function (req: Request
           await fsPromises.mkdir(baseDir, { recursive: true });
           await fsPromises.copyFile(hostPath, destPath);
         } else {
-          await copyDirRecursive(hostPath, destPath);
+          await copyDirRecursive(hostPath, destPath, hostMountBase, baseDir);
         }
         await updateConfigFile(destPath);
         logger.info('Background copy complete', { destPath });
@@ -82,15 +92,31 @@ router.post('/upload-to-container', express.json(), async function (req: Request
   }
 });
 
-async function copyDirRecursive(src: string, dest: string): Promise<void> {
-  await fsPromises.mkdir(dest, { recursive: true });
-  const entries = await fsPromises.readdir(src, { withFileTypes: true });
+async function copyDirRecursive(
+  src: string,
+  dest: string,
+  srcBase: string,
+  destBase: string
+): Promise<void> {
+  const resolvedSrc = path.resolve(src);
+  const resolvedDest = path.resolve(dest);
+  // Ensure both src and dest stay within their allowed bases before any fs access.
+  if (!isPathWithinBase(resolvedSrc, srcBase) || !isPathWithinBase(resolvedDest, destBase)) {
+    return;
+  }
+  await fsPromises.mkdir(resolvedDest, { recursive: true });
+  const entries = await fsPromises.readdir(resolvedSrc, { withFileTypes: true });
   for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
+    const safeName = sanitizeFilename(entry.name);
+    const srcPath = path.resolve(resolvedSrc, safeName);
+    const destPath = path.resolve(resolvedDest, safeName);
+    // Defense-in-depth: ensure entries don't escape their parent dirs (e.g., via symlinks).
+    if (!isPathWithinBase(srcPath, resolvedSrc) || !isPathWithinBase(destPath, resolvedDest)) {
+      continue;
+    }
     if (entry.isDirectory()) {
-      await copyDirRecursive(srcPath, destPath);
-    } else {
+      await copyDirRecursive(srcPath, destPath, srcBase, destBase);
+    } else if (entry.isFile()) {
       await fsPromises.copyFile(srcPath, destPath);
     }
   }
