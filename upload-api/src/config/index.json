@@ -1,8 +1,6 @@
 {
   "plan": {
-    "dropdown": {
-      "optionLimit": 100
-    }
+    "dropdown": { "optionLimit": 100 }
   },
   "cmsType": "cmsType",
   "isLocalPath": true,
