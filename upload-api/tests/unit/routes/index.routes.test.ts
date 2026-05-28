@@ -10,6 +10,7 @@ const {
   mockConfig,
   mockFsAccess,
   mockFsCopyFile,
+  mockFsCp,
   mockFsMkdir,
   mockFsReaddir,
   mockRunningInDocker,
@@ -21,6 +22,7 @@ const {
   mockCreateMapper: vi.fn(),
   mockFsAccess: vi.fn(),
   mockFsCopyFile: vi.fn(),
+  mockFsCp: vi.fn(),
   mockFsMkdir: vi.fn(),
   mockFsReaddir: vi.fn(),
   mockRunningInDocker: vi.fn(),
@@ -45,6 +47,7 @@ vi.mock('fs', () => ({
   promises: {
     access: (...args: any[]) => mockFsAccess(...args),
     copyFile: (...args: any[]) => mockFsCopyFile(...args),
+    cp: (...args: any[]) => mockFsCp(...args),
     mkdir: (...args: any[]) => mockFsMkdir(...args),
     readdir: (...args: any[]) => mockFsReaddir(...args),
   },
@@ -590,7 +593,7 @@ describe('routes/index', () => {
       mockRunningInDocker.mockReturnValue(true);
       mockFsAccess.mockResolvedValue(undefined);
       mockFsMkdir.mockResolvedValue(undefined);
-      mockFsCopyFile.mockResolvedValue(undefined);
+      mockFsCp.mockResolvedValue(undefined);
       const { updateConfigFile } = await import('../../../src/helper');
       (updateConfigFile as any).mockResolvedValue(mockConfig);
 
@@ -604,8 +607,8 @@ describe('routes/index', () => {
       expect(sent.containerPath).toContain('file.json');
 
       // Wait for background copy
-      await waitFor(() => mockFsCopyFile.mock.calls.length > 0);
-      expect(mockFsCopyFile).toHaveBeenCalled();
+      await waitFor(() => mockFsCp.mock.calls.length > 0);
+      expect(mockFsCp).toHaveBeenCalled();
     });
 
     it('should copy directory recursively in Docker when path has no extension', async () => {
@@ -613,6 +616,7 @@ describe('routes/index', () => {
       mockFsAccess.mockResolvedValue(undefined);
       mockFsMkdir.mockResolvedValue(undefined);
       mockFsReaddir.mockResolvedValue([]);
+      mockFsCp.mockResolvedValue(undefined);
       const { updateConfigFile } = await import('../../../src/helper');
       (updateConfigFile as any).mockResolvedValue(mockConfig);
 
@@ -624,8 +628,8 @@ describe('routes/index', () => {
       const sent = res.json.mock.calls[0][0];
       expect(sent.containerPath).toContain('mydir');
 
-      await waitFor(() => mockFsMkdir.mock.calls.length > 0);
-      expect(mockFsMkdir).toHaveBeenCalled();
+      await waitFor(() => mockFsCp.mock.calls.length > 0);
+      expect(mockFsCp).toHaveBeenCalled();
     });
   });
 });
