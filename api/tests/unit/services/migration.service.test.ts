@@ -219,7 +219,12 @@ vi.mock('../../../src/utils/sanitize-path.utils.js', async (importOriginal) => {
   };
 });
 
+import path from 'path';
 import { migrationService } from '../../../src/services/migration.service.js';
+
+// Paths inside the allowlist used by assertExportPathInAllowedRoot.
+const SAFE_EXPORT_PATH = path.join(process.cwd(), 'export-stack', 'test-export');
+const SAFE_EXPORT_ROOT = path.join(SAFE_EXPORT_PATH, 'main');
 
 const createMockReq = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -1245,7 +1250,7 @@ describe('migration.service', () => {
         ...mockProjects[0],
         legacy_cms: {
           cms: 'contentstack',
-          source_details: { export_path: '/tmp/export' },
+          source_details: { export_path: SAFE_EXPORT_PATH },
         },
       };
       mockChainGet.mockReturnValue({
@@ -1254,7 +1259,7 @@ describe('migration.service', () => {
       });
       mockValidateExportStructure.mockResolvedValue({
         isValid: true,
-        resolvedRoot: '/tmp/export/main',
+        resolvedRoot: SAFE_EXPORT_ROOT,
       });
       mockProjectUpdate.mockImplementation((fn: (d: any) => void) => {
         fn({
@@ -1284,7 +1289,7 @@ describe('migration.service', () => {
     it('should return UNPROCESSABLE_CONTENT when isValid is false', async () => {
       const project = {
         ...mockProjects[0],
-        legacy_cms: { source_details: { export_path: '/tmp/export' } },
+        legacy_cms: { source_details: { export_path: SAFE_EXPORT_PATH } },
       };
       mockChainGet.mockReturnValue({
         find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
@@ -1362,7 +1367,7 @@ describe('migration.service', () => {
       const project = {
         ...mockProjects[0],
         legacy_cms: {
-          source_details: { export_path: '/tmp/export' },
+          source_details: { export_path: SAFE_EXPORT_PATH },
           audit: {
             summary: { total: 5 },
             is_mapper_generated: true,
@@ -1385,7 +1390,7 @@ describe('migration.service', () => {
         ...mockProjects[0],
         legacy_cms: {
           source_details: {
-            export_path: '/tmp/export',
+            export_path: SAFE_EXPORT_PATH,
             source_stack_id: 'src-1',
             source_region_id: 'NA',
           },

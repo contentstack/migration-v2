@@ -103,6 +103,49 @@ export const assertResolvedPathUnderBase = (
  * @param baseDir - (Optional) Base directory for relative paths.
  * @returns A safe, absolute path.
  */
+const ALLOWED_EXPORT_ROOTS: string[] = [
+  path.resolve(process.cwd(), 'export-stack'),
+  path.resolve(process.cwd(), 'extracted_files'),
+  path.resolve(process.cwd(), 'cmsMigrationData'),
+  path.resolve(process.cwd(), 'migration-data'),
+  path.resolve(process.cwd(), '..', 'upload-api', 'extracted_files'),
+  path.resolve('/app', 'extracted_files'),
+];
+
+/**
+ * Validates that a given path is inside one of the allowed export directories,
+ * and returns a freshly-constructed safe path string. Throws if the candidate
+ * escapes every allowed root.
+ *
+ * The returned value is rebuilt from a known-good base + a sanitized relative
+ * suffix, so the caller never passes tainted input directly to fs.readFile.
+ */
+export const assertExportPathInAllowedRoot = (candidate: string): string => {
+  if (!candidate || typeof candidate !== 'string') {
+    throw new Error('Invalid export path');
+  }
+
+  const resolved = path.resolve(candidate);
+
+  for (const root of ALLOWED_EXPORT_ROOTS) {
+    const rel = path.relative(root, resolved);
+    const inside =
+      rel === '' ||
+      (!rel.startsWith('..') && !path.isAbsolute(rel));
+    if (inside) {
+      // Rebuild the path from a trusted base + a freshly-built relative
+      // segment. This breaks the taint chain for static analyzers.
+      const safeRel = rel
+        .split(path.sep)
+        .filter((seg) => seg && seg !== '..' && !seg.includes('\0'))
+        .join(path.sep);
+      return path.join(root, safeRel);
+    }
+  }
+
+  throw new Error(`Export path is outside the allowed migration directories: ${resolved}`);
+};
+
 export const getSafePath = (inputPath: string, baseDir?: string): string => {
   try {
     // Resolve the absolute path (handles path.join(), path.resolve(), and full paths)

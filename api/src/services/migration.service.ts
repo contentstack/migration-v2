@@ -47,6 +47,7 @@ import {
   sanitizeOrgId,
   sanitizeProjectId,
   sanitizeStackId,
+  assertExportPathInAllowedRoot,
 } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
@@ -1465,22 +1466,31 @@ const validateSourceExport = async (req: Request): Promise<any> => {
     legacyFilePath;
 
   if (exportPath?.toLowerCase().endsWith(".zip")) {
-    const baseName = path.basename(exportPath, path.extname(exportPath));
-    const candidates = [
-      path.join("/app", "extracted_files", baseName),
-      path.resolve(process.cwd(), "extracted_files", baseName),
-      path.resolve(
-        process.cwd(),
-        "..",
-        "upload-api",
-        "extracted_files",
-        baseName,
-      ),
-    ];
+    // basename strips slashes; further sanitize to alphanumerics/._- only so
+    // the candidate paths are built from trusted, fixed prefixes + a safe leaf.
+    const rawBase = path.basename(exportPath, path.extname(exportPath));
+    const baseName = rawBase.replace(/[^a-zA-Z0-9_.-]/g, "");
+    const candidates = baseName
+      ? [
+          path.join("/app", "extracted_files", baseName),
+          path.resolve(process.cwd(), "extracted_files", baseName),
+          path.resolve(
+            process.cwd(),
+            "..",
+            "upload-api",
+            "extracted_files",
+            baseName,
+          ),
+        ]
+      : [];
     for (const candidate of candidates) {
-      const resolved = resolveContentstackExportRoot(candidate);
+      // candidate is a fixed prefix joined with sanitized baseName; still
+      // re-validate against the allowlist before passing to any fs call.
+      const safeCandidate = assertExportPathInAllowedRoot(candidate);
+      // deepcode ignore PT: candidate is validated by assertExportPathInAllowedRoot
+      const resolved = resolveContentstackExportRoot(safeCandidate);
       if (resolved) {
-        exportPath = candidate;
+        exportPath = safeCandidate;
         break;
       }
     }
@@ -1571,20 +1581,24 @@ const validateSourceExport = async (req: Request): Promise<any> => {
 
 const extractContentstackLocales = async (exportPath: string) => {
   try {
+    // Re-validate against the allowlist of export roots and rebuild a fresh
+    // path string. This breaks the taint chain from HTTP params → fs.readFile.
+    const safeExportPath = assertExportPathInAllowedRoot(exportPath);
     const masterLocalePath = path.join(
-      exportPath,
+      safeExportPath,
       "locales",
       "master-locale.json",
     );
-    const localesPath = path.join(exportPath, "locales", "locales.json");
+    const localesPath = path.join(safeExportPath, "locales", "locales.json");
 
-    // Read master locale (required)
+    // deepcode ignore PT: path is validated by assertExportPathInAllowedRoot (allowlist)
     const masterLocaleRaw = await fsPromises.readFile(masterLocalePath, "utf8");
     const masterLocales = JSON.parse(masterLocaleRaw || "{}");
 
     // Read additional locales (optional)
     let additionalLocales = {};
     try {
+      // deepcode ignore PT: path is validated by assertExportPathInAllowedRoot (allowlist)
       const localesRaw = await fsPromises.readFile(localesPath, "utf8");
       additionalLocales = JSON.parse(localesRaw || "{}");
     } catch (error) {
@@ -1618,7 +1632,9 @@ const extractContentstackLocales = async (exportPath: string) => {
 };
 
 const buildContentstackMapperPayload = async (exportPath: string) => {
-  const schemaPath = path.join(exportPath, "content_types", "schema.json");
+  const safeExportPath = assertExportPathInAllowedRoot(exportPath);
+  const schemaPath = path.join(safeExportPath, "content_types", "schema.json");
+  // deepcode ignore PT: path is validated by assertExportPathInAllowedRoot (allowlist)
   const raw = await fsPromises.readFile(schemaPath, "utf8");
   const schema = JSON.parse(raw || "[]");
   if (!Array.isArray(schema)) return [];
@@ -1754,6 +1770,9 @@ const runSourceAudit = async (req: Request): Promise<any> => {
       await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
     }
   }
+  // Validate the stored export path against the allowlist of migration data
+  // directories before any downstream code reads files from it.
+  const safeExportPath = assertExportPathInAllowedRoot(exportPath);
   const stackId =
     project?.legacy_cms?.source_details?.source_stack_id ||
     project?.destination_stack_id;
@@ -1765,10 +1784,10 @@ const runSourceAudit = async (req: Request): Promise<any> => {
     projectId,
     orgId,
     stackId,
-    exportPath,
+    exportPath: safeExportPath,
     region,
   });
-  const mapperPayload = await buildContentstackMapperPayload(exportPath);
+  const mapperPayload = await buildContentstackMapperPayload(safeExportPath);
   if (mapperPayload.length > 0) {
     const mapperReq = {
       params: { projectId },
