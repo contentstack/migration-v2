@@ -22,7 +22,6 @@ describe('config/index', () => {
     expect(config.plan.dropdown.optionLimit).toBe(100);
   });
 
-  it('should have isLocalPath as true', async () => {
     const config = (await import('../../../src/config/index.json')).default;
     expect(config.isLocalPath).toBe(true);
   });

@@ -33,6 +33,7 @@ vi.mock('../../../src/models/authentication.js', () => ({
 }));
 
 import { authService } from '../../../src/services/auth.service.js';
+import { HTTP_TEXTS } from '../../../src/constants/index.js';
 
 describe('auth.service', () => {
   beforeEach(() => {
@@ -138,7 +139,7 @@ describe('auth.service', () => {
       });
 
       await expect(authService.login(createReq() as any)).rejects.toThrow(
-        'You are not a member of any Contentstack organization in this region (or organization list is empty).'
+        HTTP_TEXTS.ADMIN_LOGIN_ERROR
       );
     });
 
