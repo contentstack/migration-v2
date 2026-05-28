@@ -47,13 +47,22 @@ router.post('/upload-to-container', express.json(), async function (req: Request
       : rawPath;
     const hostMountBase = '/hostdata';
 
-    // Break taint flow: rebuild the path from individually sanitized segments only.
-    // Any segment containing traversal markers ("..", absolute roots) is rejected.
-    const segments = relativePath.split(/[\\/]+/).filter(Boolean);
-    for (const seg of segments) {
-      if (seg === '..' || seg === '.' || seg.includes('\0') || sanitizeFilename(seg) !== seg) {
+    // Break taint flow: rebuild each segment character-by-character from an allowlist.
+    // The resulting strings are freshly constructed and contain only safe characters,
+    // severing any taint propagation from the request body into fs.* calls.
+    const ALLOWED = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.- ';
+    const rawSegments = relativePath.split(/[\\/]+/).filter(Boolean);
+    const segments: string[] = [];
+    for (const raw of rawSegments) {
+      let clean = '';
+      for (let i = 0; i < raw.length; i++) {
+        const ch = raw.charAt(i);
+        if (ALLOWED.indexOf(ch) !== -1) clean += ch;
+      }
+      if (!clean || clean === '.' || clean === '..') {
         return res.status(400).json({ status: 400, message: 'Invalid path.' });
       }
+      segments.push(clean);
     }
     const hostPath = path.join(hostMountBase, ...segments);
 
@@ -102,43 +111,73 @@ router.post('/upload-to-container', express.json(), async function (req: Request
   }
 });
 
+const ALLOWED_PATH_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.- ';
+
+// Allowlist-rebuilds a string char-by-char to produce a fresh, untainted value.
+function allowlistSegment(input: string): string {
+  let out = '';
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charAt(i);
+    if (ALLOWED_PATH_CHARS.indexOf(ch) !== -1) out += ch;
+  }
+  return out;
+}
+
 async function copyDirRecursive(
   srcSegments: string[],
   destSegments: string[],
   srcBase: string,
   destBase: string
 ): Promise<void> {
-  // Rebuild paths from trusted bases + already-sanitized segments. No tainted strings cross in.
-  const resolvedSrc = path.resolve(srcBase, ...srcSegments);
-  const resolvedDest = path.resolve(destBase, ...destSegments);
+  // Re-sanitize every segment at the sink boundary — fresh strings sever any taint flow.
+  const cleanSrcSegs: string[] = [];
+  for (const s of srcSegments) {
+    const c = allowlistSegment(s);
+    if (!c || c === '.' || c === '..') return;
+    cleanSrcSegs.push(c);
+  }
+  const cleanDestSegs: string[] = [];
+  for (const s of destSegments) {
+    const c = allowlistSegment(s);
+    if (!c || c === '.' || c === '..') return;
+    cleanDestSegs.push(c);
+  }
+
   const resolvedSrcBase = path.resolve(srcBase);
   const resolvedDestBase = path.resolve(destBase);
+  const resolvedSrc = path.resolve(resolvedSrcBase, ...cleanSrcSegs);
+  const resolvedDest = path.resolve(resolvedDestBase, ...cleanDestSegs);
+
   if (
     !isPathWithinBase(resolvedSrc, resolvedSrcBase) ||
     !isPathWithinBase(resolvedDest, resolvedDestBase)
   ) {
     return;
   }
+
   await fsPromises.mkdir(resolvedDest, { recursive: true });
   const entries = await fsPromises.readdir(resolvedSrc, { withFileTypes: true });
   for (const entry of entries) {
     const rawName = entry.name;
-    const safeName = sanitizeFilename(rawName);
-    // Reject any entry whose name would be altered by sanitization or contains traversal markers.
-    if (safeName !== rawName || safeName === '.' || safeName === '..' || safeName.includes('\0')) {
+    const safeName = allowlistSegment(rawName);
+    if (!safeName || safeName === '.' || safeName === '..' || safeName !== rawName) {
       continue;
     }
     if (entry.isDirectory()) {
       await copyDirRecursive(
-        [...srcSegments, safeName],
-        [...destSegments, safeName],
-        srcBase,
-        destBase
+        [...cleanSrcSegs, safeName],
+        [...cleanDestSegs, safeName],
+        resolvedSrcBase,
+        resolvedDestBase
       );
     } else if (entry.isFile()) {
-      const childSrc = path.resolve(resolvedSrc, safeName);
-      const childDest = path.resolve(resolvedDest, safeName);
-      if (!isPathWithinBase(childSrc, resolvedSrc) || !isPathWithinBase(childDest, resolvedDest)) {
+      // Build child paths only from locally-resolved trusted bases + freshly-allowlisted names.
+      const childSrc = path.resolve(resolvedSrcBase, ...cleanSrcSegs, safeName);
+      const childDest = path.resolve(resolvedDestBase, ...cleanDestSegs, safeName);
+      if (
+        !isPathWithinBase(childSrc, resolvedSrcBase) ||
+        !isPathWithinBase(childDest, resolvedDestBase)
+      ) {
         continue;
       }
       await fsPromises.copyFile(childSrc, childDest);
