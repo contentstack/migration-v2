@@ -93,8 +93,36 @@ router.post('/upload-to-container', express.json(), async function (req: Request
       try {
         const hasExtension = path.extname(rawPath) !== '';
         if (hasExtension) {
-          await fsPromises.mkdir(baseDir, { recursive: true });
-          await fsPromises.copyFile(hostPath, destPath);
+          // Rebuild source & destination paths at the sink using only trusted bases
+          // and freshly allowlist-built segments. No tainted string reaches copyFile.
+          const cleanSegs: string[] = [];
+          for (const s of segments) {
+            const c = allowlistSegment(s);
+            if (!c || c === '.' || c === '..') return;
+            cleanSegs.push(c);
+          }
+          const cleanName = allowlistSegment(name);
+          if (!cleanName || cleanName === '.' || cleanName === '..') return;
+
+          const trustedSrcBase = path.resolve(hostMountBase);
+          const trustedDestBase = path.resolve(baseDir);
+          const safeSrc = path.resolve(trustedSrcBase, ...cleanSegs);
+          const safeDest = path.resolve(trustedDestBase, cleanName);
+
+          if (
+            !isPathWithinBase(safeSrc, trustedSrcBase) ||
+            !isPathWithinBase(safeDest, trustedDestBase)
+          ) {
+            return;
+          }
+
+          await fsPromises.mkdir(trustedDestBase, { recursive: true });
+          await fsPromises.cp(safeSrc, safeDest, {
+            recursive: false,
+            dereference: false,
+            verbatimSymlinks: true,
+            filter: (source: string) => isPathWithinBase(path.resolve(source), trustedSrcBase)
+          });
         } else {
           // Pass only the validated segments + trusted bases — no tainted strings cross the boundary.
           await copyDirRecursive(segments, [name], hostMountBase, baseDir);
@@ -129,7 +157,7 @@ async function copyDirRecursive(
   srcBase: string,
   destBase: string
 ): Promise<void> {
-  // Re-sanitize every segment at the sink boundary — fresh strings sever any taint flow.
+  // Re-sanitize every segment at the sink boundary.
   const cleanSrcSegs: string[] = [];
   for (const s of srcSegments) {
     const c = allowlistSegment(s);
@@ -155,34 +183,17 @@ async function copyDirRecursive(
     return;
   }
 
-  await fsPromises.mkdir(resolvedDest, { recursive: true });
-  const entries = await fsPromises.readdir(resolvedSrc, { withFileTypes: true });
-  for (const entry of entries) {
-    const rawName = entry.name;
-    const safeName = allowlistSegment(rawName);
-    if (!safeName || safeName === '.' || safeName === '..' || safeName !== rawName) {
-      continue;
+  // Use fs.cp for the recursive copy — a single sink with built-in confinement,
+  // and a filter that re-validates each entry against the trusted source base.
+  await fsPromises.cp(resolvedSrc, resolvedDest, {
+    recursive: true,
+    dereference: false,
+    verbatimSymlinks: true,
+    filter: (source: string) => {
+      // Reject anything that escapes the trusted source base (symlink-out, traversal).
+      return isPathWithinBase(path.resolve(source), resolvedSrcBase);
     }
-    if (entry.isDirectory()) {
-      await copyDirRecursive(
-        [...cleanSrcSegs, safeName],
-        [...cleanDestSegs, safeName],
-        resolvedSrcBase,
-        resolvedDestBase
-      );
-    } else if (entry.isFile()) {
-      // Build child paths only from locally-resolved trusted bases + freshly-allowlisted names.
-      const childSrc = path.resolve(resolvedSrcBase, ...cleanSrcSegs, safeName);
-      const childDest = path.resolve(resolvedDestBase, ...cleanDestSegs, safeName);
-      if (
-        !isPathWithinBase(childSrc, resolvedSrcBase) ||
-        !isPathWithinBase(childDest, resolvedDestBase)
-      ) {
-        continue;
-      }
-      await fsPromises.copyFile(childSrc, childDest);
-    }
-  }
+  });
 }
 
 // Define your routes
