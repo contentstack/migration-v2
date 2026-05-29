@@ -35,6 +35,15 @@ interface LoadFileFormatProps {
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
 
+interface ErrorObject {
+  error_message?: string;
+  errors?: Errors;
+}
+interface Errors {
+  org_uid?: string[];
+}
+
+
 const defaultStack = {
   description: 'Created from Migration Destination Stack Step',
   locale: '',
@@ -108,6 +117,21 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     // setAllStack(newMigrationData?.destination_stack?.stackArray)
   }, [newMigrationData?.destination_stack?.selectedStack]);
 
+    /**
+   * Function to format the error message
+   */
+    const formatErrorMessage = (errorData: ErrorObject) => {
+      let message = errorData.error_message;
+  
+      if (errorData.errors) {
+        Object.entries(errorData.errors).forEach(([key, value]) => {
+          message += `\n${key}: ${(value as string[]).join(", ")}`;
+        });
+      }
+  
+      return message;
+    }
+
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
     try {
@@ -159,8 +183,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         setIsStackLoading(false);
         return true;
       }
-    } catch (error) {
-      return error;
+      else {
+        const errorMessage = formatErrorMessage(resp?.data);
+        return errorMessage;
+      }
+    } catch (error: any) {
+      return error?.response?.data;
     }
   };
 
@@ -239,28 +267,29 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         if (selectedStackData) {
           setSelectedStack(selectedStackData);
           setNewStackCreated(false);
+          // Combine both updates (selectedStack, stackArray, and csLocale) into a single dispatch
+          // This eliminates the race condition from using setTimeout
           const newMigrationDataObj: INewMigration = {
-            // ...newMigrationDataRef?.current,
             ...newMigrationData,
             destination_stack: {
               ...newMigrationData?.destination_stack,
               selectedStack: selectedStackData,
-              stackArray: stackArray
+              stackArray: stackArray,
+              csLocale: csLocales?.data?.locales
             }
           };
-          // Dispatch the updated migration data to Redux
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+        } else {
+          // No selected stack, but still update csLocale
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            destination_stack: {
+              ...newMigrationData?.destination_stack,
+              csLocale: csLocales?.data?.locales
+            }
+          };
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
-        const newMigrationDataObj: INewMigration = {
-           ...newMigrationDataRef?.current,
-          //...newMigrationData,
-          destination_stack: {
-            ...newMigrationDataRef?.current?.destination_stack,
-            csLocale: csLocales?.data?.locales
-          }
-        };  
-        // Dispatch the updated migration data to Redux
-        dispatch(updateNewMigrationData(newMigrationDataObj));
       }
     } catch (error) {
       return error;

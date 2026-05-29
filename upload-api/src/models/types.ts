@@ -15,4 +15,15 @@ export interface Config {
     bucketKey: string;
   };
   localPath: string;
+  mysql?: {
+    host: string;
+    user: string;
+    password: string;
+    database: string;
+    port: string;
+  };
+  assetsConfig?: {
+    base_url: string;
+    public_path: string;
+  };
 }

@@ -158,4 +158,35 @@ fileignoreconfig:
     checksum: f3bd8c6e981ed0acf26432859b2b7e388c0d90018513005cfc674726f14fe245
   - filename: ui/src/components/SchemaModal/index.tsx
     checksum: 607a465c9cd4a504b9a81750a3f9faa0f4e11c09414354d69ec7308c11f0046a
+
+fileignoreconfig:
+- filename: api/sso.utils.js
+  checksum: 5d589c128c4b38f8aacd70e5d02ddd7fa8e93ff7897ca69a1258378139d1d616
+version: "1.0"
+
+fileignoreconfig:
+- filename: api/package-lock.json
+  checksum: 4d2fd1905b5933e1d2c4d178e1536422d4aac84caa9640149eab0432a75b712d
+- filename: api/src/services/migration.service.ts
+  checksum: 1fdf5423840e170709c7c677c3a6a7c6ae61f373948c2ef295aa645a859c1af5
+- filename: api/src/services/contentMapper.service.ts
+  checksum: 03d5dcc31b38fd435f6a4389d6891c7fc1ba27b32dc2b382b91173d84f4565f7
+- filename: api/src/services/globalField.service.ts
+  checksum: b808815c7372f68fe9a5904d23be50cb0ec066592328ec1721dc3c395cbe3a2c
+- filename: api/src/services/taxonomy.service.ts
+  checksum: 840ab11838ebf08df44ada0a3674dad8cc124bc8bcbc5dfd1d9c585a34e4aeda
+- filename: api/src/services/org.service.ts
+  checksum: 0a50297164d7845d889fc78097164c4794a3f9cd7314c06365c8426a2a6ee52a
+- filename: ui/src/pages/Login/index.tsx
+  checksum: 7f7c008586db60f1cc8df625b88bfdc5c3bb861c21e40a55fc763f0ac4a6a8d2
+version: "1.0"
+
+fileignoreconfig:
+- filename: api/src/services/contentMapper.service.ts
+  checksum: 924b124214a93a7bec4c471304f5b270d5e735d506644180273b7118f3d37dd2
+version: "1.0"
+
+fileignoreconfig:
+- filename: ui/src/pages/Login/index.tsx
+  checksum: 213c6441dc87d82ce6b97679d457ae56c6e40ef13a89bddd4f21afcf566b5576
 version: "1.0"

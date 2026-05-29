@@ -106,23 +106,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     }
   });
 
-  const handleOnBlur = (value: string) => {
-    if (isEmptyString(value?.trim())) {
-      setIsError(false);
-      setErrorMessage('');
-      setIsRestrictedKey(false);
-      setPrefix('cs');
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          affix: 'cs',
-          isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
-        }
-      };
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-    }
-  };
+
 
   /****  ALL USEEffects  HERE  ****/
 
@@ -144,9 +128,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           aria-label="affix"
           disabled={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
           isReadOnly={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
-          onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-            handleOnBlur(e.target.value);
-          }}
+
         />
         {isError && <p className="errorMessage">{errorMessage}</p>}
       </div>

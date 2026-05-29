@@ -1,6 +1,6 @@
 import path from 'path';
-import { JSONFile } from "lowdb/node";
-import LowWithLodash from "../utils/lowdb-lodash.utils.js";
+import { JSONFile } from 'lowdb/node';
+import LowWithLodash from '../utils/lowdb-lodash.utils.js';
 
 /**
  * Represents the LegacyCMS object.
@@ -21,19 +21,11 @@ interface LegacyCMS {
   awsDetails: {
     awsRegion: string;
     bucketName: string;
-    buketKey: string;
+    bucketKey: string;
   };
   file_path: string;
   is_fileValid: boolean;
   is_localPath: boolean;
-}
-
-interface StackDetails {
-  uid: string;
-  label: string;
-  master_locale: string;
-  created_at: string;
-  isNewStack: boolean;
 }
 
 /**
@@ -71,14 +63,16 @@ interface Project {
   isNewStack: boolean;
   newStackId: string;
   stackDetails: [];
-  mapperKeys: {};
+  mapperKeys: object;
   extract_path: string;
   isMigrationStarted: boolean;
-  isMigrationCompleted:boolean;
+  isMigrationCompleted: boolean;
   migration_execution: boolean;
+  taxonomies?: any[];
+  isSSO: boolean;
 }
 
-interface ProjectDocument {
+interface  ProjectDocument {
   projects: Project[];
 }
 
@@ -88,8 +82,10 @@ const defaultData: ProjectDocument = { projects: [] };
  * Represents the database instance for the project.
  */
 const db = new LowWithLodash(
-  new JSONFile<ProjectDocument>(path.join(process.cwd(), "database", "project.json")),
-  defaultData
+  new JSONFile<ProjectDocument>(
+    path.join(process.cwd(), 'database', 'project.json'),
+  ),
+  defaultData,
 );
 
 export default db;

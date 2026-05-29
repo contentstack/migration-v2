@@ -1,6 +1,7 @@
 import path from "path";
 import fs from 'fs';
 import { MIGRATION_DATA_CONFIG, LIST_EXTENSION_UID } from "../constants/index.js";
+import { contentMapperService } from "./contentMapper.service.js";
 
 const {
   CUSTOM_MAPPER_FILE_NAME,
@@ -27,6 +28,26 @@ const writeExtFile = async ({ destinationStackId, extensionData }: any) => {
     console.error("🚀 ~ fs.writeFile ~ err:", writeErr);
   }
 }
+const formatExtensionData = (extension: any, destinationStackId: string) => {
+      return  {
+        "stackHeaders": { "api_key": destinationStackId },
+        "urlPath": `/extensions/${extension?.uid}`,
+        "uid": extension?.uid,
+        "created_at": extension?.created_at,
+        "updated_at": extension?.updated_at,
+        "created_by": extension?.created_by,
+        "updated_by": extension?.updated_by,
+        "tags": extension?.tags,
+        "_version": extension?._version,
+        "title": extension?.title,
+        "config": extension?.config,
+        "type": extension?.type,
+        "data_type": extension?.data_type,
+        "multiple": extension?.multiple,
+        "srcdoc": extension?.srcdoc,
+    
+    }
+}
 
 const getExtension = ({ uid, destinationStackId }: any) => {
   if (uid === LIST_EXTENSION_UID) {
@@ -50,8 +71,12 @@ const getExtension = ({ uid, destinationStackId }: any) => {
   }
   return null;
 }
+const getExsitingExtension = async ({ existingStackId, token_payload }: any) => {
+  const result = await contentMapperService.getExistingExtensions({ existingStackId, token_payload});
+  return result;
+}
 
-const createExtension = async ({ destinationStackId }: any) => {
+const createExtension = async ({ destinationStackId, existingStackId, token_payload }: any) => {
   const extensionPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, CUSTOM_MAPPER_FILE_NAME);
   const extMapper: any = await fs.promises.readFile(extensionPath, "utf-8").catch(async () => { });
   if (extMapper !== undefined) {
@@ -65,6 +90,21 @@ const createExtension = async ({ destinationStackId }: any) => {
       }
     }
     await writeExtFile({ destinationStackId, extensionData })
+  }
+  else{
+    const existingExtension = await getExsitingExtension({ existingStackId, token_payload });
+    if (existingExtension && Array?.isArray(existingExtension)) {
+      const extensionData: any = {};
+      for await (const extension of existingExtension) {
+        const extData =  formatExtensionData(extension, destinationStackId );
+        if (extData) {
+          extensionData[extension?.uid] = extension;
+        }
+      }
+      await writeExtFile({ destinationStackId, extensionData })
+      
+    }
+ 
   }
 }
 

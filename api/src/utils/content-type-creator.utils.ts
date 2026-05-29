@@ -8,7 +8,7 @@ import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
 import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
-import appMeta from '../constants/app/index.json' with { type: 'json' };
+import appMeta from '../constants/app/index.json';
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
@@ -38,6 +38,17 @@ interface ContentType {
 }
 
 const RESERVED_UIDS = new Set(['locale', 'publish_details', 'tags']);
+
+/** Contentful taxonomy scheme ids may be camelCase, Contentstack requires [a-z0-9_]. */
+function normalizeStackTaxonomyUid(raw?: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw
+    .replace(/([A-Z])/g, '_$1')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
 
 function sanitizeUid(uid?: string) {
   if (!uid) return uid;
@@ -101,8 +112,27 @@ const uidCorrector = ({ uid } : {uid : string}) => {
   return newUid;
 };
 
-
-function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): any {
+/**
+ * Remap an array of reference UIDs using a mapping table.
+ *
+ * @param uids - The original reference UIDs.
+ * @param keyMapper - A map from UID to new UID. Callers should prefer using
+ *   the *corrected* UID (i.e. the result of `uidCorrector({ uid })`) as the key.
+ *   For backward compatibility, this function also supports maps keyed by the
+ *   original UID, and will try both forms when looking up each entry.
+ *
+ *   NOTE: Relying on mixed key styles (some original, some corrected) can hide
+ *   inconsistent UID formatting. When both key styles are present for the same
+ *   logical UID and map to different targets, a warning is logged so that such
+ *   issues do not go unnoticed.
+ * @returns The remapped UIDs.
+ */
+function remapReferenceUids(uids: string | string[], keyMapper?: Record<string, string>): string[] {
+  const uidsArray = Array.isArray(uids) ? uids : [uids];
+  if (!keyMapper || !Object.keys(keyMapper).length) return uidsArray;
+  return uidsArray?.map(uid => keyMapper?.[uid] ?? keyMapper?.[uidCorrector({ uid })] ?? uid);
+}
+function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', keyMapper?: Record<string, string>): any {
   if (item?.isDeleted === true) return null;
 
   const getCleanUid = (uid: string): string => {
@@ -148,41 +178,43 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
     for (const blockItem of schema) {
       if (blockItem?.contentstackFieldType !== 'modular_blocks_child') continue;
 
-      const blockRawUid = getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid);
-      const blockUid = toSnakeCase(blockRawUid);  // Apply snake_case
+      const blockRawUid = getCleanUid(blockItem?.contentstackField);
+      // Use `uidCorrector` (not `toSnakeCase`) for child block UIDs so we preserve
+      // digit-prefixed UIDs that may already exist on the destination
+      // content type. `toSnakeCase` strips leading non-letters
+      // which causes the merge step to miss the destination block and produce a
+      // duplicate child block instead of merging schemas into the existing one.
+      const blockUid = uidCorrector({
+        uid: getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid),
+      });
       const blockSchema: any[] = [];
 
       const blockElements = blockItem?.schema || [];
       for (const element of blockElements) {
         if (element?.isDeleted === false) {
-          const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+          const fieldSchema = buildFieldSchema(element, marketPlacePath, '', keyMapper);
           if (fieldSchema) blockSchema.push(fieldSchema);
         }
       }
 
-      if (blockSchema.length > 0) {
-        blocks.push({
-          title: blockRawUid,  // Keep original for title
-          uid: blockUid,       // Snake case for uid
-          schema: removeDuplicateFields(blockSchema)
-        });
-      }
+      blocks.push({
+        title: blockRawUid,  // Keep original for title
+        uid: blockUid,       // Snake case for uid
+        schema: removeDuplicateFields(blockSchema)
+      });
     }
 
-    if (blocks.length > 0) {
-      return {
-        data_type: "blocks",
-        display_name: item?.display_name || rawUid,  // Keep original for display
-        field_metadata: {},
-        uid: itemUid,  // Snake case uid
-        multiple: true,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-        blocks: removeDuplicateFields(blocks)
-      };
-    }
-    return null;
+    return {
+      data_type: "blocks",
+      display_name: item?.display_name || rawUid,  // Keep original for display
+      field_metadata: {},
+      uid: itemUid,  // Snake case uid
+      multiple: true,
+      mandatory: false,
+      unique: false,
+      non_localizable: false,
+      blocks: removeDuplicateFields(blocks)
+    };
   }
 
   if (fieldType === 'group') {
@@ -191,7 +223,7 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
 
     for (const element of elements) {
       if (element?.isDeleted === false) {
-        const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+        const fieldSchema = buildFieldSchema(element, marketPlacePath, '', keyMapper);
         if (fieldSchema) groupSchema.push(fieldSchema);
       }
     }
@@ -215,20 +247,133 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
       title: item?.display_name || rawUid,  // Keep original for display
       uid: itemUid  // Snake case uid
     },
-    marketPlacePath
+    marketPlacePath,
+    keyMapper
   });
+}
+
+/**
+ * When two schema nodes share a uid (merge artifact), prefer the Contentstack custom
+ * extension field so mapped plain fields do not win over the stack's extension
+ * definitions inside modular block schema.
+ */
+function resolveDuplicateFieldsByUid(group: any[]): any {
+  if (!group?.length) return group?.[0];
+  if (group?.length === 1) return group[0];
+
+  const withExtensionUid = group.filter((f) => f?.extension_uid);
+  if (withExtensionUid?.length === 1) return withExtensionUid[0];
+
+  const customJson = group.filter(
+    (f) =>
+      f?.data_type === 'json' &&
+      (f?.field_metadata?.extension === true || f?.extension_uid),
+  );
+  if (customJson?.length === 1) return customJson[0];
+
+  return group[0];
 }
 
 function removeDuplicateFields(fields: any[]): any[] {
-  const seen = new Map();
-  return fields.filter(field => {
-    const key = field.uid || JSON.stringify(field);
-    if (seen.has(key)) return false;
-    seen.set(key, true);
-    return true;
-  });
+  if (!Array?.isArray(fields)) return [];
+
+  const uidBuckets = new Map<string, any[]>();
+  for (const field of fields) {
+    const uid = field?.uid;
+    if (uid === undefined || uid === null || uid === '') continue;
+    if (!uidBuckets.has(uid)) uidBuckets.set(uid, []);
+    uidBuckets.get(uid)!.push(field);
+  }
+
+  const resolvedUid = new Map<string, any>();
+  for (const [uid, group] of uidBuckets) {
+    resolvedUid.set(uid, group?.length === 1 ? group[0] : resolveDuplicateFieldsByUid(group));
+  }
+
+  const seenUid = new Set<string>();
+  const seenNoUid = new Map<string, boolean>();
+  const result: any[] = [];
+
+  for (const field of fields) {
+    const uid = field?.uid;
+    if (uid === undefined || uid === null || uid === '') {
+      const key = JSON.stringify(field);
+      if (!seenNoUid.has(key)) {
+        seenNoUid.set(key, true);
+        result.push(field);
+      }
+      continue;
+    }
+    if (!seenUid.has(uid)) {
+      seenUid.add(uid);
+      result.push(resolvedUid.get(uid));
+    }
+  }
+
+  return result;
 }
 
+/**
+ * If destination defines a custom extension on the same uid+data_type, copy missing
+ * extension_uid / config / field_metadata onto the migration-built field (modular child
+ * leaves often match as plain json without extension_uid).
+ */
+function mergeCustomFieldMetadataFromDestination(sField: any, tField: any) {
+  if (!sField || !tField) return;
+  if (sField?.uid !== tField?.uid || sField?.data_type !== tField?.data_type) return;
+
+  const targetHasCustom =
+    Boolean(tField?.extension_uid) || tField?.field_metadata?.extension === true;
+
+  if (!targetHasCustom) return;
+
+  if (tField?.extension_uid && !sField?.extension_uid) {
+    sField.extension_uid = tField?.extension_uid;
+  }
+  if (tField?.config !== undefined && sField?.config === undefined) {
+    sField.config = cloneSchemaBranch(tField?.config);
+  }
+  if (tField?.field_metadata?.extension) {
+    sField.field_metadata = {
+      ...(sField?.field_metadata || {}),
+      ...tField?.field_metadata,
+    };
+  }
+}
+
+/** Apply {@link mergeCustomFieldMetadataFromDestination} for all leaves under merged schema. */
+function enrichMergedSchemaWithDestinationCustomFields(
+  sourceSchema: any[],
+  targetSchema: any[],
+): void {
+  if (!Array?.isArray(sourceSchema) || !Array?.isArray(targetSchema)) return;
+
+  for (const sField of sourceSchema) {
+    const tField = targetSchema.find((t: any) => t?.uid === sField?.uid);
+    if (!tField) continue;
+
+    if (sField?.data_type === 'group' && tField?.data_type === 'group') {
+      enrichMergedSchemaWithDestinationCustomFields(
+        sField?.schema ?? [],
+        tField?.schema ?? [],
+      );
+    } else if (sField?.data_type === 'blocks' && tField?.data_type === 'blocks') {
+      const sBlocks = sField?.blocks ?? [];
+      const tBlocks = tField?.blocks ?? [];
+      for (const tBlock of tBlocks) {
+        const sBlock = sBlocks.find((b: any) => b?.uid === tBlock?.uid);
+        if (sBlock) {
+          enrichMergedSchemaWithDestinationCustomFields(
+            sBlock?.schema ?? [],
+            tBlock?.schema ?? [],
+          );
+        }
+      }
+    } else if (sField?.data_type === tField?.data_type) {
+      mergeCustomFieldMetadataFromDestination(sField, tField);
+    }
+  }
+}
 
 
 function getLastSegmentNew(str: string, separator: string): string {
@@ -238,11 +383,11 @@ function getLastSegmentNew(str: string, separator: string): string {
 }
 
 export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', oldParentUid = ''): any[] {
-
   if (!Array.isArray(fields)) {
     console.warn('buildSchemaTree called with invalid fields:', fields);
     return [];
   }
+
   // Build a lookup map for O(1) access
   const fieldMap = new Map<string, any>();
   fields?.forEach(f => {
@@ -267,7 +412,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       return remainder && !remainder?.includes('.');
     }
 
-    // Fallback: check if field is a direct child of oldPrentUid (if provided and different)
+    // Fallback: check if field is a direct child of oldParentUid (if provided and different from parentUid)
     if (oldParentUid && oldParentUid !== parentUid && fieldUid?.startsWith(oldParentUid + '.')) {
       const remainder = fieldUid?.substring(oldParentUid.length + 1);
       // Verify it's exactly one level deeper (no more dots in remainder)
@@ -293,46 +438,61 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
     const fieldUid = field?.contentstackFieldUid;
     const fieldType = field?.contentstackFieldType;
     const oldFieldUid = field?.backupFieldUid;
-    
+
     // Check if this field has direct children (exactly one level deeper)
     const hasChildren = fields.some(f => {
       const fUid = f?.contentstackFieldUid || '';
       if (!fUid) return false;
-      
+
       // Check if field starts with current fieldUid and is exactly one level deeper
       if (fieldUid && fUid?.startsWith(fieldUid + '.')) {
         const remainder = fUid?.substring(fieldUid.length + 1);
         return remainder && !remainder?.includes('.');
       }
-      
-      // Check if field starts with oldFieldtUid and is exactly one level deeper
+
+      // Check if field starts with oldFieldUid and is exactly one level deeper
       if (oldFieldUid && fUid?.startsWith(oldFieldUid + '.')) {
         const remainder = fUid?.substring(oldFieldUid.length + 1);
         return remainder && !remainder?.includes('.');
       }
-      
+
       return false;
     });
 
     if (hasChildren) {
       if (fieldType === 'modular_blocks') {
-        // Get modular block children
+        // Get modular block children (check both current and backup UIDs)
         const mbChildren = fields.filter(f => {
-          const fUid = f.contentstackFieldUid || '';
-          return f.contentstackFieldType === 'modular_blocks_child' &&
-            fUid.startsWith(fieldUid + '.') &&
-            !fUid.substring(fieldUid.length + 1).includes('.');
+          if (!f) return false;
+          const fUid = f?.contentstackFieldUid || '';
+          if (!fUid || !fieldUid) return false;
+          if (f?.contentstackFieldType !== 'modular_blocks_child') return false;
+
+          if (fUid.startsWith(fieldUid + '.') &&
+            !fUid.substring(fieldUid.length + 1).includes('.')) {
+            return true;
+          }
+
+          if (oldFieldUid && oldFieldUid !== fieldUid &&
+            fUid.startsWith(oldFieldUid + '.') &&
+            !fUid.substring(oldFieldUid.length + 1).includes('.')) {
+            return true;
+          }
+
+          return false;
         });
 
         result.schema = mbChildren.map(child => {
-          const childUid = getLastSegmentNew(child.contentstackFieldUid, '.');
-          const childDisplay = child.display_name || getLastSegmentNew(child.contentstackField || '', '>').trim();
+          const childFieldUid = child?.contentstackFieldUid || '';
+          const childUid = getLastSegmentNew(childFieldUid, '.');
+          const childDisplay = child?.display_name || getLastSegmentNew(child?.contentstackField || '', '>').trim();
 
           return {
             ...child,
             uid: childUid,
             display_name: childDisplay,
-            schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child', child?.backupFieldUid)
+            // Recursively build schema for fields inside this child block
+            schema: buildSchemaTree(fields, childFieldUid, 'modular_blocks_child', child?.backupFieldUid)
           };
         });
       } else if (fieldType === 'group' ||
@@ -373,7 +533,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
+export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
   const rawUid = field?.uid;
   const cleanedUid = sanitizeUid(rawUid);
@@ -460,10 +620,10 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
           "error_messages": {
             "format": field?.advanced?.validationErrorMessage ?? '',
           },
-          "reference_to": field?.advanced?.embedObjects?.length ? [
+          "reference_to": field?.advanced?.embedObjects?.length ? remapReferenceUids([
             "sys_assets",
             ...field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) ?? [],
-          ] : [
+          ], keyMapper) : [
             "sys_assets"
           ],
           "multiple": field?.advanced?.multiple ?? false,
@@ -723,10 +883,11 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
 
 
     case 'global_field': {
+      const globalFieldRefs = remapReferenceUids(field?.refrenceTo ?? [], keyMapper);
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": field?.refrenceTo ?? [],
+        "reference_to": globalFieldRefs?.length === 1 ? globalFieldRefs?.[0] : globalFieldRefs,
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
@@ -738,7 +899,7 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo ?? [],
+        reference_to: remapReferenceUids(field?.refrenceTo ?? [], keyMapper),
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -751,6 +912,40 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
         mandatory: field?.advanced?.mandatory ?? false,
         multiple: field?.advanced?.multiple ?? false,
         non_localizable: field.advanced?.nonLocalizable ?? false,
+        unique: field?.advanced?.unique ?? false
+      };
+    }
+
+    case 'taxonomy': {
+      // Build taxonomies array from field.taxonomies or field.advanced.taxonomies
+      const taxonomiesData = field?.taxonomies || field?.advanced?.taxonomies || [];
+      const taxonomiesArray = Array.isArray(taxonomiesData) 
+        ? taxonomiesData.map((tax: any) => ({
+            taxonomy_uid: normalizeStackTaxonomyUid(
+              typeof tax === 'string' ? tax : (tax?.taxonomy_uid || tax),
+            ),
+            mandatory: field?.advanced?.mandatory ?? false,
+            multiple: field?.advanced?.multiple !== false, // Default true for taxonomies
+            non_localizable: false
+          }))
+        : [];
+
+      return {
+        data_type: "taxonomy",
+        display_name: field?.title,
+        uid: 'taxonomies',
+        taxonomies: taxonomiesArray,
+        field_metadata: {
+          description: field?.advanced?.description ?? '',
+          default_value: field?.advanced?.default_value ?? ''
+        },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? ''
+        },
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple !== false, // Default true for taxonomies
+        non_localizable: false,
         unique: field?.advanced?.unique ?? false
       };
     }
@@ -774,7 +969,7 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
         "mandatory": field?.advanced?.mandatory ?? false,
         "unique": field?.advanced?.unique ?? false,
         "non_localizable": field.advanced?.nonLocalizable ?? false,
-        "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) : []
+        "reference_to": field?.advanced?.embedObjects?.length ? remapReferenceUids(field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })), keyMapper) : []
       }
       if ((field?.advanced?.embedObjects?.length === undefined) ||
         (field?.advanced?.embedObjects?.length === 0) ||
@@ -964,12 +1159,58 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, type}: any) => {
+const resolveIsSsoFlag = (is_sso: any): boolean => {
+  if (typeof is_sso === 'boolean') {
+    return is_sso;
+  }
+
+  if (is_sso === 'true') {
+    return true;
+  }
+
+  if (is_sso === 'false') {
+    return false;
+  }
+
+  throw new Error(
+    `Invalid token_payload.is_sso in existingCtMapper; expected boolean, received: ${JSON.stringify(is_sso)}`
+  );
+};
+
+/**
+ * Resolves the Contentstack Management API UID for a content type / global field.
+ * @param migrationContentstackUid - The UID of the content type in the migration data.
+ * @param keyMapper - The key mapper object.
+ * @returns The Contentstack Management API UID.
+ */
+function resolveStackContentTypeUid(
+  migrationContentstackUid: string,
+  keyMapper?: Record<string, string>,
+): string {
+  const mapped = keyMapper?.[migrationContentstackUid];
+  if (mapped === undefined || mapped === null || mapped === '') {
+    return migrationContentstackUid;
+  }
+
+  const m = String(mapped).trim();
+  const looksLikeUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(m);
+  const looksLikeMongoId = /^[0-9a-f]{24}$/i.test(m);
+
+  if (looksLikeUuid || looksLikeMongoId) {
+    return migrationContentstackUid;
+  }
+
+  return m;
+}
+
+const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, is_sso, type}: any) => {
   try {
-    const ctUid = keyMapper?.[contentTypeUid];
+    const normalizedIsSso = resolveIsSsoFlag(is_sso);
+    const ctUid = resolveStackContentTypeUid(contentTypeUid, keyMapper);
 
     if(type === 'global_field') {
-      
+
       const req: any = {
         params: {
           projectId,
@@ -978,7 +1219,8 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
         body: {
           token_payload: {
             region,
-            user_id
+            user_id,
+            is_sso: normalizedIsSso
           }
         }
       }
@@ -993,7 +1235,8 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
         body: {
           token_payload: {
             region,
-            user_id
+            user_id,
+            is_sso: normalizedIsSso
           }
         }
       }
@@ -1019,35 +1262,181 @@ const mergeArrays = async (a: any[], b: any[]) => {
   return a;
 }
 
+/**
+ * Clones a schema branch.
+ * @param node - The node to clone.
+ * @returns The cloned node.
+ */
+function cloneSchemaBranch(node: any): any {
+  if (node === undefined || node === null) return node;
+  try {
+    return structuredClone(node);
+  } catch {
+    return JSON.parse(JSON.stringify(node));
+  }
+}
+
+/**
+ * Finds the target modular blocks field.
+ * @param field - The field to find the target modular blocks field for.
+ * @param targetSchema - The target schema.
+ * @returns The target modular blocks field.
+ */
+function findTargetModularBlocksField(field: any, targetSchema: any[]): any | undefined {
+  if (!Array.isArray(targetSchema) || !field || field?.data_type !== 'blocks') return undefined;
+
+  const byUid = targetSchema.find(
+    (mb: any) => mb?.data_type === 'blocks' && mb?.uid === field?.uid,
+  );
+  if (byUid) return byUid;
+
+  const fd = (field?.display_name ?? '').toString().trim().toLowerCase();
+  if (fd) {
+    const byName = targetSchema.find(
+      (mb: any) =>
+        mb?.data_type === 'blocks' &&
+        (mb?.display_name ?? '').toString().trim().toLowerCase() === fd,
+    );
+    if (byName) return byName;
+  }
+
+  return undefined;
+}
+
+/**
+ * Find a source modular-blocks child that should merge with the destination block.
+ * Primary match is by uid; falls back to title (case-insensitive) so blocks whose
+ * uids diverged due to sanitization still merge instead of
+ * producing a duplicate child block.
+ */
+function findMatchingSourceBlock(sourceBlocks: any[], targetBlock: any): any | undefined {
+  if (!Array?.isArray(sourceBlocks) || !targetBlock) return undefined;
+
+  const byUid = sourceBlocks.find((b: any) => b?.uid && b?.uid === targetBlock?.uid);
+  if (byUid) return byUid;
+
+  const targetTitle = (targetBlock?.title ?? '').toString().trim().toLowerCase();
+  if (!targetTitle) return undefined;
+
+  return sourceBlocks.find(
+    (b: any) => (b?.title ?? '').toString().trim().toLowerCase() === targetTitle,
+  );
+}
+
+/**
+ * Merge modular blocks preserving destination block order and UIDs:
+ * 1. Walk destination blocks — merge matching source blocks, clone unmapped ones.
+ * 2. Append source-only blocks (uids not on destination) at the end.
+ */
+function mergeModularBlocksFieldFromDestination(field: any, targetMB: any) {
+  const targetBlocks = targetMB?.blocks ?? [];
+  const sourceBlocks = field?.blocks ?? [];
+  if (!targetBlocks.length) return;
+
+  const resultBlocks: any[] = [];
+  const matchedSourceIdentifiers = new Set<string>();
+
+  for (const tb of targetBlocks) {
+    const sb = findMatchingSourceBlock(sourceBlocks, tb);
+    if (sb) {
+      const tSch = tb?.schema ?? [];
+      const additional = tSch.filter(
+        (tField: any) =>
+          !(sb?.schema ?? []).some(
+            (sField: any) =>
+              sField?.uid === tField?.uid && sField?.data_type === tField?.data_type,
+          ),
+      );
+      sb.schema = removeDuplicateFields([
+        ...(sb?.schema ?? []),
+        ...additional.map((f: any) => cloneSchemaBranch(f)),
+      ]);
+      mergeSchemaFields(sb?.schema ?? [], tSch);
+
+      // Align uid/title with destination so the merged block updates the existing
+      // destination block instead of creating a divergent one when uids differ.
+      if (tb?.uid) sb.uid = tb?.uid;
+      if (tb?.title) sb.title = tb?.title;
+
+      resultBlocks.push(sb);
+      if (sb?.uid) matchedSourceIdentifiers.add(`uid:${sb?.uid}`);
+      const matchedTitle = (sb?.title ?? '').toString().trim().toLowerCase();
+      if (matchedTitle) matchedSourceIdentifiers.add(`title:${matchedTitle}`);
+    } else {
+      resultBlocks.push(cloneSchemaBranch(tb));
+    }
+  }
+
+  for (const sb of sourceBlocks) {
+    const sbUidKey = sb?.uid ? `uid:${sb?.uid}` : '';
+    const sbTitleKey = sb?.title
+      ? `title:${(sb?.title as string).toString().trim().toLowerCase()}`
+      : '';
+    const alreadyMatched =
+      (sbUidKey && matchedSourceIdentifiers.has(sbUidKey)) ||
+      (sbTitleKey && matchedSourceIdentifiers.has(sbTitleKey));
+    if (!alreadyMatched && sb?.uid && sb?.title) {
+      resultBlocks.push(sb);
+    }
+  }
+
+  field.blocks = removeDuplicateFields(resultBlocks);
+}
+
+function mergeSchemaFields(sourceSchema: any[], targetSchema: any[]) {
+  for (const field of sourceSchema) {
+    if (field?.data_type === 'group') {
+      const targetGroup = targetSchema?.find((grp: Group) =>
+        grp?.uid === field?.uid && grp?.data_type === 'group'
+      );
+
+      if (targetGroup) {
+        const additional = (targetGroup?.schema ?? []).filter((tField: Group) =>
+          !field?.schema?.find((sField: Group) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
+        );
+        field.schema = removeDuplicateFields([...field?.schema ?? [], ...additional]);
+        mergeSchemaFields(field?.schema, targetGroup?.schema ?? []);
+      }
+    }
+
+    if (field?.data_type === 'blocks') {
+      const targetMB = findTargetModularBlocksField(field, targetSchema ?? []);
+
+      if (targetMB?.blocks?.length) {
+        mergeModularBlocksFieldFromDestination(field, targetMB);
+      }
+    }
+  }
+}
+
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
   const ctData: any = {
     ...ct,
     title: mergeCts?.title,
     uid: mergeCts?.uid,
     options: {
+      is_page: true,
       "singleton": false,
+      title: "title",
+      url_pattern: '/:title',
+      url_prefix: `/`,
+      sub_title: ['url']
     }
   }
-  for await (const field of ctData?.schema ?? []) {
-    if (field?.data_type === 'group') {
-      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
-        grp?.data_type === 'group');
-      const group = [];
-      for await (const fieldGp of currentGroup?.schema ?? []) {
-        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
-          fld?.data_type === fieldGp?.data_type);
-        if (fieldNst === undefined) {
-          group?.push(fieldGp);
-        }
-      }
-      field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
-    }
-  }
+
+  mergeSchemaFields(ctData?.schema ?? [], mergeCts?.schema ?? []);
+
+  enrichMergedSchemaWithDestinationCustomFields(
+    ctData?.schema ?? [],
+    mergeCts?.schema ?? [],
+  );
+
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
+  
   return ctData;
 }
 
-export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id, is_sso }: any) => {
   const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
   const srcFunc = 'contenTypeMaker';
 
@@ -1061,17 +1450,17 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   if (Object?.keys?.(keyMapper)?.length &&
     keyMapper?.[contentType?.contentstackUid] !== "" &&
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
-    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id , type: contentType?.type});
+    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id, is_sso, type: contentType?.type});
   }
 
   // Safe: ensures we never pass undefined to the builder
   const ctData: any[] = buildSchemaTree(contentType?.fieldMapping || []);
-  
+
   // Use the deep converter that properly handles groups & modular blocks
   for (const item of ctData) {
     if (item?.isDeleted === true) continue;
 
-    const fieldSchema = buildFieldSchema(item, marketPlacePath, '');
+    const fieldSchema = buildFieldSchema(item, marketPlacePath, '', keyMapper);
     if (fieldSchema) {
       ct?.schema.push(fieldSchema);
     }
@@ -1098,4 +1487,4 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   } else {
     console.info(contentType?.contentstackUid, 'missing');
   }
-};
+}

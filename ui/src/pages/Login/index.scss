@@ -74,6 +74,26 @@
     min-width: 16.25rem;
   }
 
+  &.sso-login-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    .sso-login-success__icon {
+      margin-bottom: $space-24;
+      color: $color-brand-success-base;
+      line-height: 0;
+    }
+
+    .sso-login-success__message {
+      margin: 0;
+      color: $color-font-base;
+      font-size: $size-font-small;
+      line-height: $space-20;
+    }
+  }
+
   &__name {
     font-family: $font-family-primary;
     font-size: $size-font-3-xl;
@@ -186,4 +206,50 @@
   span {
     line-height: 1 !important;
   }
+}
+// SSO Button specific styles
+.AccountForm__actions__sso_button {
+  margin-bottom: 24px;
+}
+
+// Divider styles
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.border-t {
+  border-top: 1px solid;
+}
+
+.border-gray-300 {
+  border-color: #d1d5db;
+}
+
+.px-16 {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.text-sm {
+  font-size: 14px;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.bg-white {
+  background-color: white;
+}
+
+.mb-24 {
+  margin-bottom: 24px;
 }

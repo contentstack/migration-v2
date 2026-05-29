@@ -1,5 +1,5 @@
 // Libraries
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -11,9 +11,11 @@ import {
   TextInput,
   ValidationMessage,
   Link,
-  Notification
+  Notification,
+  Icon
 } from '@contentstack/venus-components';
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
+import { toast as toastify } from 'react-toastify';
 
 // Utilities
 import {
@@ -22,11 +24,11 @@ import {
   TFA_VIA_SMS_MESSAGE,
   CS_ENTRIES
 } from '../../utilities/constants';
-import { clearLocalStorage, failtureNotification, setDataInLocalStorage } from '../../utilities/functions';
+import { clearLocalStorage, failureNotification, setDataInLocalStorage } from '../../utilities/functions';
 
 // API Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
-import { userSession, requestSMSToken } from '../../services/api/login.service';
+import { userSession, requestSMSToken, getAppConfig, checkSSOAuthStatus } from '../../services/api/login.service';
 
 // Interface
 import { IProps, IStates, defaultStates, User, UserRes, LoginType } from './login.interface';
@@ -38,12 +40,56 @@ import AccountPage from '../../components/AccountPage';
 import './index.scss';
 import { RootState } from '../../store';
 
+/** Delay before redirect to /projects after SSO token is stored and user is hydrated */
+const SSO_SUCCESS_REDIRECT_MS = 2800;
+
+/** Must match oauth-callback-html `OAUTH_CALLBACK_POSTMESSAGE_SOURCE` in the API. */
+const SSO_OAUTH_POSTMESSAGE_SOURCE = 'cs-migration-oauth-callback';
+
+/**
+ * Stable id for the SSO "select this organization" warning toast so we can
+ * dismiss it explicitly when the SSO flow ends (success / cancel / error /
+ * unmount) instead of leaving it stuck on screen.
+ */
+const SSO_ORG_INSTRUCTION_NOTIFICATION_ID = 'sso-org-instruction';
+
+/** Safety auto-close for the SSO org instruction toast (ms). */
+const SSO_ORG_INSTRUCTION_AUTO_CLOSE_MS = 5000;
+
+const dismissSsoOrgInstruction = () => {
+  try {
+    toastify.dismiss(SSO_ORG_INSTRUCTION_NOTIFICATION_ID);
+  } catch {
+    /* no-op: dismissing a missing/already-closed toast must not throw */
+  }
+};
+
+const isOrgMismatchSsoMessage = (message: string) =>
+  message.includes('Organization mismatch');
+
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
+  const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showSSOSuccessScreen, setShowSSOSuccessScreen] = useState(false);
+  const ssoSuccessRedirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ssoPollCancelledRef = useRef(false);
+  const ssoPollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ssoPopupWindowRef = useRef<Window | null>(null);
 
-  // ************* Fetch Login Data ************
+  const cancelSsoPoll = () => {
+    ssoPollCancelledRef.current = true;
+    if (ssoPollTimerRef.current !== null) {
+      clearTimeout(ssoPollTimerRef.current);
+      ssoPollTimerRef.current = null;
+    }
+    // The org-instruction toast is only relevant while the SSO flow is in
+    // progress. Whenever the flow ends (success, cancel, error, timeout) we
+    // funnel through cancelSsoPoll, so dismiss the toast here too.
+    dismissSsoOrgInstruction();
+  };
+
   const fetchData = async () => {
-    //check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES.LOGIN)
       .then((data) => setData(data))
       .catch((err) => {
@@ -56,6 +102,44 @@ const Login: FC<IProps> = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (ssoSuccessRedirectTimerRef.current) {
+        clearTimeout(ssoSuccessRedirectTimerRef.current);
+      }
+      // Don't leave the SSO org-instruction toast stranded if the user
+      // navigates away mid-flow.
+      dismissSsoOrgInstruction();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onSsoOAuthMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || typeof data !== 'object' || data.source !== SSO_OAUTH_POSTMESSAGE_SOURCE) {
+        return;
+      }
+      if (data.ok === false) {
+        const message =
+          typeof data.message === 'string' && data.message.length > 0
+            ? data.message
+            : 'Authorization failed.';
+        cancelSsoPoll();
+        setIsLoading(false);
+        try {
+          if (ssoPopupWindowRef.current && !ssoPopupWindowRef.current.closed) {
+            ssoPopupWindowRef.current.close();
+          }
+        } catch {
+          /* ignore */
+        }
+        failureNotification(message, { persist: isOrgMismatchSsoMessage(message) });
+      }
+    };
+    window.addEventListener('message', onSsoOAuthMessage);
+    return () => window.removeEventListener('message', onSsoOAuthMessage);
+  }, []);
+
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
   const user = useSelector((state: RootState) => state?.authentication?.user);
   const accountData = {
@@ -63,11 +147,6 @@ const Login: FC<IProps> = () => {
     subtitle: data?.subtitle,
     copyrightText: data?.copyrightText
   };
-
-  // ************* ALL States Here ************
-  const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  // const [isBlock, setIsBlock] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,7 +183,7 @@ const Login: FC<IProps> = () => {
         }
 
         if (res?.status === 422) {
-          failtureNotification(res?.data?.error_message as string);
+          failureNotification(res?.data?.error_message as string);
         }
       })
       .catch((err: string) => console.error(err));
@@ -154,7 +233,7 @@ const Login: FC<IProps> = () => {
 
     if (response?.status === 104 || response?.status === 400 || response?.status === 422) {
       setIsLoading(false);
-      failtureNotification(response?.data?.error_message || response?.data?.error?.message);
+      failureNotification(response?.data?.error_message || response?.data?.error?.message || response?.data?.message);
     }
     dispatch(clearAuthToken());
     localStorage?.removeItem('app_token');
@@ -238,6 +317,239 @@ const Login: FC<IProps> = () => {
     };
   };
 
+  const handleSSOLogin = async () => {
+    cancelSsoPoll();
+    setIsLoading(true);
+    try {
+      const currentRegion = region;
+      
+      await getAppConfig()
+        .then((res: any) => {
+          if (res?.status === 404) {
+            failureNotification('Kindly setup the SSO first');
+            setIsLoading(false);
+            return;
+          }
+          
+          if (res?.status === 400) {
+            failureNotification('Invalid SSO configuration. Please try again.');
+            setIsLoading(false);
+            return;
+          }
+          
+          if (res?.status === 500) {
+            failureNotification('Kindly setup the SSO first');
+            setIsLoading(false);
+            return;
+          }
+  
+          const appConfig = res?.data;
+
+          console.info('appConfig', appConfig);
+          
+          if (appConfig?.isDefault) {
+            failureNotification('SSO is not configured. Please run the setup script first.');
+            setIsLoading(false);
+            return;
+          }
+          // Check if authUrl exists
+          if (!appConfig?.authUrl) {
+            failureNotification('Invalid Auth URL. Please try again.');
+            setIsLoading(false);
+            return;
+          }
+  
+          // Checks if region matches
+          if (appConfig?.region?.key && appConfig?.region?.key !== currentRegion) {
+            failureNotification('Kindly choose correct region as the SSO region');
+            setIsLoading(false);
+            return;
+          }
+
+          if (appConfig?.organization?.name) {
+            dismissSsoOrgInstruction();
+            Notification({
+              notificationId: SSO_ORG_INSTRUCTION_NOTIFICATION_ID,
+              notificationContent: {
+                text: `In Contentstack, select organization "${appConfig?.organization?.name}" when you install or authorize this app. Choosing a different organization will cause SSO to fail.`,
+              },
+              type: 'warning',
+              notificationProps: {
+                hideProgressBar: true,
+                position: 'bottom-center',
+                autoClose: SSO_ORG_INSTRUCTION_AUTO_CLOSE_MS,
+              },
+            });
+          }
+  
+          const authURL = appConfig?.authUrl;
+          const ssoWindow = window.open(authURL, '_blank', 'noopener,noreferrer');
+          ssoPopupWindowRef.current = ssoWindow;
+          
+          if (appConfig?.user?.uid) {
+            startSSOPolling(appConfig?.user?.uid, ssoWindow);
+          } else {
+            dismissSsoOrgInstruction();
+            failureNotification('Missing user information in SSO configuration');
+            setIsLoading(false);
+          }
+          
+        })
+        .catch((err: any) => {
+          failureNotification('Something went wrong please try normal login method');
+          setIsLoading(false);
+        });
+        
+    } catch (error) {
+      failureNotification('Something went wrong please try normal login method');
+      setIsLoading(false);
+    }
+  };
+  
+
+  const startSSOPolling = (userId: string, ssoWindow: Window | null) => {
+    ssoPollCancelledRef.current = false;
+    if (ssoPollTimerRef.current !== null) {
+      clearTimeout(ssoPollTimerRef.current);
+      ssoPollTimerRef.current = null;
+    }
+
+    const pollInterval = 2000;
+    const maxPollTime = 300000;
+    let pollCount = 0;
+    const maxPolls = maxPollTime / pollInterval;
+
+    const scheduleNext = (fn: () => void) => {
+      if (ssoPollCancelledRef.current) return;
+      ssoPollTimerRef.current = setTimeout(fn, pollInterval);
+    };
+
+    const poll = async () => {
+      if (ssoPollCancelledRef.current) return;
+      pollCount += 1;
+
+      try {
+        if (ssoWindow?.closed) {
+          cancelSsoPoll();
+          failureNotification('SSO login was cancelled');
+          setIsLoading(false);
+          return;
+        }
+
+        await checkSSOAuthStatus(userId)
+          .then((authRes: any) => {
+            if (ssoPollCancelledRef.current) return;
+
+            if (authRes?.status === 200 && authRes?.data?.authenticated === true) {
+              cancelSsoPoll();
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+              handleSuccessfulSSOLogin(authRes?.data);
+              return;
+            }
+
+            const fatalErrors = ['Organization mismatch', 'SSO authentication expired'];
+            const message = authRes?.data?.message;
+
+            if (message && fatalErrors.some((err) => message.includes(err))) {
+              cancelSsoPoll();
+              failureNotification(message, {
+                persist: isOrgMismatchSsoMessage(message),
+              });
+              setIsLoading(false);
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+              return;
+            }
+
+            if (pollCount < maxPolls) {
+              scheduleNext(poll);
+            } else {
+              cancelSsoPoll();
+              failureNotification('SSO authentication timed out. Please try again.');
+              setIsLoading(false);
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+            }
+          })
+          .catch(() => {
+            if (ssoPollCancelledRef.current) return;
+            if (pollCount < maxPolls) {
+              scheduleNext(poll);
+            } else {
+              cancelSsoPoll();
+              failureNotification('Something went wrong please try normal login method');
+              setIsLoading(false);
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+            }
+          });
+      } catch {
+        cancelSsoPoll();
+        failureNotification('Something went wrong please try normal login method');
+        setIsLoading(false);
+        if (ssoWindow && !ssoWindow.closed) {
+          ssoWindow.close();
+        }
+      }
+    };
+
+    ssoPollTimerRef.current = setTimeout(poll, pollInterval);
+  };
+  
+
+  const handleSuccessfulSSOLogin = async (authData: any) => {
+    try {
+      setIsLoading(false);
+  
+      if (!authData?.app_token) {
+        throw new Error("Missing app token");
+      }
+  
+      // Store token FIRST
+      setDataInLocalStorage('app_token', authData?.app_token);
+  
+      localStorage?.removeItem('organization');
+      dispatch(clearOrganisationData());
+  
+      // Update redux auth
+      dispatch(setAuthToken({
+        authToken: authData?.app_token,
+        isAuthenticated: true
+      }));
+  
+      dispatch(setUser({
+        ...user,
+        region,
+        is_sso: true
+      }));
+  
+      // WAIT for user hydration
+      await dispatch(getUserDetails())?.unwrap();
+  
+      setLoginStates(prev => ({ ...prev, submitted: true, isLoginViaSSO: true }));
+      setShowSSOSuccessScreen(true);
+
+      if (ssoSuccessRedirectTimerRef.current) {
+        clearTimeout(ssoSuccessRedirectTimerRef.current);
+      }
+      ssoSuccessRedirectTimerRef.current = setTimeout(() => {
+        ssoSuccessRedirectTimerRef.current = null;
+        navigate('/projects', { replace: true });
+      }, SSO_SUCCESS_REDIRECT_MS);
+  
+    } catch (error) {
+      console.error('Error processing SSO login success:', error);
+      failureNotification(
+        'Login successful but setup failed. Please refresh.'
+      );
+    }
+  };  
+
   // useEffect(()=>{
   //   const handlePopState = (event: PopStateEvent) => {
   //     event.preventDefault();
@@ -276,12 +588,25 @@ const Login: FC<IProps> = () => {
 
   return (
     <AccountPage data={accountData}>
-      {loginStates?.tfa ? (
+      {showSSOSuccessScreen ? (
+        <div
+          className="AccountForm AccountForm_login sso-login-success"
+          role="status"
+          aria-live="polite"
+          data-testid="sso-login-success"
+        >
+          <div className="sso-login-success__icon">
+            <Icon icon="CheckedCircle" version="v2" size="large" />
+          </div>
+          <h2 className="mb-16">You&apos;re signed in</h2>
+          <p className="sso-login-success__message">Taking you to your projects…</p>
+        </div>
+      ) : loginStates?.tfa ? (
         <div className="AccountForm AccountForm_login">
           {twoFactorAuthentication?.title && (
             <h2 className="mb-40">{twoFactorAuthentication?.title}</h2>
           )}
-
+  
           <FinalForm
             onSubmit={onSubmit}
             render={({ handleSubmit }): JSX.Element => (
@@ -461,10 +786,9 @@ const Login: FC<IProps> = () => {
                           }}
                         </FinalField>
                       </Field>
-
+  
                       <div className="AccountForm__actions">
                         <div className="mb-16">
-                          {/* disabled={errors && Object.keys(errors).length ? true : false} */}
                           <Button
                             className="AccountForm__actions__login_button"
                             isFullWidth={true}
@@ -477,6 +801,22 @@ const Login: FC<IProps> = () => {
                             isLoading={isLoading}
                           >
                             {login?.cta?.title}
+                          </Button>
+                        </div>
+                        <div className="mb-16">
+                          <Button
+                            className="AccountForm__actions__sso_button"
+                            isFullWidth={true}
+                            version="v2"
+                            testId="cs-sso-login"
+                            buttonType="secondary"
+                            type="button"
+                            icon="v2-CloudArrowUp"
+                            tabIndex={0}
+                            isLoading={isLoading}
+                            onClick={handleSSOLogin}
+                          >
+                            Log in via SSO
                           </Button>
                         </div>
                       </div>

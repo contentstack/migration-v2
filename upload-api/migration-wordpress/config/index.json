@@ -46,6 +46,13 @@
       "dirName": "posts",
       "fileName": "en-us.json",
       "masterfile": "posts.json"
-    }
-  }
+    },
+    "content": {
+      "authors" : "wp:author",
+      "categories" : "wp:category",
+      "tag" : "wp:tag",
+      "terms" : "wp:term",
+      "posts" : "item",
+      "pages" : "item"
+  }}
 }

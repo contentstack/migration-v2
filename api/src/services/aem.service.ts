@@ -356,14 +356,14 @@ export async function fetchFilesByQuery(
 
 function addUidToEntryMapping(
   entryMapping: Record<string, string[]>,
-  contentType: ContentType | undefined,
+  resolvedCtUid: string,
   uid: string
 ) {
-  if (!contentType?.contentstackUid) return;
-  if (!entryMapping[contentType.contentstackUid]) {
-    entryMapping[contentType.contentstackUid] = [];
+  if (!resolvedCtUid) return;
+  if (!entryMapping[resolvedCtUid]) {
+    entryMapping[resolvedCtUid] = [];
   }
-  entryMapping[contentType.contentstackUid].push(uid);
+  entryMapping[resolvedCtUid].push(uid);
 }
 
 function uidCorrector(str: string): string {
@@ -587,17 +587,73 @@ function processFieldsRecursive(
   for (const field of fields) {
     switch (field?.contentstackFieldType) {
       case 'modular_blocks': {
-        const modularData = items?.[field?.uid] ? items?.[field?.uid] : items?.[':items'];
+        const uid = getLastKey(field?.contentstackFieldUid);
+        const modularBlocksArray: any[] = [];
+        const aemSourcePath = field?.backupFieldUid || field?.otherCmsField?.replace?.(/ > /g, '.') || '';
+        const aemSourceField = getLastKey(aemSourcePath);
+        const sourceData = aemSourceField && aemSourceField in items 
+          ? items[aemSourceField] 
+          : items;
+
         if (Array.isArray(field?.schema)) {
-          const itemsData = modularData?.[':items'] ?? modularData;
-          const value = processFieldsRecursive(field.schema, itemsData, title, pathToUidMap, assetDetailsMap);
-          const uid = getLastKey(field?.contentstackFieldUid);
-          obj[uid] = value;
+          // Process each child block schema
+          for (const childBlockSchema of field.schema) {
+            if (childBlockSchema?.contentstackFieldType === 'modular_blocks_child') {
+              const blockTypeUid = getLastKey(childBlockSchema?.contentstackFieldUid);
+              const aemChildPath = childBlockSchema?.backupFieldUid || 
+                childBlockSchema?.otherCmsField?.replace?.(/ > /g, '.') || '';
+              const aemBlockUid = getLastKey(aemChildPath);
+              
+              // Find matching items in the source data
+              const itemsList: any[] = (() => {
+                if (Array.isArray(sourceData)) return sourceData;
+                const order = Array.isArray(sourceData?.[':itemsOrder']) ? sourceData[':itemsOrder'] : null;
+                const map = sourceData?.[':items'] || sourceData;
+                if (order && map) return order.map((k: string) => map?.[k]).filter(Boolean);
+                return Object.values(map || {});
+              })();
+
+              // Process each item that matches current block type
+              for (const item of itemsList) {
+                if (!item || typeof item !== 'object') continue;
+                
+                const typeValue = (item as any)[':type'] || '';
+                const getTypeComp = getLastKey(typeValue, '/');
+                const isMatch = (aemBlockUid && getTypeComp === aemBlockUid) ||
+                    getTypeComp === blockTypeUid ||
+                    (aemBlockUid && item?.['sling:resourceType']?.includes(aemBlockUid)) ||
+                    item?.['sling:resourceType']?.includes(blockTypeUid);
+                
+                if (isMatch) {
+                  // Process the fields within this child block
+                  if (Array.isArray(childBlockSchema?.schema)) {
+                    const blockData = processFieldsRecursive(
+                      childBlockSchema.schema,
+                      item,
+                      title,
+                      pathToUidMap,
+                      assetDetailsMap
+                    );
+                    
+                    if (blockData && Object.keys(blockData).length) {
+                      const blockEntry: any = {};
+                      blockEntry[blockTypeUid] = blockData;
+                      modularBlocksArray.push(blockEntry);
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
+        
+        obj[uid] = modularBlocksArray;
         break;
       }
 
       case 'modular_blocks_child': {
+        // This case is handled in the modular_blocks case above
+        // This is for backwards compatibility
         const list: any[] = (() => {
           if (Array.isArray(items)) return items;
           const order = Array.isArray(items?.[':itemsOrder']) ? items[':itemsOrder'] : null;
@@ -615,7 +671,14 @@ function processFieldsRecursive(
           const getTypeComp = getLastKey(typeValue, '/');
           if (getTypeComp !== blockTypeUid) continue;
 
-          const compValue = processFieldsRecursive(field.schema, value, title, pathToUidMap, assetDetailsMap);
+          const compValue = processFieldsRecursive(
+            field.schema,
+            value,
+            title,
+            pathToUidMap,
+            assetDetailsMap
+          );
+          
           if (compValue && Object.keys(compValue).length) {
             const objData: any = {};
             objData[uid] = compValue;
@@ -627,10 +690,11 @@ function processFieldsRecursive(
 
       case 'group': {
         const uid = getLastKey(field?.contentstackFieldUid);
+        const aemGroupSourcePath = field?.backupFieldUid || field?.otherCmsField?.replace?.(/ > /g, '.') || '';
+        const aemGroupSourceKey = getLastKey(aemGroupSourcePath) || field?.uid;
       
         const isMultiple =
-          (field?.multiple === true) ||
-          (field?.advanced && field.advanced.multiple === true) ||
+          (field?.advanced?.multiple !== undefined ? field.advanced.multiple === true : field?.multiple === true) ||
           (field?.maxInstance && field.maxInstance > 1);
       
         const isCarouselItems =
@@ -647,7 +711,7 @@ function processFieldsRecursive(
         if (isCarouselItems) {
           groupValue = items;
         } else {
-          groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
+          groupValue = items?.[aemGroupSourceKey]?.items ?? items?.[aemGroupSourceKey];
         }
       
         if (isMultiple) {
@@ -834,7 +898,7 @@ function processFieldsRecursive(
           const order2 = Array.isArray(items?.[':itemsOrder']) ? items[':itemsOrder'] : null;
           const map2 = items?.[':items'] || items;
           if (order2 && map2) {
-            const baseUid = field?.uid;
+            const baseUid = aemGroupSourceKey;
             const keysForThisGroup = order2.filter(
               (k) => k === baseUid || new RegExp(`^${baseUid}_`).test(k)
             );
@@ -862,15 +926,12 @@ function processFieldsRecursive(
           }
         } else {
           if (Array.isArray(groupValue)) {
-            const groupData: unknown[] = [];
-            if (Array.isArray(field?.schema)) {
-              for (const element of groupValue) {
-                groupData.push(
-                  processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap)
-                );
-              }
+            const firstElement = groupValue[0];
+            if (Array.isArray(field?.schema) && firstElement) {
+              obj[uid] = processFieldsRecursive(field.schema, firstElement, title, pathToUidMap, assetDetailsMap);
+            } else {
+              obj[uid] = {};
             }
-            obj[uid] = groupData;
           } else {
             if (Array.isArray(field?.schema)) {
               const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);
@@ -1206,7 +1267,8 @@ const createEntry = async ({
   contentTypes,
   destinationStackId,
   projectId,
-  project
+  project,
+  keyMapper
 }: CreateEntryOptions) => {
   const srcFunc = 'createEntry';
   const baseDir = path.join(baseDirName, destinationStackId);
@@ -1262,9 +1324,15 @@ const createEntry = async ({
       data.publish_details = [];
 
       if (contentType?.contentstackUid && data && mappedLocale) {
+        const mappedValue = (keyMapper as Record<string, string> | undefined)?.[contentType.contentstackUid];
+        const resolvedCtUid: string = 
+          mappedValue && mappedValue !== '' 
+            ? mappedValue 
+            : contentType.contentstackUid;
+
         const message = getLogMessage(
           srcFunc,
-          `Entry title "${data?.title}"(${contentType?.contentstackUid}) in the ${mappedLocale} locale has been successfully transformed.`,
+          `Entry title "${data?.title}"(${resolvedCtUid}) in the ${mappedLocale} locale has been successfully transformed.`,
           {}
         );
         await customLogger(
@@ -1273,8 +1341,8 @@ const createEntry = async ({
           'info',
           message
         );
-        addEntryToEntriesData(entriesData, contentType.contentstackUid, data, mappedLocale);
-        addUidToEntryMapping(entryMapping, contentType, uid);
+        addEntryToEntriesData(entriesData, resolvedCtUid, data, mappedLocale);
+        addUidToEntryMapping(entryMapping, resolvedCtUid, uid);
       }
     }
   }
@@ -1285,15 +1353,20 @@ const createEntry = async ({
         for await (const [locale, entries] of entriesLocale) {
           for (const entry of entries) {
             const flatData = deepFlattenObject(entry);
+            const km = keyMapper as Record<string, string> | undefined;
             for (const [key, value] of Object.entries(flatData)) {
               if (key.endsWith('._content_type_uid') && typeof value === 'string') {
                 const uidField = key?.replace('._content_type_uid', '');
-                const refs: string[] = entryMapping?.[value];
+                const mappedCtUid = km?.[value] && km[value] !== '' ? km[value] : value;
+                if (mappedCtUid !== value) {
+                  _.set(entry, key, mappedCtUid);
+                }
+                const refs: string[] = entryMapping?.[mappedCtUid];
 
                 if (refs?.length) {
                   _.set(entry, `${uidField}.uid`, refs?.[0]);
                 } else {
-                  console.info(`No entry found for content type: ${value}`);
+                  console.info(`No entry found for content type: ${mappedCtUid}`);
                 }
               }
             }

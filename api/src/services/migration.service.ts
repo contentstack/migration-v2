@@ -1,4 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+/* eslint-disable */
 
 import { Request } from 'express';
 import path from 'path';
@@ -7,7 +8,7 @@ import { config } from '../config/index.js';
 import { safePromise, getLogMessage } from '../utils/index.js';
 import https from '../utils/https.utils.js';
 import { LoginServiceType } from '../models/types.js';
-import getAuthtoken from '../utils/auth.utils.js';
+import getAuthtoken, { getAccessToken } from '../utils/auth.utils.js';
 import logger from '../utils/logger.js';
 import {
   HTTP_TEXTS,
@@ -24,6 +25,7 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
+import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
@@ -38,6 +40,7 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 
 /**
  * Creates a test stack.
@@ -55,11 +58,21 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const testStackName = `${name}-Test`;
 
   try {
+    let headers: any = {
+      organization_uid: orgId,
+    }
+    if(token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
     const authtoken = await getAuthtoken(
       token_payload?.region,
       token_payload?.user_id
     );
-
+    headers.authtoken = authtoken;
+  } else {
+    throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+  }
     await ProjectModelLowdb.read();
     const projectData: any = ProjectModelLowdb.chain
       .get('projects')
@@ -71,16 +84,13 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     const testStackCount = projectData?.test_stacks?.length + 1;
     const newName = testStackName + '-' + testStackCount;
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'POST',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
         data: {
           stack: {
             name: newName,
@@ -89,7 +99,22 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
           },
         },
       })
-    );
+      : await safePromise(
+        https({
+          method: 'POST',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+          data: {
+            stack: {
+              name: newName,
+              description,
+              master_locale,
+            },
+          },
+        })
+      );
 
     if (err) {
       logger.error(
@@ -112,6 +137,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
+      
+
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
@@ -156,26 +183,42 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = 'deleteTestStack';
   const projectId = req?.params?.projectId;
-  const { token_payload, stack_key } = req.body;
+  const { token_payload, stack_key } = req?.body;
 
   try {
+    let headers: any = {
+      api_key: stack_key,
+    }
+    if(token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
     const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
+        token_payload?.region,
+        token_payload?.user_id
+      );
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'DELETE',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          api_key: stack_key,
-          authtoken,
-        },
+        headers: headers,
       })
-    );
+      : await safePromise(
+        https({
+          method: 'DELETE',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+        })
+      );
 
     if (err) {
       logger.error(
@@ -235,7 +278,15 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
  */
 const startTestMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  const { region, user_id } = req?.body?.token_payload ?? {};
+  const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
+
+
+  if (is_sso !== true && is_sso !== false) {
+    throw new BadRequestError(
+      'Invalid token_payload.is_sso; expected a boolean value.',  
+    );
+  }
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
@@ -363,15 +414,24 @@ const startTestMigration = async (req: Request): Promise<any> => {
       destinationStackId: project?.current_test_stack_id,
       region,
       user_id,
+      is_sso,
     });
+    
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.current_test_stack_id,
+      marketplaceSourceStackId: project?.destination_stack_id,
       region,
       userId: user_id,
     });
     await extensionService?.createExtension({
       destinationStackId: project?.current_test_stack_id,
+      existingStackId: project?.destination_stack_id,
+      token_payload: {
+        region,
+        user_id,
+        is_sso,
+      },
     });
     await taxonomyService?.createTaxonomy({
       orgId,
@@ -419,102 +479,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.createLocale(
-            req,
-            project?.current_test_stack_id,
-            projectId,
-            project
-          );
-          await wordpressService?.getAllAssets(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.createAssetFolderFile(
-            file_path,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllreference(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.extractChunks(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllAuthors(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllTags(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllCategories(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPosts(
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPages(
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractGlobalFields(
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.createVersionFile(
-            project?.current_test_stack_id,
-            projectId
-          );
+          await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId);
+          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
+           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
         break;
       }
@@ -546,6 +515,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
           project?.current_test_stack_id,
           projectId,
           true
+        );
+        await contentfulService?.createTaxonomy(
+          cleanLocalPath,
+          project?.current_test_stack_id,
+          projectId,
         );
         await contentfulService?.createEntry(
           cleanLocalPath,
@@ -588,6 +562,91 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
 
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
+
+
+        // Step 3: Create assets from Drupal database
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          drupalAssetsConfig
+        );
+
+        // Step 4: Create references
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true
+        );
+
+        // Step 5: Create taxonomy
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
+
+        // Step 6: Create entries
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          project?.stackDetails?.master_locale,
+          project,
+          contentTypes
+        );
+
+        // Step 7: Create locale
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+
+        // Step 8: Create version file
+        await drupalService?.createVersionFile(
+          project?.current_test_stack_id,
+          projectId
+        );
+        break;
+      }
+
       default:
         break;
     }
@@ -614,7 +673,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
  */
 const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  const { region, user_id } = req?.body?.token_payload ?? {};
+  const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
+
+  if (typeof is_sso !== 'boolean') {
+    throw new BadRequestError(
+      'Missing or invalid SSO flag in token payload: expected boolean "is_sso".',
+    );
+  }
+  
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
@@ -755,6 +821,7 @@ const startMigration = async (req: Request): Promise<any> => {
       destinationStackId: project?.destination_stack_id,
       region,
       user_id,
+      is_sso,
     });
     await marketPlaceAppService?.createAppManifest({
       orgId,
@@ -764,6 +831,12 @@ const startMigration = async (req: Request): Promise<any> => {
     });
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
+      existingStackId: project?.source_stack_id,
+      token_payload: {
+        region,
+        user_id,
+        is_sso,
+      },
     });
     await taxonomyService?.createTaxonomy({
       orgId,
@@ -819,86 +892,10 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.destination_stack_id,
             projectId
           );
-          await wordpressService?.createAssetFolderFile(
-            file_path,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllreference(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.extractChunks(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllAuthors(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
+          await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+       
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.getAllTerms(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllTags(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllCategories(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPosts(
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPages(
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractGlobalFields(
-            project?.destination_stack_id,
-            projectId
-          );
           await wordpressService?.createVersionFile(
             project?.destination_stack_id,
             projectId
@@ -933,6 +930,11 @@ const startMigration = async (req: Request): Promise<any> => {
           cleanLocalPath,
           project?.destination_stack_id,
           projectId
+        );
+        await contentfulService?.createTaxonomy(
+          cleanLocalPath,
+          project?.destination_stack_id,
+          projectId,
         );
         await contentfulService?.createEntry(
           cleanLocalPath,
@@ -971,6 +973,89 @@ const startMigration = async (req: Request): Promise<any> => {
           project
         );
         await aemService?.createVersionFile(project?.destination_stack_id);
+        break;
+      }
+
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order
+        // Step 1: Generate dynamic queries from database analysis
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
+
+        // Step 3: Create assets from Drupal database
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false, // Not a test migration
+          drupalAssetsConfig
+        );
+
+        // Step 4: Create references
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false // Not a test migration
+        );
+
+        // Step 5: Create taxonomy
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
+
+        // Step 6: Create entries
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false, // Not a test migration
+          project?.stackDetails?.master_locale,
+          project,
+          contentTypes
+        );
+
+        // Step 7: Create locale
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          project
+        );
+
+        // Step 8: Create version file
+        await drupalService?.createVersionFile(
+          project?.destination_stack_id,
+          projectId
+        );
         break;
       }
 
@@ -1240,16 +1325,10 @@ const transformAndFlattenData = (
   }
 };
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = req?.params?.projectId
-    ? path?.basename(req.params.projectId)
-    : '';
-  const stackId = req?.params?.stackId
-    ? path?.basename(req.params.stackId)
-    : '';
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId): '';
+  const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : '';
   const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
-  const startIndex = req?.params?.startIndex
-    ? parseInt(req.params.startIndex)
-    : 0;
+  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText ?? null;
   const filter = req?.params?.filter ?? 'all';

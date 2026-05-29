@@ -11,12 +11,15 @@ services:
     volumes:
       - ${DOCKER_MOUNT_PATH:-${CMS_DATA_PATH}}:${CONTAINER_PATH}:ro
       - shared_data:/app/extracted_files
+      - ./app.json:/usr/src/app/app.json:ro
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - CMS_TYPE=${CMS_TYPE}
       - CONTAINER_PATH=${CONTAINER_PATH}
       - CMS_DATA_PATH=${CMS_DATA_PATH}
       - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - migration-network
     security_opt:
@@ -39,6 +42,16 @@ services:
       - CMS_DATA_PATH=${CMS_DATA_PATH}
       - NODE_BACKEND_API=${NODE_BACKEND_API:-http://migration-api:5001}
       - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
+      - CMS_LOCAL_PATH=${CMS_LOCAL_PATH:-}
+      - MYSQL_HOST=${MYSQL_HOST:-}
+      - MYSQL_USER=${MYSQL_USER:-}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - DRUPAL_ASSETS_BASE_URL=${DRUPAL_ASSETS_BASE_URL:-}
+      - DRUPAL_ASSETS_PUBLIC_PATH=${DRUPAL_ASSETS_PUBLIC_PATH:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - migration-network
     security_opt:
@@ -55,8 +68,8 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:5001}
-      - REACT_APP_UPLOAD_API_URL=${REACT_APP_UPLOAD_API_URL:-http://localhost:4002}
+      - VITE_BASE_API_URL=${VITE_BASE_API_URL:-http://localhost:5001/}
+      - VITE_UPLOAD_SERVER=${VITE_UPLOAD_SERVER:-http://localhost:4002/}
     networks:
       - migration-network
     security_opt:

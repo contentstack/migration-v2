@@ -56,7 +56,7 @@ const AddStack = (props: any): JSX.Element => {
       locale: formData?.locale?.value || props?.defaultValues?.locale
     });
 
-    if (resp) {
+    if (resp === true) {
       Notification({
         notificationContent: { text: 'Stack created successfully' },
         notificationProps: {
@@ -67,8 +67,9 @@ const AddStack = (props: any): JSX.Element => {
       });
       props?.closeModal();
     } else {
+      
       Notification({
-        notificationContent: { text: 'Stack creation failed. Please try again.' },
+        notificationContent: { text: resp },
         notificationProps: {
           position: 'bottom-center',
           hideProgressBar: true
@@ -306,9 +307,9 @@ const AddStack = (props: any): JSX.Element => {
                         buttonType="primary"
                         name="submit"
                         type="submit"
-                        loading={isProcessing}
+                        isLoading={isProcessing}
                       >
-                        {addStackCMSData?.primary_cta?.title}
+                        {addStackCMSData?.primary_cta?.title || 'Create'}
                       </Button>
                     </ButtonGroup>
                   </ModalFooter>

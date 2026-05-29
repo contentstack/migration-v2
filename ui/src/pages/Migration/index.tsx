@@ -146,7 +146,6 @@ const Migration = () => {
         value !== undefined && 
         label !== 'undefined'
     );
-    //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
     if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
       setIsSaved(true);    
     }
@@ -275,7 +274,17 @@ const Migration = () => {
             awsData: {
               awsRegion: data?.awsData?.awsRegion,
               bucketName: data?.awsData?.bucketName,
-              buketKey: data?.awsData?.buketKey
+              bucketKey: data?.awsData?.bucketKey
+            },
+            mysql: {
+              host: data?.mysql?.host,
+              user: data?.mysql?.user,
+              database: data?.mysql?.database,
+              port: data?.mysql?.port
+            },
+            assetsConfig: {
+              base_url: data?.assetsConfig?.base_url,
+              public_path: data?.assetsConfig?.public_path
             }
           },
           cmsType: data?.cmsType  
@@ -300,21 +309,36 @@ const Migration = () => {
     setProjectData(migrationData?.data);
   }
   const projectData = migrationData?.data;
-
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
-    const selectedCmsData: ICMSType = validateArray(legacyCmsData?.all_cms)
+    // Config's cmsType is the source of truth (may differ from stored project CMS if config changed)
+    const configCmsType = data?.cmsType?.toLowerCase();
+
+    // Look up stored CMS from project data
+    const storedCmsData: ICMSType | undefined = validateArray(legacyCmsData?.all_cms)
       ? legacyCmsData?.all_cms?.find(
           (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
-        ) ?? DEFAULT_CMS_TYPE
+        )
       : DEFAULT_CMS_TYPE;
+
+    // Look up CMS by config's cmsType (same parent-matching logic as LoadSelectCms.filterCMSData)
+    const configCmsData: ICMSType | undefined = (configCmsType && validateArray(legacyCmsData?.all_cms))
+      ? legacyCmsData?.all_cms?.find(
+          (cms: ICMSType) => cms?.parent?.toLowerCase() === configCmsType
+        )
+      : undefined;
+
+    // Use stored CMS if its parent matches config's cmsType (preserves specific version like "Sitecore v9").
+    // Otherwise, config takes precedence (CMS type was changed in config).
+    const selectedCmsData: ICMSType =
+      storedCmsData ?? DEFAULT_CMS_TYPE;
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats
     )
-      ? selectedCmsData.allowed_file_formats?.find(
+      ? (selectedCmsData.allowed_file_formats?.find(
           (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
-        )
+        ) ?? selectedCmsData.allowed_file_formats?.[0])  // Fall back to CMS's first allowed format
       : fileFormat;
 
     const selectedOrganisationData = validateArray(organisationsList)
@@ -366,14 +390,49 @@ const Migration = () => {
             awsData: {
               awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
               bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
-              buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
+              bucketKey: projectData?.legacy_cms?.awsDetails?.bucketKey
             },
-            isLocalPath: projectData?.legacy_cms?.is_localPath
+            isLocalPath: projectData?.legacy_cms?.is_localPath,
+            mysql: {
+              host: projectData?.legacy_cms?.mySQLDetails?.host,
+              user: projectData?.legacy_cms?.mySQLDetails?.user,
+              database: projectData?.legacy_cms?.mySQLDetails?.database,
+              port: projectData?.legacy_cms?.mySQLDetails?.port
+            },
+            assetsConfig: {
+              base_url: projectData?.legacy_cms?.assetsConfig?.base_url,
+              public_path: projectData?.legacy_cms?.assetsConfig?.public_path
+            }
           },
           isValidated: projectData?.legacy_cms?.is_fileValid,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
           buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
-        } : uploadObj,
+        } : {
+          // uploadObj (from getFileInfo) already merges existing Redux uploadedFile with config.
+          // For file_details, prefer non-empty config values, fall back to existing Redux values.
+          ...uploadObj,
+          file_details: {
+            ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details,
+            isLocalPath: uploadObj?.file_details?.isLocalPath ?? newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
+            cmsType: uploadObj?.file_details?.cmsType || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.cmsType,
+            localPath: uploadObj?.file_details?.localPath || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.localPath,
+            awsData: {
+              awsRegion: uploadObj?.file_details?.awsData?.awsRegion || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
+              bucketName: uploadObj?.file_details?.awsData?.bucketName || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
+              bucketKey: uploadObj?.file_details?.awsData?.bucketKey || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketKey,
+            },
+            mysql: {
+              host: uploadObj?.file_details?.mysql?.host || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.host,
+              user: uploadObj?.file_details?.mysql?.user || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.user,
+              database: uploadObj?.file_details?.mysql?.database || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.database,
+              port: uploadObj?.file_details?.mysql?.port || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.port,
+            },
+            assetsConfig: {
+              base_url: uploadObj?.file_details?.assetsConfig?.base_url || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.assetsConfig?.base_url,
+              public_path: uploadObj?.file_details?.assetsConfig?.public_path || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.assetsConfig?.public_path,
+            } 
+          }
+        },
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
         projectStatus: projectData?.status,
@@ -531,7 +590,7 @@ const Migration = () => {
         awsDetails: {
           awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
           bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
-          buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
+          bucketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketKey
         }
       };
       try {

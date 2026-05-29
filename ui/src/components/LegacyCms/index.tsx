@@ -23,7 +23,7 @@ import { updateMigrationData, updateNewMigrationData } from '../../store/slice/m
 interface AwsDetails {
   awsRegion: string;
   bucketName: string;
-  buketKey: string;
+  bucketKey: string;
 }
 interface LegacyCmsData {
   affix?: string;
@@ -131,9 +131,9 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       const selectedFileFormatData: ICardType | undefined = validateArray(
         selectedCmsData?.allowed_file_formats
       )
-        ? selectedCmsData.allowed_file_formats?.find(
+        ? (selectedCmsData.allowed_file_formats?.find(
             (cms: ICardType) => cms?.fileformat_id === legacyCMSData?.file_format
-          )
+          ) ?? selectedCmsData.allowed_file_formats?.[0])  // Fall back to CMS's first allowed format
         : newMigrationData?.legacy_cms?.selectedFileFormat;
     
       //Make Step 1 Complete
@@ -198,11 +198,12 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       //Make Step 2 complete
       if (
         !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id)
+        && !isEmptyString(newMigrationData?.legacy_cms?.affix)
       ) {
         setInternalActiveStepIndex(1);
       }
 
-    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !isEmptyString(newMigrationData?.legacy_cms?.affix)){
       setInternalActiveStepIndex(3);
     }
     setisProjectMapped(newMigrationData?.isprojectMapped)
@@ -212,7 +213,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   useEffect(()=>{
    if( !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title) &&
     ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) && 
-    newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !isEmptyString(newMigrationData?.legacy_cms?.affix) && !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
       setIsAllStepsCompleted(true);
       handleAllStepsComplete(true);
     }

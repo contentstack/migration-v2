@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
@@ -16,7 +18,7 @@ interface TestStack {
   stackUid: string;
   isMigrated: boolean;
 }
-import utilitiesHandler from '@contentstack/cli-utilities';
+import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -150,27 +152,29 @@ export const runCli = async (
     const regionPresent =
       CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
     const regionCli = regionPresent.replace(/_/g, '-');
-
     // Fetch user authentication data
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
       .get('users')
       .find({ region: regionPresent, user_id })
       .value();
-
-    // Configure CLI with region settings
     await runCommand(
       'npx',
       ['@contentstack/cli', 'config:set:region', `${regionCli}`],
       transformePath
     ); // Pass the log file path here
 
-    // Set up authentication configuration for CLI
-    utilitiesHandler.configHandler.set('authtoken', userData.authtoken);
-    utilitiesHandler.configHandler.set('email', userData.email);
-    utilitiesHandler.configHandler.set('authorisationType', 'BASIC');
+    if(userData?.access_token){
+      setOAuthConfig(userData);
 
-    if (userData?.authtoken && stack_uid) {
+    }else if(userData?.authtoken){
+      setBasicAuthConfig(userData);
+    }else {
+      throw new Error("No authentication token found");
+    }
+
+
+    if (userData?.authtoken && stack_uid || userData?.access_token && stack_uid) {
       // Set up paths for backup and source data
       const {
         BACKUP_DATA,
@@ -204,7 +208,6 @@ export const runCli = async (
       await createDirectoryAndFile(loggerPath, transformePath);
 
       // Debug which log path is being used
-      console.info(`Log path for CLI commands: ${transformePath}`);
 
       // Make sure to set the global.currentLogFile to the project log file
       // This is the key part - setting the log file path to the migration service log file
@@ -230,7 +233,6 @@ export const runCli = async (
       ); // Pass the log file path here
 
       // After the import command completes
-      console.info('Import command completed successfully');
 
       // Write the completion message ONCE in the format the UI expects
       if (isTest) {
@@ -250,8 +252,6 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
-
-        console.info('Added test completion message to logs');
       } else {
         const directLogEntry = {
           level: 'info',
@@ -269,20 +269,12 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
-
-        console.info('Added migration completion message to logs');
       }
 
       // Keep the project status update code:
-      console.info(
-        `Updating project status: projectId=${projectId}, isTest=${isTest}`
-      );
       // ... rest of the code ...
 
       // Add debug logs to track project index and test flag
-      console.info(
-        `Updating project status: projectId=${projectId}, isTest=${isTest}`
-      );
 
       // Make sure we have the latest data
       await ProjectModelLowdb.read();
@@ -291,27 +283,8 @@ export const runCli = async (
         .findIndex({ id: projectId })
         .value();
 
-      console.info(`Found project index: ${projectIndex}`);
-
-      // Debug: Log the full project data to verify it exists
-      try {
-        const project = ProjectModelLowdb.chain
-          .get('projects')
-          .find({ id: projectId })
-          .value();
-        console.info(`Project found: ${project ? 'Yes' : 'No'}`);
-        if (project) {
-          console.info(
-            `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
-          );
-        }
-      } catch (err) {
-        console.error('Error reading project data:', err);
-      }
-
       // Handle test migration updates
       if (projectIndex > -1 && isTest) {
-        console.info('Updating test migration status');
         const project = ProjectModelLowdb.data.projects[projectIndex];
 
         // Initialize test_stacks if needed
@@ -332,14 +305,13 @@ export const runCli = async (
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
         // Direct modification might be more reliable
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
+          true;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
+          false;
         ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         await ProjectModelLowdb.write();
-        console.info(
-          `Project ${projectId} status updated: migration completed`
-        );
       }
     } else {
       console.info('User not found.');

@@ -4,13 +4,17 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import axios from "axios";
-import jsonpath from "jsonpath";
 import pLimit from 'p-limit';
 import { JSDOM } from "jsdom";
 import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
 import { CHUNK_SIZE, LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import { Locale } from "../models/types.js";
 import jsonRTE from "./contentful/jsonRTE.js";
+import {
+  buildContentfulTaxonomyAssignments,
+  contentfulSchemeIdToStackTaxonomyUid,
+  createTaxonomy as createContentfulTaxonomyFromExport,
+} from "./contentful/taxonomy.service.js";
 import { getAllLocales, getLogMessage } from "../utils/index.js";
 import customLogger from "../utils/custom-logger.utils.js";
 
@@ -98,6 +102,170 @@ const mapLocales = ({ masterLocale, locale, locales, isNull = false }: any) => {
   } else {
     return null;
   }
+}
+
+/**
+ * When an entry has `metadata.concepts` but no field locales, choose Contentful locale key(s)
+ * that align with the project/package locale mapper so `mapLocales` can resolve them later.
+ */
+function pickContentfulLocaleFromMasterLocaleMap(master: unknown): string | undefined {
+  if (!master || typeof master !== 'object' || Array.isArray(master)) return undefined;
+  const m = master as Record<string, string>;
+  const keys = Object.keys(m);
+  if (!keys?.length) return undefined;
+  for (const k of keys) {
+    if (k.includes('-')) return k;
+  }
+  for (const v of Object.values(m)) {
+    if (typeof v === 'string' && v.includes('-')) return v;
+  }
+  return keys[0];
+}
+
+function resolveLocalesForTaxonomyMetadata(
+  entryLocaleKeys: Set<string>,
+  entryDataBranch: Record<string, unknown> | undefined,
+  localeMapper: Record<string, any>,
+  entrySysLocale?: string,
+): string[] {
+  const fromFields = [...entryLocaleKeys];
+  if (fromFields?.length) return fromFields;
+
+  if (entrySysLocale && typeof entrySysLocale === 'string') {
+    return [entrySysLocale];
+  }
+
+  const fromExisting = Object.keys(entryDataBranch || {});
+  if (fromExisting?.length) return fromExisting;
+
+  const fromProjectMaster = pickContentfulLocaleFromMasterLocaleMap(localeMapper?.masterLocale);
+  if (fromProjectMaster) return [fromProjectMaster];
+
+  const fromDefaultMaster = pickContentfulLocaleFromMasterLocaleMap(LOCALE_MAPPER?.masterLocale);
+  if (fromDefaultMaster) return [fromDefaultMaster];
+
+  const otherKeys = Object.keys(localeMapper || {}).filter((k) => k !== 'masterLocale');
+  if (otherKeys?.length) return [otherKeys[0]];
+
+  return ['en-US'];
+}
+
+function resolveEntryFieldKey(entry: Record<string, unknown>, baseKey: string): string | undefined {
+  if (baseKey in entry) return baseKey;
+  const snake = baseKey.replace(/([A-Z])/g, (m) => `_${m.toLowerCase()}`);
+  if (snake in entry) return snake;
+  return undefined;
+}
+
+/** Allowed taxonomy scheme UIDs from Contentful export content type `metadata.taxonomy` (sanitized for Contentstack). */
+function getAllowedTaxonomySchemesFromExportContentType(
+  contentTypesFromPackage: any[] | undefined,
+  contentTypeId: string,
+): string[] {
+  if (!contentTypesFromPackage?.length) return [];
+  const ctDef = contentTypesFromPackage.find((c: any) => c?.sys?.id === contentTypeId);
+  const links = ctDef?.metadata?.taxonomy;
+  if (!Array.isArray(links)) return [];
+  return links
+    .map((l: any) => contentfulSchemeIdToStackTaxonomyUid(l?.sys?.id))
+    .filter(Boolean);
+}
+
+/**
+ * Maps Contentful content type id → field id → whether that field is localized in the export schema.
+ * Used so we only fan out values for fields with `localized: false`, not for localized fields that
+ * happen to have a single locale in the entry (missing translations).
+ */
+function buildContentfulFieldLocalizedByContentType(
+  contentTypesFromPackage: any[]
+): Map<string, Map<string, boolean>> {
+  const byCt = new Map<string, Map<string, boolean>>();
+  for (const ct of contentTypesFromPackage ?? []) {
+    const ctId = ct?.sys?.id;
+    if (!ctId) continue;
+    const byField = new Map<string, boolean>();
+    for (const f of ct?.fields ?? []) {
+      if (f?.id != null) {
+        byField.set(f.id, f.localized === true);
+      }
+    }
+    byCt.set(ctId, byField);
+  }
+  return byCt;
+}
+
+/**
+ * When the export omits `widgetId`, infer defaults aligned with
+ * upload-api/migration-contentful/libs/contentTypeMapper.js.
+ */
+function inferContentfulDefaultWidgetId(fieldType: string | undefined): string | undefined {
+  switch (fieldType) {
+    case "Symbol":
+      return "singleLine";
+    case "Text":
+      return "multipleLine";
+    case "Integer":
+    case "Number":
+      return "numberEditor";
+    case "RichText":
+      return "richTextEditor";
+    case "Boolean":
+      return "boolean";
+    default:
+      return undefined;
+  }
+}
+
+function getContentfulFieldFromPackage(
+  contentTypesFromPackage: any[] | undefined,
+  ctId: string,
+  fieldId: string
+): any | undefined {
+  const ct = contentTypesFromPackage?.find((c: any) => c?.sys?.id === ctId);
+  return ct?.fields?.find((f: any) => f?.id === fieldId);
+}
+
+/**
+ * Picks one fieldMapping row when several share the same `uid` (e.g. bootstrap `title`/`url` rows
+ * from createInitialMapper plus the real Contentful field). Mapper `otherCmsType` is Contentful
+ * `widgetId` from the migration pipeline.
+ */
+function resolveFieldMappingRow(
+  fieldMapping: any[] | undefined,
+  contentTypesFromPackage: any[] | undefined,
+  ctId: string,
+  fieldId: string
+): any | undefined {
+  const candidates = fieldMapping?.filter((item: any) => item?.uid === fieldId) ?? [];
+  if (candidates?.length === 0) return undefined;
+  if (candidates?.length === 1) return candidates?.[0];
+  const cfField = getContentfulFieldFromPackage(contentTypesFromPackage, ctId, fieldId);
+  const widgetId = cfField?.widgetId ?? inferContentfulDefaultWidgetId(cfField?.type);
+  if (widgetId) {
+    const byWidget = candidates?.filter((c: any) => c?.otherCmsType === widgetId);
+    if (byWidget?.length >= 1) return byWidget?.[0];
+  }
+  const typeToCs: Record<string, string> = {
+    RichText: "json",
+    Boolean: "boolean",
+    Date: "isodate",
+  };
+  const expectCs = cfField?.type ? typeToCs[cfField.type as string] : undefined;
+  if (expectCs) {
+    const byCs = candidates?.filter((c: any) => c?.contentstackFieldType === expectCs);
+    if (byCs?.length >= 1) return byCs?.[0];
+  }
+  if (cfField?.type === "Boolean") {
+    const byBool = candidates?.filter((c: any) => c?.contentstackFieldType === "boolean");
+    if (byBool?.length >= 1) return byBool?.[0];
+  }
+  // Legacy bootstrap rows use otherCmsType "text" while real Symbol/Text fields use widget ids
+  // (e.g. singleLine). Prefer non-"text" otherCmsType when the schema is Symbol/Text.
+  if (cfField && ["Symbol", "Text"]?.includes(cfField?.type)) {
+    const nonBootstrap = candidates?.filter((c: any) => c?.otherCmsType !== "text");
+    if (nonBootstrap?.length >= 1) return nonBootstrap?.[0];
+  }
+  return candidates?.[0];
 }
 
 const transformCloudinaryObject = (input: any) => {
@@ -368,23 +536,45 @@ const cleanBrackets = (lang_value: any) => {
 };
 
 // Helper function to process arrays and resolve IDs for entries and assets
+// Replaces jsonpath.query(array, "$..id") with direct item-level processing
+// (following the same pattern as Team Fury's processField for arrays)
 const processArrayFields = (array: any, entryId: any, assetId: any) => {
-  const ids = jsonpath.query(array, "$..id");
-  ids.forEach((id: any, i: number) => {
-    if (id in entryId) {
-      array.splice(i, 1, entryId[id]);
-    } else if (id in assetId) {
-      array.splice(i, 1, assetId?.[id]);
+  // Handle primitive arrays directly (strings, numbers, booleans)
+  if (array.every((item: any) => typeof item !== 'object' || item === null)) {
+    return array;
+  }
+
+  const processedArray = array.reduce((acc: any[], item: any) => {
+    if (item?.sys?.id) {
+      // Handle Contentful system links (Entry or Asset references)
+      const { linkType, id } = item.sys;
+      if (linkType === 'Entry' && id in entryId) {
+        acc.push(entryId[id]);
+      } else if (linkType === 'Asset' && id in assetId) {
+        acc.push(assetId[id]);
+      } else {
+        // Keep unresolved references intact — the import process has a
+        // separate reference update step that resolves these later.
+        acc.push(item);
+      }
+    } else if (item !== null && typeof item === 'object') {
+      // Keep non-reference objects as-is (nested objects, RTE fragments, etc.)
+      acc.push(item);
+    } else if (item !== null && item !== undefined) {
+      // Keep primitive values (strings, numbers, booleans)
+      acc.push(item);
     }
-  });
-  // Clean up empty objects
-  const cleanedArray = JSON.stringify(array)
+    return acc;
+  }, []);
+
+  // Clean up empty objects (matches original cleanup behavior)
+  const cleanedArray = JSON.stringify(processedArray)
     .replace(/{},/g, "")
     .replace(/,{}/g, "")
     .replace(/,{},/g, "")
     .replace(/{}/g, "");
   const result = typeof cleanedArray === 'string' && JSON.parse(cleanedArray);
-  return result.length > 0 ? result : undefined;
+  return Array.isArray(result) && result.length > 0 ? result : undefined;
 };
 
 // Helper function to process Rich Text Editor (RTE) or nested object
@@ -756,6 +946,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
     const data = await fs.promises.readFile(packagePath, "utf8");
     const entries = JSON.parse(data)?.entries;
     const content = JSON.parse(data)?.contentTypes;
+    const cfFieldLocalizedByCt = buildContentfulFieldLocalizedByContentType(content);
     const LocaleMapper = { masterLocale: project?.master_locale ?? LOCALE_MAPPER?.masterLocale, ...project?.locales ?? {} };
     if (entries && entries.length > 0) {
       const assetId = await readFile(assetsSave, ASSETS_SCHEMA_FILE) ?? [];
@@ -776,24 +967,31 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           {
             sys: {
               id,
+              locale: entrySysLocale,
               contentType: {
                 sys: { id: name },
               },
               environment: { sys: { id: environment_id = "" } = {} } = {},
             },
             fields,
+            metadata,
           }: any
         ) => {
           entryData[name] ??= {};
+          const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === name);
 
-          Object.entries(fields).forEach(([key, value]) => {
-            const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === name);
+          Object.entries(fields || {}).forEach(([key, value]) => {
             const locales: string[] = [];
             Object.entries(value as object).forEach(([lang, langValue]) => {
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => (key === item?.uid) && (!["text", "url"]?.includes?.(item?.backupFieldType)));
+              const fieldData = resolveFieldMappingRow(
+                currentCT?.fieldMapping,
+                content,
+                name,
+                key
+              );
               const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
               entryData[name][lang][id][newId] = processField(
                 langValue,
@@ -804,6 +1002,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
                 fieldData
               );
             });
+            
             const pathName = getDisplayName(name, displayField);
             locales.forEach((locale) => {
               const localeCode = mapLocales({ masterLocale: master_locale, locale, locales: LocaleMapper });
@@ -839,6 +1038,88 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               );
             });
           });
+
+          // Non-localized Contentful fields (`localized: false` in the content type) only appear under
+          // one locale in exports. Copy them to every other locale branch so each slice is complete.
+          // Do not infer non-localized-ness from a single locale key — localized fields can legitimately
+          // have only one locale when translations are missing.
+          const entryLocaleKeys = new Set<string>();
+          for (const [, v] of Object?.entries?.(fields || {})) {
+            for (const lang of Object.keys(v as object)) {
+              entryLocaleKeys.add(lang);
+            }
+          }
+          for (const [key, value] of Object?.entries?.(fields || {})) {
+            const langs = Object?.keys(value as object);
+            if (langs?.length !== 1) continue;
+            const fd = resolveFieldMappingRow(currentCT?.fieldMapping, content, name, key);
+            const localizedInCf = cfFieldLocalizedByCt.get(name)?.get(key);
+            const explicitlyNonLocalized =
+              localizedInCf === false ||
+              (localizedInCf === undefined && fd?.advanced?.nonLocalizable === true);
+            if (!explicitlyNonLocalized) continue;
+            const srcLang = langs[0];
+            const newId = fd?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
+            const srcEntry = entryData[name][srcLang]?.[id] as Record<string, unknown> | undefined;
+            if (!srcEntry) continue;
+            const fk = resolveEntryFieldKey(srcEntry, newId);
+            if (fk === undefined) continue;
+            for (const tgtLang of entryLocaleKeys) {
+              if (tgtLang === srcLang) continue;
+              entryData[name][tgtLang] ??= {};
+              entryData[name][tgtLang][id] ??= {};
+              const tgt = entryData[name][tgtLang][id] as Record<string, unknown>;
+              if (tgt[fk] === undefined) {
+                tgt[fk] = srcEntry[fk];
+              }
+            }
+          }
+
+          const metaTaxField = currentCT?.fieldMapping?.find(
+            (f: any) =>
+              f?.otherCmsType === 'TaxonomyMetadata' ||
+              f?.contentstackFieldType === 'taxonomy' ||
+              f?.contentstackFieldUid === 'taxonomies' ||
+              f?.contentstackFieldUid === 'metadata_taxonomies',
+          );
+          let allowedFromMapper: string[] = [];
+          if (metaTaxField) {
+            const taxonomiesConfig =
+              metaTaxField?.advanced?.taxonomies || metaTaxField?.taxonomies || [];
+            allowedFromMapper = taxonomiesConfig
+              .map((t: any) => (typeof t === 'string' ? t : t?.taxonomy_uid))
+              .filter(Boolean)
+              .map((uid: string) => contentfulSchemeIdToStackTaxonomyUid(uid))
+              .filter(Boolean);
+          }
+          const allowedFromExport = getAllowedTaxonomySchemesFromExportContentType(
+            content,
+            name,
+          );
+          const allowedSchemes =
+            allowedFromMapper?.length > 0 ? allowedFromMapper : allowedFromExport;
+
+          if (metadata?.concepts?.length) {
+            const taxValue = buildContentfulTaxonomyAssignments(
+              metadata.concepts,
+              allowedSchemes,
+            );
+            if (taxValue?.length) {
+              const fieldKey = metaTaxField?.contentstackFieldUid || 'taxonomies';
+              const localesForTax = resolveLocalesForTaxonomyMetadata(
+                entryLocaleKeys,
+                entryData[name],
+                LocaleMapper,
+                entrySysLocale,
+              );
+              for (const loc of localesForTax) {
+                entryData[name][loc] ??= {};
+                entryData[name][loc][id] ??= {};
+                entryData[name][loc][id][fieldKey] = taxValue;
+              }
+            }
+          }
+
           return entryData;
         },
         {}
@@ -846,11 +1127,28 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
       for await (const [newKey, values] of Object.entries(result)) {
         const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === newKey);
         const ctName = currentCT?.contentstackUid in mapperKeys ?
-          mapperKeys?.[currentCT?.contentstackUid] : (currentCT?.contentstackUid ?? newKey.replace(/([A-Z])/g, "_$1").toLowerCase());
-        for await (const [localeKey, localeValues] of Object.entries(
-          values as { [key: string]: any }
-        )) {
-          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper, isNull: true });
+          mapperKeys?.[currentCT?.contentstackUid] : (currentCT?.contentstackUid ?? newKey?.replace?.(/([A-Z])/g, "_$1")?.toLowerCase?.());
+        const valuesByCfLocale = values as { [key: string]: { [uid: string]: Record<string, unknown> } };
+        const mergedByDestinationLocale: { [localeCode: string]: { [uid: string]: Record<string, unknown> } } = {};
+        for (const localeKey of Object.keys(valuesByCfLocale)) {
+          const localeValues = valuesByCfLocale[localeKey];
+          if (!localeValues) continue;
+          const localeCode = mapLocales({
+            masterLocale: master_locale,
+            locale: localeKey,
+            locales: LocaleMapper,
+            isNull: true,
+          });
+          if (!localeCode) continue;
+          mergedByDestinationLocale[localeCode] ??= {};
+          for (const [uid, entry] of Object.entries(localeValues)) {
+            mergedByDestinationLocale[localeCode][uid] = {
+              ...(mergedByDestinationLocale[localeCode][uid] ?? {}),
+              ...(entry ?? {}),
+            };
+          }
+        }
+        for await (const [localeCode, localeValues] of Object.entries(mergedByDestinationLocale)) {
           const chunks = makeChunks(localeValues);
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
@@ -862,18 +1160,12 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           }
           const refs: { [key: string]: any } = {};
           let chunkIndex = 1;
-          if (localeCode) {
-            const filePath = path.join(
-              entriesSave,
-              ctName,
-              localeCode
-            );
-            for await (const [chunkId, chunkData] of Object.entries(chunks)) {
-              refs[chunkIndex++] = `${chunkId}-entries.json`;
-              await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
-            }
-            await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
+          const filePath = path.join(entriesSave, ctName, localeCode);
+          for await (const [chunkId, chunkData] of Object.entries(chunks)) {
+            refs[chunkIndex++] = `${chunkId}-entries.json`;
+            await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
           }
+          await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
         }
       }
     } else {
@@ -1367,4 +1659,5 @@ export const contentfulService = {
   createRefrence,
   createWebhooks,
   createVersionFile,
+  createTaxonomy: createContentfulTaxonomyFromExport,
 };

@@ -1,11 +1,11 @@
 import { ObjectType } from './constants.interface';
-export const BASE_API_URL = process.env.REACT_APP_BASE_API_URL;
+export const BASE_API_URL = import.meta.env.VITE_BASE_API_URL;
 export const assetsRelativeUrl = 'v3/assets';
-export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
+export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL;
 export const TOKEN_KEY = 'access_token';
 export const TOKEN = localStorage.getItem(TOKEN_KEY);
 
-export const API_VERSION = process.env.REACT_APP_API_VERSION ?? 'v2';
+export const API_VERSION = import.meta.env.VITE_API_VERSION ?? 'v2';
 
 export const AUTH_ROUTES = `${API_VERSION}/auth`;
 
@@ -73,7 +73,7 @@ export const CS_ENTRIES = {
   UNMAPPED_LOCALE_KEY: 'undefined'
 };
 
-export const UPLOAD_FILE_RELATIVE_URL = process.env.REACT_APP_UPLOAD_SERVER;
+export const UPLOAD_FILE_RELATIVE_URL = import.meta.env.VITE_UPLOAD_SERVER;
 
 export const UPLOAD_FILE_URL = `${UPLOAD_FILE_RELATIVE_URL}upload`;
 
@@ -97,8 +97,8 @@ export const NEW_PROJECT_STATUS: ObjectType = {
   '6': 'Failed'
 };
 
-export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS
-  ? process.env.REACT_APP_OFFLINE_CMS
+export const isOfflineCMSDataRequired = import.meta.env.VITE_OFFLINE_CMS
+  ? import.meta.env.VITE_OFFLINE_CMS
   : true;
 
 export const CONTENT_MAPPING_STATUS: ObjectType = {
@@ -121,7 +121,7 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   contentful:
     'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/bltb14c2df7c5e202ba/67ee3fcdb509b76f5f308ac4/contentful.pdf',
   wordpress: '',
-  drupal: '',
+  drupal: 'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt1baa953e3e9496ea/6996abbaab60c900082f2477/Drupal.pdf',
   aem: 'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt3df735914488e75d/AEM%20Data%20Requirements.pdf'
 };
 
