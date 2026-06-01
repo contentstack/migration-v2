@@ -35,7 +35,7 @@ const collectEntryFiles = async (entriesDir: string) => {
     const locales = await fs.promises.readdir(ctPath, { withFileTypes: true });
     for (const locale of locales) {
       if (!locale.isDirectory()) continue;
-      const localePath = path.join(ctPath, locale.name);
+      const localePath = path.join(ctPath, locale?.name);
       const localeFiles = await fs.promises.readdir(localePath);
       for (const file of localeFiles) {
         if (!file.endsWith('.json') || file === 'index.json') continue;
@@ -84,11 +84,11 @@ export const generateAuditData = async ({
     const normalized = flattenAssetRecords(shardData);
     for (const item of normalized) {
       assets.push({
-        uid: item.uid,
-        filename: item.filename,
-        isPublished: Array.isArray(item.publish_details) && item.publish_details.length > 0,
+        uid: item?.uid,
+        filename: item?.filename,
+        isPublished: Array.isArray(item?.publish_details) && item?.publish_details?.length > 0,
         isReferred: false,
-        url: buildContentstackUrl(region, stackId, 'asset', item.uid),
+        url: buildContentstackUrl(region, stackId, 'asset', item?.uid),
       });
     }
   }
@@ -119,8 +119,8 @@ export const generateAuditData = async ({
         title: entryData?.title || entryData?.name || entryData?.label || `${contentType}_${entryUid.slice(-8)}`,
         isPublished:
           Array.isArray(entryData?.publish_details) &&
-          entryData.publish_details.length > 0,
-        isEmpty: !entryData || Object.keys(entryData).length === 0,
+          entryData?.publish_details?.length > 0,
+        isEmpty: !entryData || Object.keys(entryData)?.length === 0,
         url: buildContentstackUrl(region, stackId, 'entry', entryUid, contentType, locale),
       });
 
@@ -168,7 +168,7 @@ export const generateAuditData = async ({
               uid,
               title: gf?.title || uid,
               isUnused: !globalFieldUsage.has(uid),
-              isEmpty: !gf?.schema || gf.schema.length === 0,
+              isEmpty: !gf?.schema || gf?.schema?.length === 0,
               url: buildContentstackUrl(region, stackId, 'global-field', uid),
             });
           }
@@ -204,10 +204,10 @@ export const generateAuditData = async ({
 
   return {
     summary: {
-      unused_assets: unusedAssets.length,
-      unpublished_entries: unpublishedEntries.length,
-      empty_content_types: emptyContentTypes.length,
-      unused_global_fields: unusedGlobalFields.length,
+      unused_assets: unusedAssets?.length,
+      unpublished_entries: unpublishedEntries?.length,
+      empty_content_types: emptyContentTypes?.length,
+      unused_global_fields: unusedGlobalFields?.length,
     },
     assets: unusedAssets,
     entries: unpublishedEntries,

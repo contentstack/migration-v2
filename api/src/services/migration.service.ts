@@ -76,9 +76,9 @@ const cleanupBackupFolders = async (apiPath: string, cms: string) => {
     const backupPattern = /_backup_\d+$/;
     const items = await fsPromises.readdir(apiPath);
 
-    const backupFolders = items.filter((item) => backupPattern.test(item));
+    const backupFolders = items?.filter((item) => backupPattern.test(item));
 
-    if (backupFolders.length === 0) {
+    if (backupFolders?.length === 0) {
       console.log('No backup folders found to cleanup');
       return;
     }
@@ -796,9 +796,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
         .value();
       if (projectIndex > -1) {
         await ProjectModelLowdb.update((data: any) => {
-          const testStacks = data.projects[projectIndex].test_stacks || [];
-          testStacks.forEach((item: any) => {
-            if (item.stackUid === targetTestStackId) {
+          const testStacks = data?.projects?.[projectIndex]?.test_stacks || [];
+          testStacks?.forEach((item: any) => {
+            if (item?.stackUid === targetTestStackId) {
               item.isMigrated = true;
             }
           });
@@ -1430,7 +1430,7 @@ const exportSourceStack = async (req: Request): Promise<any> => {
     const timestamp = new Date().toISOString();
     data.projects[projectIndex].extract_path = exportPath;
     data.projects[projectIndex].legacy_cms.source_details = {
-      ...data.projects[projectIndex].legacy_cms.source_details,
+      ...data?.projects?.[projectIndex]?.legacy_cms?.source_details,
       source_branch: sourceBranch || "main",
       exported_at: timestamp,
       export_path: exportPath,
@@ -1516,8 +1516,8 @@ const validateSourceExport = async (req: Request): Promise<any> => {
     if (!data.projects || !Array.isArray(data.projects)) {
       throw new Error("Invalid projects data structure");
     }
-    const index = data.projects.findIndex(
-      (item: any) => item && item.id === projectId,
+    const index = data?.projects?.findIndex(
+      (item: any) => item && item?.id === projectId,
     );
     if (index === -1) {
       throw new NotFoundError(
@@ -1526,11 +1526,11 @@ const validateSourceExport = async (req: Request): Promise<any> => {
     }
     data.projects[index].legacy_cms.validation = result;
     const exportContentRoot =
-      result.isValid && result.resolvedRoot ? result.resolvedRoot : exportPath;
+      result?.isValid && result?.resolvedRoot ? result?.resolvedRoot : exportPath;
     data.projects[index].extract_path = exportContentRoot;
 
     // For successful validation of Contentstack source, mark the legacy CMS step as completed
-    if (result.isValid) {
+    if (result?.isValid) {
       data.projects[index].legacy_cms.cms = "contentstack";
       data.projects[index].legacy_cms.file_format = "json"; // Default file format for Contentstack
       data.projects[index].legacy_cms.is_fileValid = true;
@@ -1548,11 +1548,11 @@ const validateSourceExport = async (req: Request): Promise<any> => {
   });
 
   // Extract and save source locales for Contentstack (credentials and imported export)
-  if (result.isValid && result.resolvedRoot) {
+  if (result?.isValid && result?.resolvedRoot) {
     try {
-      const locales = await extractContentstackLocales(result.resolvedRoot);
+      const locales = await extractContentstackLocales(result?.resolvedRoot);
 
-      if (locales && locales.length > 0) {
+      if (locales && locales?.length > 0) {
         await ProjectModelLowdb.update((data: any) => {
           const index = data.projects.findIndex(
             (item: any) => item && item.id === projectId,
@@ -1613,12 +1613,12 @@ const extractContentstackLocales = async (exportPath: string) => {
     const allLocales = { ...masterLocales, ...additionalLocales };
 
     // Convert to array format expected by the system
-    return Object.values(allLocales).map((locale: any) => ({
-      label: `${locale.name} (${locale.code})`,
-      value: locale.code,
-      uid: locale.uid,
-      code: locale.code,
-      name: locale.name,
+    return Object.values(allLocales)?.map((locale: any) => ({
+      label: `${locale?.name} (${locale?.code})`,
+      value: locale?.code,
+      uid: locale?.uid,
+      code: locale?.code,
+      name: locale?.name,
     }));
   } catch (error) {
     console.error("Error extracting Contentstack locales:", error);
@@ -1644,7 +1644,7 @@ const buildContentstackMapperPayload = async (exportPath: string) => {
   if (!Array.isArray(schema)) return [];
 
   const mapField = (field: any, prefix = ""): any[] => {
-    const uid = prefix ? `${prefix}.${field.uid}` : field.uid;
+    const uid = prefix ? `${prefix}.${field?.uid}` : field?.uid;
     const display = prefix
       ? `${prefix.replace(/\./g, " > ")} > ${field.display_name || field.uid}`
       : field.display_name || field.uid;
@@ -1794,7 +1794,7 @@ const runSourceAudit = async (req: Request): Promise<any> => {
   });
   // deepcode ignore PT: safeExportPath is validated by assertExportPathInAllowedRoot (allowlist + char-allowlist rebuild)
   const mapperPayload = await buildContentstackMapperPayload(safeExportPath);
-  if (mapperPayload.length > 0) {
+  if (mapperPayload?.length > 0) {
     const mapperReq = {
       params: { projectId },
       body: { contentTypes: mapperPayload },

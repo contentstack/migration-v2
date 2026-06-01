@@ -4,18 +4,44 @@ import { spawn } from 'child_process';
 import { CS_REGIONS } from '../constants/index.js';
 import AuthenticationModel from '../models/authentication.js';
 import { setBasicAuthConfig } from '../utils/config-handler.util.js';
+import logger from '../utils/logger.js';
+
+const stripAnsiCodes = (input: string): string =>
+  input.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
 
 const runCommand = (command: string, args: string[] = []): Promise<void> =>
   new Promise<void>((resolve, reject) => {
-    console.log(`[exportCli] $ ${command} ${args.join(' ')}`);
-    // stdio: 'inherit' streams the CLI's stdout/stderr directly to the parent
-    // process terminal so progress is visible during long-running exports.
-    const cmd = spawn(command, args, { shell: true, stdio: 'inherit' });
+    logger.info(`[exportCli] running: ${command} ${args.join(' ')}`);
+    // Pipe stdout/stderr through the project logger instead of inheriting the
+    // server's stdio, so CLI output doesn't intermix with structured API logs
+    // or leak identifiers to the raw server stream.
+    const cmd = spawn(command, args, { shell: true, stdio: 'pipe' });
+    let stderrBuffer = '';
+
+    cmd?.stdout?.on('data', (data) => {
+      const text = stripAnsiCodes(data.toString()).trim();
+      if (text) logger.info(`[exportCli] ${text}`);
+    });
+
+    cmd?.stderr?.on('data', (data) => {
+      const text = stripAnsiCodes(data.toString()).trim();
+      if (text) {
+        stderrBuffer += text + '\n';
+        logger.warn(`[exportCli] ${text}`);
+      }
+    });
 
     cmd.on('error', (err) => reject(err));
     cmd.on('close', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`Command failed with exit code ${code}`));
+      else
+        reject(
+          new Error(
+            `Command failed with exit code ${code}${
+              stderrBuffer ? `: ${stderrBuffer.trim()}` : ''
+            }`
+          )
+        );
     });
   });
 
@@ -63,7 +89,9 @@ export const exportStackCli = async (
 
     return outputPath;
   } catch (error) {
-    console.error('Error exporting stack:', error);
+    logger.error('Error exporting stack', {
+      message: (error as Error)?.message,
+    });
     throw error;
   }
 };

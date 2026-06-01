@@ -98,7 +98,7 @@ const updateFileFormat = async (req: Request, res: Response) => {
 
 const updateSourceConfig = async (req: Request, res: Response) => {
   const resp = await projectService.updateSourceConfig(req);
-  res.status(resp.status).json(resp.data);
+  res.status(resp?.status).json(resp?.data);
 };
 
 /**

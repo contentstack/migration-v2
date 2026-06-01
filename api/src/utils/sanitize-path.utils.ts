@@ -126,7 +126,7 @@ export const assertExportPathInAllowedRoot = (candidate: string): string => {
   }
 
   // Cap the input length to defeat pathological inputs.
-  if (candidate.length > 1024) {
+  if (candidate?.length > 1024) {
     throw new Error('Invalid export path');
   }
 
@@ -146,8 +146,8 @@ export const assertExportPathInAllowedRoot = (candidate: string): string => {
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-' +
       path.sep;
     let safeRel = '';
-    for (let i = 0; i < rel.length; i++) {
-      const ch = rel.charAt(i);
+    for (let i = 0; i < rel?.length; i++) {
+      const ch = rel?.charAt(i);
       if (allowedChars.includes(ch)) {
         safeRel += ch;
       }

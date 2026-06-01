@@ -587,7 +587,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         // Enhanced source locale handling for both string and object formats
         const rawSource = newMigrationData?.destination_stack?.sourceLocale;
         const mappedSource =
-          Array.isArray(rawSource) && rawSource.length > 0
+          Array.isArray(rawSource) && rawSource?.length > 0
             ? rawSource.map((item: any) => {
                 // Handle both string format (legacy CMS) and object format (Contentstack)
                 if (typeof item === 'string') {
@@ -595,7 +595,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                     label: item,
                     value: item
                   };
-                } else if (typeof item === 'object' && item.label && item.value) {
+                } else if (typeof item === 'object' && item?.label && item?.value) {
                   // For Contentstack format: {label, value, uid, code, name}
                   return {
                     label: item.label,

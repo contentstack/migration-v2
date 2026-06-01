@@ -23,7 +23,7 @@ export const resolveContentstackExportRoot = (exportPath: string): string | null
 
   try {
     const dirents = fs.readdirSync(exportPath, { withFileTypes: true });
-    const dirNames = dirents.filter((d) => d.isDirectory()).map((d) => d.name);
+    const dirNames = dirents?.filter((d) => d?.isDirectory())?.map((d) => d?.name);
     const preferredOrder = ['main', 'master', 'production', 'develop'];
     const ordered = [
       ...preferredOrder.filter((n) => dirNames.includes(n)),
@@ -61,12 +61,12 @@ export const extractContentstackLocales = async (exportPath: string) => {
 
     const allLocales = { ...masterLocales, ...additionalLocales };
 
-    return Object.values(allLocales).map((locale: any) => ({
-      label: `${locale.name} (${locale.code})`,
-      value: locale.code,
-      uid: locale.uid,
-      code: locale.code,
-      name: locale.name
+    return Object.values(allLocales)?.map((locale: any) => ({
+      label: `${locale?.name} (${locale?.code})`,
+      value: locale?.code,
+      uid: locale?.uid,
+      code: locale?.code,
+      name: locale?.name
     }));
   } catch (error) {
     console.error('Error extracting Contentstack locales:', error);

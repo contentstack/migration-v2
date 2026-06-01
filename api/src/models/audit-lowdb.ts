@@ -93,7 +93,7 @@ const writeSharded = async (
   const existing = await readTypeIndex(projectId, dataType);
 
   for (const entry of Object.values(existing)) {
-    const fp = path.join(typeDir, entry.file);
+    const fp = path.join(typeDir, entry?.file);
     if (fs.existsSync(fp)) fs.rmSync(fp, { force: true });
   }
 
@@ -113,7 +113,7 @@ const writeSharded = async (
     shard += 1;
   }
   await writeTypeIndex(projectId, dataType, nextIndex);
-  return items.length;
+  return items?.length;
 };
 
 const upsertAudit = async ({
@@ -136,7 +136,7 @@ const upsertAudit = async ({
   await auditIndexDb.read();
   auditIndexDb.data ||= defaultData;
 
-  let project = auditIndexDb.data.projects.find((p) => p.project_id === project_id);
+  let project = auditIndexDb?.data?.projects?.find((p) => p?.project_id === project_id);
   if (!project) {
     project = {
       project_id,
@@ -151,11 +151,11 @@ const upsertAudit = async ({
         global_fields: 0,
       },
     };
-    auditIndexDb.data.projects.push(project);
+    auditIndexDb?.data?.projects?.push(project);
   }
 
-  project.org_id = org_id || project.org_id;
-  project.stack_id = stack_id || project.stack_id;
+  project.org_id = org_id || project?.org_id;
+  project.stack_id = stack_id || project?.stack_id;
   project.updated_at = new Date().toISOString();
   project.data_counts.assets = await writeSharded(project_id, 'assets', assets);
   project.data_counts.content_types = await writeSharded(
@@ -178,7 +178,7 @@ const getDataByType = async (projectId: string, dataType: AuditType) => {
   const index = await readTypeIndex(projectId, dataType);
   const allData: any[] = [];
   for (const entry of Object.values(index)) {
-    const fp = path.join(AUDIT_DIR, projectId, dataType, entry.file);
+    const fp = path.join(AUDIT_DIR, projectId, dataType, entry?.file);
     if (!fs.existsSync(fp)) continue;
     const raw = await fs.promises.readFile(fp, 'utf8');
     const parsed = JSON.parse(raw || '[]');
@@ -191,7 +191,7 @@ const getAuditByProjectId = async (projectId: string) => {
   await auditIndexDb.read();
   auditIndexDb.data ||= defaultData;
   const metadata =
-    auditIndexDb.data.projects.find((p) => p.project_id === projectId) || null;
+    auditIndexDb?.data?.projects?.find((p) => p?.project_id === projectId) || null;
   if (!metadata) return null;
   const assets = await getDataByType(projectId, 'assets');
   const content_types = await getDataByType(projectId, 'content_types');

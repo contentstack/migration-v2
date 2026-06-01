@@ -30,7 +30,7 @@ export const resolveContentstackExportRoot = (
 
   try {
     const dirents = fs.readdirSync(exportPath, { withFileTypes: true });
-    const dirNames = dirents.filter((d) => d.isDirectory()).map((d) => d.name);
+    const dirNames = dirents?.filter((d) => d?.isDirectory())?.map((d) => d?.name);
     // Prefer common branch folder names, then any other subdirectory
     const preferredOrder = ['main', 'master', 'production', 'develop'];
     const ordered = [

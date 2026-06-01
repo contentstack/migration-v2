@@ -80,7 +80,7 @@ const readImportModulesFromExport = (sourcePath: string): string[] => {
     const dirs = fs
       .readdirSync(sourcePath, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
+      .map((entry) => entry?.name);
 
     // `composable-studio` causes MODULE_NOT_FOUND on some CLI versions; skip it.
     return dirs.filter(
@@ -337,7 +337,7 @@ export const runCli = async (
           }
 
           const fallbackModules = readImportModulesFromExport(importDataPath);
-          if (!fallbackModules.length) {
+          if (!fallbackModules?.length) {
             throw importError;
           }
 

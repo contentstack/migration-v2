@@ -16,25 +16,25 @@ const applySchemaToData = (schema: any[], data: any): any => {
   const result = { ...data };
 
   for (const field of schema) {
-    const uid = field.uid;
-    const dt = field.data_type;
+    const uid = field?.uid;
+    const dt = field?.data_type;
     if (!(uid in result)) continue;
 
     if (dt === 'link') {
-      result[uid] = field.multiple && Array.isArray(result[uid])
-        ? result[uid].map(normalizeLinkValue)
+      result[uid] = field?.multiple && Array.isArray(result[uid])
+        ? result[uid]?.map(normalizeLinkValue)
         : normalizeLinkValue(result[uid]);
     } else if (dt === 'group') {
-      const subSchema: any[] = field.schema || [];
-      result[uid] = field.multiple && Array.isArray(result[uid])
-        ? result[uid].map((item: any) => applySchemaToData(subSchema, item))
+      const subSchema: any[] = field?.schema || [];
+      result[uid] = field?.multiple && Array.isArray(result[uid])
+        ? result[uid]?.map((item: any) => applySchemaToData(subSchema, item))
         : applySchemaToData(subSchema, result[uid]);
     } else if (dt === 'blocks' && Array.isArray(result[uid])) {
       const blockMap: Record<string, any[]> = {};
-      for (const block of field.blocks || []) {
-        blockMap[block.uid] = block.schema || [];
+      for (const block of field?.blocks || []) {
+        blockMap[block?.uid] = block?.schema || [];
       }
-      result[uid] = result[uid].map((item: any) => {
+      result[uid] = result[uid]?.map((item: any) => {
         const blockKey = Object.keys(item).find((k) => k !== '_metadata' && blockMap[k]);
         if (blockKey) {
           return { ...item, [blockKey]: applySchemaToData(blockMap[blockKey], item[blockKey]) };
@@ -63,22 +63,22 @@ export const normalizeLinkFieldsInExport = (exportPath: string): void => {
     const ctUid = path.basename(ctFile, '.json');
     try {
       const ct = JSON.parse(fs.readFileSync(path.join(ctDir, ctFile), 'utf8'));
-      schemaMap[ctUid] = ct.schema || [];
+      schemaMap[ctUid] = ct?.schema || [];
     } catch {
       // skip unreadable files
     }
   }
 
   for (const ctUid of fs.readdirSync(entriesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)) {
+    .filter((d) => d?.isDirectory())
+    .map((d) => d?.name)) {
     const schema = schemaMap[ctUid];
     if (!schema) continue;
 
     const ctEntryDir = path.join(entriesDir, ctUid);
     for (const localeEntry of fs.readdirSync(ctEntryDir, { withFileTypes: true })) {
       if (!localeEntry.isDirectory()) continue;
-      const localeDir = path.join(ctEntryDir, localeEntry.name);
+      const localeDir = path.join(ctEntryDir, localeEntry?.name);
 
       for (const entryFile of fs.readdirSync(localeDir)) {
         if (!entryFile.endsWith('-entries.json')) continue;
