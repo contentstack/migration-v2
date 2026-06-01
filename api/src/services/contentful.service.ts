@@ -259,14 +259,12 @@ function resolveFieldMappingRow(
     const byBool = candidates?.filter((c: any) => c?.contentstackFieldType === "boolean");
     if (byBool?.length >= 1) return byBool?.[0];
   }
-
   // Legacy bootstrap rows use otherCmsType "text" while real Symbol/Text fields use widget ids
   // (e.g. singleLine). Prefer non-"text" otherCmsType when the schema is Symbol/Text.
-  if (cfField && ["Symbol", "Text"]?.includes(cfField.type)) {
+  if (cfField && ["Symbol", "Text"]?.includes(cfField?.type)) {
     const nonBootstrap = candidates?.filter((c: any) => c?.otherCmsType !== "text");
-    if (nonBootstrap?.length >= 1) return nonBootstrap[0];
+    if (nonBootstrap?.length >= 1) return nonBootstrap?.[0];
   }
-
   return candidates?.[0];
 }
 
@@ -988,7 +986,6 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-             
               const fieldData = resolveFieldMappingRow(
                 currentCT?.fieldMapping,
                 content,
