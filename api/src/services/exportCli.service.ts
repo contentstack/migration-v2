@@ -9,6 +9,11 @@ import logger from '../utils/logger.js';
 const stripAnsiCodes = (input: string): string =>
   input.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
 
+// Default 30-minute cap on any single CLI invocation. Large stacks legitimately
+// take many minutes to export, but a stuck child process should not hold an
+// API request open indefinitely. Overridable via EXPORT_CLI_TIMEOUT_MS.
+const DEFAULT_CLI_TIMEOUT_MS = 30 * 60 * 1000;
+
 const runCommand = (command: string, args: string[] = []): Promise<void> =>
   new Promise<void>((resolve, reject) => {
     logger.info(`[exportCli] running: ${command} ${args.join(' ')}`);
@@ -17,6 +22,39 @@ const runCommand = (command: string, args: string[] = []): Promise<void> =>
     // or leak identifiers to the raw server stream.
     const cmd = spawn(command, args, { shell: true, stdio: 'pipe' });
     let stderrBuffer = '';
+    let settled = false;
+
+    const timeoutMs =
+      Number(process.env.EXPORT_CLI_TIMEOUT_MS) || DEFAULT_CLI_TIMEOUT_MS;
+    const timeoutHandle = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      logger.error(
+        `[exportCli] timed out after ${timeoutMs}ms — killing child process`
+      );
+      try {
+        cmd.kill('SIGTERM');
+        // Force-kill if SIGTERM doesn't take effect within 5s.
+        setTimeout(() => {
+          try {
+            cmd.kill('SIGKILL');
+          } catch {
+            // process may already be gone
+          }
+        }, 5000).unref();
+      } catch {
+        // ignore kill failures
+      }
+      reject(new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+    }, timeoutMs);
+    timeoutHandle.unref();
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutHandle);
+      fn();
+    };
 
     cmd?.stdout?.on('data', (data) => {
       const text = stripAnsiCodes(data.toString()).trim();
@@ -31,17 +69,19 @@ const runCommand = (command: string, args: string[] = []): Promise<void> =>
       }
     });
 
-    cmd.on('error', (err) => reject(err));
+    cmd.on('error', (err) => finish(() => reject(err)));
     cmd.on('close', (code) => {
-      if (code === 0) resolve();
-      else
-        reject(
-          new Error(
-            `Command failed with exit code ${code}${
-              stderrBuffer ? `: ${stderrBuffer.trim()}` : ''
-            }`
-          )
-        );
+      finish(() => {
+        if (code === 0) resolve();
+        else
+          reject(
+            new Error(
+              `Command failed with exit code ${code}${
+                stderrBuffer ? `: ${stderrBuffer.trim()}` : ''
+              }`
+            )
+          );
+      });
     });
   });
 
