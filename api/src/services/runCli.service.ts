@@ -5,7 +5,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { v4 } from 'uuid';
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CMS, CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES } from '../constants/index.js';
+import { CMS, CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, STEPPER_STEPS } from '../constants/index.js';
 import { resolveContentstackExportRoot } from './validation.service.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
@@ -423,7 +423,8 @@ export const runCli = async (
             true;
           ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
             false;
-          ProjectModelLowdb.data.projects[projectIndex].current_step = 6;
+          ProjectModelLowdb.data.projects[projectIndex].current_step =
+            STEPPER_STEPS.MIGRATION;
           ProjectModelLowdb.data.projects[projectIndex].status = 5;
           await ProjectModelLowdb.write();
         }

@@ -68,7 +68,9 @@ describe('audit.service', () => {
             entry1: {
               title: 'Hello',
               publish_details: [{ env: 'p' }],
-              body: 'refers to asset_used',
+              // Quoted UID — the asset-reference scanner only picks up
+              // properly-quoted UIDs to avoid substring false positives.
+              hero_image: { uid: 'asset_used' },
               gf_ref: '"reference_to":"gf_used"',
             },
             entry2: {

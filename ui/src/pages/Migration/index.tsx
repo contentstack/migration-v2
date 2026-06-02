@@ -955,8 +955,13 @@ const Migration = () => {
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     //if (res?.status === 200) {
-      handleStepChange(5);
-      const url = `/projects/${projectId}/migration/steps/6`;
+      // For non-Contentstack sources the audit step is absent, so the
+      // migration-execution step is at position 5 (not 6).
+      const isCS =
+        newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
+      const nextStep = isCS ? 6 : 5;
+      handleStepChange(nextStep);
+      const url = `/projects/${projectId}/migration/steps/${nextStep}`;
       navigate(url, { replace: true });
     //}
   };
@@ -1088,7 +1093,36 @@ const Migration = () => {
   };
 
   const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
-  
+
+  // Re-dispatch flow steps with the audit step filtered out (and remaining
+  // step `name` values renumbered) for non-Contentstack sources, so that URL
+  // stepIds and the rendered stepper stay in sync.
+  useEffect(() => {
+    let cancelled = false;
+    getCMSDataFromFile(CS_ENTRIES.MIGRATION_FLOW).then((data: any) => {
+      if (cancelled || !validateArray(data?.all_steps)) return;
+      const rawSteps: IFlowStep[] = data.all_steps;
+      const filtered = (isContentstackSource
+        ? rawSteps
+        : rawSteps.filter((s: any) => s?.flow_id !== 'auditReport')
+      ).map((s: any, i: number) => ({ ...s, name: i + 1 }));
+      const currentFlowStep =
+        filtered.find((s: any) => `${s?.name}` === params?.stepId) ??
+        DEFAULT_IFLOWSTEP;
+      dispatch(
+        updateMigrationData({
+          allFlowSteps: filtered,
+          currentFlowStep,
+          migration_steps_heading: data?.migration_steps_heading,
+          settings: data?.settings
+        })
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isContentstackSource, params?.stepId, dispatch]);
+
   // Memoize stepper steps to update when CMS selection changes
   const stepperSteps = useMemo(() => {
     return createStepper(projectData ?? defaultMigrationResponse, handleStepChange);

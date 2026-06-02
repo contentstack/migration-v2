@@ -15,6 +15,7 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
+  CMS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -1122,21 +1123,33 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step =
-            STEPPER_STEPS.AUDIT_REPORT;
+          // Audit step is only part of the flow for Contentstack source
+          // migrations. Other CMS sources skip directly to content mapping.
+          const isContentstackSource =
+            project?.legacy_cms?.cms === CMS.CONTENTSTACK;
+          data.projects[projectIndex].current_step = isContentstackSource
+            ? STEPPER_STEPS.AUDIT_REPORT
+            : STEPPER_STEPS.CONTENT_MAPPING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
       }
       case STEPPER_STEPS.AUDIT_REPORT: {
+        // Audit summary is generated only for Contentstack-source migrations.
+        // For other CMS sources the audit step is skipped in the UI flow,
+        // so we don't require a summary here.
+        const isContentstackSource =
+          project?.legacy_cms?.cms === CMS.CONTENTSTACK;
+        const missingAuditSummary =
+          isContentstackSource && !project?.legacy_cms?.audit?.summary;
         if (
-          !project?.legacy_cms?.audit?.summary ||
+          missingAuditSummary ||
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
           !project?.destination_stack_id
         ) {
-          const reason = !project?.legacy_cms?.audit?.summary
+          const reason = missingAuditSummary
             ? 'Audit summary is missing on the project (generate the audit on this step so it can be saved).'
             : project.status === NEW_PROJECT_STATUS[0]
               ? 'Project is still in draft status.'

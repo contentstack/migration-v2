@@ -3,9 +3,23 @@ import path from 'path';
 import auditDb from '../models/audit-lowdb.js';
 import { assertExportPathInAllowedRoot } from '../utils/sanitize-path.utils.js';
 
+// Map of region → web app base URL. Anything outside this map falls back
+// to the default NA app URL (covers the common case where region is empty
+// or unknown).
+const REGION_TO_APP_HOST: Record<string, string> = {
+  NA: 'https://app.contentstack.com',
+  EU: 'https://eu-app.contentstack.com',
+  AZURE_NA: 'https://azure-na-app.contentstack.com',
+  AZURE_EU: 'https://azure-eu-app.contentstack.com',
+  GCP_NA: 'https://gcp-na-app.contentstack.com',
+  GCP_EU: 'https://gcp-eu-app.contentstack.com',
+  AU: 'https://au-app.contentstack.com',
+};
+
 // Helper function to build Contentstack management URLs
 const buildContentstackUrl = (region: string, stackId: string, type: 'asset' | 'entry' | 'content-type' | 'global-field', uid: string, contentType?: string, locale?: string) => {
-  const baseUrl = region === 'EU' ? 'https://eu-app.contentstack.com' : 'https://app.contentstack.com';
+  const normalizedRegion = (region || 'NA').toUpperCase().replace(/-/g, '_');
+  const baseUrl = REGION_TO_APP_HOST[normalizedRegion] ?? REGION_TO_APP_HOST.NA;
 
   switch (type) {
     case 'asset':
@@ -93,7 +107,6 @@ export const generateAuditData = async ({
     }
   }
 
-  const assetUidSet = new Set(assets.map((a) => a.uid).filter(Boolean));
   const entryFiles = await collectEntryFiles(entriesDir);
   const entryAudit: any[] = [];
   const contentTypeEntryCount: Record<string, number> = {};
@@ -106,8 +119,18 @@ export const generateAuditData = async ({
     for (const [entryUid, entryData] of Object.entries<any>(parsed)) {
       contentTypeEntryCount[contentType] = (contentTypeEntryCount[contentType] || 0) + 1;
       const payload = JSON.stringify(entryData);
+      // Collect every quoted token in the entry payload (UIDs in CS exports
+      // are always serialized as JSON strings, so they appear quoted). This
+      // avoids substring false positives where one UID is a prefix of another.
+      const referencedUids = new Set<string>();
+      const quotedMatches = payload.match(/"([a-zA-Z0-9_.-]+)"/g);
+      if (quotedMatches) {
+        for (const m of quotedMatches) {
+          referencedUids.add(m.slice(1, -1));
+        }
+      }
       for (const asset of assets) {
-        if (asset.uid && payload.includes(asset.uid)) {
+        if (asset?.uid && referencedUids.has(asset.uid)) {
           asset.isReferred = true;
         }
       }
