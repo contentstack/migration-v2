@@ -76,6 +76,8 @@ export const sanitizeStackId = (
 /** Same rules as stack IDs (UUIDs, API keys); use for path segments such as `database/<projectId>/`. */
 export const sanitizeProjectId = sanitizeStackId;
 
+export const sanitizeOrgId = sanitizeStackId;
+
 /**
  * Throws if {@link targetPath} resolves outside {@link baseDir} (after path.resolve).
  */

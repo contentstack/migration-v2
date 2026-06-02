@@ -43,6 +43,7 @@ import { globalFieldServie } from './globalField.service.js';
 import {
   assertResolvedPathUnderBase,
   getSafePath,
+  sanitizeOrgId,
   sanitizeProjectId,
   sanitizeStackId,
 } from '../utils/sanitize-path.utils.js';
@@ -1655,6 +1656,13 @@ export const updateLocaleMapper = async (req: Request) => {
 
 const restartMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
+  if(sanitizeProjectId(projectId) === null) {
+    throw new BadRequestError('Invalid projectId');
+  }
+  
+  if(sanitizeOrgId(orgId) === null) {
+    throw new BadRequestError('Invalid orgId');
+  }
   await ProjectModelLowdb.read();
   const projectIndex = ProjectModelLowdb.chain
     .get("projects")
@@ -1662,7 +1670,8 @@ const restartMigration = async (req: Request): Promise<any> => {
     .value();
   console.info('projectIndex', projectIndex);
   if (projectIndex > -1) {
-    await ProjectModelLowdb.update((data: any) => {
+    try {
+      await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].migration_execution = false;
       data.projects[projectIndex].isMigrationCompleted = false;
       data.projects[projectIndex].isMigrationStarted = false;
@@ -1675,6 +1684,13 @@ const restartMigration = async (req: Request): Promise<any> => {
       data.projects[projectIndex].iteration = 1 + (data.projects[projectIndex].iteration || 0);
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
+    } catch (error) {
+      console.error('Error updating project for migration restart:', error);
+      throw new ExceptionFunction(
+        HTTP_TEXTS?.INTERNAL_ERROR,
+        HTTP_CODES?.SERVER_ERROR
+      );
+    }
   } else {
     throw new NotFoundError(HTTP_TEXTS?.PROJECT_NOT_FOUND);
   }

@@ -10,7 +10,6 @@ export const isDuplicateEntry = async (projectId: string) => {
     const iteration = projectData?.iteration || 1;
     const entryMapper = getEntryMapperDb(projectId, iteration);
     await entryMapper.read();
-    // const entryMapperData = entryMapper.chain.get("entry_mapper").value();
     const seen = new Map();
 
     await entryMapper.update((data: any) => {
