@@ -119,14 +119,22 @@ const saveZip = async (zip: any, name: string) => {
         }
       }
     }
-    return { isSaved: true, filePath: filePathSaved };
+    // Return the ABSOLUTE path of the directory where the zip was actually
+    // extracted. The route then uses this verbatim — no path reconstruction,
+    // so filenames with spaces / parentheses / other non-alphanumerics still
+    // line up downstream.
+    const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+    const extractedRoot = filePathSaved
+      ? path.join(baseDir, newMainFolderName, filePathSaved)
+      : path.join(baseDir, newMainFolderName);
+    return { isSaved: true, filePath: filePathSaved, extractedPath: extractedRoot };
   } catch (err: any) {
     console.error(err);
     logger.info('Zipfile error:', {
       status: HTTP_CODES?.SERVER_ERROR,
       message: HTTP_TEXTS?.ZIP_FILE_SAVE
     });
-    return { isSaved: false, filePath: undefined };
+    return { isSaved: false, filePath: undefined, extractedPath: undefined };
   }
 };
 
@@ -141,14 +149,15 @@ const saveJson = async (jsonContent: string, fileName: string) => {
     // Write the XML content to the file asynchronously
     await fs.promises.writeFile(filePath, data, 'utf8');
 
-    return true;
+    // Return the absolute path so callers don't have to reconstruct it.
+    return { isSaved: true, savedPath: filePath };
   } catch (err: any) {
     console.error(err);
     logger.info('JSON file error while saving:', {
       status: HTTP_CODES?.SERVER_ERROR,
       message: HTTP_TEXTS?.XML_FILE_SAVE
     });
-    return false;
+    return { isSaved: false, savedPath: undefined };
   }
 };
 

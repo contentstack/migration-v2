@@ -1,5 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
+import path from 'path';
+
+// A path the route considers inside the extracted_files baseDir.
+const SAFE_EXTRACTED_PATH = path.join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'extracted_files',
+  'test-extracted'
+);
 
 const {
   mockStatSync,
@@ -322,7 +333,11 @@ describe('routes/index', () => {
 
       const stream = new EventEmitter();
       mockCreateReadStream.mockReturnValue(stream);
-      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK' });
+      mockHandleFileProcessing.mockResolvedValue({
+        status: 200,
+        message: 'OK',
+        extractedPath: SAFE_EXTRACTED_PATH,
+      });
 
       const handler = getHandler(router, 'get', '/validator');
       const res = mockRes();
@@ -364,7 +379,12 @@ describe('routes/index', () => {
 
       const stream = new EventEmitter();
       mockCreateReadStream.mockReturnValue(stream);
-      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK', file: 'inner' });
+      mockHandleFileProcessing.mockResolvedValue({
+        status: 200,
+        message: 'OK',
+        file: 'inner',
+        extractedPath: SAFE_EXTRACTED_PATH,
+      });
 
       const handler = getHandler(router, 'get', '/validator');
       const res = mockRes();
@@ -463,7 +483,12 @@ describe('routes/index', () => {
 
       const bodyStream = new EventEmitter();
       mockClientSend.mockResolvedValue({ Body: bodyStream });
-      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK', file: 'nested' });
+      mockHandleFileProcessing.mockResolvedValue({
+        status: 200,
+        message: 'OK',
+        file: 'nested',
+        extractedPath: SAFE_EXTRACTED_PATH,
+      });
 
       const handler = getHandler(router, 'get', '/validator');
       const res = mockRes();

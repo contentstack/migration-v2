@@ -422,15 +422,16 @@ router.get(
                 res.status(data?.status || 200).json(data);
               }
               if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeName = sanitizeFilename(name);
+                // Use the absolute path saveJson actually wrote to. This
+                // avoids reconstructing it from sanitized names, which
+                // diverged from the on-disk layout for filenames containing
+                // characters stripped by sanitizeFilename (e.g. parentheses).
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                const filePath = path.join(baseDir, `${safeName}.json`);
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
+                const filePath = (data as any)?.extractedPath as string | undefined;
+                if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
-                  console.error('Path traversal attempt detected');
+                  console.error('Path traversal attempt detected or extractedPath missing');
                 }
               }
             } catch (error: any) {
@@ -489,19 +490,18 @@ router.get(
                 res.status(data?.status || 200).json(data);
               }
               if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeName = sanitizeFilename(name);
+                // Use the absolute path saveZip actually wrote to (set inside
+                // helper/saveZip and propagated through handleFileProcessing).
+                // Reconstructing it here with sanitizeFilename caused a path
+                // mismatch for zip names with characters that the sanitizer
+                // strips (e.g. parentheses) — silently losing locales and
+                // schema for those projects.
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                let filePath = path.join(baseDir, safeName);
-                if (typeof data?.file === 'string' && data.file.length > 0) {
-                  const safeFile = sanitizeFilename(data.file);
-                  filePath = path.join(baseDir, safeName, safeFile);
-                }
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
+                const filePath = (data as any)?.extractedPath as string | undefined;
+                if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
-                  console.error('Path traversal attempt detected');
+                  console.error('Path traversal attempt detected or extractedPath missing');
                 }
               }
             } catch (error: any) {
@@ -565,22 +565,14 @@ router.get(
               res.status(data?.status || 200).json(data);
 
               if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeFileName = sanitizeFilename(fileName);
+                // Use the absolute path saveZip actually wrote to (see note
+                // on the matching site above). Same fix for the S3 path.
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                let filePath = path.join(baseDir, safeFileName);
-
-                // If the processor returned a specific file/folder, update the path
-                if (typeof data?.file === 'string' && data.file.length > 0) {
-                  const safeDataFile = sanitizeFilename(data.file);
-                  filePath = path.join(baseDir, safeFileName, safeDataFile);
-                }
-
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
+                const filePath = (data as any)?.extractedPath as string | undefined;
+                if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
-                  console.error('Path traversal attempt detected');
+                  console.error('Path traversal attempt detected or extractedPath missing');
                 }
               }
             } catch (error: any) {

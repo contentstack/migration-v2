@@ -84,7 +84,7 @@ describe('handleFileProcessing', () => {
     it('should return OK for valid wordpress XML', async () => {
       mockValidator.mockResolvedValue(true);
       mockParseXmlToJson.mockResolvedValue({ rss: {} });
-      mockSaveJson.mockResolvedValue(true);
+      mockSaveJson.mockResolvedValue({ isSaved: true, savedPath: '/tmp/test.json' });
 
       const result = await handleFileProcessing('xml', Buffer.from('<xml/>'), 'wordpress', 'test');
       expect(result?.status).toBe(200);
@@ -93,7 +93,7 @@ describe('handleFileProcessing', () => {
     it('should return UNAUTHORIZED when XML save fails', async () => {
       mockValidator.mockResolvedValue(true);
       mockParseXmlToJson.mockResolvedValue({ rss: {} });
-      mockSaveJson.mockResolvedValue(false);
+      mockSaveJson.mockResolvedValue({ isSaved: false, savedPath: undefined });
 
       const result = await handleFileProcessing('xml', Buffer.from('<xml/>'), 'wordpress', 'test');
       expect(result?.status).toBe(401);
@@ -109,7 +109,7 @@ describe('handleFileProcessing', () => {
     it('should handle drupal XML', async () => {
       mockValidator.mockResolvedValue(true);
       mockParseXmlToJson.mockResolvedValue({ data: {} });
-      mockSaveJson.mockResolvedValue(true);
+      mockSaveJson.mockResolvedValue({ isSaved: true, savedPath: '/tmp/test.json' });
 
       const result = await handleFileProcessing('xml', Buffer.from('<xml/>'), 'drupal', 'test');
       expect(result?.status).toBe(200);

@@ -103,14 +103,14 @@ describe('helper/index', () => {
   describe('saveJson', () => {
     it('should save JSON content to file', async () => {
       const result = await saveJson('{"key":"value"}', 'test.json');
-      expect(result).toBe(true);
+      expect(result).toEqual({ isSaved: true, savedPath: expect.any(String) });
       expect(mockMkdir).toHaveBeenCalled();
       expect(mockWriteFile).toHaveBeenCalled();
     });
 
     it('should stringify object content', async () => {
       const result = await saveJson({ key: 'value' } as any, 'test.json');
-      expect(result).toBe(true);
+      expect(result?.isSaved).toBe(true);
       expect(mockWriteFile).toHaveBeenCalledWith(
         expect.any(String), JSON.stringify({ key: 'value' }, null, 4), 'utf8'
       );
@@ -118,14 +118,15 @@ describe('helper/index', () => {
 
     it('should handle falsy content with empty JSON fallback', async () => {
       const result = await saveJson('' as any, 'test.json');
-      expect(result).toBe(true);
+      expect(result?.isSaved).toBe(true);
       expect(mockWriteFile).toHaveBeenCalledWith(expect.any(String), '{}', 'utf8');
     });
 
-    it('should return false on write error', async () => {
+    it('should return isSaved false on write error', async () => {
       mockMkdir.mockRejectedValueOnce(new Error('write fail'));
       const result = await saveJson('data', 'test.json');
-      expect(result).toBe(false);
+      expect(result?.isSaved).toBe(false);
+      expect(result?.savedPath).toBeUndefined();
     });
   });
 
