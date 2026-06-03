@@ -17,6 +17,7 @@ const {
   mockFsPromisesLstat,
   mockFsMkdirSync,
   mockFsWriteFileSync,
+  mockFsAppendFileSync,
 } = vi.hoisted(() => {
   const projects = [
     {
@@ -45,6 +46,7 @@ const {
     mockFsPromisesLstat: vi.fn(),
     mockFsMkdirSync: vi.fn(),
     mockFsWriteFileSync: vi.fn(),
+    mockFsAppendFileSync: vi.fn(),
   };
 });
 
@@ -156,6 +158,7 @@ vi.mock('fs', () => ({
     readdirSync: (...args: unknown[]) => mockFsReadDirSync(...args),
     mkdirSync: (...args: unknown[]) => mockFsMkdirSync(...args),
     writeFileSync: (...args: unknown[]) => mockFsWriteFileSync(...args),
+    appendFileSync: (...args: unknown[]) => mockFsAppendFileSync(...args),
     promises: {
       readFile: (...args: unknown[]) => mockFsPromisesReadFile(...args),
       lstat: (...args: unknown[]) => mockFsPromisesLstat(...args),
