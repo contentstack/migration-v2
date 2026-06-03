@@ -92,7 +92,7 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
       
     return readJsonFilesFromFolder(contentTypeFolderPath);
   } catch (error : any) {
-    console.error('Error while creating content_types/schema.json:', error?.message);
+    console.error('Error during WordPress content type extraction:', error?.message);
   }
   }
 

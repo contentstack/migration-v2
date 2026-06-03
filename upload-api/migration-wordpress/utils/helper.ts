@@ -56,26 +56,97 @@ type FetchPostDataOptions = {
   perPage?: number;
 };
 
+function buildWpRestCollectionUrl(
+  siteConfig: { baseUrl?: string; restApiPath?: string },
+  postType: string,
+): string {
+  const base = String(siteConfig?.baseUrl ?? '').replace(/\/+$/, '');
+  const restPath = String(siteConfig?.restApiPath ?? 'wp-json/wp/v2/')
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '');
+  const slug = String(postType ?? '').replace(/^\/+|\/+$/g, '');
+  // Trailing slash before query avoids 308/HTML redirect bodies on some hosts (e.g. Vercel).
+  return `${base}/${restPath}/${slug}/`;
+}
+
+async function parseWpRestJson(response: Response, requestUrl: string): Promise<unknown> {
+  const contentType = response.headers.get('content-type') ?? '';
+  const body = await response.text();
+  const trimmed = body.trim();
+
+  if (!response.ok) {
+    console.warn(
+      chalk.yellow(
+        `WordPress REST ${response.status} for ${requestUrl} (content-type: ${contentType || 'unknown'})`,
+      ),
+    );
+    return null;
+  }
+
+  if (
+    trimmed.startsWith('<') ||
+    (!contentType.includes('json') && !trimmed.startsWith('[') && !trimmed.startsWith('{'))
+  ) {
+    console.warn(
+      chalk.yellow(
+        `WordPress REST returned non-JSON for ${requestUrl} (content-type: ${contentType || 'unknown'}). ` +
+          `Body starts with: ${trimmed.slice(0, 80)}`,
+      ),
+    );
+    return null;
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch (err: any) {
+    console.warn(
+      chalk.yellow(`WordPress REST JSON parse failed for ${requestUrl}: ${err?.message}`),
+    );
+    return null;
+  }
+}
+
 /** Fetches every page from a REST collection URL and merges the lists into one array. */
-const fetchPostData = async (type: string, config: any, options?: FetchPostDataOptions) => {
+const fetchPostData = async (
+  type: string,
+  config: any,
+  options?: FetchPostDataOptions,
+): Promise<any[]> => {
+  if (!config?.siteConfig?.baseUrl) {
+    console.warn(chalk.yellow(`Skipping ACF REST fetch for "${type}": siteConfig.baseUrl is missing`));
+    return [];
+  }
+
   const pageSize = options?.perPage ?? 100;
-  const baseUrl = `${config.siteConfig.baseUrl}${config.siteConfig.restApiPath}${type}`;
+  const collectionUrl = buildWpRestCollectionUrl(config.siteConfig, type);
 
   const pageUrl = (pageNumber: number) => {
-    const separator = baseUrl.includes('?') ? '&' : '?';
-    return `${baseUrl}${separator}page=${pageNumber}&per_page=${pageSize}`;
+    const url = new URL(collectionUrl);
+    url.searchParams.set('page', String(pageNumber));
+    url.searchParams.set('per_page', String(pageSize));
+    return url.toString();
   };
 
   async function fetchPage(pageNumber: number) {
-    const response = await fetch(pageUrl(pageNumber));
-    const json = await response.json();
+    const url = pageUrl(pageNumber);
+    const response = await fetch(url, { redirect: 'follow' });
+    const json = await parseWpRestJson(response, url);
     return { response, json };
   }
 
   let { response, json } = await fetchPage(1);
 
+  if (json == null) {
+    return [];
+  }
+
   if (!Array.isArray(json)) {
-    return json;
+    console.warn(
+      chalk.yellow(
+        `WordPress REST for "${type}" returned non-array JSON; skipping ACF merge for this type.`,
+      ),
+    );
+    return [];
   }
 
   const combined: unknown[] = [...json];

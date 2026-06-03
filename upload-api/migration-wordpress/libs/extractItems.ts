@@ -279,7 +279,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     const isAllContentEmpty = item.every((data: any) =>
       !data?.['content:encoded'] || data?.['content:encoded']?.trim() === ''
     );
-    if(!isAllContentEmpty){
+   
       CT?.push({
         "isDeleted": false,
         "uid": "title",
@@ -297,7 +297,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
       {
         "isDeleted": false,
         "uid": "url",
-        "otherCmsField": "url",
+        "otherCmsField": "link",
         "backupFieldUid": "url",
         "otherCmsType": "text",
         "contentstackField": "Url",
@@ -307,8 +307,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         "advanced": {
           "mandatory": true
         }
-      },
-      {
+      })
+      if(!isAllContentEmpty){
+      CT?.push({
         "isDeleted": false,
         "uid": "modular_blocks",
         "otherCmsField": "Modular Blocks",
@@ -319,10 +320,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         "contentstackFieldType": "modular_blocks",
         "backupFieldType": "modular_blocks",
         
-      }
-    );
-      
-    }
+      })}
+
    
     // Create the content type directory if it doesn't exist
     mkdirp(contentTypeFolderPath);
@@ -345,9 +344,11 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     for (let itemIndex = 0; itemIndex < item?.length; itemIndex++) {
       const data = item[itemIndex];
       const processedSimilarBlocks = new Set();
-        const targetItem = items?.filter((i, el) => {
-            return $(el)?.find("title")?.text() === data?.title;
-        })?.first();
+      
+      const postId = String(data?.['wp:post_id'] ?? '');
+      const targetItem = postId
+        ? items.filter((_, el) => $(el).find('wp\\:post_id').text() === postId).first()
+        : items.filter((_, el) => $(el).find('title').text() === data?.title).first(); // fallback
 
         if(data?.category){
           const categoryData = Array?.isArray(data?.category) ? data?.category : [data?.category];
@@ -526,7 +527,6 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
               });}
         
               if (Array?.isArray(Schema)) {
-              
                 for (const schemaObj of Schema) {
                   if (!schemaObj || schemaObj?.contentstackFieldType === "null") continue;
               
@@ -536,18 +536,13 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                       getLastUid(item?.uid) === getLastUid(schemaObj?.uid) &&
                       item?.contentstackFieldType === schemaObj?.contentstackFieldType &&
                       item?.contentstackField === schemaObj?.contentstackField
-                      //&& item?.contentstackFieldUid === schemaObj?.contentstackFieldUid
                   );
-              
+
                   if (!exists) {
                     CT?.push?.(schemaObj);
                   }
                 }
-              } 
-                       
-             // }
-                 
-            }
+              }
                
         }
      }
@@ -580,7 +575,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         });
       
     }
-    if(authorsData && !isAllContentEmpty){
+    const typeHasAuthors = item.some(
+      (data: any) => data?.['dc:creator'] && String(data?.['dc:creator'])?.trim(),
+    );
+    if(typeHasAuthors && !isAllContentEmpty){
       CT?.push?.({
         "uid": 'author',
         "contentstackFieldUid": 'author',
@@ -659,6 +657,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         } catch (error : any) {
         console.error(`Error writing unified content type file ${filePath}:`, error?.message);
     }
+}
 }
 
 
