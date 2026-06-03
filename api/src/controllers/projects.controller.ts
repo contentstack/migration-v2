@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { projectService } from "../services/projects.service.js";
+import { HTTP_TEXTS } from "../constants/index.js";
 
 /**
  * Retrieves all projects.
@@ -186,7 +187,7 @@ const getMigratedStacks = async (req: Request, res: Response): Promise<void> => 
  */
 const updateAuditSelections = async (req: Request, res: Response): Promise<void> => {
   const project = await projectService.updateAuditSelections(req);
-  res.status(200).json({ data: project, message: 'Audit selections updated successfully' });
+  res.status(200).json({ data: project, message: HTTP_TEXTS.AUDIT_SELECTIONS_UPDATED });
 };
 
 export const projectController = {

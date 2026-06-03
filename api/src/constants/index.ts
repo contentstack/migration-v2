@@ -37,6 +37,17 @@ export const regionalApiHosts = {
   AU: 'au-api.contentstack.com',
   GCP_EU: 'gcp-eu-api.contentstack.com',
 };
+
+/** Web-app base URLs per region (used for building Contentstack management URLs). */
+export const regionalAppHosts: Record<string, string> = {
+  NA: 'https://app.contentstack.com',
+  EU: 'https://eu-app.contentstack.com',
+  AZURE_NA: 'https://azure-na-app.contentstack.com',
+  AZURE_EU: 'https://azure-eu-app.contentstack.com',
+  GCP_NA: 'https://gcp-na-app.contentstack.com',
+  GCP_EU: 'https://gcp-eu-app.contentstack.com',
+  AU: 'https://au-app.contentstack.com',
+};
 export const CMS = {
   CONTENTSTACK: "contentstack",
   CONTENTFUL: "contentful",
@@ -96,6 +107,9 @@ export const HTTP_TEXTS = {
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
+  AUDIT_SELECTIONS_UPDATED: 'Audit selections updated successfully',
+  CS_SOURCE_EXPORT_PATH_REQUIRED:
+    'Source export path is required for Contentstack stack migration',
   DESTINATION_STACK_NOT_FOUND: 'Destination stack does not exist',
   DESTINATION_STACK_ERROR: 'Error occurred during verifying destination stack',
   INVALID_ID: 'Provided $ ID is invalid.',

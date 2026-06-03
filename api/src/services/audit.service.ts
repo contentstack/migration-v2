@@ -2,24 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import auditDb from '../models/audit-lowdb.js';
 import { assertExportPathInAllowedRoot } from '../utils/sanitize-path.utils.js';
-
-// Map of region → web app base URL. Anything outside this map falls back
-// to the default NA app URL (covers the common case where region is empty
-// or unknown).
-const REGION_TO_APP_HOST: Record<string, string> = {
-  NA: 'https://app.contentstack.com',
-  EU: 'https://eu-app.contentstack.com',
-  AZURE_NA: 'https://azure-na-app.contentstack.com',
-  AZURE_EU: 'https://azure-eu-app.contentstack.com',
-  GCP_NA: 'https://gcp-na-app.contentstack.com',
-  GCP_EU: 'https://gcp-eu-app.contentstack.com',
-  AU: 'https://au-app.contentstack.com',
-};
+import { regionalAppHosts } from '../constants/index.js';
 
 // Helper function to build Contentstack management URLs
 const buildContentstackUrl = (region: string, stackId: string, type: 'asset' | 'entry' | 'content-type' | 'global-field', uid: string, contentType?: string, locale?: string) => {
   const normalizedRegion = (region || 'NA').toUpperCase().replace(/-/g, '_');
-  const baseUrl = REGION_TO_APP_HOST[normalizedRegion] ?? REGION_TO_APP_HOST.NA;
+  const baseUrl = regionalAppHosts[normalizedRegion] ?? regionalAppHosts.NA;
 
   switch (type) {
     case 'asset':

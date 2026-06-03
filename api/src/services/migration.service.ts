@@ -532,7 +532,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           project?.extract_path;
         if (!sourceExportPath) {
           throw new BadRequestError(
-            "Source export path is required for Contentstack stack migration",
+            HTTP_TEXTS.CS_SOURCE_EXPORT_PATH_REQUIRED,
           );
         }
         // Note: CLI import will be handled by runCli() below for consistent logging
@@ -1038,7 +1038,7 @@ const startMigration = async (req: Request): Promise<any> => {
           project?.extract_path;
         if (!sourceExportPath) {
           throw new BadRequestError(
-            "Source export path is required for Contentstack stack migration",
+            HTTP_TEXTS.CS_SOURCE_EXPORT_PATH_REQUIRED,
           );
         }
         // Note: CLI import will be handled by runCli() below for consistent logging
@@ -1621,17 +1621,11 @@ const extractContentstackLocales = async (exportPath: string) => {
       name: locale?.name,
     }));
   } catch (error) {
+    // Don't fabricate a default locale — if we can't read the source's
+    // locale files, return an empty list so the caller surfaces the issue
+    // to the user instead of silently substituting en-us.
     console.error("Error extracting Contentstack locales:", error);
-    // Return default locale if extraction fails
-    return [
-      {
-        label: "English - United States (en-us)",
-        value: "en-us",
-        uid: "default",
-        code: "en-us",
-        name: "English - United States",
-      },
-    ];
+    return [];
   }
 };
 

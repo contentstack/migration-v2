@@ -146,18 +146,10 @@ describe('extractContentstackLocales', () => {
     ]);
   });
 
-  it('should return the default en-us locale when master-locale read fails', async () => {
+  it('should return an empty list when master-locale read fails', async () => {
     fsMock.promises.readFile.mockRejectedValueOnce(new Error('ENOENT'));
     const result = await extractContentstackLocales('/export');
-    expect(result).toEqual([
-      {
-        label: 'English - United States (en-us)',
-        value: 'en-us',
-        uid: 'default',
-        code: 'en-us',
-        name: 'English - United States',
-      },
-    ]);
+    expect(result).toEqual([]);
   });
 
   it('should handle empty master-locale.json gracefully', async () => {

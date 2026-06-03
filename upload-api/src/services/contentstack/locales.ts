@@ -69,15 +69,10 @@ export const extractContentstackLocales = async (exportPath: string) => {
       name: locale?.name
     }));
   } catch (error) {
+    // Don't fabricate a default locale — if we can't read the source's
+    // locale files, return an empty list so the caller surfaces the issue
+    // to the user instead of silently substituting en-us.
     console.error('Error extracting Contentstack locales:', error);
-    return [
-      {
-        label: 'English - United States (en-us)',
-        value: 'en-us',
-        uid: 'default',
-        code: 'en-us',
-        name: 'English - United States'
-      }
-    ];
+    return [];
   }
 };
