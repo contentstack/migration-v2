@@ -1033,7 +1033,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
               break;
 
             case 'boolean':
-              formatted = Boolean(child?.attrs[attrKey]);
+              formatted = Boolean(child?.attrs[attrKey] ?? value);
               break;
 
             case 'json': {
@@ -1060,7 +1060,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
               if (hasMeaningfulHtml ) {
                 formatted = RteJsonConverter(htmlContent);
               }
-              else if (value) {
+              else if (value !== undefined) {
                 formatted = RteJsonConverter(value);
                 
               }
@@ -1068,9 +1068,15 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
             }
 
             case 'html': {
-              const rawHtml = child?.blockName
-                ? (formatted ?? child?.innerHTML)
-                : `<p>${child?.innerHTML}</p>`;
+              let rawHtml = '';
+              if (typeof value === 'string' && value.trim()) {
+                rawHtml = value;
+              } else if (child?.blockName) {
+                rawHtml = String(child?.innerHTML ?? formatted ?? '');
+              } else if (child?.innerHTML) {
+                rawHtml = String(child.innerHTML);
+              }
+
               const htmlContent =
                 typeof rawHtml === 'string'
                   ? normalizeHtmlFragment(rawHtml)
@@ -1079,9 +1085,8 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
 
               if (hasMeaningfulHtml) {
                 formatted = htmlContent;
-              }else if (value) {
-                formatted = `<p>${value}</p>`;
-              
+              } else if (typeof value === 'string' && value.trim()) {
+                formatted = normalizeHtmlFragment(value);
               }
               break;
             }
@@ -1092,7 +1097,12 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
                 formatted = { title: attrs.service, href: attrs.url };
                 break;
               }
-              const html = getBlockInnerHtmlString(child?.innerBlocks ? child?.innerBlocks[0] : child);
+              // Use the first inner block if it exists; otherwise fall back to the block itself.
+              // An empty innerBlocks array [] is truthy, so must check .length > 0 explicitly —
+              // core/button keeps its href/text in its own innerHTML, not in a child block.
+              const html = getBlockInnerHtmlString(
+                child?.innerBlocks?.length > 0 ? child.innerBlocks[0] : child
+              );
             
               let href = typeof attrs.url === 'string' && attrs.url ? attrs.url : '';
               let title = '';
@@ -1295,7 +1305,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         const taxonomies: any = [];
         const tags: any = [];
         const item = entry[i];
-        const terms = [];
+        const terms: any = [];
         if(item?.['category']?.length > 0){
           const category = item?.['category']?.filter((category: any) => category?.attributes?.domain === 'category');
           tags.push(...item?.['category']?.filter((category: any) => category?.attributes?.domain === 'post_tag') || []);
@@ -1317,23 +1327,29 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           } 
 
           const termCategory = item?.['category']?.filter((category: any) => category?.attributes?.domain !== 'category');
-          for(const term of termCategory){
-            const uid = allTerms?.find((item: any) => term?.attributes?.nicename === item?.["wp:term_slug"])?.["wp:term_id"];
-            terms.push({
-              "uid": `terms_${uid}`,
-              "_content_type_uid": 'terms'
-            });
-
+          const seenTermUids = new Set<string>();
+          for (const term of termCategory) {
+            const uid = allTerms?.find((t: any) => term?.attributes?.nicename === t?.["wp:term_slug"])?.["wp:term_id"];
+            if (!uid) continue;
+            const termUid = `terms_${uid}`;
+            if (seenTermUids.has(termUid)) continue;
+            seenTermUids.add(termUid);
+            terms.push({ "uid": termUid, "_content_type_uid": 'terms' });
           }
         }
         const uid = idCorrector(`posts_${item?.["wp:post_id"]}`);
+
+        const authorFieldInCT = fields?.find(
+          (f: any) => f?.contentstackFieldUid === 'author' || f?.otherCmsField?.toLowerCase() === 'author',
+        );
+
         const author = Object?.keys(authorsData)?.find((key: any) => authorsData[key]?.title?.toLowerCase() === item?.['dc:creator']?.toLowerCase());
         const authorData = [{
           "uid":author,
           "_content_type_uid": authorsCtName
         }];
         const xmlItem = items?.length > 0 ? items?.filter((i, el) => {
-          return $(el).find("title").text() === item["title"]
+          return $(el).find("wp\\:post_id").text() === item["wp:post_id"]
         }) : [];
       //   const targetItem = xmlItems.filter((i, el) => {
       //     return $(el).find("title").text() === entry.title;
@@ -1374,7 +1390,10 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             entryData[entryUid]['terms'] = terms;
           }
           entryData[entryUid]['tags'] = tags?.map((tag: any) => tag?.text);
-          entryData[entryUid]['author'] = authorData;
+          if (authorFieldInCT && author) {
+            const ctUid = authorFieldInCT?.refrenceTo?.[0] ?? authorsCtName;
+            entryData[entryUid]['author'] = [{ uid: author, _content_type_uid: ctUid }];
+          }
           entryData[entryUid]['locale'] = locale;
           entryData[entryUid]['publish_details'] = [];
         };
@@ -1793,7 +1812,7 @@ const createTerms = async (allTerms: any, destinationStackId: string, projectId:
 
     const message = getLogMessage(
       srcFunc,
-      `${allTerms?.length} Authors exported successfully`,
+      `${allTerms?.length} Terms exported successfully`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -1923,6 +1942,18 @@ function toCheckUrl(url : string, baseSiteUrl: string) {
     : `${baseSiteUrl}${url.replace(/^\/+/, "")}`;
 }
 
+function normalizeAssetUrl(url: string, baseSiteUrl: string): string {
+  return encodeURI(toCheckUrl(url, baseSiteUrl));
+}
+
+function isAssetUrlDownloaded(url: string, baseSiteUrl: string): boolean {
+  const normalized = normalizeAssetUrl(url, baseSiteUrl);
+  return Object.values(assetData).some(
+    (asset: any) =>
+      asset?.url && normalizeAssetUrl(asset.url, baseSiteUrl) === normalized
+  );
+}
+
 async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const srcFunc = 'saveAsset';
   const url = encodeURI(toCheckUrl(assets["wp:attachment_url"],baseSiteUrl));
@@ -1959,7 +1990,15 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   }
 
   try {
-    const response = await axios.get(url, { responseType: "arraybuffer" });
+    const response = await axios.get(url, {
+      responseType: "arraybuffer",
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': baseSiteUrl || url,
+      }
+    });
     // Ensure files directory exists
     fs.mkdirSync(
       path.resolve(assetsSave, "files", customId),
@@ -2003,7 +2042,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     );
     const message = getLogMessage(
       "createAssetFolderFile",
-      `An asset with id ${customId} and name ${name} downloaded successfully.`,
+      `An asset with id ${customId} and name ${filename} downloaded successfully.`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -2225,30 +2264,41 @@ async function saveAssetFromUrl(
   retryCount: number = 0
 ): Promise<string | null> {
   const srcFunc = 'saveAssetFromUrl';
-  const encodedUrl = encodeURI(url);
+  const encodedUrl = normalizeAssetUrl(url, baseSiteUrl);
+
+  if (isAssetUrlDownloaded(url, baseSiteUrl)) {
+    const existingAsset = Object.values(assetData).find(
+      (asset: any) =>
+        asset?.url && normalizeAssetUrl(asset.url, baseSiteUrl) === encodedUrl
+    ) as { uid?: string } | undefined;
+    return existingAsset?.uid ?? null;
+  }
+
   const originalName = url.split("/").pop()?.split("?")[0] || `asset_${Date.now()}`;
   const fileExtension = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')) : '';
   const nameWithoutExt = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
 
-  // Generate a unique ID based on URL hash to avoid duplicates
   const customId = `${nameWithoutExt?.replace(/-/g, '_')?.toLowerCase()}`;
-  // Use customId as filename to ensure uniqueness, preserve extension
   const filename = `${customId}${fileExtension}`;
-  
-  const assetPath = path.resolve(assetsSave, "files", customId);
-  
-  // Check if asset already exists
-  if (fs.existsSync(assetPath)) {
+  const filePath = path.resolve(assetsSave, "files", customId, filename);
+
+  if (existsSync(filePath)) {
     return customId;
   }
   
   const parent_uid = affix ? "wordpressasset" : null;
   
   try {
-    const response = await axios.get(encodedUrl, { 
+    const response = await axios.get(encodedUrl, {
       responseType: "arraybuffer",
       timeout: 30000,
-      maxRedirects: 5
+      maxRedirects: 5,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': baseSiteUrl || url,
+      }
     });
     
     // Ensure files directory exists
@@ -2400,7 +2450,11 @@ async function getAllAssets(
       const contentEncoded = item["content:encoded"];
       if (contentEncoded && typeof contentEncoded === 'string') {
         const imageUrls = extractImageUrlsFromContent(contentEncoded, baseSiteUrl);
-        imageUrls.forEach(url => allImageUrls.add(url));
+        imageUrls.forEach((url) => {
+          if (!isAssetUrlDownloaded(url, baseSiteUrl)) {
+            allImageUrls.add(url);
+          }
+        });
       }
     }
 
@@ -2561,15 +2615,15 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
       const authordata: { [key: string]: any } = {};
   
       for (const data of authorDetails) {
-        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]}`;
-        const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
+        const uid = `authors_${data["wp:author_id"] ?? data["wp:author_login"]}`;
+        const title = data["wp:author_login"] ?? `Authors - ${data["wp:author_id"]}`;
         const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
         const customId = idCorrector(uid);
   
         // Build author data entry dynamically based on field mapping
         const authordataEntry: any = {
           uid: uid,
-          title: data["wp:author_login"],
+          title: title,
           url: url,
         };
   
