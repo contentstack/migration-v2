@@ -1097,6 +1097,7 @@ const startMigration = async (req: Request): Promise<any> => {
     const iteration = projectData?.iteration || 1;
     let configFilePath: string | null = null;
     let safeDeltaMigrationLogPath: string | undefined;
+    const destinationStackId = project?.destination_stack_id;
 
     const safeStackForAssets = sanitizeStackId(project?.destination_stack_id);
     if (!safeStackForAssets) {
@@ -1142,19 +1143,19 @@ const startMigration = async (req: Request): Promise<any> => {
       try {
         assertResolvedPathUnderBase(migrationDataBase, canonicalIndexPath);
       } catch {
-        console.error(
-          'Assets index resolves outside the allowed migration-data directory.',
-        );
+          await customLogger(projectId, destinationStackId, 'error', 'Assets index resolves outside the allowed migration-data directory.');
         return;
       }
 
       const raw = await fsPromises.readFile(canonicalIndexPath, 'utf-8');
       if (!raw?.trim()) {
+        await customLogger(projectId, destinationStackId, 'error', 'Assets index.json is empty.');
         console.error(`Assets index.json is empty at ${indexPath}`);
         return;
       }
       indexData = JSON.parse(raw);
     } catch (error) {
+      await customLogger(projectId, destinationStackId, 'error', `Failed to read or parse assets index.json: ${error instanceof Error ? error.message : String(error)}`);
       console.error(
         `Failed to read or parse assets index.json at ${indexPath}:`,
         error instanceof Error ? error.message : String(error),
@@ -1162,26 +1163,28 @@ const startMigration = async (req: Request): Promise<any> => {
       return;
     }
 
+    const deltaLogsBase = path.resolve(process.cwd(), 'logs');
+    const safePid = sanitizeProjectId(projectId);
+    const safeStack = sanitizeStackId(project?.destination_stack_id);
+    if (safePid && safeStack) {
+      const candidate = path.join(deltaLogsBase, safePid, `${safeStack}.log`);
+      try {
+        assertResolvedPathUnderBase(deltaLogsBase, candidate);
+        safeDeltaMigrationLogPath = candidate;
+      } catch {
+        safeDeltaMigrationLogPath = undefined;
+      }
+    }
+
     saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
 
     if (iteration > 1) {
-      const logsBase = path.resolve(process.cwd(), 'logs');
-      const safePid = sanitizeProjectId(projectId);
-      const safeStack = sanitizeStackId(project?.destination_stack_id);
-      if (safePid && safeStack) {
-        const candidate = path.join(logsBase, safePid, `${safeStack}.log`);
-        try {
-          assertResolvedPathUnderBase(logsBase, candidate);
-          safeDeltaMigrationLogPath = candidate;
-        } catch {
-          safeDeltaMigrationLogPath = undefined;
-        }
-      }
       await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
       configFilePath = await removeEntriesFromDatabase(
         projectId,
         safeDeltaMigrationLogPath
       );
+      await customLogger(projectId, destinationStackId, 'info', `Config file generated at ${configFilePath}`);
       console.info('Config file written to:', configFilePath);
       }
 
@@ -1195,7 +1198,6 @@ const startMigration = async (req: Request): Promise<any> => {
     );
 
     if (configFilePath) {
-      console.info('Config file path:', configFilePath);
       enrichConfigWithAssetMapping(
         configFilePath,
         projectId,
@@ -1209,6 +1211,9 @@ const startMigration = async (req: Request): Promise<any> => {
         safeDeltaMigrationLogPath || '',
         configFilePath
       );
+    }
+    else{
+      await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
     }
   }
 };
@@ -1656,17 +1661,19 @@ export const updateLocaleMapper = async (req: Request) => {
 
 const restartMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  if(sanitizeProjectId(projectId) === null) {
+  const safeProjectId = sanitizeProjectId(projectId);
+  if (safeProjectId === null) {
     throw new BadRequestError('Invalid projectId');
   }
-  
-  if(sanitizeOrgId(orgId) === null) {
+
+  const safeOrgId = sanitizeOrgId(orgId);
+  if (safeOrgId === null) {
     throw new BadRequestError('Invalid orgId');
   }
   await ProjectModelLowdb.read();
   const projectIndex = ProjectModelLowdb.chain
     .get("projects")
-    .findIndex({ id: projectId, org_id: orgId })
+    .findIndex({ id: safeProjectId, org_id: safeOrgId })
     .value();
   console.info('projectIndex', projectIndex);
   if (projectIndex > -1) {

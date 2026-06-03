@@ -2,6 +2,7 @@ import { JSONFile } from "lowdb/node";
 import path from 'path';
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 import fs from 'node:fs';
+import { DATABASE_FILES } from "../constants/index.js";
 
 /**
  * Represents a content type mapper.
@@ -87,10 +88,10 @@ const defaultData: ContentTypeMapperDocument = { ContentTypesMappers: [] };
  * @returns The database instance for the content types mapper
  */
 export const getContentTypesMapperDb = (projectId: string, iteration: number) => {    
-  fs.mkdirSync(path.join(process.cwd(), "database", projectId, iteration.toString()), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString()), { recursive: true });
   const db = new LowWithLodash(
     new JSONFile<ContentTypeMapperDocument>(
-      path.join(process.cwd(), "database", projectId, iteration.toString(), 'contentTypesMapper.json'),
+      path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString(), DATABASE_FILES.CONTENT_TYPES_MAPPER),
     ),
     defaultData
   );

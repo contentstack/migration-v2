@@ -314,6 +314,26 @@ export const MIGRATION_DATA_CONFIG = {
 
   AEM_DAM_DIR: 'dam-downloads',
 };
+// Centralized filenames for the lowdb JSON stores under the `database/` directory.
+// Top-level files live at database/<file>; per-project files live at
+// database/<projectId>/<iteration>/<file>.
+export const DATABASE_FILES = {
+  // Root directory (relative to process.cwd()) holding all lowdb JSON stores
+  DIRECTORY: 'database',
+
+  // Top-level (global) stores
+  PROJECT: 'project.json',
+  AUTHENTICATION: 'authentication.json',
+
+  // Per-project / per-iteration stores
+  CONTENT_TYPES_MAPPER: 'contentTypesMapper.json',
+  FIELD_MAPPER: 'field-mapper.json',
+  ENTRY_MAPPER: 'entry-mapper.json',
+  UID_MAPPER: 'uid-mapper.json',
+  UPDATED_ENTRIES: 'updated-entries.json',
+  ASSET_METADATA: 'asset-metadata.json',
+};
+
 export const GET_AUDIT_DATA = {
   MIGRATION: 'migration-v2',
   API_DIR: 'api',

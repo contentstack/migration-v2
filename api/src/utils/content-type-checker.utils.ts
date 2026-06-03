@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import getContentTypesMapperDb from '../models/contentTypesMapper-lowdb.js';
+import { DATABASE_FILES } from '../constants/index.js';
 
 /**
  * Checks if a content type has already been created in any previous iteration.
@@ -25,7 +26,7 @@ export const isContentTypeAlreadyCreated = async (
     for (let i = 1; i < currentIteration; i++) {
         try {
             // Check if iteration directory exists
-            const iterationPath = path.join(process.cwd(), 'database', projectId, i.toString());
+            const iterationPath = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, i.toString());
             if (!fs.existsSync(iterationPath)) {
                 continue; // Skip missing iterations
             }
@@ -77,7 +78,7 @@ export const getPreviouslyCreatedContentTypes = async (
     for (let i = 1; i < currentIteration; i++) {
         try {
             // Check if iteration directory exists
-            const iterationPath = path.join(process.cwd(), 'database', projectId, i.toString());
+            const iterationPath = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, i.toString());
             if (!fs.existsSync(iterationPath)) {
                 continue; // Skip missing iterations
             }

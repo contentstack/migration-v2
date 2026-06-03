@@ -207,7 +207,11 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
         }
       }
 
-      const { data, status } = await fileValidation( projectId, newMigrationData?.legacy_cms?.affix, resolvedPath );
+      const { data, status } = await fileValidation({
+        projectId,
+        affix: newMigrationData?.legacy_cms?.affix,
+        localPath: resolvedPath
+      });
 
       setProgressPercentage( 70 );
       setProcessing( 'Processing...70%' );

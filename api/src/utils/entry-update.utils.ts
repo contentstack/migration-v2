@@ -2,7 +2,7 @@ import getEntryMapperDb from "../models/EntryMapper.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import path from "path";
 import fs from "node:fs";
-import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
+import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
 
 /**
  * Helper function to write log entries to file
@@ -110,9 +110,9 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         }
     }
 
-    const configDir = path.join(process.cwd(), "database", projectId, iteration.toString());
+    const configDir = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString());
     fs.mkdirSync(configDir, { recursive: true });
-    const configPath = path.join(configDir, "updated-entries.json");
+    const configPath = path.join(configDir, DATABASE_FILES.UPDATED_ENTRIES);
     fs.writeFileSync(configPath, JSON.stringify(entriesToUpdate), "utf-8");
 
     writeLogEntry("Finished removing entries from cmsMigrationData.", "removeEntriesFromDatabase", loggerPath);
@@ -134,11 +134,11 @@ export const enrichConfigWithAssetMapping = (
     iteration: number,
     loggerPath?: string
 ): void => {
-    const dbBase = path.join(process.cwd(), "database", projectId);
+    const dbBase = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId);
 
     let oldAssetMapping: Record<string, string> = {};
     if (iteration > 1) {
-        const oldPath = path.join(dbBase, (iteration - 1).toString(), "uid-mapper.json");
+        const oldPath = path.join(dbBase, (iteration - 1).toString(), DATABASE_FILES.UID_MAPPER);
         if (fs.existsSync(oldPath)) {
             try {
                 const data = JSON.parse(fs.readFileSync(oldPath, "utf-8"));
@@ -153,7 +153,7 @@ export const enrichConfigWithAssetMapping = (
     }
 
     let newAssetMapping: Record<string, string> = {};
-    const newPath = path.join(dbBase, iteration.toString(), "uid-mapper.json");
+    const newPath = path.join(dbBase, iteration.toString(), DATABASE_FILES.UID_MAPPER);
     if (fs.existsSync(newPath)) {
         try {
             const data = JSON.parse(fs.readFileSync(newPath, "utf-8"));

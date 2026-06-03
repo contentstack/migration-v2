@@ -70,7 +70,7 @@ const saveMappedLocales = async (req: Request, res: Response): Promise<void> => 
 
 const restartMigration = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.restartMigration(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 }
 
 export const migrationController = {

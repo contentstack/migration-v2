@@ -50,15 +50,10 @@ router.post('/upload-to-container', express.json(), async function (req: Request
     // Break taint flow: rebuild each segment character-by-character from an allowlist.
     // The resulting strings are freshly constructed and contain only safe characters,
     // severing any taint propagation from the request body into fs.* calls.
-    const ALLOWED = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.- ';
     const rawSegments = relativePath.split(/[\\/]+/).filter(Boolean);
     const segments: string[] = [];
     for (const raw of rawSegments) {
-      let clean = '';
-      for (let i = 0; i < raw.length; i++) {
-        const ch = raw.charAt(i);
-        if (ALLOWED.indexOf(ch) !== -1) clean += ch;
-      }
+      const clean = allowlistSegment(raw);
       if (!clean || clean === '.' || clean === '..') {
         return res.status(400).json({ status: 400, message: 'Invalid path.' });
       }

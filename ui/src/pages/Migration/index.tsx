@@ -849,40 +849,51 @@ const Migration = () => {
     setIsLoading(true);
 
     if (newMigrationData?.stepValue !== 'Restart Migration') {
-    try {
-      const migrationRes = await startMigration(
-        newMigrationData?.destination_stack?.selectedOrg?.value,
-        projectId
-      );
+      try {
+        const migrationRes = await startMigration(
+          newMigrationData?.destination_stack?.selectedOrg?.value,
+          projectId
+        );
 
-      if (migrationRes?.status === 200) {
-        setIsLoading(false);
-        setDisableMigration(true);
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          migration_execution: {
-            ...newMigrationData?.migration_execution,
-            migrationStarted: true
-          }
-        };
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        if (migrationRes?.status === 200) {
+          setDisableMigration(true);
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            migration_execution: {
+              ...newMigrationData?.migration_execution,
+              migrationStarted: true
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
 
+          Notification({
+            notificationContent: { text: 'Migration Execution process started' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'message'
+          });
+        } else {
+          Notification({
+            notificationContent: {
+              text: migrationRes?.data?.error?.message || 'Failed to start migration'
+            },
+            type: 'error'
+          });
+        }
+      } catch (error) {
+        console.error(error);
         Notification({
-          notificationContent: { text: 'Migration Execution process started' },
-          notificationProps: {
-            position: 'bottom-center',
-            hideProgressBar: true
-          },
-          type: 'message'
+          notificationContent: { text: 'Failed to start migration' },
+          type: 'error'
         });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      // return error;
-      console.error(error);
-    }}
-    else{
+    } else {
+      await handleRestartMigration();
       setIsLoading(false);
-      handleRestartMigration();
     }
   };
 
@@ -907,14 +918,22 @@ const Migration = () => {
       iteration: newMigrationData?.iteration ? newMigrationData?.iteration + 1 : 1
     };
     dispatch(updateNewMigrationData(newMigrationDataObj));
-    const res = await restartMigration(selectedOrganisation?.value, projectId);
-    if (res?.status === 200) {
-      Notification({
-        notificationContent: { text: 'Migration restarted successfully' },
-        type: 'success'
-      });
-      navigate(`/projects/${projectId}/migration/steps/1`);
-    } else {
+    try {
+      const res = await restartMigration(selectedOrganisation?.value, projectId);
+      if (res?.status === 200) {
+        Notification({
+          notificationContent: { text: 'Migration restarted successfully' },
+          type: 'success'
+        });
+        navigate(`/projects/${projectId}/migration/steps/1`);
+      } else {
+        Notification({
+          notificationContent: { text: 'Failed to restart migration' },
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error(error);
       Notification({
         notificationContent: { text: 'Failed to restart migration' },
         type: 'error'

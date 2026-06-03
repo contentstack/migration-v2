@@ -2,6 +2,7 @@ import axios from 'axios';
 import { UPLOAD_FILE_RELATIVE_URL } from '../../utilities/constants';
 import { User } from '../../pages/Login/login.interface';
 import { getDataFromLocalStorage } from '../../utilities/functions';
+import { FileValidationParams } from './service.interface';
 
 //Axios Calls for Upload server
 export const getCall = async (url: string, options?: any) => {
@@ -68,14 +69,18 @@ export const uploadLocalFileToContainer = async (
   }
 };
 
-export const fileValidation = async (projectId: string, affix = 'cs', localPath: string) => {
+export const fileValidation = async ({
+  projectId,
+  affix = 'cs',
+  localPath = ''
+}: FileValidationParams) => {
   try {
     const options = {
       headers: {
         app_token: getDataFromLocalStorage('app_token'),
         projectId: projectId,
         affix: affix,
-        file_path: localPath  
+        file_path: localPath
       }
     };
     return await getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);

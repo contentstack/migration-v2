@@ -73,8 +73,10 @@ describe('hydrate-config', () => {
   });
 
   it('mergeConfigFromEnv preserves manual json when env is empty', () => {
+    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     const merged = mergeConfigFromEnv(baseConfig);
     expect(merged).toEqual(baseConfig);
+    vi.restoreAllMocks();
   });
 
   it('mergeConfigFromEnv applies only set env vars', () => {
@@ -97,10 +99,28 @@ describe('hydrate-config', () => {
     vi.restoreAllMocks();
   });
 
-  it('mergeConfigFromEnv does not change mysql host without MYSQL_HOST env', () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === '/.dockerenv');
+  it('mergeConfigFromEnv keeps mysql host without MYSQL_HOST env when not in Docker', () => {
+    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
     const merged = mergeConfigFromEnv(baseConfig);
     expect(merged.mysql.host).toBe('db.example.com');
+    vi.restoreAllMocks();
+  });
+
+  it('mergeConfigFromEnv falls back to host.docker.internal without MYSQL_HOST env when in Docker', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === '/.dockerenv');
+    const merged = mergeConfigFromEnv(baseConfig);
+    expect(merged.mysql.host).toBe('host.docker.internal');
+    vi.restoreAllMocks();
+  });
+
+  it('mergeConfigFromEnv rewrites the host_name placeholder to host.docker.internal in Docker', () => {
+    vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === '/.dockerenv');
+    const placeholderConfig = {
+      ...baseConfig,
+      mysql: { ...baseConfig.mysql, host: 'host_name' }
+    };
+    const merged = mergeConfigFromEnv(placeholderConfig);
+    expect(merged.mysql.host).toBe('host.docker.internal');
     vi.restoreAllMocks();
   });
 

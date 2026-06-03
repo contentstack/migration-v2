@@ -2,6 +2,7 @@ import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 import path from "path";
 import fs from 'node:fs';
+import { DATABASE_FILES } from "../constants/index.js";
 
 /**
  * Represents the advanced configuration options for a field mapper.
@@ -47,10 +48,10 @@ const defaultData: EntryMapper = { entry_mapper: [] };
  * @returns The database instance for the field mapper
  */
 const getEntryMapperDb = (projectId: string, iteration: number) => {
-  fs.mkdirSync(path.join(process.cwd(), "database", projectId, iteration.toString()), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString()), { recursive: true });
   const db = new LowWithLodash(
     new JSONFile<EntryMapper>(
-      path.join(process.cwd(), "database", projectId, iteration.toString(), 'entry-mapper.json')
+      path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString(), DATABASE_FILES.ENTRY_MAPPER)
     ),
     defaultData
   );

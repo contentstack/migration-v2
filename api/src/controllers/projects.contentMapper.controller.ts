@@ -173,7 +173,7 @@ const updateContentMapper = async (req: Request, res: Response): Promise<void> =
  */
 const getEntryMapping = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.getEntryMapping(req);
-  res.status(resp?.status || 200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 
 /**
@@ -185,7 +185,7 @@ const getEntryMapping = async (req: Request, res: Response): Promise<void> => {
  */
 const updateEntryStatus = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.updateEntryStatus(req);
-  res.status(resp?.status || 200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 
 export const contentMapperController = {

@@ -71,6 +71,10 @@ export function getConfigFilePaths(cwd: string = process.cwd()): {
 /**
  * Merges environment variables into config. Only fields with a non-empty env value
  * are overwritten so manual edits in index.json are preserved.
+ *
+ * Exception: mysql.host. When MYSQL_HOST is absent but the process runs inside Docker,
+ * the host falls back to host.docker.internal (the JSON placeholder is non-functional
+ * inside a container). Outside Docker the JSON value is kept untouched.
  */
 export function mergeConfigFromEnv(config: UploadApiConfig): UploadApiConfig {
   const merged: UploadApiConfig = {
@@ -100,7 +104,13 @@ export function mergeConfigFromEnv(config: UploadApiConfig): UploadApiConfig {
 
   if (hasEnvValue(process.env.MYSQL_HOST)) {
     merged.mysql.host = mysqlHostFromEnv(process.env.MYSQL_HOST!);
+  } else if (runningInDocker()) {
+    // No MYSQL_HOST provided but running in Docker: the JSON placeholder
+    // ("host_name") is non-functional, so fall back to host.docker.internal
+    // to reach a MySQL server on the host machine (restores pre-refactor behavior).
+    merged.mysql.host = 'host.docker.internal';
   }
+  // else: local (non-Docker) with no env value → keep the JSON value as-is.
 
   return merged;
 }
