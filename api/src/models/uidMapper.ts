@@ -5,25 +5,6 @@ import fs from 'node:fs';
 import { DATABASE_FILES } from "../constants/index.js";
 
 /**
- * Represents the advanced configuration options for a field mapper.
- */
-export interface Advanced {
-  validationRegex: string;
-  mandatory: boolean;
-  multiple: boolean;
-  unique: boolean;
-  nonLocalizable: boolean;
-  embedObject: boolean;
-  embedObjects: any;
-  minChars: string;
-  maxChars: number;
-  default_value: string;
-  description: string;
-  validationErrorMessage: string;
-  options: any[];
-}
-
-/**
  * Represents an entry mapper object.
  */
 interface EntryMapper {

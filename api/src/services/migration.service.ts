@@ -725,6 +725,13 @@ const startMigration = async (req: Request): Promise<any> => {
     const safeFinalProjectId = sanitizeProjectId(projectId);
     const safeFinalStackId = sanitizeStackId(project?.destination_stack_id);
     if (!safeFinalProjectId || !safeFinalStackId) {
+      logger.error(
+        getLogMessage(
+          'startMigration',
+          'Invalid project or destination stack identifier; cannot create log file path.',
+          { projectId, destinationStackId: project?.destination_stack_id }
+        )
+      );
       throw new BadRequestError(
         'Invalid project or destination stack identifier; cannot create log file path.'
       );
@@ -1101,6 +1108,7 @@ const startMigration = async (req: Request): Promise<any> => {
 
     const safeStackForAssets = sanitizeStackId(project?.destination_stack_id);
     if (!safeStackForAssets) {
+      await customLogger(projectId, destinationStackId, 'error', 'Invalid destination stack id; cannot load assets index.');
       console.error(
         'Invalid destination stack id; cannot load assets index.',
       );
