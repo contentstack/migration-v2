@@ -63,38 +63,6 @@ import {
 import { generateAuditData } from './audit.service.js';
 import auditDb from '../models/audit-lowdb.js';
 
-/** Cleans up Contentstack CLI backup folders after migration (stack-to-stack). */
-const cleanupBackupFolders = async (apiPath: string, cms: string) => {
-  try {
-    if (cms !== CMS.CONTENTSTACK) {
-      console.log(
-        `Skipping backup cleanup for ${cms} migration - no backups expected`,
-      );
-      return;
-    }
-
-    const backupPattern = /_backup_\d+$/;
-    const items = await fsPromises.readdir(apiPath);
-
-    const backupFolders = items?.filter((item) => backupPattern.test(item));
-
-    if (backupFolders?.length === 0) {
-      console.log('No backup folders found to cleanup');
-      return;
-    }
-
-    for (const item of backupFolders) {
-      const backupPath = path.join(apiPath, item);
-      console.log(`Cleaning up Contentstack backup folder: ${backupPath}`);
-      await fsPromises.rm(backupPath, { recursive: true, force: true });
-    }
-
-    console.log(`Cleaned up ${backupFolders.length} backup folder(s)`);
-  } catch (error) {
-    console.warn('Failed to cleanup backup folders:', error);
-  }
-};
-
 /**
  * Creates a test stack.  
  *
@@ -785,10 +753,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
 
     // Handle CMS-specific post-migration tasks
     if (cms === CMS.CONTENTSTACK) {
-      // Cleanup backup folders after successful test migration
-      const apiPath = path.resolve(process.cwd());
-      await cleanupBackupFolders(apiPath, cms);
-
+      // Backup cleanup is owned by runCli (it created the backup, it deletes it).
       // Update database to mark test stack as migrated
       const projectIndex = ProjectModelLowdb.chain
         .get("projects")
@@ -1380,11 +1345,9 @@ const startMigration = async (req: Request): Promise<any> => {
       loggerPath,
     );
 
-    // Contentstack stack-to-stack: backup cleanup + persist completion (dev leaves this to runCli only for other CMS)
+    // Contentstack stack-to-stack: persist completion (backup cleanup is
+    // owned by runCli since it creates the backup).
     if (cms === CMS.CONTENTSTACK) {
-      const apiPath = path.resolve(process.cwd());
-      await cleanupBackupFolders(apiPath, cms);
-
       await ProjectModelLowdb.update((data: any) => {
         if (data?.projects?.[index]) {
           data.projects[index].isMigrationCompleted = true;

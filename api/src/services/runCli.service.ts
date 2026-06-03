@@ -269,7 +269,8 @@ export const runCli = async (
         .find({ id: projectId })
         .value();
 
-      // Create source and backup paths
+      // Create source and backup paths. runCli owns the backup lifecycle —
+      // it creates the folder here and deletes it after a successful import.
       const sourcePath = resolveSourcePathForImport(project, stack_uid);
       const backupPath = path.join(
         process.cwd(),
@@ -427,6 +428,20 @@ export const runCli = async (
             STEPPER_STEPS.MIGRATION;
           ProjectModelLowdb.data.projects[projectIndex].status = 5;
           await ProjectModelLowdb.write();
+        }
+
+        // Successful import — remove our backup folder. On failure the catch
+        // branch above re-throws, so we intentionally leave the backup on disk
+        // for post-mortem inspection.
+        try {
+          if (fs.existsSync(backupPath)) {
+            await fs.promises.rm(backupPath, { recursive: true, force: true });
+          }
+        } catch (cleanupErr) {
+          console.warn(
+            `[runCli] Could not remove backup folder ${backupPath}:`,
+            cleanupErr
+          );
         }
       } finally {
         // no pruned export cleanup needed
