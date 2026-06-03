@@ -11,17 +11,51 @@ const {
   mockHttps,
   mockGetAuthToken,
   mockFindIndexValue,
-} = vi.hoisted(() => ({
-  mockProjectRead: vi.fn(),
-  mockProjectUpdate: vi.fn(),
-  mockProjectWrite: vi.fn(),
-  mockFindValue: vi.fn(),
-  mockFilterValue: vi.fn(),
-  mockGetProjectUtil: vi.fn(),
-  mockHttps: vi.fn(),
-  mockGetAuthToken: vi.fn(),
-  mockFindIndexValue: vi.fn(),
-}));
+  mockContentTypesDb,
+  mockFieldDb,
+  getContentTypesMapperDbMock,
+  getFieldMapperDbMock,
+} = vi.hoisted(() => {
+  const mockCtChainGet = vi.fn().mockReturnValue({
+    filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
+    find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+    findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+  });
+  const mockFieldChainGet = vi.fn().mockReturnValue({
+    filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
+    find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+    findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+  });
+  const mockContentTypesDb = {
+    read: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn(),
+    write: vi.fn(),
+    chain: { get: mockCtChainGet },
+    data: { ContentTypesMappers: [] as unknown[] },
+  };
+  const mockFieldDb = {
+    read: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn(),
+    write: vi.fn(),
+    chain: { get: mockFieldChainGet },
+    data: { field_mapper: [] as unknown[] },
+  };
+  return {
+    mockProjectRead: vi.fn(),
+    mockProjectUpdate: vi.fn(),
+    mockProjectWrite: vi.fn(),
+    mockFindValue: vi.fn(),
+    mockFilterValue: vi.fn(),
+    mockGetProjectUtil: vi.fn(),
+    mockHttps: vi.fn(),
+    mockGetAuthToken: vi.fn(),
+    mockFindIndexValue: vi.fn(),
+    mockContentTypesDb,
+    mockFieldDb,
+    getContentTypesMapperDbMock: vi.fn(() => mockContentTypesDb),
+    getFieldMapperDbMock: vi.fn(() => mockFieldDb),
+  };
+});
 
 vi.mock('../../../src/models/project-lowdb.js', () => ({
   default: {
@@ -54,34 +88,11 @@ vi.mock('../../../src/config/index.js', () => ({
   },
 }));
 vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
-  default: {
-    read: vi.fn().mockResolvedValue(undefined),
-    update: vi.fn(),
-    write: vi.fn(),
-    chain: {
-      get: vi.fn().mockReturnValue({
-        filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
-        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
-        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
-      }),
-    },
-    data: { ContentTypesMappers: [] },
-  },
+  default: getContentTypesMapperDbMock,
+  getContentTypesMapperDb: getContentTypesMapperDbMock,
 }));
 vi.mock('../../../src/models/FieldMapper.js', () => ({
-  default: {
-    read: vi.fn().mockResolvedValue(undefined),
-    update: vi.fn(),
-    write: vi.fn(),
-    chain: {
-      get: vi.fn().mockReturnValue({
-        filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
-        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
-        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
-      }),
-    },
-    data: { field_mapper: [] },
-  },
+  default: getFieldMapperDbMock,
 }));
 vi.mock('../../../src/services/contentMapper.service.js', () => ({
   contentMapperService: {
@@ -577,8 +588,7 @@ describe('projects.service', () => {
       const mockModel = await import('../../../src/models/project-lowdb.js');
       (mockModel.default as any).data = { projects: [project] };
 
-      const ctMock = await import('../../../src/models/contentTypesMapper-lowdb.js');
-      (ctMock.default as any).chain.get.mockReturnValue({
+      (mockContentTypesDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue({
         find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue({ id: 'ct-1', fieldMapping: [] }) }),
         findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
       });

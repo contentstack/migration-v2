@@ -239,6 +239,7 @@ const createInitialMapper = async (systemConfig, prefix) => {
       (contentType) => contentType && contentType.toLowerCase() !== 'profile'
     );
 
+    const entryMapping = await extractEntries(connection, prefix);
     // Process each content type
     for (const contentType of contentTypes) {
       // Extra safety check - skip if contentType is profile (case-insensitive)
@@ -263,7 +264,8 @@ const createInitialMapper = async (systemConfig, prefix) => {
         contentstackTitle: contenttypeTitle.charAt(0).toUpperCase() + contenttypeTitle.slice(1),
         contentstackUid: uidCorrector(contenttypeTitle, prefix),
         type: 'content_type',
-        fieldMapping: []
+        fieldMapping: [],
+        entryMapping: entryMapping[contentType] || []
       };
 
       // Map fields using contentTypeMapper, passing actual taxonomy usage

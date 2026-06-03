@@ -23,7 +23,8 @@ import {
   getExistingGlobalFields,
   startMigration,
   updateMigrationKey,
-  updateLocaleMapper
+  updateLocaleMapper,
+  restartMigration
 } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
@@ -60,6 +61,7 @@ import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
+import AutoMappedMergeConfirmModal from '../../components/Common/AutoMappedMergeConfirmModal';
 import { getMigratedStacks } from '../../services/api/project.service';
 import { getConfig } from '../../services/api/upload.service';
 import { useWarnOnRefresh } from '../../hooks/useWarnOnrefresh';
@@ -749,6 +751,22 @@ const Migration = () => {
    * Calls when click Continue button on Content Mapper step and handles to proceed to Test Migration
    */
   const handleOnClickContentMapper = async (event: MouseEvent) => {
+    const persistAutoMappedContentMapper = async (): Promise<boolean> => {
+      try {
+        await saveRef?.current?.handleUpdateAutoMappedContentMapping?.();
+        return true;
+      } catch {
+        Notification({
+          notificationContent: {
+            text: 'Could not save content type mapping. Please try again.'
+          },
+          notificationProps: { position: 'bottom-center', hideProgressBar: true },
+          type: 'error'
+        });
+        return false;
+      }
+    };
+
     if (newMigrationData?.content_mapping?.isDropDownChanged) {
       setIsModalOpen(true);
 
@@ -760,6 +778,7 @@ const Migration = () => {
             otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
             saveContentType={saveRef?.current?.handleSaveContentType}
             changeStep={async () => {
+              if (!(await persistAutoMappedContentMapper())) return;
               const url = `/projects/${projectId}/migration/steps/4`;
               navigate(url, { replace: true });
 
@@ -775,14 +794,35 @@ const Migration = () => {
         }
       });
     } else {
-
-      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+      const finishContentMapperNavigation = async () => {
+        if (!(await persistAutoMappedContentMapper())) return;
+        await updateCurrentStepData(selectedOrganisation.value, projectId);
         setIsLoading(false);
-        event.preventDefault();
+        event?.preventDefault?.();
         handleStepChange(3);
         const url = `/projects/${projectId}/migration/steps/4`;
         navigate(url, { replace: true });
+      };
 
+      if (saveRef?.current?.shouldPromptShowAutoMappedMerge?.()) {
+        return cbModal({
+          component: (props: ModalObj) => (
+            <AutoMappedMergeConfirmModal
+              {...props}
+              onContinue={async () => {
+                props.closeModal();
+                await finishContentMapperNavigation();
+              }}
+            />
+          ),
+          modalProps: {
+            size: 'xsmall',
+            shouldCloseOnOverlayClick: false
+          }
+        });
+      }
+
+      await finishContentMapperNavigation();
     }
   };
 
@@ -808,39 +848,99 @@ const Migration = () => {
   const handleOnClickMigrationExecution = async () => {
     setIsLoading(true);
 
-    try {
-      const migrationRes = await startMigration(
-        newMigrationData?.destination_stack?.selectedOrg?.value,
-        projectId
-      );
+    if (newMigrationData?.stepValue !== 'Restart Migration') {
+      try {
+        const migrationRes = await startMigration(
+          newMigrationData?.destination_stack?.selectedOrg?.value,
+          projectId
+        );
 
-      if (migrationRes?.status === 200) {
-        setIsLoading(false);
-        setDisableMigration(true);
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          migration_execution: {
-            ...newMigrationData?.migration_execution,
-            migrationStarted: true
-          }
-        };
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        if (migrationRes?.status === 200) {
+          setDisableMigration(true);
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            migration_execution: {
+              ...newMigrationData?.migration_execution,
+              migrationStarted: true
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
 
+          Notification({
+            notificationContent: { text: 'Migration Execution process started' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'message'
+          });
+        } else {
+          Notification({
+            notificationContent: {
+              text: migrationRes?.data?.error?.message || 'Failed to start migration'
+            },
+            type: 'error'
+          });
+        }
+      } catch (error) {
+        console.error(error);
         Notification({
-          notificationContent: { text: 'Migration Execution process started' },
-          notificationProps: {
-            position: 'bottom-center',
-            hideProgressBar: true
-          },
-          type: 'message'
+          notificationContent: { text: 'Failed to start migration' },
+          type: 'error'
         });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      // return error;
-      console.error(error);
+    } else {
+      await handleRestartMigration();
+      setIsLoading(false);
     }
   };
 
+  const handleRestartMigration = async () => {
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        projectStatus: 0,
+        currentStep: 1,
+        uploadedFile: {
+          ...newMigrationData?.legacy_cms?.uploadedFile,
+          isValidated: false
+        }
+      },
+      migration_execution: {
+        ...newMigrationData?.migration_execution,
+        migrationStarted: false,
+        migrationCompleted: false
+      },
+      project_current_step: 1,
+      iteration: newMigrationData?.iteration ? newMigrationData?.iteration + 1 : 1
+    };
+    dispatch(updateNewMigrationData(newMigrationDataObj));
+    try {
+      const res = await restartMigration(selectedOrganisation?.value, projectId);
+      if (res?.status === 200) {
+        Notification({
+          notificationContent: { text: 'Migration restarted successfully' },
+          type: 'success'
+        });
+        navigate(`/projects/${projectId}/migration/steps/1`);
+      } else {
+        Notification({
+          notificationContent: { text: 'Failed to restart migration' },
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Notification({
+        notificationContent: { text: 'Failed to restart migration' },
+        type: 'error'
+      });
+    }
+  };
+  
   /**
    * Once Save Changes Modal is shown, Change the dropdown state to false and store in rdux
    */

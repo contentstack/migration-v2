@@ -12,6 +12,8 @@ vi.mock('../../../src/controllers/projects.contentMapper.controller.js', () => (
     resetContentType: vi.fn((_req: any, res: any) => res.status(200).json({})),
     removeContentMapper: vi.fn((_req: any, res: any) => res.status(200).json({})),
     updateContentMapper: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    getEntryMapping: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    updateEntryStatus: vi.fn((_req: any, res: any) => res.status(200).json({})),
   },
 }));
 

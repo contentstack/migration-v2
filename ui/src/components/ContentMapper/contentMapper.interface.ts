@@ -191,6 +191,8 @@ export interface ContentTypeMap {
 
 export interface ContentTypeSaveHandles {
   handleSaveContentType: () => void;
+  handleUpdateAutoMappedContentMapping: () => Promise<void>;
+  shouldPromptShowAutoMappedMerge: () => boolean;
 }
 export type MouseOrKeyboardEvent =
   | React.MouseEvent<HTMLElement, MouseEvent>
@@ -223,4 +225,17 @@ export interface ModifiedField {
   uid: string;
   _canSelect?: boolean;
   contentstackFieldType?: string;
+}
+
+export interface EntryMapperType {
+  id: string;
+  projectId: string;
+  contentTypeId: string;
+  contentTypeUid: string;
+  entryName: string;
+  otherCmsEntryUid: string;
+  isUpdate: boolean;
+  contentstackEntryUid?: string;
+  _canSelect?: boolean;
+  isDuplicateEntry?: boolean;
 }

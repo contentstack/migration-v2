@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import config from '../../config';
+import config from '../../config/index.json';
 
 interface AWSCredentials {
   accessKeyId: string;
@@ -15,6 +15,7 @@ interface S3ClientConfig {
 //process.env.AWS_ACCESS_KEY_ID ??
 //process.env.AWS_SECRET_ACCESS_KEY ??
 //process.env.AWS_SESSION_TOKEN ??
+
 const clientConfig: S3ClientConfig = {
   region: config?.awsData?.awsRegion,
   credentials: {

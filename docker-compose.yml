@@ -35,6 +35,7 @@ services:
     volumes:
       - ${DOCKER_MOUNT_PATH:-${CMS_DATA_PATH}}:${CONTAINER_PATH}:ro
       - shared_data:/app/extracted_files
+      - ${HOST_DATA_DIR:-/Users}:/hostdata:ro
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - CMS_TYPE=${CMS_TYPE}
@@ -43,6 +44,7 @@ services:
       - NODE_BACKEND_API=${NODE_BACKEND_API:-http://migration-api:5001}
       - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
       - CMS_LOCAL_PATH=${CMS_LOCAL_PATH:-}
+      - HOST_DATA_DIR=${HOST_DATA_DIR:-/Users}
       - MYSQL_HOST=${MYSQL_HOST:-}
       - MYSQL_USER=${MYSQL_USER:-}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}

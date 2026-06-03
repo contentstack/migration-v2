@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockHttps } = vi.hoisted(() => ({ mockHttps: vi.fn() }));
+const { mockHttps, mockSsoRequest } = vi.hoisted(() => ({
+  mockHttps: vi.fn(),
+  mockSsoRequest: vi.fn(),
+}));
 
 vi.mock('../../../src/utils/https.utils.js', () => ({
   default: mockHttps,
+}));
+
+vi.mock('../../../src/utils/sso-request.utils.js', () => ({
+  requestWithSsoTokenRefresh: (...args: unknown[]) => mockSsoRequest(...args),
 }));
 
 vi.mock('../../../src/utils/index.js', async (importOriginal) => {
@@ -20,6 +27,7 @@ import fetchAllPaginatedData from '../../../src/utils/pagination.utils.js';
 describe('pagination.utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSsoRequest.mockResolvedValue([null, { data: { items: [] } }]);
   });
 
   it('should fetch a single page of data', async () => {
@@ -79,5 +87,22 @@ describe('pagination.utils', () => {
     await expect(
       fetchAllPaginatedData('https://api.example.com/data', {}, 100, 'testFunc', 'items')
     ).rejects.toThrow('is not iterable');
+  });
+
+  it('uses requestWithSsoTokenRefresh when is_sso token payload is passed', async () => {
+    mockSsoRequest.mockResolvedValue([null, { data: { items: [{ id: 'a' }] } }]);
+
+    const result = await fetchAllPaginatedData(
+      'https://api.example.com/data',
+      {},
+      100,
+      'ssoFunc',
+      'items',
+      { region: 'NA', user_id: 'u1', is_sso: true }
+    );
+
+    expect(mockSsoRequest).toHaveBeenCalled();
+    expect(mockHttps).not.toHaveBeenCalled();
+    expect(result).toEqual([{ id: 'a' }]);
   });
 });
