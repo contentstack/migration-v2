@@ -66,6 +66,7 @@ interface Project {
   mapperKeys: object;
   extract_path: string;
   site_config?: { baseUrl: string; restApiPath: string };
+  acfExportDir?: string;
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;

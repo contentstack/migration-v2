@@ -14,6 +14,7 @@ export interface Field {
   backupFieldType: string;
   backupFieldUid: string;
   advanced?: FieldAdvanced;
+  _schemaSignature?: string;
   isDeleted?: boolean;
   refrenceTo?: string[];
   css?: {
@@ -36,8 +37,8 @@ export interface DataConfig {
         bucketName: string,
         bucketKey: string
     },
-    localPath: string
-      
+    localPath: string,
+    acfExportDir?: string
 }
 
 export type CT = Field[];

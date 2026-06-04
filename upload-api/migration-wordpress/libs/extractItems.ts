@@ -10,7 +10,7 @@ import helper from "../utils/helper";
 import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
 import { DataConfig, Field, CT } from '../interface/interface';
-import { handleAcfData, acfMpapperGenerator } from './extractAcfData';
+import { handleAcfData, acfMpapperGenerator, acfMapperFromExportFiles } from './extractAcfData';
 
 const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
@@ -258,10 +258,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     let isCategories : boolean = false;
     let isTermReffered : boolean = false;
 
-    const postAcfData = await helper.fetchPostData(type, config);
-
-    const acfContentData = await handleAcfData(postAcfData);
-    const acfContentMapper = await acfMpapperGenerator(acfContentData);
+    const acfContentMapper = config.acfExportDir
+      ? await acfMapperFromExportFiles(config.acfExportDir, type)
+      : await acfMpapperGenerator(await handleAcfData(await helper.fetchPostData(type, config)));
     // console.log(acfContentMapper);
 
     // const typeDir = path.join(contentTypeFolderPath);

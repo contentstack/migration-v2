@@ -153,6 +153,10 @@ const putTestData = async (req: Request) => {
         ProjectModelLowdb.data.projects[index].site_config = req.body.siteConfig;
       }
 
+      if (req?.body?.acfExportDir) {
+        ProjectModelLowdb.data.projects[index].acfExportDir = req.body.acfExportDir;
+      }
+
       // Update assetsConfig if provided (for Drupal asset URL configuration)
       if (
         req?.body?.assetsConfig &&

@@ -41,6 +41,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         contentTypes: [],
         extractPath: filePath,
         ...(config?.siteConfig && { siteConfig: config.siteConfig }),
+        ...(config?.acfExportDir && { acfExportDir: config.acfExportDir }),
       };
       contentTypeData.forEach((contentType: any) => {
         const jsonfileContent = contentType;
