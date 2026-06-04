@@ -2,7 +2,7 @@
 
 import { Request } from 'express';
 import ProjectModelLowdb from '../models/project-lowdb.js';
-import ContentTypesMapperModelLowdb from '../models/contentTypesMapper-lowdb.js';
+import ContentTypesMapperModelLowdb, { getContentTypesMapperDb } from '../models/contentTypesMapper-lowdb.js';
 import FieldMapperModel from '../models/FieldMapper.js';
 
 import {
@@ -26,6 +26,7 @@ import logger from "../utils/logger.js";
 import AuthenticationModel from "../models/authentication.js";
 // import { contentMapperService } from "./contentMapper.service.js";
 import { v4 as uuidv4 } from 'uuid';
+import getFieldMapperDb from '../models/FieldMapper.js';
 
 /**
  * Retrieves all projects based on the provided request object.
@@ -163,6 +164,7 @@ const createProject = async (req: Request) => {
     isMigrationCompleted:false,
     migration_execution:false,
     isSSO: isSSO,
+    iteration: 1,
   };
 
   try {
@@ -1155,6 +1157,9 @@ const deleteProject = async (req: Request) => {
   if (projects?.status == NEW_PROJECT_STATUS[5]) {
     const content_mapper_id = projects?.content_mapper;
 
+    const iteration = projects?.iteration || 0;
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
     await FieldMapperModel.read();
     if (!isEmpty(content_mapper_id) && Array.isArray(content_mapper_id)) {

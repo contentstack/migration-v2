@@ -24,7 +24,8 @@ describe('contentTypesMapper-lowdb model', () => {
   });
 
   it('should export db with ContentTypesMappers array in default data', async () => {
-    const contentTypesDb = (await import('../../../src/models/contentTypesMapper-lowdb.js')).default;
+    const getContentTypesMapperDb = (await import('../../../src/models/contentTypesMapper-lowdb.js')).default;
+    const contentTypesDb = getContentTypesMapperDb('test-project', 0);
 
     expect(contentTypesDb).toBeDefined();
     expect(contentTypesDb.data).toBeDefined();
@@ -34,7 +35,8 @@ describe('contentTypesMapper-lowdb model', () => {
   });
 
   it('should have correct default structure for ContentTypeMapperDocument', async () => {
-    const contentTypesDb = (await import('../../../src/models/contentTypesMapper-lowdb.js')).default;
+    const getContentTypesMapperDb = (await import('../../../src/models/contentTypesMapper-lowdb.js')).default;
+    const contentTypesDb = getContentTypesMapperDb('test-project', 0);
 
     expect(contentTypesDb.data).toMatchObject({
       ContentTypesMappers: [],

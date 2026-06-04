@@ -10,6 +10,7 @@ vi.mock('../../../src/controllers/migration.controller.js', () => ({
     getAuditData: vi.fn((_req: any, res: any) => res.status(200).json({})),
     saveLocales: vi.fn((_req: any, res: any) => res.status(200).json({})),
     saveMappedLocales: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    restartMigration: vi.fn((_req: any, res: any) => res.status(200).json({})),
   },
 }));
 

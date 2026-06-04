@@ -191,8 +191,8 @@ export interface IDestinationStack {
   csLocale: string[];
 }
 export interface IContentMapper {
-  existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
-  existingCT: ContentTypeList[] | (() => ContentTypeList[]);
+  existingGlobal: ContentTypeList[];
+  existingCT: ContentTypeList[];
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
@@ -216,6 +216,8 @@ export interface INewMigration {
   migration_execution: IMigrationExecutionStep;
   project_current_step: number;
   settings:ISetting;
+  iteration: number;
+  stepValue?: string;
 }
 
 export interface TestStacks {
@@ -405,6 +407,8 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   project_current_step: 0,
   settings: DEFAULT_SETTING,
   isContentMapperGenerated: false,
+  iteration: 1,
+  stepValue: 'Save and Continue',
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {

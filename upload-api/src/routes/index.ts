@@ -2,7 +2,7 @@ import path from 'path';
 import multer from 'multer';
 import { Readable } from 'stream';
 import express, { Router, Request, Response } from 'express';
-import { createReadStream, statSync } from 'fs';
+import { createReadStream, statSync, promises as fsPromises } from 'fs';
 import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
@@ -10,16 +10,186 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter } from '../helper';
+import { fileOperationLimiter, updateConfigFile } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
-import config from '../config/index';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
+import { runningInDocker } from '../utils/hydrate-config';
+import logger from '../utils/logger';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Copy a file or directory from the host into the container's shared extracted_files volume.
+// Host filesystem is mounted at /host (read-only) via docker-compose.
+// Accepts: { localPath: string } — the path the user typed in the UI.
+// If localPath has a file extension → copy single file.
+// If no extension → treat as directory, copy recursively.
+router.post('/upload-to-container', express.json(), async function (req: Request, res: Response) {
+  try {
+    const rawPath: string = req.body?.localPath || '';
+    if (!rawPath) {
+      return res.status(400).json({ status: 400, message: 'localPath is required.' });
+    }
+
+    if (!runningInDocker()) {
+      // Local: no file copy needed, just update config with the raw path
+      await updateConfigFile(rawPath);
+      return res.status(200).json({ status: 200, containerPath: rawPath });
+    }
+
+    // Docker: resolve host path via /hostdata mount (/Users is mounted at /hostdata)
+    const hostDataDir = process.env.HOST_DATA_DIR || '/Users';
+    const relativePath = rawPath.startsWith(hostDataDir)
+      ? rawPath.slice(hostDataDir.length)
+      : rawPath;
+    const hostMountBase = '/hostdata';
+
+    // Break taint flow: rebuild each segment character-by-character from an allowlist.
+    // The resulting strings are freshly constructed and contain only safe characters,
+    // severing any taint propagation from the request body into fs.* calls.
+    const rawSegments = relativePath.split(/[\\/]+/).filter(Boolean);
+    const segments: string[] = [];
+    for (const raw of rawSegments) {
+      const clean = allowlistSegment(raw);
+      if (!clean || clean === '.' || clean === '..') {
+        return res.status(400).json({ status: 400, message: 'Invalid path.' });
+      }
+      segments.push(clean);
+    }
+    const hostPath = path.join(hostMountBase, ...segments);
+
+    // Defense-in-depth: still verify the resolved path is confined to the mount.
+    if (!isPathWithinBase(path.resolve(hostPath), hostMountBase)) {
+      return res.status(400).json({ status: 400, message: 'Invalid path.' });
+    }
+
+    // Verify the path is accessible via the /hostdata mount before responding.
+    await fsPromises.access(hostPath);
+
+    // Compute the final shared_data destination path.
+    // Return destPath immediately so the UI saves it to the project DB —
+    // migration-api will find the file there once the background copy finishes.
+    const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+    const name = sanitizeFilename(path.basename(rawPath));
+    const destPath = path.resolve(baseDir, name);
+
+    if (!isPathWithinBase(destPath, baseDir)) {
+      return res.status(400).json({ status: 400, message: 'Invalid destination path.' });
+    }
+
+    // Respond with destPath so file_path saved in project DB points to shared_data.
+    res.status(200).json({ status: 200, containerPath: destPath });
+
+    // Background: copy file/dir into shared_data volume so migration-api can access it.
+    (async () => {
+      try {
+        const hasExtension = path.extname(rawPath) !== '';
+        if (hasExtension) {
+          // Rebuild source & destination paths at the sink using only trusted bases
+          // and freshly allowlist-built segments. No tainted string reaches copyFile.
+          const cleanSegs: string[] = [];
+          for (const s of segments) {
+            const c = allowlistSegment(s);
+            if (!c || c === '.' || c === '..') return;
+            cleanSegs.push(c);
+          }
+          const cleanName = allowlistSegment(name);
+          if (!cleanName || cleanName === '.' || cleanName === '..') return;
+
+          const trustedSrcBase = path.resolve(hostMountBase);
+          const trustedDestBase = path.resolve(baseDir);
+          const safeSrc = path.resolve(trustedSrcBase, ...cleanSegs);
+          const safeDest = path.resolve(trustedDestBase, cleanName);
+
+          if (
+            !isPathWithinBase(safeSrc, trustedSrcBase) ||
+            !isPathWithinBase(safeDest, trustedDestBase)
+          ) {
+            return;
+          }
+
+          await fsPromises.mkdir(trustedDestBase, { recursive: true });
+          await fsPromises.cp(safeSrc, safeDest, {
+            recursive: false,
+            dereference: false,
+            verbatimSymlinks: true,
+            filter: (source: string) => isPathWithinBase(path.resolve(source), trustedSrcBase)
+          });
+        } else {
+          // Pass only the validated segments + trusted bases — no tainted strings cross the boundary.
+          await copyDirRecursive(segments, [name], hostMountBase, baseDir);
+        }
+        await updateConfigFile(destPath);
+        logger.info('Background copy complete', { destPath });
+      } catch (copyErr) {
+        logger.error('Background copy failed', { err: copyErr });
+      }
+    })();
+  } catch (err: any) {
+    logger.error('upload-to-container error', { err });
+    return res.status(500).json({ status: 500, message: 'Upload failed.', error: err.message });
+  }
+});
+
+const ALLOWED_PATH_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.- ';
+
+// Allowlist-rebuilds a string char-by-char to produce a fresh, untainted value.
+function allowlistSegment(input: string): string {
+  let out = '';
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charAt(i);
+    if (ALLOWED_PATH_CHARS.indexOf(ch) !== -1) out += ch;
+  }
+  return out;
+}
+
+async function copyDirRecursive(
+  srcSegments: string[],
+  destSegments: string[],
+  srcBase: string,
+  destBase: string
+): Promise<void> {
+  // Re-sanitize every segment at the sink boundary.
+  const cleanSrcSegs: string[] = [];
+  for (const s of srcSegments) {
+    const c = allowlistSegment(s);
+    if (!c || c === '.' || c === '..') return;
+    cleanSrcSegs.push(c);
+  }
+  const cleanDestSegs: string[] = [];
+  for (const s of destSegments) {
+    const c = allowlistSegment(s);
+    if (!c || c === '.' || c === '..') return;
+    cleanDestSegs.push(c);
+  }
+
+  const resolvedSrcBase = path.resolve(srcBase);
+  const resolvedDestBase = path.resolve(destBase);
+  const resolvedSrc = path.resolve(resolvedSrcBase, ...cleanSrcSegs);
+  const resolvedDest = path.resolve(resolvedDestBase, ...cleanDestSegs);
+
+  if (
+    !isPathWithinBase(resolvedSrc, resolvedSrcBase) ||
+    !isPathWithinBase(resolvedDest, resolvedDestBase)
+  ) {
+    return;
+  }
+
+  // Use fs.cp for the recursive copy — a single sink with built-in confinement,
+  // and a filter that re-validates each entry against the trusted source base.
+  await fsPromises.cp(resolvedSrc, resolvedDest, {
+    recursive: true,
+    dereference: false,
+    verbatimSymlinks: true,
+    filter: (source: string) => {
+      // Reject anything that escapes the trusted source base (symlink-out, traversal).
+      return isPathWithinBase(path.resolve(source), resolvedSrcBase);
+    }
+  });
+}
 
 // Define your routes
 router.post('/upload', upload.single('file'), async function (req: Request, res: Response) {
@@ -98,9 +268,19 @@ router.get(
       const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
-      const cmsType = config?.cmsType?.toLowerCase();
+      const rawFilePath = Array.isArray(req?.headers?.file_path) ? req?.headers?.file_path?.[0] : req?.headers?.file_path;
+      const filePath: string | undefined = rawFilePath && typeof rawFilePath === 'string' && rawFilePath.trim() !== '' ? rawFilePath.trim() : undefined;
+      const config = await updateConfigFile(filePath);
+      if (!config) {
+        logger.error('Failed to load application config');
+        return res.status(500).json({
+          status: 500,
+          message: 'Failed to load application configuration'
+        });
+      }
+      const cmsType = config.cmsType?.toLowerCase();
 
-      if (config?.isLocalPath) {
+      if (config.isLocalPath) {
         const localPath = config?.localPath || '';
 
         // Check if localPath indicates a SQL/MySQL connection (case-insensitive)
@@ -416,8 +596,15 @@ router.get(
 );
 
 router.get('/config', async function (req: Request, res: Response) {
-  // Strip mysql password before sending config to the client
-  const { password, ...safeMysql } = config?.mysql || {};
+  const config = await updateConfigFile();
+  if (!config) {
+    logger.error('Failed to load application config');
+    return res.status(500).json({
+      status: 500,
+      message: 'Failed to load application configuration'
+    });
+  }
+  const { password, ...safeMysql } = config.mysql || {};
   const safeConfig = {
     ...config,
     mysql: safeMysql

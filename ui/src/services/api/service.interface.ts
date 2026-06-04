@@ -78,3 +78,9 @@ export interface axiosResponse {
   status: number;
   statusText: string;
 }
+
+export interface FileValidationParams {
+  projectId: string;
+  affix?: string;
+  localPath?: string;
+}

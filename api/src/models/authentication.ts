@@ -2,6 +2,7 @@
 import path from 'path';
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
+import { DATABASE_FILES } from "../constants/index.js";
 /**
  * Represents the authentication document.
  */
@@ -23,7 +24,7 @@ const defaultData: AuthenticationDocument = { users: [] };
  * Represents the database instance for authentication data.
  */
 const db = new LowWithLodash(
-  new JSONFile<AuthenticationDocument>(path.join(process.cwd(), "database", "authentication.json")),
+  new JSONFile<AuthenticationDocument>(path.join(process.cwd(), DATABASE_FILES.DIRECTORY, DATABASE_FILES.AUTHENTICATION)),
   defaultData
 );
 

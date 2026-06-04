@@ -1,6 +1,8 @@
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 import path from "path";
+import fs from 'node:fs';
+import { DATABASE_FILES } from "../constants/index.js";
 
 /**
  * Represents the advanced configuration options for a field mapper.
@@ -46,11 +48,20 @@ interface FieldMapper {
 const defaultData: FieldMapper = { field_mapper: [] };
 
 /**
- * Represents the database instance for the FieldMapper model.
+ * Creates and returns a database instance for the field mapper for a specific project.
+ * @param projectId - The unique identifier of the project
+ * @returns The database instance for the field mapper
  */
-const db = new LowWithLodash(
-  new JSONFile<FieldMapper>(path.join(process.cwd(), "database", "field-mapper.json")),
-  defaultData
-);
+const getFieldMapperDb = (projectId: string, iteration: number) => {
+  fs.mkdirSync(path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString()), { recursive: true });
+  const db = new LowWithLodash(
+    new JSONFile<FieldMapper>(
+      path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString(), DATABASE_FILES.FIELD_MAPPER)
+    ),
+    defaultData
+  );
+  return db;
+};
 
-export default db;
+export default getFieldMapperDb;
+

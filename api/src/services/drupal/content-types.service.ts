@@ -6,8 +6,9 @@ import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 import { convertToSchemaFormate } from '../../utils/content-type-creator.utils.js';
 import { getLogMessage } from '../../utils/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';
-import FieldMapperModel from '../../models/FieldMapper.js';
-import ContentTypesMapperModelLowdb from '../../models/contentTypesMapper-lowdb.js';
+import getFieldMapperDb from '../../models/FieldMapper.js';
+import getContentTypesMapperDb from '../../models/contentTypesMapper-lowdb.js';
+import ProjectModelLowdb from '../../models/project-lowdb.js';
 
 const { DATA, CONTENT_TYPES_DIR_NAME, CONTENT_TYPES_SCHEMA_FILE } =
   MIGRATION_DATA_CONFIG;
@@ -72,6 +73,14 @@ export const generateContentTypeSchemas = async (
     }
 
     // Load saved field mappings from database to get UI selections
+    await ProjectModelLowdb.read();
+    const projectData: any = ProjectModelLowdb.chain
+      .get('projects')
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     await FieldMapperModel.read();
     await ContentTypesMapperModelLowdb.read();
 

@@ -7,7 +7,7 @@ const { mockS3Client } = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('../../../src/config', () => ({
+vi.mock('../../../src/config/index.json', () => ({
   default: {
     awsData: {
       awsRegion: 'us-east-2',

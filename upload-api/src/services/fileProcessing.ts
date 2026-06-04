@@ -1,8 +1,7 @@
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { parseXmlToJson, saveJson, saveZip } from '../helper';
+import { parseXmlToJson, saveJson, saveZip, updateConfigFile } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
-import config from '../config/index';
 import logger from '../utils/logger.js';
 
 const handleFileProcessing = async (
@@ -11,6 +10,15 @@ const handleFileProcessing = async (
   cmsType: string,
   name: string
 ) => {
+  const config = await updateConfigFile();
+  if (!config) {
+    logger.error('Failed to load application config');
+    return {
+      status: HTTP_CODES.SERVER_ERROR,
+      message: HTTP_TEXTS.INTERNAL_ERROR,
+      file_details: undefined
+    };
+  }
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
