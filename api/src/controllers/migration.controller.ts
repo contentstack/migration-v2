@@ -58,7 +58,9 @@ const startTestMigration = async (req: Request, res: Response): Promise<void> =>
  */
 const startMigration = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.startMigration(req);
-  res.status(resp?.status).json(resp);
+  // Service may return void (e.g. when running a long async import) — default
+  // to 200 so Express doesn't crash with "Invalid status code: undefined".
+  res.status(resp?.status ?? 200).json(resp ?? { status: 200 });
 };
 
 /**

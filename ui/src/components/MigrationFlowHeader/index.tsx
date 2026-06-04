@@ -12,7 +12,6 @@ import { MigrationResponse } from '../../services/api/service.interface';
 
 // CSS
 import './index.scss';
-import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 type MigrationFlowHeaderProps = {
   handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;

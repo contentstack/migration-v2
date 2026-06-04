@@ -452,45 +452,53 @@ const startTestMigration = async (req: Request): Promise<any> => {
       testMigrationDataBase,
       path.join(testMigrationDataBase, safeTestStackId)
     );
-    const contentTypes = await fieldAttacher({
-      orgId,
-      projectId: safeTestProjectId,
-      destinationStackId: safeTestStackId,
-      region,
-      user_id,
-      is_sso,
-    });
-
-    await marketPlaceAppService?.createAppManifest({
-      orgId,
-      destinationStackId: project?.current_test_stack_id,
-      marketplaceSourceStackId: project?.destination_stack_id,
-      region,
-      userId: user_id,
-    });
-    await extensionService?.createExtension({
-      destinationStackId: project?.current_test_stack_id,
-      existingStackId: project?.destination_stack_id,
-      token_payload: {
+    // For Contentstack-source migrations the official CLI handles content
+    // types, marketplace apps, extensions, taxonomies and global fields from
+    // the export folder. Skip the per-API pre-create steps below which are
+    // meant for non-CS sources and otherwise fail with "stack api key is not
+    // valid" against the destination stack.
+    let contentTypes: any = [];
+    if (cms !== CMS.CONTENTSTACK) {
+      contentTypes = await fieldAttacher({
+        orgId,
+        projectId: safeTestProjectId,
+        destinationStackId: safeTestStackId,
         region,
         user_id,
         is_sso,
-      },
-    });
-    await taxonomyService?.createTaxonomy({
-      orgId,
-      projectId,
-      stackId: project?.destination_stack_id,
-      current_test_stack_id: project?.current_test_stack_id,
-      region,
-      userId: user_id,
-    });
-    await globalFieldServie?.createGlobalField({
-      region,
-      user_id,
-      stackId: project?.destination_stack_id,
-      current_test_stack_id: project?.current_test_stack_id,
-    });
+      });
+
+      await marketPlaceAppService?.createAppManifest({
+        orgId,
+        destinationStackId: project?.current_test_stack_id,
+        marketplaceSourceStackId: project?.destination_stack_id,
+        region,
+        userId: user_id,
+      });
+      await extensionService?.createExtension({
+        destinationStackId: project?.current_test_stack_id,
+        existingStackId: project?.destination_stack_id,
+        token_payload: {
+          region,
+          user_id,
+          is_sso,
+        },
+      });
+      await taxonomyService?.createTaxonomy({
+        orgId,
+        projectId,
+        stackId: project?.destination_stack_id,
+        current_test_stack_id: project?.current_test_stack_id,
+        region,
+        userId: user_id,
+      });
+      await globalFieldServie?.createGlobalField({
+        region,
+        user_id,
+        stackId: project?.destination_stack_id,
+        current_test_stack_id: project?.current_test_stack_id,
+      });
+    }
 
     switch (cms) {
       case CMS.CONTENTSTACK: {
@@ -958,43 +966,50 @@ const startMigration = async (req: Request): Promise<any> => {
       path.join(finalMigrationDataBase, safeFinalStackId)
     );
 
-    const contentTypes = await fieldAttacher({
-      orgId,
-      projectId: safeFinalProjectId,
-      destinationStackId: safeFinalStackId,
-      region,
-      user_id,
-      is_sso,
-    });
-    await marketPlaceAppService?.createAppManifest({
-      orgId,
-      destinationStackId: project?.destination_stack_id,
-      region,
-      userId: user_id,
-    });
-    await extensionService?.createExtension({
-      destinationStackId: project?.destination_stack_id,
-      existingStackId: project?.source_stack_id,
-      token_payload: {
+    // See note in startTestMigration: Contentstack-source migrations let
+    // the CLI handle these modules from the export — skip the per-API
+    // pre-create steps to avoid hitting destination APIs with a wrong
+    // source-stack context.
+    let contentTypes: any = [];
+    if (cms !== CMS.CONTENTSTACK) {
+      contentTypes = await fieldAttacher({
+        orgId,
+        projectId: safeFinalProjectId,
+        destinationStackId: safeFinalStackId,
         region,
         user_id,
         is_sso,
-      },
-    });
-    await taxonomyService?.createTaxonomy({
-      orgId,
-      projectId,
-      stackId: project?.destination_stack_id,
-      current_test_stack_id: project?.destination_stack_id,
-      region,
-      userId: user_id,
-    });
-    await globalFieldServie?.createGlobalField({
-      region,
-      user_id,
-      stackId: project?.destination_stack_id,
-      current_test_stack_id: project?.destination_stack_id,
-    });
+      });
+      await marketPlaceAppService?.createAppManifest({
+        orgId,
+        destinationStackId: project?.destination_stack_id,
+        region,
+        userId: user_id,
+      });
+      await extensionService?.createExtension({
+        destinationStackId: project?.destination_stack_id,
+        existingStackId: project?.source_stack_id,
+        token_payload: {
+          region,
+          user_id,
+          is_sso,
+        },
+      });
+      await taxonomyService?.createTaxonomy({
+        orgId,
+        projectId,
+        stackId: project?.destination_stack_id,
+        current_test_stack_id: project?.destination_stack_id,
+        region,
+        userId: user_id,
+      });
+      await globalFieldServie?.createGlobalField({
+        region,
+        user_id,
+        stackId: project?.destination_stack_id,
+        current_test_stack_id: project?.destination_stack_id,
+      });
+    }
     switch (cms) {
       case CMS.CONTENTSTACK: {
         const sourceExportPath =
@@ -1246,6 +1261,11 @@ const startMigration = async (req: Request): Promise<any> => {
     let safeDeltaMigrationLogPath: string | undefined;
     const destinationStackId = project?.destination_stack_id;
 
+    // Contentstack-source migrations don't use the delta asset-tracking
+    // index — the CLI's cm:stacks:import imports assets directly from the
+    // source export. Skip the asset-index/delta-removal block and go
+    // straight to runCli below.
+    if (cms !== CMS.CONTENTSTACK) {
     const safeStackForAssets = sanitizeStackId(project?.destination_stack_id);
     if (!safeStackForAssets) {
       await customLogger(projectId, destinationStackId, 'error', 'Invalid destination stack id; cannot load assets index.');
@@ -1335,6 +1355,7 @@ const startMigration = async (req: Request): Promise<any> => {
       await customLogger(projectId, destinationStackId, 'info', `Config file generated at ${configFilePath}`);
       console.info('Config file written to:', configFilePath);
       }
+    } // end if (cms !== CMS.CONTENTSTACK)
 
     await utilsCli?.runCli(
       region,

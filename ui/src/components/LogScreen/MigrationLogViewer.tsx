@@ -149,14 +149,21 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     }
   }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
 
-  // Reset notification flag when a new migration starts
+  // Reset completion-handled flag when a new migration starts so the
+  // completion effect can fire again for the next run.
   useEffect(() => {
-    if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
-      setHasShownCompletionNotification(false);
+    if (
+      newMigrationData?.migration_execution?.migrationStarted &&
+      !newMigrationData?.migration_execution?.migrationCompleted
+    ) {
+      finalMigrationCompletionHandledRef.current = false;
     }
-  }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
+  }, [
+    newMigrationData?.migration_execution?.migrationStarted,
+    newMigrationData?.migration_execution?.migrationCompleted
+  ]);
 
-  
+
   /**
    * Scrolls to the top of the logs container.
    */

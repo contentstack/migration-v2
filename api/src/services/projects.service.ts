@@ -1341,7 +1341,7 @@ const deleteProject = async (req: Request) => {
   if (projects?.status == NEW_PROJECT_STATUS[5]) {
     const content_mapper_id = projects?.content_mapper;
 
-    const iteration = projects?.iteration || 0;
+    const iteration = projects?.iteration || 1;
     const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
