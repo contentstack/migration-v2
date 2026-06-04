@@ -61,7 +61,6 @@ import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
-import AutoMappedMergeConfirmModal from '../../components/Common/AutoMappedMergeConfirmModal';
 import { getMigratedStacks } from '../../services/api/project.service';
 import { getConfig } from '../../services/api/upload.service';
 import { useWarnOnRefresh } from '../../hooks/useWarnOnrefresh';
