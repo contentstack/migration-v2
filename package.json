@@ -56,6 +56,6 @@
   },
   "dependencies": {
     "@contentstack/cli-utilities": "^1.18.3",
-    "qs": "^6.14.2"
+    "qs": "^6.15.2"
   }
 }
