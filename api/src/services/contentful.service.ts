@@ -250,7 +250,7 @@ function resolveFieldMappingRow(
     Boolean: "boolean",
     Date: "isodate",
   };
-  const expectCs = cfField?.type ? typeToCs[cfField.type as string] : undefined;
+  const expectCs = cfField?.type ? typeToCs[cfField?.type as string] : undefined;
   if (expectCs) {
     const byCs = candidates?.filter((c: any) => c?.contentstackFieldType === expectCs);
     if (byCs?.length >= 1) return byCs?.[0];

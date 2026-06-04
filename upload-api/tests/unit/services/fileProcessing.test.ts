@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockValidator, mockSaveZip, mockSaveJson, mockParseXmlToJson } = vi.hoisted(() => ({
-  mockValidator: vi.fn(),
-  mockSaveZip: vi.fn(),
-  mockSaveJson: vi.fn(),
-  mockParseXmlToJson: vi.fn(),
-}));
+const { mockValidator, mockSaveZip, mockSaveJson, mockParseXmlToJson, mockUpdateConfigFile } =
+  vi.hoisted(() => ({
+    mockValidator: vi.fn(),
+    mockSaveZip: vi.fn(),
+    mockSaveJson: vi.fn(),
+    mockParseXmlToJson: vi.fn(),
+    mockUpdateConfigFile: vi.fn(),
+  }));
 
 vi.mock('../../../src/validators/index', () => ({ default: mockValidator }));
 vi.mock('../../../src/helper/index', () => ({
@@ -15,13 +17,14 @@ vi.mock('../../../src/helper/index', () => ({
   fileOperationLimiter: vi.fn(),
   deleteFolderSync: vi.fn(),
   getFileName: vi.fn(),
+  updateConfigFile: (...args: unknown[]) => mockUpdateConfigFile(...args),
 }));
 
 vi.mock('../../../src/utils/logger', () => ({
   default: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock('../../../src/config/index', () => ({
+vi.mock('../../../src/config/index.json', () => ({
   default: {
     cmsType: 'wordpress',
     mysql: { host: 'localhost', user: 'root', password: 'pw', database: 'db', port: '3306' },
@@ -40,6 +43,13 @@ import handleFileProcessing from '../../../src/services/fileProcessing';
 describe('handleFileProcessing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUpdateConfigFile.mockResolvedValue({
+      cmsType: 'wordpress',
+      mysql: { host: 'localhost', user: 'root', password: 'pw', database: 'db', port: '3306' },
+      assetsConfig: { base_url: 'http://test.com', public_path: '/files' },
+      isLocalPath: true,
+      localPath: '',
+    });
   });
 
   describe('zip files', () => {

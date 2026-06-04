@@ -4,6 +4,7 @@ import path from 'path';
 import xml2js from 'xml2js';
 import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from '../utils/logger';
+import { getConfigFilePaths } from '../utils/hydrate-config';
 
 const getFileName = (params: { Key: string }) => {
   const obj: { fileName?: string; fileExt?: string } = {};
@@ -209,4 +210,31 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson };
+async function updateConfigFile(filePath?: string): Promise<any | undefined> {
+  try {
+    const { src: configFilePath } = getConfigFilePaths();
+    const config: any = JSON.parse(await fs.promises.readFile(configFilePath, 'utf8'));
+
+    // If filePath is provided and not empty, update the config file
+    if (filePath && typeof filePath === 'string' && filePath.trim() !== '') {
+      const resolvedFilePath = path.resolve(filePath.trim());
+
+      const updatedConfig = {
+        ...config,
+        localPath: resolvedFilePath
+      };
+
+      const configContent = JSON.stringify(updatedConfig, null, 2);
+      await fs.promises.writeFile(configFilePath, configContent, 'utf8');
+
+      return updatedConfig;
+    }
+
+    return config;
+  } catch (error) {
+    logger.error('Error updating config file', { err: error });
+    return undefined;
+  }
+}
+
+export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson, updateConfigFile };

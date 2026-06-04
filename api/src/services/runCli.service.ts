@@ -5,7 +5,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { v4 } from 'uuid';
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CS_REGIONS, MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES } from '../constants/index.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
 // import watchLogs from '../utils/watch.utils.js';
@@ -19,6 +19,8 @@ interface TestStack {
   isMigrated: boolean;
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
+import getUidMapperDb from '../models/uidMapper.js';
+import customLogger from '../utils/custom-logger.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -269,6 +271,13 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
+        await ProjectModelLowdb.read();
+        const projectData = ProjectModelLowdb.chain
+          .get("projects")
+          .find({ id: projectId })
+          .value();
+        const iteration = projectData?.iteration || 1;
+        await writeUidMapping(backupPath, projectId, iteration);
       }
 
       // Keep the project status update code:

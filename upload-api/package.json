@@ -9,8 +9,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "coverage:ui": "npx serve coverage -l 3939",
-    "start": "npm run build &&tsc && node build/index.js",
-    "startNew": "tsc && node build/index.js",
+    "hydrate-config": "ts-node --transpile-only -r dotenv/config scripts/hydrate-config.ts",
+    "start": "npm run build && tsc && npm run hydrate-config && node build/index.js",
+    "startNew": "tsc && npm run hydrate-config && node build/index.js",
     "validation": "tsc && node build/main.js",
     "prettify": "prettier --write .",
     "lint": "eslint .",
@@ -50,7 +51,7 @@
     "@typescript-eslint/parser": "^8.56.1",
     "@wordpress/block-library": "^9.46.0",
     "@wordpress/blocks": "^15.19.0",
-    "axios": "^1.15.2",
+    "axios": "^1.16.0",
     "chalk": "^4.1.2",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
@@ -80,7 +81,7 @@
   },
   "overrides": {
     "@contentstack/cli-utilities": {
-      "axios": ">=1.15.2"
+      "axios": ">=1.16.0"
     },
     "tmp": ">=0.2.4",
     "minimatch": ">=10.2.3",

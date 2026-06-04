@@ -26,8 +26,24 @@ import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import FieldMapperModel from '../models/FieldMapper.js';
 import { v4 as uuidv4 } from 'uuid';
-import ContentTypesMapperModelLowdb from '../models/contentTypesMapper-lowdb.js';
-import { ContentTypesMapper } from '../models/contentTypesMapper-lowdb.js';
+import getFieldMapperDb from "../models/FieldMapper.js";
+import getEntryMapperDb, { EntryMapper } from "../models/EntryMapper.js";
+import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
+import getUidMapperDb from "../models/uidMapper.js";
+import { isDuplicateEntry } from '../utils/entry-duplicate.utils.js';
+
+
+const idCorrector = ({ id }: { id: string }) => {
+  const newId = id?.replace(/[-{}]/g, (match) =>
+    match === '-' ? '' : ''
+  );
+  if (newId) {
+    return newId?.toLowerCase();
+  } else {
+    return id;
+  }
+};
+
 
 // Developer service to create dummy contentmapping data
 /**
@@ -37,16 +53,25 @@ import { ContentTypesMapper } from '../models/contentTypesMapper-lowdb.js';
  * @returns The updated project data.
  */
 const putTestData = async (req: Request) => {
-  const projectId = req.params.projectId;
-  const contentTypes = req.body.contentTypes;
+  const projectId = req?.params?.projectId;
+  const contentTypes = req?.body?.contentTypes;
 
   try {
+    // Get project data to extract iteration
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+
     /*
  this code snippet is iterating over an array called contentTypes and 
  transforming each element by adding a unique identifier (id) if it doesn't already exist. 
  The transformed elements are then stored in the contentType variable, 
  and the generated id values are pushed into the contentIds array.
  */
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
     if (!Array?.isArray?.(contentTypes)) {
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_INVALID);
@@ -67,13 +92,12 @@ const putTestData = async (req: Request) => {
         if (item?.refrenceTo) {
           item.initialRefrenceTo = item?.refrenceTo;
         }
-      });
+      })
     });
 
     const sanitizeObject = (obj: Record<string, any>) => {
       const blockedKeys = ['__proto__', 'prototype', 'constructor'];
       const safeObj: Record<string, any> = {};
-
       for (const key in obj) {
         if (!blockedKeys.includes(key)) {
           safeObj[key] = obj[key];
@@ -91,12 +115,21 @@ const putTestData = async (req: Request) => {
     It then updates the field_mapper property of a data object using the FieldMapperModel.update() function. 
     Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
     */
+
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await FieldMapperModel.read();
-    contentTypes.forEach((type: any, index: number) => {
+    
+    // Collect all fields from all content types first
+    const allFields: any[] = [];
+    
+    for (let index = 0; index < contentType?.length; index++) {
+      const type: any = contentTypes[index];
       const fieldIds: string[] = [];
 
-      const fields = Array.isArray(type?.fieldMapping)
-        ? type.fieldMapping.filter(Boolean).map((field: any) => {
+      const fields = Array.isArray(type?.fieldMapping) ?
+        type.fieldMapping
+          .filter(Boolean)
+          .map((field: any) => {
             const safeField = sanitizeObject(field);
 
             const id = safeField?.id
@@ -116,12 +149,9 @@ const putTestData = async (req: Request) => {
           })
         : [];
 
-      FieldMapperModel.update((data: any) => {
-        data.field_mapper = [
-          ...(Array.isArray(data?.field_mapper) ? data.field_mapper : []),
-          ...fields,
-        ];
-      });
+      // Add to collection instead of updating DB
+      allFields.push(...fields);
+      
       if (
         Array?.isArray?.(contentType) &&
         Number?.isInteger?.(index) &&
@@ -130,13 +160,107 @@ const putTestData = async (req: Request) => {
       ) {
         contentType[index].fieldMapping = fieldIds;
       }
+    }
+
+    // Single update with all fields
+    await FieldMapperModel.update((data: any) => {
+      data.field_mapper = allFields;
+    });
+
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+
+    const uidMapperCurrent = getUidMapperDb(projectId, iteration);
+    await uidMapperCurrent.read();
+    let uidMapperPrev: any = null;
+    if (iteration > 1) {
+      uidMapperPrev = getUidMapperDb(projectId, iteration - 1);
+      await uidMapperPrev.read();
+    }
+
+    const mergeEntry = (base: any, incoming: any) => {
+      const keep = { ...(base ?? {}) };
+      const add = { ...(incoming ?? {}) };
+
+      if (!keep?.contentstackEntryUid && add?.contentstackEntryUid) {
+        keep.contentstackEntryUid = add.contentstackEntryUid;
+      }
+
+      if (!keep?.id && add?.id) {
+        keep.id = add.id;
+      }
+
+      Object.keys(add).forEach((k) => {
+        if (add[k] !== undefined) {
+          keep[k] = add[k];
+        }
+      });
+
+      return keep;
+    };
+
+    const entryKey = (e: any) =>
+      `${e?.contentTypeId ?? e?.contentTypeUid ?? ''}:${e?.otherCmsEntryUid ?? ''}`;
+
+    // Collect all entries from all content types first
+    const allEntries: any[] = [];
+
+    for (let index = 0; index < contentTypes?.length; index++) {
+      const type: any = contentTypes[index];
+      const entryIds: string[] = [];
+
+      const entries = Array.isArray(type?.entryMapping) ?
+        type.entryMapping
+          .filter(Boolean)
+          .map((entry: any) => {
+            const id = entry?.id
+              ? entry.id.replace(/[{}]/g, '').toLowerCase()
+              : uuidv4();
+            entry.id = id;
+            entryIds.push(id);
+
+            const otherCmsUidRaw = (entry?.otherCmsEntryUid ?? id) as string;
+            const uidMapperValue = resolveContentstackEntryUidAcrossIterations(
+              entry?.otherCmsEntryUid,
+              id,
+              uidMapperCurrent,
+              uidMapperPrev,
+            );
+
+            return {
+              ...entry,
+              id,
+              otherCmsEntryUid: entry?.otherCmsEntryUid,
+              projectId,
+              contentTypeUid: entry?.contentTypeUid ?? type?.otherCmsUid ?? type?.contentTypeUid,
+              contentTypeId: type?.id,
+              isDeleted: false,
+              contentstackEntryUid: uidMapperValue,
+            };
+          })
+        : [];
+
+      // Add to collection instead of updating DB
+      allEntries.push(...entries);
+
+      if (
+        Array?.isArray?.(contentType) &&
+        Number?.isInteger?.(index) &&
+        index >= 0 &&
+        index < contentType?.length
+      ) {
+        contentType[index].entryMapping = entryIds;
+      }
+    }
+
+    // Single update with all entries
+    await EntryMapperModel.update((data: any) => {
+      data.entry_mapper = allEntries;
     });
 
     await ContentTypesMapperModelLowdb.update((data: any) => {
-      data.ContentTypesMappers = [
-        ...(data?.ContentTypesMappers ?? []),
-        ...contentType,
-      ];
+      // Simple approach: just replace with new content types
+      data.ContentTypesMappers = contentType;
     });
 
     await ProjectModelLowdb.read();
@@ -195,6 +319,8 @@ const putTestData = async (req: Request) => {
       .find({ id: projectId })
       .value();
 
+    await isDuplicateEntry(projectId);
+
     return {
       status: HTTP_CODES?.OK,
       data: pData,
@@ -237,7 +363,10 @@ const getContentTypes = async (req: Request) => {
       );
       throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
     }
-    const contentMapperId = projectDetails.content_mapper;
+    const contentMapperId = projectDetails?.content_mapper;
+    const iteration = projectDetails?.iteration || 0;
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
     await FieldMapperModel.read();
 
@@ -327,6 +456,13 @@ const getFieldMapping = async (req: Request) => {
   let totalCount = 0;
 
   try {
+    const project = ProjectModelLowdb.chain
+      .get('projects')
+      .find({ id: projectId })
+      .value();
+    const iteration = project?.iteration || 0;
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
 
     const contentType = ContentTypesMapperModelLowdb.chain
@@ -657,6 +793,9 @@ const updateContentType = async (req: Request) => {
   }
 
   try {
+    const iteration = project?.iteration || 0;
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
     const updateIndex = ContentTypesMapperModelLowdb.chain
       .get('ContentTypesMappers')
@@ -834,6 +973,9 @@ const resetToInitialMapping = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CANNOT_RESET_CONTENT_MAPPING);
   }
 
+  const iteration = project?.iteration || 0;
+  const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+  const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
   const contentTypeData = ContentTypesMapperModelLowdb.chain
     .get('ContentTypesMappers')
@@ -954,6 +1096,9 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
+  const iteration = projectDetails?.iteration || 0;
+  const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+  const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
   const cData = contentMapperId.map((cId: any) => {
     const contentTypeData = ContentTypesMapperModelLowdb.chain
@@ -1045,7 +1190,11 @@ const removeMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
+  const iteration = projectDetails?.iteration || 0;
+  const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+  const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
+  await FieldMapperModel.read();
   const cData = projectDetails?.content_mapper.map((cId: any) => {
     const contentTypeData = ContentTypesMapperModelLowdb.chain
       .get('ContentTypesMappers')
@@ -1231,7 +1380,11 @@ const removeContentMapper = async (req: Request) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
+  const iteration = projectDetails?.iteration || 0;
+  const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+  const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
+  await FieldMapperModel.read();
   const cData: ContentTypesMapper[] = projectDetails?.content_mapper.map(
     (cId: string) => {
       const contentTypeData: ContentTypesMapper =
@@ -1706,6 +1859,291 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
 
 }
 
+const updateEntryStatus = async (req: Request) => {
+  const { projectId } = req?.params;
+  const { ids } = req?.body;
+  const validatedUids: string[] = Array.isArray(ids) ? ids : [];
+  const srcFunc = "updateEntryMapping";
+  if (isEmpty(validatedUids)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Invalid ids"
+      )
+    );
+    return {
+      status: HTTP_CODES?.BAD_REQUEST,
+      data: {
+        message: "Invalid ids",
+      },
+    };
+  }
+  try {
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    const foundEntry: EntryMapper[] = [];
+    await EntryMapperModel.update((data: any) => {
+      data?.entry_mapper?.forEach((entry: any) => {
+        if (validatedUids.includes(entry?.id)) {
+          entry.isUpdate = !entry.isUpdate;
+          foundEntry.push(entry);
+        }
+      });
+    });
+
+    if (foundEntry) {
+      return {
+        status: HTTP_CODES?.OK,
+        data: foundEntry
+      };
+    }
+
+    return {
+      status: HTTP_CODES?.NOT_FOUND,
+      data: {
+        message: "Entry not found",
+      },
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while updating entry mapping",
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+    );
+  }
+
+
+}
+
+const getEntryMapping = async (req: Request) => {
+
+  const srcFunc = "getEntryMapping";
+  const contentTypeId = req?.params?.contentTypeId;
+  const projectId = req?.params?.projectId;
+  const skip: any = req?.params?.skip;
+  const limit: any = req?.params?.limit;
+  const search: string = req?.params?.searchText?.toLowerCase();
+
+  let result: any[] = [];
+  let filteredResult = [];
+  let totalCount = 0;
+
+  try {
+    // Get project iteration
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+    await ContentTypesMapperModelLowdb.read();
+
+    const contentType = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: contentTypeId, projectId: projectId })
+      .value();
+
+    if (isEmpty(contentType)) {
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+    }
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    let entryMapping = contentType?.entryMapping?.map?.((mapperUId: any) => {
+      const entryMapper = EntryMapperModel.chain
+        .get("entry_mapper")
+        .find({ id: mapperUId, projectId: projectId, contentTypeId: contentTypeId })
+        .value();
+
+      return entryMapper;
+    });
+
+    // Fallback: If no entry mappings found in current iteration and we have previous iteration
+    if ((!entryMapping || entryMapping?.length === 0 || entryMapping?.every((e: any) => !e)) && iteration > 1) {
+      const PrevEntryMapperModel = getEntryMapperDb(projectId, iteration - 1);
+      await PrevEntryMapperModel.read();
+      entryMapping = contentType?.entryMapping?.map?.((mapperUId: any) => {
+        const entryMapper = PrevEntryMapperModel.chain
+          .get("entry_mapper")
+          .find({ id: mapperUId, projectId: projectId, contentTypeId: contentTypeId })
+          .value();
+
+        return entryMapper;
+      });
+    }
+
+    const enrichedMapping = await enrichEntriesWithUidMapper(
+      projectId,
+      iteration,
+      entryMapping ?? [],
+    );
+
+    if (!isEmpty(enrichedMapping)) {
+      if (search) {
+        filteredResult = enrichedMapping?.filter?.((item: any) =>
+          item?.entryName?.toLowerCase().includes(search)
+        );
+        totalCount = filteredResult?.length;
+        result = filteredResult?.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = enrichedMapping?.length;
+        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
+      }
+    }
+    return {
+      status: HTTP_CODES?.OK,
+      count: totalCount,
+      entryMapping: result
+    };
+
+  } catch (error: any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while getting field mapping of projects",
+        error
+      )
+    );
+
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+
+  }
+};
+
+const resolveContentstackEntryUidAcrossIterations = (
+  otherCmsEntryUid: string | undefined,
+  fallbackId: string | undefined,
+  currentModel: any,
+  prevModel: any | null,
+): string | undefined => {
+  const fromCurrent = lookupContentstackEntryUidFromUidMap(
+    otherCmsEntryUid,
+    fallbackId,
+    currentModel,
+  );
+  if (fromCurrent) return fromCurrent;
+  if (prevModel) {
+    return lookupContentstackEntryUidFromUidMap(
+      otherCmsEntryUid,
+      fallbackId,
+      prevModel,
+    );
+  }
+  return undefined;
+};
+
+const lookupContentstackEntryUidFromUidMap = (
+  otherCmsEntryUid: string | undefined,
+  fallbackId: string | undefined,
+  uidMapperModel: any,
+): string | undefined => {
+  const map = getEntryUidMap(uidMapperModel);
+  const otherCmsUidRaw = (otherCmsEntryUid ?? fallbackId ?? '') as string;
+  if (!otherCmsUidRaw) return undefined;
+  const otherCmsUid = otherCmsUidRaw.replace(/[{}]/g, '');
+  const otherCmsUidLower = otherCmsUid ? otherCmsUid.toLowerCase() : '';
+  const resolved =
+    map[otherCmsUid] ||
+    map[otherCmsUidRaw] ||
+    map[otherCmsUidLower] ||
+    map[idCorrector({ id: otherCmsUid })] ||
+    (otherCmsUidLower ? map[idCorrector({ id: otherCmsUidLower })] : undefined);
+  if (resolved == null || resolved === '' || resolved === ' ') return undefined;
+  return String(resolved).trim() || undefined;
+};
+
+const getEntryUidMap = (uidMapperModel: any): Record<string, any> => {
+  const d = uidMapperModel?.data ?? {};
+  const pick = (x: unknown): Record<string, any> => {
+    if (!x || typeof x !== 'object' || Array.isArray(x)) return {};
+    return x as Record<string, any>;
+  };
+  const fromEntryUid = flattenNestedUidMap(pick(d.entryUid));
+  const fromEntry = flattenNestedUidMap(pick(d.entry));
+  const nUid = Object?.keys(fromEntryUid).length;
+  const nEnt = Object?.keys(fromEntry).length;
+  if (nUid > 0 && nEnt > 0) {
+    return { ...fromEntry, ...fromEntryUid };
+  }
+  if (nUid > 0) return fromEntryUid;
+  if (nEnt > 0) return fromEntry;
+  return {};
+};
+
+const flattenNestedUidMap = (raw: Record<string, any>): Record<string, any> => {
+  const keys = Object?.keys(raw ?? {});
+  if (keys?.length === 0) return {};
+  const nested = keys?.every((k) => {
+    const v = raw[k];
+    return v != null && typeof v === 'object' && !Array.isArray(v);
+  });
+  if (!nested) return { ...raw };
+  return keys.reduce<Record<string, any>>((acc, k) => ({ ...acc, ...raw[k] }), {});
+};
+
+/**
+ * Fill missing contentstackEntryUid from uid-mapper. Uses **current** iteration first
+ * (where the latest CLI import writes), then iteration-1 so step 3 still works right
+ * after restart before a re-import.
+ */
+const enrichEntriesWithUidMapper = async (
+  projectId: string,
+  iteration: number,
+  entries: any[],
+): Promise<any[]> => {
+  if (!Array.isArray(entries) || entries?.length === 0) return entries;
+
+  const currentModel = getUidMapperDb(projectId, iteration);
+  await currentModel.read();
+
+  let prevModel: any = null;
+  if (iteration > 1) {
+    prevModel = getUidMapperDb(projectId, iteration - 1);
+    await prevModel.read();
+  }
+
+  return entries?.map((item: any) => {
+    if (!item) return item;
+    const existing = item?.contentstackEntryUid;
+    if (existing != null && String(existing).trim() !== '' && existing !== ' ') {
+      return item;
+    }
+    const resolved = resolveContentstackEntryUidAcrossIterations(
+      item?.otherCmsEntryUid,
+      item?.id,
+      currentModel,
+      prevModel,
+    );
+    return resolved ? { ...item, contentstackEntryUid: resolved } : item;
+  });
+};
+
+
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -1722,4 +2160,6 @@ export const contentMapperService = {
   getSingleGlobalField,
   getExistingTaxonomies,
   getExistingExtensions,
+  getEntryMapping,
+  updateEntryStatus,
 };

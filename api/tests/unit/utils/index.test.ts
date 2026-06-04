@@ -51,6 +51,14 @@ describe('utils/index', () => {
     it('should return false for boolean', () => {
       expect(isEmpty(false)).toBe(false);
     });
+
+    it('should return true for empty array', () => {
+      expect(isEmpty([])).toBe(true);
+    });
+
+    it('should return false for symbol', () => {
+      expect(isEmpty(Symbol('x'))).toBe(false);
+    });
   });
 
   describe('safePromise', () => {
@@ -90,6 +98,16 @@ describe('utils/index', () => {
 
     it('should not include error key when error is not provided', () => {
       const log = getLogMessage('testMethod', 'test message');
+      expect(log).not.toHaveProperty('error');
+    });
+
+    it('omits user spread when user is null', () => {
+      const log = getLogMessage('testMethod', 'test message', null as unknown as Record<string, never>);
+      expect(log).not.toHaveProperty('user');
+    });
+
+    it('omits error spread when error is falsy', () => {
+      const log = getLogMessage('testMethod', 'test message', {}, 0 as unknown as undefined);
       expect(log).not.toHaveProperty('error');
     });
   });

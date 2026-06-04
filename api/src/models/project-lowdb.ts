@@ -1,6 +1,7 @@
 import path from 'path';
 import { JSONFile } from 'lowdb/node';
 import LowWithLodash from '../utils/lowdb-lodash.utils.js';
+import { DATABASE_FILES } from '../constants/index.js';
 
 /**
  * Represents the LegacyCMS object.
@@ -72,6 +73,7 @@ interface Project {
   migration_execution: boolean;
   taxonomies?: any[];
   isSSO: boolean;
+  iteration: number;
 }
 
 interface  ProjectDocument {
@@ -85,7 +87,7 @@ const defaultData: ProjectDocument = { projects: [] };
  */
 const db = new LowWithLodash(
   new JSONFile<ProjectDocument>(
-    path.join(process.cwd(), 'database', 'project.json'),
+    path.join(process.cwd(), DATABASE_FILES.DIRECTORY, DATABASE_FILES.PROJECT),
   ),
   defaultData,
 );

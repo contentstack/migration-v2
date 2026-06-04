@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci \
+RUN apk add --no-cache su-exec \
+    && npm ci \
     && addgroup -S nodeapp \
     && adduser -S nodeapp -G nodeapp
 
@@ -17,8 +18,6 @@ RUN mkdir -p /app/build \
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
-
-USER nodeapp
 
 EXPOSE 4002
 

@@ -109,14 +109,15 @@ describe('services/api/upload.service', () => {
       const mockResponse = { data: { valid: true }, status: 200 };
       mockedAxios.get.mockResolvedValue(mockResponse);
 
-      const result = await fileValidation('proj-1', 'cs');
+      const result = await fileValidation({ projectId: 'proj-1', affix: 'cs', localPath: '/tmp/file' });
       expect(mockedAxios.get).toHaveBeenCalledWith(
         'http://localhost:5002/validator',
         expect.objectContaining({
           headers: {
             app_token: 'mock-app-token',
             projectId: 'proj-1',
-            affix: 'cs'
+            affix: 'cs',
+            file_path: '/tmp/file'
           }
         })
       );
@@ -126,11 +127,11 @@ describe('services/api/upload.service', () => {
     it('should use "cs" as default affix', async () => {
       mockedAxios.get.mockResolvedValue({ data: {}, status: 200 });
 
-      await fileValidation('proj-1');
+      await fileValidation({ projectId: 'proj-1' });
       expect(mockedAxios.get).toHaveBeenCalledWith(
         'http://localhost:5002/validator',
         expect.objectContaining({
-          headers: expect.objectContaining({ affix: 'cs' })
+          headers: expect.objectContaining({ affix: 'cs', file_path: '' })
         })
       );
     });
@@ -198,7 +199,7 @@ describe('services/api/upload.service', () => {
       const errorResponse = { status: 400, data: { valid: false } };
       mockedAxios.get.mockRejectedValue({ response: errorResponse });
 
-      const result = await fileValidation('p');
+      const result = await fileValidation({ projectId: 'p' });
       expect(result).toEqual(errorResponse);
     });
 
