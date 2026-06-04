@@ -219,7 +219,6 @@ vi.mock('../../../src/utils/sanitize-path.utils.js', async (importOriginal) => {
   };
 });
 
-import path from 'path';
 import { migrationService } from '../../../src/services/migration.service.js';
 
 // Paths inside the allowlist used by assertExportPathInAllowedRoot.
