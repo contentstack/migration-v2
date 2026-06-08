@@ -3,6 +3,7 @@ import ProjectModelLowdb from "../models/project-lowdb.js";
 import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
+import { sanitizeStackId, assertResolvedPathUnderBase } from "./sanitize-path.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -17,6 +18,38 @@ const writeLogEntry = (message: string, methodName: string, loggerPath?: string)
         };
         fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
     }
+};
+
+/**
+ * Deletes the transformed entries tree for a stack before a fresh import.
+ *
+ * Each import run writes entry chunk files with fresh random UUID names and overwrites
+ * index.json, but never removes the previous run's chunk files. Those orphans carry
+ * stale (previous-iteration) content that can later clobber current data during update.
+ * Wiping the entries tree up front guarantees the importer starts from a clean slate.
+ *
+ * Scope is limited to the `entries/` subtree only — assets, references, environments,
+ * locales and content-type creation (driven by the lowdb mappers, not this folder) are
+ * untouched.
+ */
+export const clearStaleEntries = (stackId: string, loggerPath?: string): void => {
+    const safeStackId = sanitizeStackId(stackId);
+    if (!safeStackId) {
+        writeLogEntry(`Invalid stackId, skipping stale entries cleanup.`, "clearStaleEntries", loggerPath);
+        return;
+    }
+
+    const dataBase = path.resolve(process.cwd(), MIGRATION_DATA_CONFIG.DATA);
+    const entriesDir = path.join(dataBase, safeStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME);
+    assertResolvedPathUnderBase(dataBase, entriesDir);
+
+    if (!fs.existsSync(entriesDir)) {
+        writeLogEntry(`No existing entries directory to clear: ${entriesDir}`, "clearStaleEntries", loggerPath);
+        return;
+    }
+
+    fs.rmSync(entriesDir, { recursive: true, force: true });
+    writeLogEntry(`Cleared stale entries directory before import: ${entriesDir}`, "clearStaleEntries", loggerPath);
 };
 
 export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: string): Promise<string | null> => {
@@ -72,8 +105,21 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
         for (const localeDir of localeDirs) {
             const localePath = path.join(ctPath, localeDir.name);
-            const jsonFiles = fs.readdirSync(localePath)
-                ?.filter((file) => file?.endsWith(".json") && file !== "index.json");
+            // Respect index.json — only the chunk files it lists are current. Each import run
+            // writes chunk files with fresh random UUID names and overwrites index.json, but does
+            // not delete prior runs' chunk files. Globbing all *.json would pick up those orphans,
+            // whose stale (previous-iteration) content can then clobber the current entry data.
+            const indexPath = path.join(localePath, MIGRATION_DATA_CONFIG.ENTRIES_MASTER_FILE);
+            let jsonFiles: string[];
+            if (fs.existsSync(indexPath)) {
+                const indexData = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+                jsonFiles = Object.values(indexData)
+                    .filter((file): file is string => typeof file === "string" && file.endsWith(".json"));
+            } else {
+                // Legacy data without an index.json — fall back to globbing.
+                jsonFiles = fs.readdirSync(localePath)
+                    ?.filter((file) => file?.endsWith(".json") && file !== MIGRATION_DATA_CONFIG.ENTRIES_MASTER_FILE);
+            }
 
             for (const jsonFile of jsonFiles) {
                 const filePath = path.join(localePath, jsonFile);

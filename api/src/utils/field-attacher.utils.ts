@@ -4,6 +4,7 @@ import getFieldMapperDb from "../models/FieldMapper.js";
 import { contenTypeMaker } from "./content-type-creator.utils.js";
 import { shouldSkipContentTypeCreation } from "./content-type-checker.utils.js";
 import { sanitizeProjectId } from "./sanitize-path.utils.js";
+import customLogger from "./custom-logger.utils.js";
 
 export const fieldAttacher = async ({ projectId, orgId, destinationStackId, region, user_id, is_sso }: any) => {
   const safeProjectId = sanitizeProjectId(projectId);
@@ -44,10 +45,11 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
       else {
         const shouldSkip = await shouldSkipContentTypeCreation(safeProjectId, contentType?.otherCmsUid, iteration);
         if (!shouldSkip) {
-          console.info(`Creating new content type: ${contentType.otherCmsUid}`);
+          customLogger(`Creating new content type: ${contentType.otherCmsUid}`, safeProjectId, 'info', iteration );
           await contenTypeMaker({ contentType, destinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
         } else {
           console.info(`Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`);
+          customLogger(`Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`, safeProjectId, 'info', iteration );
         }
       }
       contentTypes?.push?.(contentType);

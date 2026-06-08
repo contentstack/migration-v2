@@ -50,7 +50,7 @@ import {
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
-import { enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
+import { clearStaleEntries, enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
 import { removeExistingAssets, saveAssetMetadata } from '../utils/asset-update.utils.js';
 
 /**
@@ -427,6 +427,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
     };
 
     await copyLogsToTestStack(project?.current_test_stack_id, loggerPath);
+    // Clear any stale entries from a previous run before re-transforming, so orphaned
+    // chunk files cannot clobber this run's entry data during the update step.
+    clearStaleEntries(project?.current_test_stack_id, loggerPath);
     const contentTypes = await fieldAttacher({
       orgId,
       projectId: safeTestProjectId,
@@ -848,6 +851,10 @@ const startMigration = async (req: Request): Promise<any> => {
     };
 
     await copyLogsToStack(project?.destination_stack_id, loggerPath);
+
+    // Clear any stale entries from a previous run before re-transforming, so orphaned
+    // chunk files cannot clobber this run's entry data during the update step.
+    clearStaleEntries(project?.destination_stack_id, loggerPath);
 
     const contentTypes = await fieldAttacher({
       orgId,

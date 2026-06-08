@@ -19,8 +19,7 @@ interface TestStack {
   isMigrated: boolean;
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
-import getUidMapperDb from '../models/uidMapper.js';
-import customLogger from '../utils/custom-logger.utils.js';
+import writeUidMapping from '../utils/uid-mapper.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
