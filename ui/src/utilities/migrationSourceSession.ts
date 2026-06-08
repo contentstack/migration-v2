@@ -1,31 +1,33 @@
-const KEY_TOKEN = 'migration_source_app_token';
-const KEY_REGION = 'migration_source_region_id';
+/**
+ * Regional source-login session for stack-to-stack migration.
+ *
+ * The source app token is persisted on the backend user record (see
+ * `/v2/user/source-session`) so it never lives in browser storage and
+ * survives across browser sessions. All callers must `await` these.
+ */
+import {
+  fetchSourceSession,
+  removeSourceSession,
+  saveSourceSession
+} from '../services/api/user.service';
 
-export function setMigrationSourceSession(region: string, appToken: string): void {
-  try {
-    sessionStorage.setItem(KEY_TOKEN, appToken);
-    sessionStorage.setItem(KEY_REGION, region.trim());
-  } catch {
-    /* ignore */
-  }
+export async function setMigrationSourceSession(
+  region: string,
+  appToken: string
+): Promise<void> {
+  if (!region || !appToken) return;
+  await saveSourceSession(region.trim(), appToken);
 }
 
-export function getMigrationSourceSession(): { region: string; appToken: string } | null {
-  try {
-    const appToken = sessionStorage.getItem(KEY_TOKEN) || '';
-    const region = sessionStorage.getItem(KEY_REGION) || '';
-    if (!appToken || !region) return null;
-    return { region, appToken };
-  } catch {
-    return null;
-  }
+export async function getMigrationSourceSession(): Promise<{
+  region: string;
+  appToken: string;
+} | null> {
+  const rec = await fetchSourceSession();
+  if (!rec?.appToken || !rec?.region) return null;
+  return { region: rec.region, appToken: rec.appToken };
 }
 
-export function clearMigrationSourceSession(): void {
-  try {
-    sessionStorage.removeItem(KEY_TOKEN);
-    sessionStorage.removeItem(KEY_REGION);
-  } catch {
-    /* ignore */
-  }
+export async function clearMigrationSourceSession(): Promise<void> {
+  await removeSourceSession();
 }

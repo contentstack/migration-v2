@@ -15,6 +15,15 @@ interface AuthenticationDocument {
     created_at: string;
     updated_at: string;
     access_token: string;
+    /**
+     * Stack-to-stack migration: persisted regional source-login session.
+     * Replaces the prior sessionStorage-based UI store so the source app
+     * token never lives in browser storage and survives across sessions.
+     */
+    source_session?: {
+      region: string;
+      appToken: string;
+    };
   }[];
 }
 

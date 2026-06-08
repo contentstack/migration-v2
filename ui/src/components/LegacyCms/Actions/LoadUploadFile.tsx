@@ -751,10 +751,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   );
 
   /** Opens login in a new window (same pattern as SSO); parent applies region after postMessage. */
-  const openRegionLoginInPopup = useCallback((regionValue: string) => {
-    const existing = getMigrationSourceSession();
+  const openRegionLoginInPopup = useCallback(async (regionValue: string) => {
+    const existing = await getMigrationSourceSession();
     if (existing?.region && existing.region !== regionValue) {
-      clearMigrationSourceSession();
+      await clearMigrationSourceSession();
     }
     try {
       sessionStorage.setItem(PENDING_SOURCE_REGION_LOGIN_KEY, regionValue);
@@ -834,7 +834,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         }
       }
 
-      const src = getMigrationSourceSession();
+      const src = await getMigrationSourceSession();
       if (src?.appToken && pending && src.region === pending) {
         try {
           const resp = await getUserProfileWithToken(src.appToken);
@@ -900,7 +900,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       return;
     }
 
-    const src = getMigrationSourceSession();
+    const src = await getMigrationSourceSession();
     if (src?.appToken && src.region === region) {
       try {
         const resp = await getUserProfileWithToken(src.appToken);
@@ -964,7 +964,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       return;
     }
     const sessionRegion = getSessionContentstackRegion(user?.region, authToken);
-    const src = getMigrationSourceSession();
+    const src = await getMigrationSourceSession();
     const regionalToken =
       src?.appToken && src.region && region && src.region === region ? src.appToken : undefined;
 
@@ -1376,24 +1376,24 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                           (opt) => opt.value === sourceDetails?.source_region_id
                         ) || null
                       }
-                      onChange={(option: any) => {
+                      onChange={async (option: any) => {
                         const regionValue = option?.value ?? '';
                         const sessionRegion = getSessionContentstackRegion(
                           user?.region,
                           authToken
                         );
                         if (!regionValue) {
-                          clearMigrationSourceSession();
+                          await clearMigrationSourceSession();
                           applySourceRegionSelection('');
                           return;
                         }
                         if (sessionRegion && regionValue === sessionRegion) {
-                          clearMigrationSourceSession();
+                          await clearMigrationSourceSession();
                           applySourceRegionSelection(regionValue);
                           return;
                         }
                         if (sessionRegion && regionValue !== sessionRegion) {
-                          openRegionLoginInPopup(regionValue);
+                          await openRegionLoginInPopup(regionValue);
                           return;
                         }
                         applySourceRegionSelection(regionValue);

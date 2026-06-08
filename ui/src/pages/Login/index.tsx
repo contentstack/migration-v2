@@ -290,7 +290,7 @@ const Login: FC<IProps> = () => {
       if (isLoginPopup) {
         const appToken = response?.data?.app_token;
         if (appToken && region) {
-          setMigrationSourceSession(region, appToken);
+          await setMigrationSourceSession(region, appToken);
           notifyRegionLoginPopupSuccess();
           return;
         }
@@ -585,7 +585,7 @@ const Login: FC<IProps> = () => {
 
       if (isLoginPopup) {
         if (region) {
-          setMigrationSourceSession(region, authData.app_token);
+          await setMigrationSourceSession(region, authData.app_token);
           notifyRegionLoginPopupSuccess();
           return;
         }
