@@ -4,12 +4,25 @@ import JSZip from 'jszip';
 import validator from '../validators';
 import logger from '../utils/logger.js';
 
+/**
+ * Shared return shape for handleFileProcessing. Declared explicitly so every
+ * branch contributes the same fields (extractedPath optional) and callers can
+ * read `data.extractedPath` without `as any` casts.
+ */
+export type FileProcessingResult = {
+  status: number;
+  message: any;
+  file_details: any;
+  file?: string;
+  extractedPath?: string;
+};
+
 const handleFileProcessing = async (
   fileExt: string,
   zipBuffer: any,
   cmsType: string,
   name: string
-) => {
+): Promise<FileProcessingResult | undefined> => {
   const config = await updateConfigFile();
   if (!config) {
     logger.error('Failed to load application config');
