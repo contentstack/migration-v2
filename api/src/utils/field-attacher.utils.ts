@@ -3,13 +3,20 @@ import getContentTypesMapperDb from "../models/contentTypesMapper-lowdb.js";
 import getFieldMapperDb from "../models/FieldMapper.js";
 import { contenTypeMaker } from "./content-type-creator.utils.js";
 import { shouldSkipContentTypeCreation } from "./content-type-checker.utils.js";
-import { sanitizeProjectId } from "./sanitize-path.utils.js";
+import { sanitizeProjectId, sanitizeStackId } from "./sanitize-path.utils.js";
 import customLogger from "./custom-logger.utils.js";
 
 export const fieldAttacher = async ({ projectId, orgId, destinationStackId, region, user_id, is_sso }: any) => {
   const safeProjectId = sanitizeProjectId(projectId);
   if (!safeProjectId) {
     throw new Error("Invalid project identifier");
+  }
+  // Re-sanitize the destination stack id here as well: it is used as a path segment
+  // downstream (contenTypeMaker -> writeFile), so it must be validated at the sink's
+  // entry point to break any path-traversal taint chain regardless of the caller.
+  const safeDestinationStackId = sanitizeStackId(destinationStackId);
+  if (!safeDestinationStackId) {
+    throw new Error("Invalid destination stack identifier");
   }
   await ProjectModelLowdb.read();
   const projectData: any = ProjectModelLowdb.chain.get("projects").find({
@@ -39,16 +46,16 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
       }
 
       if (iteration === 1) {
-        await contenTypeMaker({ contentType, destinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+        await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
 
       }
       else {
         const shouldSkip = await shouldSkipContentTypeCreation(safeProjectId, contentType?.otherCmsUid, iteration);
         if (!shouldSkip) {
-          await customLogger(safeProjectId, destinationStackId, 'info', `Creating new content type: ${contentType.otherCmsUid}`);
-          await contenTypeMaker({ contentType, destinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+          await customLogger(safeProjectId, safeDestinationStackId, 'info', `Creating new content type: ${contentType.otherCmsUid}`);
+          await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
         } else {
-          await customLogger(safeProjectId, destinationStackId, 'info', `Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`);
+          await customLogger(safeProjectId, safeDestinationStackId, 'info', `Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`);
         }
       }
       contentTypes?.push?.(contentType);
