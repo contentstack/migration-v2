@@ -430,6 +430,17 @@ const startTestMigration = async (req: Request): Promise<any> => {
     // Clear any stale entries from a previous run before re-transforming, so orphaned
     // chunk files cannot clobber this run's entry data during the update step.
     clearStaleEntries(project?.current_test_stack_id, loggerPath);
+    // fieldAttacher uses destinationStackId as a path segment when writing content-type
+    // files. Confirm the sanitized stack id resolves inside the migration-data base before
+    // passing it in, so request-derived input cannot escape via path traversal.
+    const testMigrationDataBase = path.resolve(
+      process.cwd(),
+      MIGRATION_DATA_CONFIG.DATA
+    );
+    assertResolvedPathUnderBase(
+      testMigrationDataBase,
+      path.join(testMigrationDataBase, safeTestStackId)
+    );
     const contentTypes = await fieldAttacher({
       orgId,
       projectId: safeTestProjectId,
@@ -855,6 +866,18 @@ const startMigration = async (req: Request): Promise<any> => {
     // Clear any stale entries from a previous run before re-transforming, so orphaned
     // chunk files cannot clobber this run's entry data during the update step.
     clearStaleEntries(project?.destination_stack_id, loggerPath);
+
+    // fieldAttacher uses destinationStackId as a path segment when writing content-type
+    // files. Confirm the sanitized stack id resolves inside the migration-data base before
+    // passing it in, so request-derived input cannot escape via path traversal.
+    const finalMigrationDataBase = path.resolve(
+      process.cwd(),
+      MIGRATION_DATA_CONFIG.DATA
+    );
+    assertResolvedPathUnderBase(
+      finalMigrationDataBase,
+      path.join(finalMigrationDataBase, safeFinalStackId)
+    );
 
     const contentTypes = await fieldAttacher({
       orgId,
