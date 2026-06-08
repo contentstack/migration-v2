@@ -112,9 +112,24 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
             const indexPath = path.join(localePath, MIGRATION_DATA_CONFIG.ENTRIES_MASTER_FILE);
             let jsonFiles: string[];
             if (fs.existsSync(indexPath)) {
-                const indexData = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-                jsonFiles = Object.values(indexData)
-                    .filter((file): file is string => typeof file === "string" && file.endsWith(".json"));
+                // Guard against a missing/corrupt/non-object index.json — a parse failure or
+                // unexpected shape here would otherwise throw and abort the entire removal step.
+                let indexData: unknown;
+                try {
+                    indexData = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+                } catch (err) {
+                    writeLogEntry(`Failed to parse index.json at ${indexPath}, skipping locale: ${(err as Error)?.message}`, "removeEntriesFromDatabase", loggerPath);
+                    continue;
+                }
+                if (!indexData || typeof indexData !== "object") {
+                    writeLogEntry(`index.json at ${indexPath} is not an object, skipping locale.`, "removeEntriesFromDatabase", loggerPath);
+                    continue;
+                }
+                jsonFiles = Object.values(indexData as Record<string, unknown>)
+                    // Sanitize to path.basename — index values are trusted verbatim otherwise,
+                    // so an unexpected value could introduce extra path segments.
+                    .filter((file): file is string => typeof file === "string" && file.endsWith(".json"))
+                    .map((file) => path.basename(file));
             } else {
                 // Legacy data without an index.json — fall back to globbing.
                 jsonFiles = fs.readdirSync(localePath)

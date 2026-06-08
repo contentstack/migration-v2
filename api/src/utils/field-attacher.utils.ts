@@ -45,11 +45,10 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
       else {
         const shouldSkip = await shouldSkipContentTypeCreation(safeProjectId, contentType?.otherCmsUid, iteration);
         if (!shouldSkip) {
-          customLogger(`Creating new content type: ${contentType.otherCmsUid}`, safeProjectId, 'info', iteration );
+          await customLogger(safeProjectId, destinationStackId, 'info', `Creating new content type: ${contentType.otherCmsUid}`);
           await contenTypeMaker({ contentType, destinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
         } else {
-          console.info(`Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`);
-          customLogger(`Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`, safeProjectId, 'info', iteration );
+          await customLogger(safeProjectId, destinationStackId, 'info', `Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`);
         }
       }
       contentTypes?.push?.(contentType);

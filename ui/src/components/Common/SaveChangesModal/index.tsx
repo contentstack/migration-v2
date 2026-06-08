@@ -11,9 +11,9 @@ interface Props {
   closeModal: () => void;
   isopen?: (flag: boolean) => void;
   otherCmsTitle?: string;
-  saveContentType?: () => void;
+  saveContentType?: () => void | Promise<void>;
   openContentType?: () => void;
-  changeStep?: () => void;
+  changeStep?: () => void | Promise<void>;
   dropdownStateChange: () => void;
 }
 
@@ -47,24 +47,24 @@ const SaveChangesModal = (props: Props) => {
           <Button
             buttonType="secondary"
             version={'v2'}
-            onClick={() => {
+            onClick={async () => {
               props.closeModal();
               props?.dropdownStateChange();
               props.openContentType?.();
               props?.isopen?.(false);
-              props?.changeStep?.();
+              await props?.changeStep?.();
             }}
           >
             Don&apos;t Save
           </Button>
           <Button
             version={'v2'}
-            onClick={() => {
+            onClick={async () => {
               props?.dropdownStateChange();
-              props?.saveContentType?.();
+              await props?.saveContentType?.();
               props.closeModal();
               props.openContentType?.();
-              props?.changeStep?.();
+              await props?.changeStep?.();
             }}
           >
             Save
