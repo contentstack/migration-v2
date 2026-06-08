@@ -106,7 +106,6 @@ export const CONTENT_MAPPING_STATUS: ObjectType = {
   '2': 'Updated',
   '3': 'Failed',
   '4': 'All',
-  '5': 'Auto-mapped',
 };
 export const STATUS_ICON_Mapping: { [key: string]: string } = {
   '1': 'CheckedCircle',
@@ -198,5 +197,3 @@ export const EXECUTION_LOGS_UI_TEXT = {
 export const EXECUTION_LOGS_ERROR_TEXT = {
   ERROR: 'Error in Getting Migration Logs'
 }
-
-export const AUTO_MAPPED_PILL_ITEMS = [{ id: 'auto-mapped', text: 'Auto-mapped' }];
