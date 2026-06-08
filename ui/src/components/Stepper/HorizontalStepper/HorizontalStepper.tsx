@@ -105,7 +105,10 @@ const HorizontalStepper = forwardRef(
       if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
         !newMigrationDataRef?.current?.isprojectMapped && setShowStep(stepIndex);
         setStepsCompleted((prev) => {
-          const updatedStepsCompleted = [...prev];
+          // Drop any completed steps at or beyond the current step so a restart
+          // (navigating back to an earlier step) un-fills the connectors ahead of it.
+          // Steps before the current one remain completed.
+          const updatedStepsCompleted = prev?.filter((i) => i < stepIndex);
           if (
             stepIndex === 4 &&
             (props?.projectData?.isMigrationCompleted ||
