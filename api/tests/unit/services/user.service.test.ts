@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockHttps, mockAuthModelRead, mockChainValue, mockRequestWithSsoTokenRefresh } =
-  vi.hoisted(() => ({
-    mockHttps: vi.fn(),
-    mockAuthModelRead: vi.fn(),
-    mockChainValue: vi.fn(),
-    mockRequestWithSsoTokenRefresh: vi.fn(),
-  }));
+const {
+  mockHttps,
+  mockAuthModelRead,
+  mockAuthModelWrite,
+  mockChainValue,
+  mockRequestWithSsoTokenRefresh,
+} = vi.hoisted(() => ({
+  mockHttps: vi.fn(),
+  mockAuthModelRead: vi.fn(),
+  mockAuthModelWrite: vi.fn(),
+  mockChainValue: vi.fn(),
+  mockRequestWithSsoTokenRefresh: vi.fn(),
+}));
 
 vi.mock('../../../src/utils/https.utils.js', () => ({ default: mockHttps }));
 vi.mock('../../../src/utils/logger.js', () => ({
@@ -20,6 +26,7 @@ vi.mock('../../../src/config/index.js', () => ({
 vi.mock('../../../src/models/authentication.js', () => ({
   default: {
     read: mockAuthModelRead,
+    write: mockAuthModelWrite,
     chain: {
       get: vi.fn().mockReturnValue({
         findIndex: vi.fn().mockReturnValue({ value: mockChainValue }),
@@ -52,6 +59,7 @@ describe('user.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthModelRead.mockResolvedValue(undefined);
+    mockAuthModelWrite.mockResolvedValue(undefined);
   });
 
   describe('getUserProfile', () => {
@@ -221,6 +229,119 @@ describe('user.service', () => {
           },
         } as any)
       ).rejects.toMatchObject({ message: 'unexpected' });
+    });
+  });
+
+  describe('source-session endpoints', () => {
+    const createReq = (extra: any = {}) => ({
+      body: {
+        token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
+        ...extra,
+      },
+    });
+
+    describe('getSourceSession', () => {
+      it('returns null when the user record is not found', async () => {
+        mockChainValue.mockReturnValue(-1);
+        const res = await userService.getSourceSession(createReq() as any);
+        expect(res.status).toBe(200);
+        expect(res.data.source_session).toBeNull();
+      });
+
+      it('returns the stored session when present', async () => {
+        mockChainValue.mockReturnValue(0);
+        AuthenticationModel.data.users[0] = {
+          ...AuthenticationModel.data.users[0],
+          source_session: { region: 'EU', appToken: 'src-tok' },
+        } as any;
+        const res = await userService.getSourceSession(createReq() as any);
+        expect(res.status).toBe(200);
+        expect(res.data.source_session).toEqual({ region: 'EU', appToken: 'src-tok' });
+      });
+
+      it('returns null when the user record has no source_session', async () => {
+        mockChainValue.mockReturnValue(0);
+        delete (AuthenticationModel.data.users[0] as any).source_session;
+        const res = await userService.getSourceSession(createReq() as any);
+        expect(res.data.source_session).toBeNull();
+      });
+    });
+
+    describe('setSourceSession', () => {
+      it('throws when region is missing', async () => {
+        mockChainValue.mockReturnValue(0);
+        await expect(
+          userService.setSourceSession(
+            createReq({ appToken: 'tok' }) as any
+          )
+        ).rejects.toThrow('region and appToken are required');
+        expect(mockAuthModelWrite).not.toHaveBeenCalled();
+      });
+
+      it('throws when appToken is missing', async () => {
+        mockChainValue.mockReturnValue(0);
+        await expect(
+          userService.setSourceSession(createReq({ region: 'EU' }) as any)
+        ).rejects.toThrow('region and appToken are required');
+      });
+
+      it('throws when the authenticated user is not found', async () => {
+        mockChainValue.mockReturnValue(-1);
+        await expect(
+          userService.setSourceSession(
+            createReq({ region: 'EU', appToken: 'tok' }) as any
+          )
+        ).rejects.toThrow();
+      });
+
+      it('persists region/appToken and bumps updated_at', async () => {
+        mockChainValue.mockReturnValue(0);
+        delete (AuthenticationModel.data.users[0] as any).source_session;
+        const before = AuthenticationModel.data.users[0].updated_at;
+        const res = await userService.setSourceSession(
+          createReq({ region: '  EU  ', appToken: 'tok-xyz' }) as any
+        );
+        expect(res.status).toBe(200);
+        expect(res.data.source_session).toEqual({ region: 'EU', appToken: 'tok-xyz' });
+        expect((AuthenticationModel.data.users[0] as any).source_session).toEqual({
+          region: 'EU',
+          appToken: 'tok-xyz',
+        });
+        expect(AuthenticationModel.data.users[0].updated_at).not.toBe(before);
+        expect(mockAuthModelWrite).toHaveBeenCalled();
+      });
+    });
+
+    describe('clearSourceSession', () => {
+      it('is a no-op when the user is not found', async () => {
+        mockChainValue.mockReturnValue(-1);
+        const res = await userService.clearSourceSession(createReq() as any);
+        expect(res.status).toBe(200);
+        expect(res.data.source_session).toBeNull();
+        expect(mockAuthModelWrite).not.toHaveBeenCalled();
+      });
+
+      it('is a no-op when the user has no source_session', async () => {
+        mockChainValue.mockReturnValue(0);
+        delete (AuthenticationModel.data.users[0] as any).source_session;
+        const res = await userService.clearSourceSession(createReq() as any);
+        expect(res.data.source_session).toBeNull();
+        expect(mockAuthModelWrite).not.toHaveBeenCalled();
+      });
+
+      it('deletes the source_session and writes when present', async () => {
+        mockChainValue.mockReturnValue(0);
+        (AuthenticationModel.data.users[0] as any).source_session = {
+          region: 'EU',
+          appToken: 'tok',
+        };
+        const res = await userService.clearSourceSession(createReq() as any);
+        expect(res.data.source_session).toBeNull();
+        expect(
+          (AuthenticationModel.data.users[0] as any).source_session
+        ).toBeUndefined();
+        expect(mockAuthModelWrite).toHaveBeenCalled();
+      });
     });
   });
 });
