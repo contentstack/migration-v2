@@ -142,15 +142,20 @@ export const assertExportPathInAllowedRoot = (candidate: string): string => {
     // Char-by-char rebuild from a strict allowlist so the returned string is
     // a brand-new value with no data dependency on the original tainted input.
     // This is the same pattern sanitizeStackId uses to break the taint chain.
+    // Spaces and parentheses are included because upload-api deliberately
+    // preserves them in extracted filenames (e.g. "package 45 (1).zip").
+    // Disallowed characters cause a throw rather than silent stripping, so a
+    // tampered path never resolves to a different on-disk location.
     const allowedChars =
-      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-' +
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.- ()' +
       path.sep;
     let safeRel = '';
     for (let i = 0; i < rel?.length; i++) {
       const ch = rel?.charAt(i);
-      if (allowedChars.includes(ch)) {
-        safeRel += ch;
+      if (!allowedChars.includes(ch)) {
+        throw new Error('Invalid export path');
       }
+      safeRel += ch;
     }
     if (safeRel.includes('..')) {
       throw new Error('Invalid export path');

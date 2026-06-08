@@ -12,6 +12,7 @@ import AuthenticationModel from '../models/authentication.js';
 // import watchLogs from '../utils/watch.utils.js';
 import { setLogFilePath } from '../server.js';
 import { normalizeLinkFieldsInExport } from '../utils/normalize-entry-links.utils.js';
+import { assertExportPathInAllowedRoot } from '../utils/sanitize-path.utils.js';
 
 /**
  * Represents a test stack with migration status
@@ -98,13 +99,20 @@ const resolveSourcePathForImport = (project: any, stackUid: string): string => {
     return defaultPath;
   }
 
-  // For Contentstack-to-Contentstack, prefer the actual export path regardless of source_mode
+  // For Contentstack-to-Contentstack, prefer the actual export path regardless of source_mode.
+  // These fields are user-controlled via source-config updates, so the resolved path is
+  // constrained to the allowlisted migration roots before being handed to the CLI.
   if (project?.legacy_cms?.cms === CMS.CONTENTSTACK) {
     const sourcePath =
       project?.legacy_cms?.source_details?.export_path ||
       project?.legacy_cms?.source_details?.imported_data_path ||
       project?.extract_path;
-    return sourcePath || defaultPath;
+    if (!sourcePath) return defaultPath;
+    try {
+      return assertExportPathInAllowedRoot(sourcePath);
+    } catch {
+      return defaultPath;
+    }
   }
 
   return defaultPath;

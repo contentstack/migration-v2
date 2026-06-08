@@ -77,9 +77,17 @@ export const generateAuditData = async ({
   const contentTypesDir = path.join(safeExportPath, 'content_types');
   const globalFieldsDir = path.join(safeExportPath, 'global_fields');
 
-  const assetIndex = await readJson(assetsPath);
+  // Audit can be called against partial exports where assets/assets.json is
+  // missing or unreadable — fall back to an empty index rather than aborting
+  // the whole audit run.
+  let assetIndex: Record<string, string> = {};
+  try {
+    assetIndex = (await readJson(assetsPath)) || {};
+  } catch {
+    assetIndex = {};
+  }
   const assets: any[] = [];
-  for (const value of Object.values(assetIndex as Record<string, string>)) {
+  for (const value of Object.values(assetIndex)) {
     const shardPath = path.join(safeExportPath, 'assets', String(value));
     if (!fs.existsSync(shardPath)) continue;
     const shardData = await readJson(shardPath);

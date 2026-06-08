@@ -27,6 +27,7 @@ type FileProcessingResponse = {
   message: string;
   file_details: any;
   file?: string;
+  extractedPath?: string;
 };
 
 // Copy a file or directory from the host into the container's shared extracted_files volume.
@@ -427,7 +428,7 @@ router.get(
                 // diverged from the on-disk layout for filenames containing
                 // characters stripped by sanitizeFilename (e.g. parentheses).
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                const filePath = (data as any)?.extractedPath as string | undefined;
+                const filePath = data?.extractedPath;
                 if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
@@ -497,7 +498,7 @@ router.get(
                 // strips (e.g. parentheses) — silently losing locales and
                 // schema for those projects.
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                const filePath = (data as any)?.extractedPath as string | undefined;
+                const filePath = data?.extractedPath;
                 if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
@@ -568,7 +569,7 @@ router.get(
                 // Use the absolute path saveZip actually wrote to (see note
                 // on the matching site above). Same fix for the S3 path.
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                const filePath = (data as any)?.extractedPath as string | undefined;
+                const filePath = data?.extractedPath;
                 if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
