@@ -105,6 +105,11 @@ async function acfMapperFromExportFiles(exportDir: string, postType: string): Pr
         // ACF select with multiple:1 stores an array — treat as multiple
         const isMultiple = typeInfo.multiple || (field.type === 'select' && field.multiple === 1);
 
+        const options =
+          field.choices && typeof field?.choices === 'object' && !Array.isArray(field?.choices)
+            ? Object.entries(field?.choices).map(([key, value]) => ({ key, value }))
+            : undefined;
+
         acfMapper[field.name] = {
           uid: field.name,
           otherCmsField: field.name,
@@ -118,7 +123,8 @@ async function acfMapperFromExportFiles(exportDir: string, postType: string): Pr
             defaultValue: field.default_value,
             placeholder: field.placeholder,
             mandatory: field.required === 1,
-            ...(isMultiple ? { multiple: true } : {})
+            ...(isMultiple ? { multiple: true } : {}),
+            ...(options ? { options } : {})
           },
           isDeleted: false
         };

@@ -13,7 +13,7 @@
   "time_picker":      { "contentstackFieldType": "single_line_text", "otherCmsType": "text" },
   "color_picker":     { "contentstackFieldType": "single_line_text", "otherCmsType": "text" },
   "radio":            { "contentstackFieldType": "single_line_text", "otherCmsType": "text" },
-  "select":           { "contentstackFieldType": "select", "otherCmsType": "text" },
+  "select":           { "contentstackFieldType": "dropdown", "otherCmsType": "select" },
   "image":            { "contentstackFieldType": "file",             "otherCmsType": "file" },
   "file":             { "contentstackFieldType": "file",             "otherCmsType": "file" },
   "gallery":          { "contentstackFieldType": "file",             "otherCmsType": "file",           "multiple": true },

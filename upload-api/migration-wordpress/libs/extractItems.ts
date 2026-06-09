@@ -545,7 +545,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                
         }
      }
-    }
+        }
+      }
     // Push category only once, outside the loop
     if (categories?.length > 0 && isCategories && !isAllContentEmpty) {
         const existingCategory = CT?.find((item: Field) => 
@@ -557,7 +558,11 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             CT?.push?.(categoryArray);
         }
     }
-    CT.push(...(Object.values(acfContentMapper) as Field[]));
+    for (const acfField of Object.values(acfContentMapper) as Field[]) {
+      if (!CT.find(existing => existing.uid === acfField.uid)) {
+        CT.push(acfField);
+      }
+    }
     if(isTermReffered && !isAllContentEmpty){
         CT?.push?.({
           "uid": 'terms',
@@ -657,7 +662,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         console.error(`Error writing unified content type file ${filePath}:`, error?.message);
     }
 }
-}
+
 
 
 export default extractItems;

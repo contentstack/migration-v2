@@ -448,7 +448,7 @@ function attachMediaTextFieldsToChildren(
   if (textValue != null && textValue !== '') out[mtk] = textValue;
 }
 
-async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>) {
+async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>, postmeta?: any) {
   const schema : any = {
     title: title,
     uid: uid,
@@ -707,6 +707,18 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
         if (modularBlocksArray.length > 0) {
           schema[field?.contentstackFieldUid] = modularBlocksArray;
         }
+      }
+      else if(field?.uid === postmeta?.find((key: any)=> key?.["wp:meta_key"] === field?.uid)?.["wp:meta_key"]){
+        const metaKey = field?.uid;
+        const metaValue = postmeta?.find((key: any)=> key?.["wp:meta_key"] === field?.uid)?.["wp:meta_value"];
+        schema[field?.contentstackFieldUid] = await formatChildByType(
+          metaValue,
+          field,
+          assetData,
+          fields,
+          metaValue,
+        );
+        console.info(`Mapping postmeta key ${metaKey} to field ${field?.contentstackFieldUid} with value:`, metaValue);
       }
     }
   } catch (error) {
@@ -1005,7 +1017,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
     //if (child?.attributes && typeof child.attributes === 'object') {
      const attrKey = getFieldName(getFieldName(resolvedBlockName(child))?.toLowerCase() || getFieldName(resolvedBlockName(child)?.toLowerCase()));
         try {
-          const attrValue = child?.attrs?.innerHTML ?? value ?? '';
+          const attrValue = child?.attrs?.innerHTML ?? value ?? null;
           
           
           // Format based on common field types
@@ -1040,7 +1052,12 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
               break;
 
             case 'boolean':
-              formatted = Boolean(child?.attrs[attrKey] ?? value);
+            const val = child?.attrs?.[attrKey] ?? value;
+
+            const result = isNaN(val)
+              ? Boolean(val)
+              : Boolean(Number(val));
+              formatted = result;
               break;
 
             case 'json': {
@@ -1282,13 +1299,28 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
               break;
             }
 
+            case 'dropdown': {
+              const options = field?.options || [];
+              const matchedOption = options.find(
+                (opt: any) =>
+                  String(opt.value) === String(attrValue) ||
+                  String(opt.value) === String(child?.attrs?.[attrKey]) ||
+                  String(opt.value) === String(child?.attributes?.[attrKey]),
+              );
+              formatted = matchedOption ? matchedOption.value : null;
+              break;
+            }
             default:
               // Default formatting - preserve original structure with null check
-              formatted = attrValue ?? '';
+              formatted = attrValue ?? null;
           }
         } catch (attrError) {
           console.warn(`Error processing attribute ${attrKey}:`, attrError);
-          formatted[attrKey] = null;
+          if (attrKey && formatted !== undefined && formatted !== null && typeof formatted === 'object') {
+            formatted[attrKey] = null;
+          } else {
+            formatted = null;
+          }
         }
      
   } catch (error) {
@@ -1456,9 +1488,9 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
 
           // Pass individual content to createSchema
-          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings);
+          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings, item?.['wp:postmeta']);
 
-          if (wpPost?.acf) {
+          if (!project?.acfExportDir && wpPost?.acf) {
             const acfSchema = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
             entryData[uid] = { ...entryData[uid], ...acfSchema };
           }
