@@ -1115,9 +1115,9 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
                   const groupCsUid = field?.backupFieldUid || '';
                   const isDirectChildOfThisGroup = (f: any) => {
                     const uid = f?.backupFieldUid || '';
-                    if (groupCsUid && uid.startsWith(`${groupCsUid}.`)) {
-                      const rest = uid.slice(groupCsUid.length + 1);
-                      return Boolean(rest && !rest.includes('.'));
+                    if (groupCsUid && uid?.startsWith(`${groupCsUid}.`)) {
+                      const rest = uid?.slice(groupCsUid?.length + 1);
+                      return Boolean(rest && !rest?.includes('.'));
                     }
                     const slug = getFieldName(childBlockName);
                     return Boolean(slug && f?.contentstackField?.includes(slug));
