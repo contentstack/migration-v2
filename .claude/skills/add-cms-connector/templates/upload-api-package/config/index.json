@@ -1,0 +1,27 @@
+{
+  "data": "./cmsMigrationData",
+  "backup": "./backupMigrationData",
+  "entryfolder": "entries",
+  "modules": {
+    "contentTypes": {
+      "dirName": "content_types",
+      "fileName": "contenttype.json",
+      "masterfile": "contenttypes.json",
+      "schemaFile": "schema.json"
+    },
+    "references": {
+      "dirName": "reference",
+      "fileName": "reference.json"
+    },
+    "asset": {
+      "dirName": "assets",
+      "fileName": "assets.json",
+      "masterfile": "url_master.json"
+    },
+    "entries": {
+      "dirName": "entries",
+      "fileName": "en-us.json",
+      "masterfile": "entries.json"
+    }
+  }
+}
