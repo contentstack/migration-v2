@@ -76,6 +76,8 @@ Parse logic in `contentTypes.ts`/`extractLocale.ts` must match the real sample s
    - **Monolithic** like `api/src/services/wordpress.service.ts`: a single file exporting `{ createEntry, createLocale, createVersionFile, getAllAssets?, createTaxonomy?, createRefrence? }`.
    - **Modular** like `api/src/services/drupal/`: a folder of per-concern files re-exported from `<cms>.service.ts`.
    Use `templates/api-service.ts` as the starting skeleton. The Contentstack-type → API-data-type map (`mapFieldTypeToDataType`, see `drupal/content-types.service.ts` ~lines 448–474) belongs here — copy it and extend if the new connector introduces a type not already listed.
+
+   ⚠️ **`createEntry` is where entries are actually produced** — content-type *schemas* are created generically, so if `createEntry` is a stub the migration yields content types but **zero entries**. Read `reference/entry-creation.md` before writing it: it documents the runtime inputs (`file_path`/`packagePath`, the `contentTypes` shape from `fieldAttacher`, `mapperKeys`), the exact output layout (`entries/<ct>/<locale>/<locale>.json` + `index.json`), the per-`contentstackFieldType` value transform (hand-roll a switch like Drupal's `processFieldByType` — the shared `entriesFieldCreator` is HTML-oriented), reference resolution via a source-id → entry-uid index, and the two passes to **defer-and-log, not fake**: `file`/assets (needs a `getAllAssets` pass) and nested `group` expansion.
 3. `api/src/services/migration.service.ts` — **two edits in two switches**:
    - import: `import { <cms>Service } from './<cms>.service.js';` (~lines 26–42).
    - **Test migration** switch (~lines 452–590): add `case CMS.<CMS>: { ... break; }` calling the service methods (model the `CMS.WORDPRESS` case).

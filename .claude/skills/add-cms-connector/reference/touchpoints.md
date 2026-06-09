@@ -30,7 +30,7 @@ Model package: `upload-api/migration-wordpress/`.
 
 ## Layer C — api transform + registration
 - `api/src/constants/index.ts` → `CMS` object, add `<CMS>: '<cms>',` (~40–48).
-- `api/src/services/<cms>.service.ts` (monolithic, like `wordpress.service.ts`) OR `api/src/services/<cms>/` (modular, like `drupal/`) → export `{ createEntry, createLocale, createVersionFile, ... }`.
+- `api/src/services/<cms>.service.ts` (monolithic, like `wordpress.service.ts`) OR `api/src/services/<cms>/` (modular, like `drupal/`) → export `{ createEntry, createLocale, createVersionFile, ... }`. ⚠️ `createEntry` produces the entries (schemas are generic) — see `entry-creation.md` for inputs, output layout, the field-value switch, reference resolution, and the asset/group passes to defer.
 - Contentstack-type → API-data-type map `mapFieldTypeToDataType`: `api/src/services/drupal/content-types.service.ts` ~448–474. Copy/extend in the new service.
 - `api/src/services/migration.service.ts`:
   - service import ~26–42.
