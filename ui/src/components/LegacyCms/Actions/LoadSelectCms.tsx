@@ -156,12 +156,12 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         legacy_cms: {
           ...newMigrationData?.legacy_cms,
           selectedCms: finalSelectedCard, // Include selectedCms in this dispatch
-          // Preserve the existing file format when a version was already selected; otherwise
-          // derive it from the resolved CMS card (data-driven via legacyCms.json).
-          selectedFileFormat:
-            newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id
-              ? newMigrationData?.legacy_cms?.selectedFileFormat
-              : finalSelectedCard?.allowed_file_formats?.[0],
+          // Keep the file format in sync with the resolved CMS: only preserve the existing
+          // format when the existing version is being preserved; otherwise derive it from
+          // the resolved card so we never end up with DEFAULT_CMS_TYPE + a stale format.
+          selectedFileFormat: existingStillValid
+            ? newMigrationData?.legacy_cms?.selectedFileFormat
+            : finalSelectedCard?.allowed_file_formats?.[0],
           affix: newMigrationData?.legacy_cms?.affix || 'cs', // Preserve or set default affix
           uploadedFile: {
             ...newMigrationData?.legacy_cms?.uploadedFile,
