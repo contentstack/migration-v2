@@ -471,6 +471,7 @@ const Migration = () => {
       isprojectMapped: false,
       project_current_step: projectData?.current_step,
       isContentMapperGenerated: projectData?.content_mapper?.length > 0,
+      iteration: projectData?.iteration ?? 1,
     };
 
     dispatch(updateNewMigrationData(projectMapper));
