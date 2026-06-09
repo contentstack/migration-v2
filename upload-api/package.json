@@ -90,7 +90,7 @@
     "@tootallnate/once": ">=3.0.1",
     "fast-xml-parser": ">=5.3.8",
     "@wordpress/block-editor": {
-      "diff": "4.0.2"
+      "diff": "4.0.4"
     },
     "qs": ">=6.14.2"
   }
