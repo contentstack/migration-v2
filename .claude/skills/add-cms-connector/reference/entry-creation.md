@@ -57,15 +57,72 @@ A reference value (your source's pointer, e.g. Sanity `{_ref}`) resolves to
 `{ uid: index[ref].uid, _content_type_uid: ctUidByType[index[ref].type] }`. Use the
 SAME `toEntryUid()` when indexing and when writing entries, or refs won't match.
 
+## Assets (the `getAllAssets` pass)
+
+`file` fields need a separate `getAllAssets(file_path, packagePath, destinationStackId, projectId)`
+that runs **before** `createEntry` in the migration.service switch (so the asset
+records exist on disk when entries are built). It writes the standard asset
+package and `createEntry` re-reads it. Model: `wordpress.service.ts`
+(`startingDirAssests`/`saveAsset`); the shipped `sanity.service.ts` is the local-copy variant.
+
+**Package layout** under `cmsMigrationData/<stackId>/assets/`:
+- `assets.json` = `{ "1": "index.json" }` (manifest)
+- `index.json` = the asset-record map, keyed by **asset uid** (this is what `createEntry` re-reads)
+- `folders.json` = `{}`
+- `files/<assetUid>/<filename>` = the raw binary bytes
+- `logs/assets/cs_failed.json` = `{}` (record assets whose binary couldn't be read)
+
+**Asset record shape** (match `wordpress.service.ts:saveAsset`):
+```
+{ uid, urlPath:`/assets/<uid>`, status:true, content_type /* getMimeTypeFromExtension(ext) */,
+  file_size /* STRING `${bytes}` */, tag:[], filename, url, is_dir:false, parent_uid:null,
+  _version:1, title, publish_details:[], description:"" }
+```
+
+**Binary handling — download vs copy:** WordPress/Contentful exports only carry a
+CDN **url**, so they download (`saveAssetFromUrl`). A Sanity export **ships the
+bytes** in `images/` (+ `files/`) with no CDN url, so **copy the local file** and
+set `url:""`. Pick per export; don't fabricate a url.
+
+**Asset uid / identity:** derive a STABLE uid from the source's content/asset
+identity so re-runs and references are deterministic and duplicates collapse. For
+Sanity that's the 40-hex hash shared by the `images/` filename, the `assets.json`
+key (`image-<hash>`), and the in-doc `_sanityAsset` path → `assets_<hash>`.
+⚠️ That identity hash is NOT the record's `sha1hash` field (a different content
+hash) — key on the filename/path hash so `getAllAssets` and `createEntry` agree.
+
+**`file` field value:** the entry stores the **full asset record object** (not a
+uid, not `{uid,_content_type_uid}`) — same as every connector
+(`entries-field-creator.utils.ts:249`). Single field → the record; `multiple` →
+an array of records. `createEntry` resolves it by parsing the source ref → identity
+hash → `assetLookup['assets_'+hash]` (the parsed `index.json`).
+
+⚠️ **Galleries / arrays of media:** an array of media objects (e.g. `[{image…},{image…}]`)
+must become a **`multiple` file field**, NOT a group — if the parser maps it to a
+group, the entry transform drops every asset. Detect "array whose first element is
+a media object" in the parser and emit `file` + `advanced.multiple=true`; the
+transform then returns the array of asset records.
+
+⚠️ **Embedded assets aren't only top-level.** `transformField` dispatches on the
+top-level field type, so assets **inside rich text or nested objects/arrays** are
+missed unless you walk them. For RTE (`json`/`html`), when a portable-text / body
+element is a media object (not a text block), emit a Contentstack **embedded-asset
+node** instead of dropping it (proven shape — `entries-field-creator.utils.ts:151`):
+```
+{ uid, type:'reference', attrs:{ 'display-type':'display', 'asset-uid':rec.uid,
+  'content-type-uid':'sys_assets', 'asset-link':rec.urlPath, 'asset-name':rec.title,
+  'asset-type':rec.content_type, type:'asset', 'class-name':'embedded-asset', inline:false },
+  children:[{text:''}] }
+```
+Assets nested inside **groups** are recovered only once you do nested-group
+expansion (below) — until then, `getAllAssets` still imports those binaries
+(scanned from the export), they're just unlinked; log the count.
+
 ## Deferred passes (don't fake them — log and move on)
 
-- **`file` / assets** — needs a `getAllAssets` pass that registers source assets
-  (binaries + metadata) as Contentstack assets and maps source id/url → asset uid,
-  then `file` fields reference that uid. This is the largest sub-feature (the
-  WordPress asset code is ~400 lines). Until then, skip `file` fields and log a count.
 - **Nested `group` expansion** — if the parser emits a group with an empty child
   schema (didn't recurse into the nested object's fields), there are no inner uids
   to map. Expand the child schema in the parser first, then map here. Until then,
   emit `[]` for multiple groups and log.
 
-Log skipped counts explicitly — silent drops read as "fully imported" when they aren't.
+Log skipped/unresolved counts explicitly — silent drops read as "fully imported" when they aren't.

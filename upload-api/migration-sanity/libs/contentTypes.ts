@@ -98,6 +98,8 @@ function inferSanityType(value: unknown): string {
   if (Array.isArray(value)) {
     const first = value.find((v) => v && typeof v === 'object');
     if (first && (first as any)._type === 'block') return 'block';
+    if (first && ((first as any)._type === 'image' || (first as any)._type === 'file'))
+      return 'fileMultiple'; // array of image/file objects -> multiple file field
     if (first) return 'array'; // array of objects -> repeatable group
     return 'string';
   }

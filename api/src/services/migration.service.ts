@@ -489,6 +489,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.SANITY: {
+        await sanityService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId);
         await sanityService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await sanityService?.createLocale(req, project?.current_test_stack_id, projectId, project);
         await sanityService?.createVersionFile(project?.current_test_stack_id, projectId);
@@ -911,6 +912,7 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.SANITY: {
+        await sanityService?.getAllAssets(file_path, packagePath, project?.destination_stack_id, projectId);
         await sanityService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await sanityService?.createLocale(req, project?.destination_stack_id, projectId, project);
         await sanityService?.createVersionFile(project?.destination_stack_id, projectId);

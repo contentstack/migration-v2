@@ -117,8 +117,9 @@ async function extractContentTypes(
  *  - ISO-8601 strings → 'datetime' (otherwise you'd lose date fields to text)
  *  - tagged objects (`{_type: image|reference|slug|...}`) → that type. This part
  *    is CMS-SPECIFIC: Sanity tags objects with `_type`; other CMSs differ.
- *  - array of `{_type:'block'}` (portable text) → 'block'; other object arrays →
- *    'array' (repeatable group).
+ *  - array of `{_type:'block'}` (portable text) → 'block'; an array of MEDIA
+ *    objects (image/file) → a MULTIPLE file field (NOT a group — else galleries
+ *    drop every asset); other object arrays → 'array' (repeatable group).
  * Note: some distinctions collapse without a schema (e.g. short vs long string) —
  * the user refines those in the field-mapping UI, so a sane default is fine.
  */
@@ -126,6 +127,8 @@ function inferSourceType(value: unknown): string {
   if (Array.isArray(value)) {
     const first = value.find((v) => v && typeof v === 'object');
     if (first && (first as any)._type === 'block') return 'block'; // portable text
+    if (first && ((first as any)._type === 'image' || (first as any)._type === 'file'))
+      return 'fileMultiple'; // array of media -> multiple file (map to file + multiple)
     if (first) return 'array'; // array of objects -> repeatable group
     return 'string';
   }

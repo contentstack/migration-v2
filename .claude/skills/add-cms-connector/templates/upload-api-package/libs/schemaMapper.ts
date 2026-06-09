@@ -49,6 +49,12 @@ export const mapField = (name: string, sourceType: string): Field => {
     case 'file':
       return baseField(name, sourceType, 'file');
 
+    case 'fileMultiple': {   // array of media objects -> multiple file (gallery)
+      const f = baseField(name, sourceType, 'file');
+      f.advanced = { multiple: true };
+      return f;
+    }
+
     case 'reference':
       return baseField(name, sourceType, 'reference');
 
