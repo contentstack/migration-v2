@@ -54,11 +54,14 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
 {
   const isSQL = fileFormatId?.toLowerCase() === 'sql';
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const isValidated = newMigrationData?.legacy_cms?.uploadedFile?.isValidated;
   const [isEditing, setIsEditing] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
   const dispatch = useDispatch();
   const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
   const handleEditFile = async () => {
+    // Once the file is validated, editing the path is disabled
+    if (isValidated) return;
     setIsEditing(true);
     setLocalPath(currentPath);
   };
@@ -116,7 +119,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
             <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
           )}
         </div>
-        <div className="edit-icon">
+        <div className={`edit-icon${isValidated ? ' edit-icon--disabled' : ''}`}>
           <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
         </div>
       </div>

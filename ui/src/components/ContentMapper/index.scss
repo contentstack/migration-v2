@@ -67,27 +67,9 @@
     justify-content: space-between;
     min-height: 42px;
     padding: $px-8 $px-10 $px-8 $px-12;
-
-    > .ct-options {
-      align-items: center;
-      display: flex;
-      flex-shrink: 0;
-      gap: $space-10;
-
-      .ct-schema-preview-wrap {
-        align-items: center;
-        display: inline-flex;
-      }
-    }
-
     .ct-names {
-      align-items: center;
-      display: flex;
       font-size: $size-font-xl;
       line-height: normal;
-      min-height: 0;
-      min-width: 0;
-      text-align: left;
       width: calc(100% - 50px);
       .cms-title {
         align-items: center;
@@ -95,7 +77,6 @@
         max-height: 24px;
         white-space: nowrap;
         .tippy-wrapper {
-          align-items: center;
           display: flex;
         }
         span {
@@ -104,6 +85,9 @@
           overflow: hidden;
           text-overflow: ellipsis;
         }
+      }
+      .ct-options {
+        justify-content: flex-end;
       }
     }
     .schema-preview {
@@ -156,58 +140,56 @@
 .table-container {
   flex: 1 0 auto;
 }
-.content-mapper-container {
-  .table-wrapper {
-    flex: 1;
-    .TablePanel {
-      border-left: 0 none;
-      .TablePanel__list-count {
-        display: none;
-      }
+.table-wrapper {
+  flex: 1;
+  .TablePanel {
+    border-left: 0 none;
+    .TablePanel__list-count {
+      display: none;
     }
-    .Table {
-      border-left: 0 none;
-      min-height: 24.25rem;
-      .Table__body__row {
+  }
+  .Table {
+    border-left: 0 none;
+    min-height: 24.25rem;
+    .Table__body__row {
         .Table-select-body {
-          > .checkbox-wrapper {
-            align-items: flex-start;
-          }
+         >.checkbox-wrapper {
+          align-items: flex-start;
         }
-      }
-      .Table__body__column {
-        padding: 0 1.25rem;
-        &:not(:last-of-type) {
-          display: block;
-        }
-      }
-      .Table-select-body {
-        width: 68px;
-      }
-      .cms-field {
-        // text-transform: capitalize;
-        // overflow: hidden;
-        // text-overflow: ellipsis;
-        // white-space: nowrap;
-        // width: 445px;
-
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .InstructionText {
-        font-size: $size-font-small;
-        margin: 0;
-      }
-      .EmptyStateWrapper {
-        margin-top: $px-20;
       }
     }
-    .import-cta {
+    .Table__body__column {
+      padding: 0 1.25rem;
+      &:not(:last-of-type) {
+        display: block;
+      }
+    }
+    .Table-select-body {
+      width: 68px;
+    }
+    .cms-field {
+      // text-transform: capitalize;
+      // overflow: hidden;
+      // text-overflow: ellipsis;
+      // white-space: nowrap;
+      // width: 445px;
+
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .InstructionText {
+      font-size: $size-font-small;
       margin: 0;
     }
+    .EmptyStateWrapper {
+      margin-top: $px-20;
+    }
+  }
+  .import-cta {
+    margin: 0;
   }
 }
 .disabled-field {
@@ -503,9 +485,14 @@ div .table-row {
   }
 }
 
+.select {
+  .tippy-wrapper {
+    display: inline; 
+  }
+}
+
 .entry-mapper-container {
   .Table {
-    
     // Force row layout alignment
     .Table__head,
     .Table__body__row {
@@ -513,12 +500,19 @@ div .table-row {
       width: 100%;
     }
 
-    // Keep the row-select (checkbox) cell at its fixed width and never shrink it
+    // Keep the row-select (checkbox) cell at its fixed width and never shrink it,
+    // and vertically center the checkbox so it lines up with the row text.
     .Table-select-head,
     .Table-select-body {
       flex: 0 0 68px !important;
       width: 68px !important;
       min-width: 68px !important;
+      display: flex !important;
+      align-items: center !important;
+
+      .checkbox-wrapper {
+        align-items: center !important;
+      }
     }
 
     // Target actual column containers
