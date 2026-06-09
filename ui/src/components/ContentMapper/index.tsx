@@ -1129,6 +1129,18 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   };
 
   // Method to change the content type
+  /**
+   * Reflect entry-update selection on the content type's status icon:
+   * has selected entries → 'Updated' (status '2', green); none → 'Mapped' (status '1', blue).
+   */
+  const handleEntrySelectionStatusChange = (contentTypeId: string, hasSelection: boolean) => {
+    const nextStatus = hasSelection ? '2' : '1';
+    const applyStatus = (list: ContentType[]) =>
+      list?.map?.((ct) => (ct?.id === contentTypeId ? { ...ct, status: nextStatus } : ct));
+    setContentTypes((prev) => applyStatus(prev));
+    setFilteredContentTypes((prev) => applyStatus(prev));
+  };
+
   const handleOpenContentType = (i = 0) => {
     if (isDropDownChanged) {
       setIsModalOpen(true);
@@ -3401,6 +3413,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   <EntryMapper
                     tableHeight={tableHeight}
                     selectedContentTypeId={selectedContentType ?? null}
+                    onEntrySelectionChange={handleEntrySelectionStatusChange}
                   />
                 </div>
                 ): (
@@ -3469,18 +3482,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
                 />
-                <div className="mapper-footer">
-                  <div>Total Fields: <strong>{totalCounts}</strong></div>
-                  <Button
-                    className="saveButton"
-                    onClick={handleSaveContentType}
-                    version="v2"
-                    disabled={newMigrationData?.project_current_step > 4}
-                    isLoading={isLoadingSaveButton}
-                  >
-                    Save
-                  </Button>
-                </div>
+                {totalCounts > 0 && (
+                  <div className="mapper-footer">
+                    <div>Total Fields: <strong>{totalCounts}</strong></div>
+                    <Button
+                      className="saveButton"
+                      onClick={handleSaveContentType}
+                      version="v2"
+                      disabled={newMigrationData?.project_current_step > 4}
+                      isLoading={isLoadingSaveButton}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                )}
               </div>
                 )}
             </div>

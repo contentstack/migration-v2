@@ -83,4 +83,10 @@ export interface FileValidationParams {
   projectId: string;
   affix?: string;
   localPath?: string;
+  // MySQL connection details entered in the UI (drupal "Check Connection").
+  mysql?: {
+    host?: string;
+    database?: string;
+    user?: string;
+  };
 }

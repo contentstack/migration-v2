@@ -109,10 +109,11 @@ const MigrationFlowHeader = ({
     newMigrationData?.project_current_step?.toString() !== params?.stepId && 
     parseInt(params?.stepId) < newMigrationData?.project_current_step;
 
-  const isExecutionStarted =
-    finalExecutionStarted ||
-    newMigrationData?.migration_execution?.migrationStarted ||
-    newMigrationData?.migration_execution?.migrationCompleted;
+  // Migration is actively running: it has been started (locally or in redux) but not yet completed.
+  // While in progress the CTA must be disabled; once completed it re-enables as "Restart Migration".
+  const isMigrationInProgress =
+    (finalExecutionStarted || newMigrationData?.migration_execution?.migrationStarted) &&
+    !newMigrationData?.migration_execution?.migrationCompleted;
 
   const destinationStackMigrated =
     params?.stepId === '5' &&
@@ -139,10 +140,11 @@ const MigrationFlowHeader = ({
         aria-label="Save and Continue"
         isLoading={isLoading || newMigrationData?.isprojectMapped}
         disabled={
-          isProjectStatusThreeAndMapperNotGenerated ?
+          isMigrationInProgress ||
+          (isProjectStatusThreeAndMapperNotGenerated ?
             isFileValidated :
-            isStep4AndNotMigrated || 
-            isStepInvalid
+            isStep4AndNotMigrated ||
+            isStepInvalid)
         }
       >
         {newMigrationData?.stepValue || 'Save and Continue'}
