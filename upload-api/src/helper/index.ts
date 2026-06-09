@@ -1,6 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
+import tar from 'tar';
 import xml2js from 'xml2js';
 import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from '../utils/logger';
@@ -129,6 +130,24 @@ const saveZip = async (zip: any, name: string) => {
   }
 };
 
+/** Archive formats we extract into a folder before validation (e.g. Sanity exports ship as .tar.gz). */
+const isArchive = (fileName: string): boolean => {
+  const lower = fileName.toLowerCase();
+  return lower.endsWith('.tar.gz') || lower.endsWith('.tgz') || lower.endsWith('.tar');
+};
+
+/**
+ * Extract a tar / tar.gz / tgz archive into `extracted_files/<destName>` and return that
+ * directory path. `tar.x` auto-detects gzip, so the same call handles compressed and plain tars.
+ */
+const extractArchive = async (archivePath: string, destName: string): Promise<string> => {
+  const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+  const destDir = path.join(baseDir, destName);
+  await fs.promises.mkdir(destDir, { recursive: true });
+  await tar.x({ file: archivePath, cwd: destDir });
+  return destDir;
+};
+
 const saveJson = async (jsonContent: string, fileName: string) => {
   try {
     const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
@@ -209,4 +228,13 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson };
+export {
+  getFileName,
+  saveZip,
+  saveJson,
+  fileOperationLimiter,
+  deleteFolderSync,
+  parseXmlToJson,
+  isArchive,
+  extractArchive
+};

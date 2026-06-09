@@ -45,6 +45,7 @@ export const CMS = {
   WORDPRESS: 'wordpress',
   DRUPAL: 'drupal',
   AEM: 'aem',
+  SANITY: 'sanity',
 };
 export const MODULES = [
   'Project',

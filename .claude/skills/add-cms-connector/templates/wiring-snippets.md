@@ -29,9 +29,13 @@ import <cms>Validator from './<cms>';
 Add inside the `switch (CMSIdentifier)` (key is `${type}-${extension}`):
 ```ts
 case '<cms>-<ext>': {
-  return <cms>Validator(data);
+  return <cms>Validator({ data });
 }
 ```
+For a folder/archive connector `<ext>` is **`folder`** (key `<cms>-folder`) and
+`data` is a **directory path string** — see `reference/upload-flow.md`. Existing
+folder validators take `{ data }` (e.g. `aemValidator`, `sanityValidator`);
+single-file ones may take the raw string directly (e.g. `wordpressValidator(data)`).
 
 ## Layer C
 
@@ -62,6 +66,10 @@ case CMS.<CMS>: {
 ## Layer D
 
 ### `ui/src/cmsData/legacyCms.json` → `all_cms`
+
+Pick the `allowed_file_formats` variant that matches your upload shape.
+
+**Single-file connector** (json/xml/sql/zip — real extension):
 ```json
 {
   "cms_id": "<cms>",
@@ -76,6 +84,25 @@ case CMS.<CMS>: {
   ]
 }
 ```
+
+**Folder / archive connector** (mirror `aem`) — use `directory`, NOT the archive
+extension. Directory uploads (and server-extracted archives) run as `fileExt
+'folder'` → validator key `<cms>-folder` (see `reference/upload-flow.md`):
+```json
+{
+  "cms_id": "<cms>",
+  "title": "<Cms>",
+  "description": "",
+  "group_name": "lightning",
+  "doc_url": { "title": "https://<cms>.io/", "href": "https://<cms>.io/" },
+  "parent": "<Cms>",
+  "isactive": true,
+  "allowed_file_formats": [
+    { "fileformat_id": "directory", "title": "Folder", "description": "", "group_name": "directory", "isactive": true }
+  ]
+}
+```
+(`_metadata.uid` on existing entries is CMS-managed; new hand-added entries may omit it.)
 
 ### `ui/src/utilities/constants.ts` (optional)
 ```ts

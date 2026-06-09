@@ -40,6 +40,7 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { sanityService } from './sanity.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 
 /**
@@ -487,6 +488,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
         }
         break;
       }
+      case CMS.SANITY: {
+        await sanityService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+        await sanityService?.createLocale(req, project?.current_test_stack_id, projectId, project);
+        await sanityService?.createVersionFile(project?.current_test_stack_id, projectId);
+        break;
+      }
       case CMS.CONTENTFUL: {
         const cleanLocalPath = file_path?.replace?.(/\/$/, '');
         await contentfulService?.createLocale(
@@ -901,6 +908,12 @@ const startMigration = async (req: Request): Promise<any> => {
             projectId
           );
         }
+        break;
+      }
+      case CMS.SANITY: {
+        await sanityService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+        await sanityService?.createLocale(req, project?.destination_stack_id, projectId, project);
+        await sanityService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
       case CMS.CONTENTFUL: {

@@ -10,7 +10,7 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter } from '../helper';
+import { fileOperationLimiter, isArchive, extractArchive } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import config from '../config/index';
 import createMapper from '../services/createMapper';
@@ -183,6 +183,29 @@ router.get(
 
         const name = fileName?.split?.('.')?.[0];
         const fileExt = fileName?.split('.')?.pop() ?? '';
+
+        // Archive exports (e.g. Sanity ships a .tar.gz) aren't a single parsable file:
+        // extract them to a folder and run the folder-based validator/mapper flow.
+        if (isArchive(fileName)) {
+          const safeName = sanitizeFilename(name);
+          const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+          const extractedDir = await extractArchive(localPath, safeName);
+
+          if (!isPathWithinBase(extractedDir, baseDir)) {
+            console.error('Path traversal attempt detected');
+            return res.status(400).json({
+              status: 400,
+              message: 'Invalid extraction path.',
+              file_details: config
+            });
+          }
+
+          const data = await handleFileProcessing('folder', extractedDir, cmsType, name);
+          if (data?.status === 200) {
+            createMapper(extractedDir, projectId, app_token, affix, config);
+          }
+          return res.status(data?.status || 200).json(data);
+        }
 
         const bodyStream = createReadStream(localPath);
 

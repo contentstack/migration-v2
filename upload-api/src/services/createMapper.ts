@@ -6,6 +6,7 @@ import createWordpressMapper from '../controllers/wordpress';
 import { Config } from '../models/types';
 import createContentfulMapper from './contentful';
 import createDrupalMapper from './drupal';
+import createSanityMapper from '../controllers/sanity';
 import { deleteFolderSync } from '../helper';
 import logger from '../utils/logger';
 
@@ -112,6 +113,10 @@ const createMapper = async (
 
     case 'drupal': {
       return createDrupalMapper(config, projectId, app_token, affix);
+    }
+
+    case 'sanity': {
+      return createSanityMapper(filePath, projectId, app_token, affix, config);
     }
 
     default:

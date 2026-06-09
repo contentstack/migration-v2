@@ -29,7 +29,7 @@ export default {
     dropdown: { optionLimit: 100 }
   },
   // CMS type configuration
-  cmsType: process.env.CMS_TYPE || 'cmsType',
+  cmsType: process.env.CMS_TYPE || 'sanity',
   isLocalPath: true,
 
   // AWS data configuration
@@ -58,5 +58,5 @@ export default {
   },
 
   // Local path for the CMS data
-  localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || 'your_local_cms_data_path',
+  localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || '/Users/umesh.more/Documents/sanity/backup-export.tar.gz',
 };
