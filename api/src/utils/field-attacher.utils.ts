@@ -1,14 +1,31 @@
 import ProjectModelLowdb from "../models/project-lowdb.js";
-import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
-import FieldMapperModel from "../models/FieldMapper.js";
+import getContentTypesMapperDb from "../models/contentTypesMapper-lowdb.js";
+import getFieldMapperDb from "../models/FieldMapper.js";
 import { contenTypeMaker } from "./content-type-creator.utils.js";
+import { shouldSkipContentTypeCreation } from "./content-type-checker.utils.js";
+import { sanitizeProjectId, sanitizeStackId } from "./sanitize-path.utils.js";
+import customLogger from "./custom-logger.utils.js";
 
 export const fieldAttacher = async ({ projectId, orgId, destinationStackId, region, user_id, is_sso }: any) => {
+  const safeProjectId = sanitizeProjectId(projectId);
+  if (!safeProjectId) {
+    throw new Error("Invalid project identifier");
+  }
+  // Re-sanitize the destination stack id here as well: it is used as a path segment
+  // downstream (contenTypeMaker -> writeFile), so it must be validated at the sink's
+  // entry point to break any path-traversal taint chain regardless of the caller.
+  const safeDestinationStackId = sanitizeStackId(destinationStackId);
+  if (!safeDestinationStackId) {
+    throw new Error("Invalid destination stack identifier");
+  }
   await ProjectModelLowdb.read();
   const projectData: any = ProjectModelLowdb.chain.get("projects").find({
-    id: projectId,
+    id: safeProjectId,
     org_id: orgId,
   }).value()
+  const iteration = projectData?.iteration || 1;
+  const ContentTypesMapperModelLowdb = getContentTypesMapperDb(safeProjectId, iteration);
+  const FieldMapperModel = getFieldMapperDb(safeProjectId, iteration);
   await ContentTypesMapperModelLowdb.read();
   await FieldMapperModel.read();
   const contentTypes = [];
@@ -16,18 +33,31 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
     for await (const contentId of projectData?.content_mapper ?? []) {
       const contentType: any = ContentTypesMapperModelLowdb.chain
         .get("ContentTypesMappers")
-        .find({ id: contentId, projectId: projectId })
+        .find({ id: contentId, projectId: safeProjectId })
         .value();
       if (contentType?.fieldMapping?.length) {
         contentType.fieldMapping = contentType?.fieldMapping?.map((fieldUid: any) => {
           const field = FieldMapperModel.chain
             .get("field_mapper")
-            .find({ id: fieldUid, contentTypeId: contentId, projectId: projectId })
+            .find({ id: fieldUid, contentTypeId: contentId, projectId: safeProjectId })
             .value()
           return field;
         })
       }
-      await contenTypeMaker({ contentType, destinationStackId, projectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+
+      if (iteration === 1) {
+        await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+
+      }
+      else {
+        const shouldSkip = await shouldSkipContentTypeCreation(safeProjectId, contentType?.otherCmsUid, iteration);
+        if (!shouldSkip) {
+          await customLogger(safeProjectId, safeDestinationStackId, 'info', `Creating new content type: ${contentType.otherCmsUid}`);
+          await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+        } else {
+          await customLogger(safeProjectId, safeDestinationStackId, 'info', `Skipping content type creation: ${contentType.otherCmsUid} (already exists from previous iteration)`);
+        }
+      }
       contentTypes?.push?.(contentType);
     }
   }

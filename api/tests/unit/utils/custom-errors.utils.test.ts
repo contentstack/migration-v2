@@ -58,6 +58,11 @@ describe('Custom Error Classes', () => {
       expect(error.message).toBe('DB error');
       expect(error).toBeInstanceOf(AppError);
     });
+
+    it('should accept a custom message', () => {
+      const error = new DatabaseError('custom-db');
+      expect(error.message).toBe('custom-db');
+    });
   });
 
   describe('ValidationError', () => {
@@ -67,6 +72,11 @@ describe('Custom Error Classes', () => {
       expect(error.message).toBe('User validation error');
       expect(error).toBeInstanceOf(AppError);
     });
+
+    it('should accept a custom message', () => {
+      const error = new ValidationError('bad field');
+      expect(error.message).toBe('bad field');
+    });
   });
 
   describe('InternalServerError', () => {
@@ -75,6 +85,11 @@ describe('Custom Error Classes', () => {
       expect(error.statusCode).toBe(500);
       expect(error.message).toBeTruthy();
       expect(error).toBeInstanceOf(AppError);
+    });
+
+    it('should accept a custom message', () => {
+      const error = new InternalServerError('custom-internal');
+      expect(error.message).toBe('custom-internal');
     });
   });
 
@@ -96,6 +111,11 @@ describe('Custom Error Classes', () => {
       const error = new S3Error();
       expect(error.statusCode).toBe(500);
       expect(error).toBeInstanceOf(AppError);
+    });
+
+    it('should accept a custom message', () => {
+      const error = new S3Error('bucket failed');
+      expect(error.message).toBe('bucket failed');
     });
   });
 

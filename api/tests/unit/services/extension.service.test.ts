@@ -26,15 +26,20 @@ vi.mock('path', async (importOriginal) => {
     },
   };
 });
-vi.mock('../../../src/constants/index.js', () => ({
-  MIGRATION_DATA_CONFIG: {
-    DATA: './cmsMigrationData',
-    EXTENSION_APPS_DIR_NAME: 'extensions',
-    EXTENSION_APPS_FILE_NAME: 'extensions.json',
-    CUSTOM_MAPPER_FILE_NAME: 'custmon-mapper.json',
-  },
-  LIST_EXTENSION_UID: 'blt0000000000000000',
-}));
+vi.mock('../../../src/constants/index.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../src/constants/index.js')>();
+  return {
+    ...actual,
+    MIGRATION_DATA_CONFIG: {
+      DATA: './cmsMigrationData',
+      EXTENSION_APPS_DIR_NAME: 'extensions',
+      EXTENSION_APPS_FILE_NAME: 'extensions.json',
+      CUSTOM_MAPPER_FILE_NAME: 'custmon-mapper.json',
+    },
+    LIST_EXTENSION_UID: 'blt0000000000000000',
+  };
+});
 
 vi.stubGlobal('process', {
   ...process,

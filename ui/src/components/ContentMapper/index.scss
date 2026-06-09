@@ -490,3 +490,45 @@ div .table-row {
     display: inline; 
   }
 }
+
+.entry-mapper-container {
+  .Table {
+    // Force row layout alignment
+    .Table__head,
+    .Table__body__row {
+      display: flex !important;
+      width: 100%;
+    }
+
+    // Keep the row-select (checkbox) cell at its fixed width and never shrink it,
+    // and vertically center the checkbox so it lines up with the row text.
+    .Table-select-head,
+    .Table-select-body {
+      flex: 0 0 68px !important;
+      width: 68px !important;
+      min-width: 68px !important;
+      display: flex !important;
+      align-items: center !important;
+
+      .checkbox-wrapper {
+        align-items: center !important;
+      }
+    }
+
+    // Target actual column containers
+    .Table__head__column,
+    .Table__body__column {
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      display: flex !important;
+      align-items: center;
+      border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // Remove last column border
+    .Table__head__column:last-child,
+    .Table__body__column:last-child {
+      border-right: none !important;
+    }
+  }
+}

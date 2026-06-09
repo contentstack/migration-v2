@@ -24,7 +24,7 @@ describe('auth.middleware', () => {
     next = vi.fn();
   });
 
-  it('should return 401 when app_token header is missing', () => {
+  it('should return 401 when app_token header is missing or empty', () => {
     req.get.mockReturnValue(undefined);
 
     authenticateUser(req, res, next);
@@ -33,6 +33,12 @@ describe('auth.middleware', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'Unauthorized - Token missing' })
     );
+    expect(next).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    req.get.mockReturnValue('');
+    authenticateUser(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
   });
 

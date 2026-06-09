@@ -47,7 +47,7 @@ const SaveChangesModal = (props: Props) => {
           <Button
             buttonType="secondary"
             version={'v2'}
-            onClick={() => {
+            onClick={ () => {
               props.closeModal();
               props?.dropdownStateChange();
               props.openContentType?.();
@@ -59,7 +59,7 @@ const SaveChangesModal = (props: Props) => {
           </Button>
           <Button
             version={'v2'}
-            onClick={() => {
+            onClick={ () => {
               props?.dropdownStateChange();
               props?.saveContentType?.();
               props.closeModal();

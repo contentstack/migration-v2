@@ -106,7 +106,7 @@ const Card = <T extends ICardType = ICardType>({
         }}
       >
         {isHovered || selectedCard?.[idField] === data?.[idField] ? (
-          <Radio checked={selectedCard?.id === data?.id} disabled={!isHovered} />
+          <Radio checked={selectedCard?.[idField] === data?.[idField]} disabled={!isHovered} />
         ) : (
           <></>
         )}

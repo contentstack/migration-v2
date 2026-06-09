@@ -23,7 +23,8 @@ import {
   getExistingGlobalFields,
   startMigration,
   updateMigrationKey,
-  updateLocaleMapper
+  updateLocaleMapper,
+  restartMigration
 } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
@@ -470,6 +471,7 @@ const Migration = () => {
       isprojectMapped: false,
       project_current_step: projectData?.current_step,
       isContentMapperGenerated: projectData?.content_mapper?.length > 0,
+      iteration: projectData?.iteration ?? 1,
     };
 
     dispatch(updateNewMigrationData(projectMapper));
@@ -775,14 +777,12 @@ const Migration = () => {
         }
       });
     } else {
-
-      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-        setIsLoading(false);
-        event.preventDefault();
-        handleStepChange(3);
-        const url = `/projects/${projectId}/migration/steps/4`;
-        navigate(url, { replace: true });
-
+      await updateCurrentStepData(selectedOrganisation.value, projectId);
+      setIsLoading(false);
+      event?.preventDefault?.();
+      handleStepChange(3);
+      const url = `/projects/${projectId}/migration/steps/4`;
+      navigate(url, { replace: true });
     }
   };
 
@@ -808,39 +808,99 @@ const Migration = () => {
   const handleOnClickMigrationExecution = async () => {
     setIsLoading(true);
 
-    try {
-      const migrationRes = await startMigration(
-        newMigrationData?.destination_stack?.selectedOrg?.value,
-        projectId
-      );
+    if (newMigrationData?.stepValue !== 'Restart Migration') {
+      try {
+        const migrationRes = await startMigration(
+          newMigrationData?.destination_stack?.selectedOrg?.value,
+          projectId
+        );
 
-      if (migrationRes?.status === 200) {
-        setIsLoading(false);
-        setDisableMigration(true);
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          migration_execution: {
-            ...newMigrationData?.migration_execution,
-            migrationStarted: true
-          }
-        };
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        if (migrationRes?.status === 200) {
+          setDisableMigration(true);
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            migration_execution: {
+              ...newMigrationData?.migration_execution,
+              migrationStarted: true
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
 
+          Notification({
+            notificationContent: { text: 'Migration Execution process started' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'message'
+          });
+        } else {
+          Notification({
+            notificationContent: {
+              text: migrationRes?.data?.error?.message || 'Failed to start migration'
+            },
+            type: 'error'
+          });
+        }
+      } catch (error) {
+        console.error(error);
         Notification({
-          notificationContent: { text: 'Migration Execution process started' },
-          notificationProps: {
-            position: 'bottom-center',
-            hideProgressBar: true
-          },
-          type: 'message'
+          notificationContent: { text: 'Failed to start migration' },
+          type: 'error'
         });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      // return error;
-      console.error(error);
+    } else {
+      await handleRestartMigration();
+      setIsLoading(false);
     }
   };
 
+  const handleRestartMigration = async () => {
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        projectStatus: 0,
+        currentStep: 1,
+        uploadedFile: {
+          ...newMigrationData?.legacy_cms?.uploadedFile,
+          isValidated: false
+        }
+      },
+      migration_execution: {
+        ...newMigrationData?.migration_execution,
+        migrationStarted: false,
+        migrationCompleted: false
+      },
+      project_current_step: 1,
+      iteration: newMigrationData?.iteration ? newMigrationData?.iteration + 1 : 1
+    };
+    dispatch(updateNewMigrationData(newMigrationDataObj));
+    try {
+      const res = await restartMigration(selectedOrganisation?.value, projectId);
+      if (res?.status === 200) {
+        Notification({
+          notificationContent: { text: 'Migration restarted successfully' },
+          type: 'success'
+        });
+        navigate(`/projects/${projectId}/migration/steps/1`);
+      } else {
+        Notification({
+          notificationContent: { text: 'Failed to restart migration' },
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Notification({
+        notificationContent: { text: 'Failed to restart migration' },
+        type: 'error'
+      });
+    }
+  };
+  
   /**
    * Once Save Changes Modal is shown, Change the dropdown state to false and store in rdux
    */

@@ -1,6 +1,8 @@
 import { JSONFile } from "lowdb/node";
 import path from 'path';
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
+import fs from 'node:fs';
+import { DATABASE_FILES } from "../constants/index.js";
 
 /**
  * Represents a content type mapper.
@@ -56,6 +58,9 @@ export interface ContentTypesMapper {
    */
   fieldMapping: [];
 
+  entryMapping: [];
+
+
   /**
    * The type of the content type.
    */
@@ -78,11 +83,20 @@ interface ContentTypeMapperDocument {
 const defaultData: ContentTypeMapperDocument = { ContentTypesMappers: [] };
 
 /**
- * Represents the database instance for the content types mapper.
+ * Creates and returns a database instance for the content types mapper for a specific project.
+ * @param projectId - The unique identifier of the project
+ * @returns The database instance for the content types mapper
  */
-const db = new LowWithLodash(
-  new JSONFile<ContentTypeMapperDocument>(path.join(process.cwd(), "database", 'contentTypesMapper.json')),
-  defaultData
-);
+export const getContentTypesMapperDb = (projectId: string, iteration: number) => {    
+  fs.mkdirSync(path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString()), { recursive: true });
+  const db = new LowWithLodash(
+    new JSONFile<ContentTypeMapperDocument>(
+      path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString(), DATABASE_FILES.CONTENT_TYPES_MAPPER),
+    ),
+    defaultData
+  );
+  return db;
+};
 
-export default db;
+// For backward compatibility, export a default function that requires projectId
+export default getContentTypesMapperDb;

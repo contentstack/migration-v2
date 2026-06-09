@@ -68,6 +68,11 @@ const saveMappedLocales = async (req: Request, res: Response): Promise<void> => 
   res.status(200).json(resp);
 }
 
+const restartMigration = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.restartMigration(req);
+  res.status(resp?.status).json(resp);
+}
+
 export const migrationController = {
   createTestStack,
   deleteTestStack,
@@ -76,5 +81,6 @@ export const migrationController = {
   getLogs,
   saveLocales,
   saveMappedLocales,
-  getAuditData
+  getAuditData,
+  restartMigration
 };

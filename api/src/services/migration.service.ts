@@ -17,10 +17,12 @@ import {
   STEPPER_STEPS,
   CMS,
   GET_AUDIT_DATA,
+  MIGRATION_DATA_CONFIG,
 } from '../constants/index.js';
 import {
   BadRequestError,
   ExceptionFunction,
+  NotFoundError,
 } from '../utils/custom-errors.utils.js';
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
@@ -38,12 +40,21 @@ import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
-import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
+import {
+  assertResolvedPathUnderBase,
+  getSafePath,
+  sanitizeOrgId,
+  sanitizeProjectId,
+  sanitizeStackId,
+} from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
+import { utilsUpdateCli } from './updateEntryCli.service.js';
+import { clearStaleEntries, enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
+import { removeExistingAssets, saveAssetMetadata } from '../utils/asset-update.utils.js';
 
 /**
- * Creates a test stack.
+ * Creates a test stack.  
  *
  * @param req - The request object containing the necessary parameters.
  * @returns A promise that resolves to a LoginServiceType object.
@@ -297,12 +308,20 @@ const startTestMigration = async (req: Request): Promise<any> => {
     const {
       legacy_cms: { cms, file_path },
     } = project;
+    const logsBase = path.resolve(process.cwd(), 'logs');
+    const safeTestProjectId = sanitizeProjectId(projectId);
+    const safeTestStackId = sanitizeStackId(project?.current_test_stack_id);
+    if (!safeTestProjectId || !safeTestStackId) {
+      throw new BadRequestError(
+        'Invalid project or test stack identifier; cannot create log file path.'
+      );
+    }
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.current_test_stack_id}.log`
+      logsBase,
+      safeTestProjectId,
+      `${safeTestStackId}.log`
     );
+    assertResolvedPathUnderBase(logsBase, loggerPath);
     const message = getLogMessage(
       'startTestMigration',
       'Starting Test Migration...',
@@ -408,10 +427,24 @@ const startTestMigration = async (req: Request): Promise<any> => {
     };
 
     await copyLogsToTestStack(project?.current_test_stack_id, loggerPath);
+    // Clear any stale entries from a previous run before re-transforming, so orphaned
+    // chunk files cannot clobber this run's entry data during the update step.
+    clearStaleEntries(project?.current_test_stack_id, loggerPath);
+    // fieldAttacher uses destinationStackId as a path segment when writing content-type
+    // files. Confirm the sanitized stack id resolves inside the migration-data base before
+    // passing it in, so request-derived input cannot escape via path traversal.
+    const testMigrationDataBase = path.resolve(
+      process.cwd(),
+      MIGRATION_DATA_CONFIG.DATA
+    );
+    assertResolvedPathUnderBase(
+      testMigrationDataBase,
+      path.join(testMigrationDataBase, safeTestStackId)
+    );
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.current_test_stack_id,
+      projectId: safeTestProjectId,
+      destinationStackId: safeTestStackId,
       region,
       user_id,
       is_sso,
@@ -702,12 +735,27 @@ const startMigration = async (req: Request): Promise<any> => {
     const {
       legacy_cms: { cms, file_path },
     } = project;
+    const logsBase = path.resolve(process.cwd(), 'logs');
+    const safeFinalProjectId = sanitizeProjectId(projectId);
+    const safeFinalStackId = sanitizeStackId(project?.destination_stack_id);
+    if (!safeFinalProjectId || !safeFinalStackId) {
+      logger.error(
+        getLogMessage(
+          'startMigration',
+          'Invalid project or destination stack identifier; cannot create log file path.',
+          { projectId, destinationStackId: project?.destination_stack_id }
+        )
+      );
+      throw new BadRequestError(
+        'Invalid project or destination stack identifier; cannot create log file path.'
+      );
+    }
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.destination_stack_id}.log`
+      logsBase,
+      safeFinalProjectId,
+      `${safeFinalStackId}.log`
     );
+    assertResolvedPathUnderBase(logsBase, loggerPath);
     const message = getLogMessage(
       'start Migration',
       'Starting Migration...',
@@ -815,10 +863,26 @@ const startMigration = async (req: Request): Promise<any> => {
 
     await copyLogsToStack(project?.destination_stack_id, loggerPath);
 
+    // Clear any stale entries from a previous run before re-transforming, so orphaned
+    // chunk files cannot clobber this run's entry data during the update step.
+    clearStaleEntries(project?.destination_stack_id, loggerPath);
+
+    // fieldAttacher uses destinationStackId as a path segment when writing content-type
+    // files. Confirm the sanitized stack id resolves inside the migration-data base before
+    // passing it in, so request-derived input cannot escape via path traversal.
+    const finalMigrationDataBase = path.resolve(
+      process.cwd(),
+      MIGRATION_DATA_CONFIG.DATA
+    );
+    assertResolvedPathUnderBase(
+      finalMigrationDataBase,
+      path.join(finalMigrationDataBase, safeFinalStackId)
+    );
+
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.destination_stack_id,
+      projectId: safeFinalProjectId,
+      destinationStackId: safeFinalStackId,
       region,
       user_id,
       is_sso,
@@ -1062,6 +1126,106 @@ const startMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    let configFilePath: string | null = null;
+    let safeDeltaMigrationLogPath: string | undefined;
+    const destinationStackId = project?.destination_stack_id;
+
+    const safeStackForAssets = sanitizeStackId(project?.destination_stack_id);
+    if (!safeStackForAssets) {
+      await customLogger(projectId, destinationStackId, 'error', 'Invalid destination stack id; cannot load assets index.');
+      console.error(
+        'Invalid destination stack id; cannot load assets index.',
+      );
+      return;
+    }
+    const migrationDataBase = path.resolve(
+      process.cwd(),
+      MIGRATION_DATA_CONFIG.DATA,
+    );
+    const assetsDir = path.join(
+      migrationDataBase,
+      safeStackForAssets,
+      MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME,
+    );
+    const indexPath = path.join(
+      assetsDir,
+      MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE,
+    );
+
+    let indexData: Record<string, any>;
+    try {
+      assertResolvedPathUnderBase(migrationDataBase, indexPath);
+    } catch {
+      console.error(
+        'Assets index path is outside the allowed migration-data directory.',
+      );
+      return;
+    }
+
+    try {
+      const stats = await fsPromises.lstat(indexPath).catch(() => null);
+      if (!stats || stats.isSymbolicLink() || !stats.isFile()) {
+        console.error(
+          `Assets index not found or not a regular file at ${indexPath}`,
+        );
+        return;
+      }
+
+      const canonicalIndexPath = await fsPromises.realpath(indexPath);
+      try {
+        assertResolvedPathUnderBase(migrationDataBase, canonicalIndexPath);
+      } catch {
+          await customLogger(projectId, destinationStackId, 'error', 'Assets index resolves outside the allowed migration-data directory.');
+        return;
+      }
+
+      const raw = await fsPromises.readFile(canonicalIndexPath, 'utf-8');
+      if (!raw?.trim()) {
+        await customLogger(projectId, destinationStackId, 'error', 'Assets index.json is empty.');
+        console.error(`Assets index.json is empty at ${indexPath}`);
+        return;
+      }
+      indexData = JSON.parse(raw);
+    } catch (error) {
+      await customLogger(projectId, destinationStackId, 'error', `Failed to read or parse assets index.json: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `Failed to read or parse assets index.json at ${indexPath}:`,
+        error instanceof Error ? error.message : String(error),
+      );
+      return;
+    }
+
+    const deltaLogsBase = path.resolve(process.cwd(), 'logs');
+    const safePid = sanitizeProjectId(projectId);
+    const safeStack = sanitizeStackId(project?.destination_stack_id);
+    if (safePid && safeStack) {
+      const candidate = path.join(deltaLogsBase, safePid, `${safeStack}.log`);
+      try {
+        assertResolvedPathUnderBase(deltaLogsBase, candidate);
+        safeDeltaMigrationLogPath = candidate;
+      } catch {
+        safeDeltaMigrationLogPath = undefined;
+      }
+    }
+
+    saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
+
+    if (iteration > 1) {
+      await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
+      configFilePath = await removeEntriesFromDatabase(
+        projectId,
+        safeDeltaMigrationLogPath
+      );
+      await customLogger(projectId, destinationStackId, 'info', `Config file generated at ${configFilePath}`);
+      console.info('Config file written to:', configFilePath);
+      }
+
     await utilsCli?.runCli(
       region,
       user_id,
@@ -1070,6 +1234,25 @@ const startMigration = async (req: Request): Promise<any> => {
       false,
       loggerPath
     );
+
+    if (configFilePath) {
+      enrichConfigWithAssetMapping(
+        configFilePath,
+        projectId,
+        iteration,
+        safeDeltaMigrationLogPath
+      );
+      await utilsUpdateCli?.updateEntryCli(
+        region,
+        user_id,
+        project?.destination_stack_id,
+        safeDeltaMigrationLogPath || '',
+        configFilePath
+      );
+    }
+    else{
+      await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
+    }
   }
 };
 const getAuditData = async (req: Request): Promise<any> => {
@@ -1514,6 +1697,54 @@ export const updateLocaleMapper = async (req: Request) => {
   }
 };
 
+const restartMigration = async (req: Request): Promise<any> => {
+  const { orgId, projectId } = req?.params ?? {};
+  const safeProjectId = sanitizeProjectId(projectId);
+  if (safeProjectId === null) {
+    throw new BadRequestError('Invalid projectId');
+  }
+
+  const safeOrgId = sanitizeOrgId(orgId);
+  if (safeOrgId === null) {
+    throw new BadRequestError('Invalid orgId');
+  }
+  await ProjectModelLowdb.read();
+  const projectIndex = ProjectModelLowdb.chain
+    .get("projects")
+    .findIndex({ id: safeProjectId, org_id: safeOrgId })
+    .value();
+  console.info('projectIndex', projectIndex);
+  if (projectIndex > -1) {
+    try {
+      await ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].migration_execution = false;
+      data.projects[projectIndex].isMigrationCompleted = false;
+      data.projects[projectIndex].isMigrationStarted = false;
+      data.projects[projectIndex].current_step = 1;
+      data.projects[projectIndex].status = 0;
+      data.projects[projectIndex].legacy_cms = {
+        ...data.projects[projectIndex].legacy_cms,
+        is_fileValid: false,
+      };
+      data.projects[projectIndex].iteration = 1 + (data.projects[projectIndex].iteration || 0);
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+    } catch (error) {
+      console.error('Error updating project for migration restart:', error);
+      throw new ExceptionFunction(
+        HTTP_TEXTS?.INTERNAL_ERROR,
+        HTTP_CODES?.SERVER_ERROR
+      );
+    }
+  } else {
+    throw new NotFoundError(HTTP_TEXTS?.PROJECT_NOT_FOUND);
+  }
+  return {
+    status: HTTP_CODES?.OK,
+    message: "Migration restarted successfully",
+  };
+};
+
 export const migrationService = {
   createTestStack,
   deleteTestStack,
@@ -1523,4 +1754,5 @@ export const migrationService = {
   createSourceLocales,
   updateLocaleMapper,
   getAuditData,
+  restartMigration
 };

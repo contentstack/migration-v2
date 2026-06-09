@@ -128,9 +128,21 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       }
 
 
-      // Determine which CMS to set as selected
+      // Determine which CMS to set as selected.
+      // If a version is already selected (e.g. preserved across a restart / on revisit),
+      // keep it instead of wiping it back to DEFAULT_CMS_TYPE. Only auto-pick when there's
+      // a single matching version, and only fall back to default when nothing is selected.
       let finalSelectedCard: ICMSType | undefined;
-      if (filteredCmsData?.length === 1) {
+      const existingSelectedCms = newMigrationData?.legacy_cms?.selectedCms;
+      const existingStillValid =
+        !isEmptyString(existingSelectedCms?.cms_id) &&
+        filteredCmsData?.some(
+          (cms: ICMSType) => cms?.cms_id === existingSelectedCms?.cms_id
+        );
+
+      if (existingStillValid) {
+        finalSelectedCard = existingSelectedCms;
+      } else if (filteredCmsData?.length === 1) {
         finalSelectedCard = filteredCmsData[0];
       } else {
         finalSelectedCard = DEFAULT_CMS_TYPE;
@@ -144,7 +156,12 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         legacy_cms: {
           ...newMigrationData?.legacy_cms,
           selectedCms: finalSelectedCard, // Include selectedCms in this dispatch
-          selectedFileFormat: filteredCmsData[0]?.allowed_file_formats?.[0],
+          // Keep the file format in sync with the resolved CMS: only preserve the existing
+          // format when the existing version is being preserved; otherwise derive it from
+          // the resolved card so we never end up with DEFAULT_CMS_TYPE + a stale format.
+          selectedFileFormat: existingStillValid
+            ? newMigrationData?.legacy_cms?.selectedFileFormat
+            : finalSelectedCard?.allowed_file_formats?.[0],
           affix: newMigrationData?.legacy_cms?.affix || 'cs', // Preserve or set default affix
           uploadedFile: {
             ...newMigrationData?.legacy_cms?.uploadedFile,

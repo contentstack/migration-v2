@@ -1,4 +1,6 @@
+import path from 'path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MIGRATION_DATA_CONFIG } from '../../../src/constants/index.js';
 
 const {
   mockHttps,
@@ -12,6 +14,10 @@ const {
   mockFsPromisesReadFile,
   mockFsPromisesAppendFile,
   mockFsPromisesRealpath,
+  mockFsPromisesLstat,
+  mockFsMkdirSync,
+  mockFsWriteFileSync,
+  mockFsAppendFileSync,
 } = vi.hoisted(() => {
   const projects = [
     {
@@ -37,6 +43,10 @@ const {
     mockFsPromisesReadFile: vi.fn(),
     mockFsPromisesAppendFile: vi.fn(),
     mockFsPromisesRealpath: vi.fn(),
+    mockFsPromisesLstat: vi.fn(),
+    mockFsMkdirSync: vi.fn(),
+    mockFsWriteFileSync: vi.fn(),
+    mockFsAppendFileSync: vi.fn(),
   };
 });
 
@@ -146,8 +156,12 @@ vi.mock('fs', () => ({
   default: {
     existsSync: (...args: unknown[]) => mockFsExistsSync(...args),
     readdirSync: (...args: unknown[]) => mockFsReadDirSync(...args),
+    mkdirSync: (...args: unknown[]) => mockFsMkdirSync(...args),
+    writeFileSync: (...args: unknown[]) => mockFsWriteFileSync(...args),
+    appendFileSync: (...args: unknown[]) => mockFsAppendFileSync(...args),
     promises: {
       readFile: (...args: unknown[]) => mockFsPromisesReadFile(...args),
+      lstat: (...args: unknown[]) => mockFsPromisesLstat(...args),
     },
   },
 }));
@@ -157,6 +171,7 @@ vi.mock('fs/promises', () => ({
     readFile: mockFsPromisesReadFile,
     appendFile: mockFsPromisesAppendFile,
     realpath: mockFsPromisesRealpath,
+    lstat: mockFsPromisesLstat,
   },
 }));
 
@@ -539,6 +554,33 @@ describe('migration.service', () => {
         findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
       });
 
+      const migrationDataBase = path.resolve(process.cwd(), MIGRATION_DATA_CONFIG.DATA);
+      const assetsIndexPath = path.join(
+        migrationDataBase,
+        'dest-stack-1',
+        MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME,
+        MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE,
+      );
+
+      mockFsPromisesLstat.mockResolvedValueOnce({
+        isSymbolicLink: () => false,
+        isFile: () => true,
+      });
+      mockFsPromisesRealpath.mockImplementation(async (p: string | URL) => {
+        const s = path.normalize(String(p));
+        if (s === path.normalize(assetsIndexPath)) {
+          return assetsIndexPath;
+        }
+        throw new Error('File not found');
+      });
+      mockFsPromisesReadFile.mockImplementation(async (p: string | URL) => {
+        const s = path.normalize(String(p));
+        if (s === path.normalize(assetsIndexPath)) {
+          return '{}';
+        }
+        return '';
+      });
+
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
         body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
@@ -546,6 +588,8 @@ describe('migration.service', () => {
 
       await expect(migrationService.startMigration(req)).resolves.not.toThrow();
       expect(mockProjectUpdate).toHaveBeenCalled();
+      expect(mockFsPromisesLstat).toHaveBeenCalled();
+      expect(mockFsWriteFileSync).toHaveBeenCalled();
     });
 
     it('should do nothing when project has no destination_stack_id', async () => {

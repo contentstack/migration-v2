@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { BatchProcessor, processBatches } from '../../../src/utils/batch-processor.utils.js';
 
 describe('batch-processor.utils', () => {
+  afterEach(() => {
+    delete (globalThis as unknown as { gc?: () => void }).gc;
+  });
+
   describe('BatchProcessor', () => {
     it('should process all items in correct batch sizes', async () => {
       const processor = new BatchProcessor<number>({
@@ -83,6 +87,18 @@ describe('batch-processor.utils', () => {
       const elapsed = Date.now() - start;
 
       expect(elapsed).toBeGreaterThanOrEqual(80);
+    });
+
+    it('calls global.gc when available after each batch', async () => {
+      const gc = vi.fn();
+      (globalThis as unknown as { gc: () => void }).gc = gc;
+      const processor = new BatchProcessor<number>({
+        batchSize: 1,
+        concurrency: 1,
+        delayBetweenBatches: 0,
+      });
+      await processor.processBatches([1, 2], async (item) => item);
+      expect(gc).toHaveBeenCalled();
     });
   });
 

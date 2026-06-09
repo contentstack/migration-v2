@@ -105,14 +105,12 @@ export const CONTENT_MAPPING_STATUS: ObjectType = {
   '1': 'Mapped',
   '2': 'Updated',
   '3': 'Failed',
-  '4': 'All'
-  // '4': 'Auto-Dump'
+  '4': 'All',
 };
 export const STATUS_ICON_Mapping: { [key: string]: string } = {
   '1': 'CheckedCircle',
   '2': 'SuccessInverted',
-  '3': 'ErrorInverted'
-  // '4': 'completed'
+  '3': 'ErrorInverted',
 };
 
 export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {

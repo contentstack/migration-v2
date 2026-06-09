@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const {
   mockMkdir, mockWriteFile, mockExistsSync, mockReaddirSync,
-  mockLstatSync, mockUnlinkSync, mockRmdirSync, mockParseStringPromise,
+  mockLstatSync, mockUnlinkSync, mockRmdirSync, mockParseStringPromise, mockReadFile,
 } = vi.hoisted(() => ({
   mockMkdir: vi.fn().mockResolvedValue(undefined),
   mockWriteFile: vi.fn().mockResolvedValue(undefined),
+  mockReadFile: vi.fn(),
   mockExistsSync: vi.fn(),
   mockReaddirSync: vi.fn(),
   mockLstatSync: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('fs', () => ({
     promises: {
       mkdir: (...a: any[]) => mockMkdir(...a),
       writeFile: (...a: any[]) => mockWriteFile(...a),
+      readFile: (...a: any[]) => mockReadFile(...a),
     },
   },
   existsSync: (...a: any[]) => mockExistsSync(...a),
@@ -38,6 +40,7 @@ vi.mock('fs', () => ({
   promises: {
     mkdir: (...a: any[]) => mockMkdir(...a),
     writeFile: (...a: any[]) => mockWriteFile(...a),
+    readFile: (...a: any[]) => mockReadFile(...a),
   },
 }));
 
@@ -55,12 +58,21 @@ vi.mock('jszip', () => {
   return { default: Cls, __esModule: true };
 });
 
-import { getFileName, saveJson, parseXmlToJson, deleteFolderSync, saveZip } from '../../../src/helper/index';
+import logger from '../../../src/utils/logger';
+import {
+  getFileName,
+  saveJson,
+  parseXmlToJson,
+  deleteFolderSync,
+  saveZip,
+  updateConfigFile,
+} from '../../../src/helper/index';
 
 describe('helper/index', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockParseStringPromise.mockResolvedValue({ rss: { channel: { item: [] } } });
+    mockReadFile.mockResolvedValue(JSON.stringify({ localPath: '/tmp/old', mode: 'test' }));
   });
 
   describe('getFileName', () => {
@@ -244,6 +256,35 @@ describe('helper/index', () => {
       const zip = { files: {} };
       const result = await saveZip(zip, 'test-project');
       expect(result.isSaved).toBe(true);
+    });
+  });
+
+  describe('updateConfigFile', () => {
+    it('returns existing config when filePath is empty', async () => {
+      const result = await updateConfigFile('');
+      expect(result).toEqual({ localPath: '/tmp/old', mode: 'test' });
+      expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('updates localPath and writes config when filePath is provided', async () => {
+      const result = await updateConfigFile('/tmp/new-path');
+      expect(result).toBeDefined();
+      expect(result.localPath).toBe('/tmp/new-path');
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        expect.stringContaining('src/config/index.json'),
+        expect.stringContaining('"localPath": "/tmp/new-path"'),
+        'utf8'
+      );
+    });
+
+    it('returns undefined when config read fails', async () => {
+      mockReadFile.mockRejectedValueOnce(new Error('read fail'));
+      const result = await updateConfigFile('/tmp/new-path');
+      expect(result).toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error updating config file',
+        expect.objectContaining({ err: expect.any(Error) })
+      );
     });
   });
 });

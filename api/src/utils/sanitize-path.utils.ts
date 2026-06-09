@@ -73,6 +73,28 @@ export const sanitizeStackId = (
   return safeValue;
 };
 
+/** Same rules as stack IDs (UUIDs, API keys); use for path segments such as `database/<projectId>/`. */
+export const sanitizeProjectId = sanitizeStackId;
+
+export const sanitizeOrgId = sanitizeStackId;
+
+/**
+ * Throws if {@link targetPath} resolves outside {@link baseDir} (after path.resolve).
+ */
+export const assertResolvedPathUnderBase = (
+  baseDir: string,
+  targetPath: string
+): void => {
+  const base = path.resolve(baseDir);
+  const resolved = path.resolve(targetPath);
+  const rel = path.relative(base, resolved);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(
+      'Invalid path: resolved location is outside the allowed base directory'
+    );
+  }
+};
+
 /**
  * Resolves and validates a safe path dynamically.
  * Supports full paths, path.join(), and path.resolve().

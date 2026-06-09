@@ -92,6 +92,7 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
                 aria-label="File format icon"
               />
             }
+            disabled={true}
           />
         </label>
       </div>
