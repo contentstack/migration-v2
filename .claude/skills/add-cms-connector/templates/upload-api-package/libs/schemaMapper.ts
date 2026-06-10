@@ -15,17 +15,34 @@ import { Field } from '../interface/interface';
  *   single_line_text | multi_line_text | text | html | json | markdown |
  *   number | boolean | isodate | file | reference | taxonomy | link | group |
  *   global_field | url
+ *
+ * GROUP CHILDREN: pass `parent` to emit a child row of a group. All three uid
+ * fields then carry the DOTTED path (`<parentUid>.<childUid>`) — the join key
+ * the api's buildSchemaTree uses to nest the child under its group in the CT
+ * schema (dots are stripped from the final Contentstack uids), and the key the
+ * entry transform uses to find a group's children. Display name = `Parent > child`.
  */
-const toUid = (name: string): string =>
+export interface ParentCtx {
+  uid: string;   // parent group's (possibly already dotted) contentstackFieldUid
+  label: string; // parent group's display name
+}
+
+export const toUid = (name: string): string =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 
-const baseField = (name: string, sourceType: string, csType: string): Field => {
-  const uid = toUid(name);
+export const baseField = (
+  name: string,
+  sourceType: string,
+  csType: string,
+  parent?: ParentCtx,
+): Field => {
+  const uid = parent ? `${parent.uid}.${toUid(name)}` : toUid(name);
+  const label = parent ? `${parent.label} > ${name}` : name;
   return {
     uid,
     otherCmsField: name,
     otherCmsType: sourceType,
-    contentstackField: name,
+    contentstackField: label,
     contentstackFieldUid: uid,
     contentstackFieldType: csType,
     backupFieldType: csType,
@@ -34,58 +51,58 @@ const baseField = (name: string, sourceType: string, csType: string): Field => {
   };
 };
 
-export const mapField = (name: string, sourceType: string): Field => {
+export const mapField = (name: string, sourceType: string, parent?: ParentCtx): Field => {
   switch (sourceType) {
     // --- EXAMPLE seeds: replace with the new CMS's real types ---
     case 'string':
     case 'slug':
-      return baseField(name, sourceType, 'single_line_text');
+      return baseField(name, sourceType, 'single_line_text', parent);
 
     case 'text':
-      return baseField(name, sourceType, 'multi_line_text');
+      return baseField(name, sourceType, 'multi_line_text', parent);
 
     case 'block':        // portable text / rich text
     case 'richText':
-      return baseField(name, sourceType, 'json');
+      return baseField(name, sourceType, 'json', parent);
 
     case 'image':
     case 'file':
-      return baseField(name, sourceType, 'file');
+      return baseField(name, sourceType, 'file', parent);
 
     case 'fileMultiple': {   // array of media objects -> multiple file (gallery)
-      const f = baseField(name, sourceType, 'file');
+      const f = baseField(name, sourceType, 'file', parent);
       f.advanced = { multiple: true };
       return f;
     }
 
     case 'reference':
-      return baseField(name, sourceType, 'reference');
+      return baseField(name, sourceType, 'reference', parent);
 
     case 'array': {       // repeatable -> group with multiple
-      const f = baseField(name, sourceType, 'group');
+      const f = baseField(name, sourceType, 'group', parent);
       f.advanced = { multiple: true };
       return f;
     }
 
     case 'object':
-      return baseField(name, sourceType, 'group');
+      return baseField(name, sourceType, 'group', parent);
 
     case 'boolean':
-      return baseField(name, sourceType, 'boolean');
+      return baseField(name, sourceType, 'boolean', parent);
 
     case 'number':
-      return baseField(name, sourceType, 'number');
+      return baseField(name, sourceType, 'number', parent);
 
     case 'datetime':
     case 'date':
-      return baseField(name, sourceType, 'isodate');
+      return baseField(name, sourceType, 'isodate', parent);
 
     case 'url':
-            return baseField(name, sourceType, 'link');
+      return baseField(name, sourceType, 'link', parent);
 
     // --- fallback: keep raw structure as JSON rather than dropping data ---
     default:
-      return baseField(name, sourceType, 'json');
+      return baseField(name, sourceType, 'json', parent);
   }
 };
 

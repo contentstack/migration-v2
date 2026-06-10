@@ -114,15 +114,48 @@ node** instead of dropping it (proven shape — `entries-field-creator.utils.ts:
   'asset-type':rec.content_type, type:'asset', 'class-name':'embedded-asset', inline:false },
   children:[{text:''}] }
 ```
-Assets nested inside **groups** are recovered only once you do nested-group
-expansion (below) — until then, `getAllAssets` still imports those binaries
-(scanned from the export), they're just unlinked; log the count.
+Assets nested inside **groups** are linked via nested-group expansion (next section).
 
-## Deferred passes (don't fake them — log and move on)
+## Nested groups (the dotted-child contract)
 
-- **Nested `group` expansion** — if the parser emits a group with an empty child
-  schema (didn't recurse into the nested object's fields), there are no inner uids
-  to map. Expand the child schema in the parser first, then map here. Until then,
-  emit `[]` for multiple groups and log.
+Nested objects / arrays-of-objects become Contentstack **group** fields. The whole
+mechanism rides on ONE convention, proven by wordpress and the shared CT builder:
+
+**Parser side:** for each group, emit the parent row (bare uid, `group`,
+`advanced.multiple` for arrays) plus one row per child whose THREE uid fields all
+carry the **dotted path** `<parentUid>.<childUid>` (uid, `contentstackFieldUid`,
+`backupFieldUid`); display name `Parent > child`. Children are the **union**
+across all sample objects/array elements (heterogeneous element shapes contribute
+their keys; internal keys like `_type`/`_key` skipped). Recursion nests further
+(`a.b.c`); cap at `MAX_GROUP_DEPTH` (5) and fall back to a raw `json` leaf beyond
+it or for zero-child groups (no data dropped, and empty-schema groups are invalid).
+The templates ship this as `emitFieldRows` (contentTypes.ts) + a `parent` ctx on
+`mapField`/`baseField` (schemaMapper.ts).
+
+**Why dotted uids:** the api's `buildSchemaTree` (content-type-creator.utils.ts)
+joins children to their group by prefix + one-level check on `contentstackFieldUid`
+(falling back to `backupFieldUid` after UI remaps) and strips the dots from the
+final CT schema. The mapper round-trip (`createDummyData` → lowdb → `fieldAttacher`)
+stores and returns the rows **as-is**, so dotted rows flow to both CT creation and
+entry creation unchanged.
+
+**Entry side (`transformField case 'group'`):**
+- find direct children from the flat `ct.fieldMapping` with the SAME prefix +
+  one-level predicate (+ `backupFieldUid` fallback);
+- per source element, build an object keyed by the **last uid segment**
+  (`getLastUid`), transforming each child by re-entering the same switch — so
+  nested rich text, images (→ full asset records), references, and deeper groups
+  all reuse the existing machinery;
+- single group → object; `multiple` → array of objects; absent keys per element
+  stay unset (heterogeneous unions); empty results → `undefined` (key unset).
+- ⚠️ **Mandatory companion fix:** in `createEntry`'s field loop, `continue` on any
+  row whose `contentstackFieldUid` contains `.` — child rows must never be
+  processed at top level (a child named like a top-level key would otherwise write
+  a literal `parent.child` key into the entry).
+
+**Faithfulness note:** heterogeneous arrays (per-element `_type`) flatten into one
+union-shaped group; the per-element discriminator is not preserved. The faithful
+alternative is **modular blocks** (one block type per element `_type`) — a
+worthwhile follow-up, not the default.
 
 Log skipped/unresolved counts explicitly — silent drops read as "fully imported" when they aren't.

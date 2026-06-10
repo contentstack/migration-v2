@@ -2,8 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import config from '../config/index.json';
 import { CT, DataConfig, Field } from '../interface/interface';
-import mapField from './schemaMapper';
+import mapField, { baseField, toUid, ParentCtx } from './schemaMapper';
 import { ensureDir, writeJson, findDataFile, readNdjson } from '../utils/helper';
+
+/**
+ * Max nested-group levels expanded into child schema rows. Deeper structures
+ * fall back to a raw `json` leaf (data preserved). Keep in sync with the api
+ * side (<cms>.service.ts MAX_GROUP_DEPTH).
+ */
+const MAX_GROUP_DEPTH = 5;
 
 const { contentTypes: contentTypesConfig } = config.modules;
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
@@ -76,20 +83,21 @@ async function extractContentTypes(
     }, {});
 
     for (const [type, docs] of Object.entries(grouped)) {
-      // union of field names across all docs of this type
-      const fieldTypes = new Map<string, string>();
+      // union of field names across all docs of this type, keeping EVERY sample
+      // value per field (group expansion needs more than the first doc's value)
+      const fieldSamples = new Map<string, any[]>();
       docs.forEach((doc) => {
         Object.entries(doc).forEach(([key, value]) => {
           if (key.startsWith('_')) return; // skip system fields (_id, _type, _rev…)
-          if (!fieldTypes.has(key)) {
-            fieldTypes.set(key, inferSourceType(value));
-          }
+          if (!fieldSamples.has(key)) fieldSamples.set(key, []);
+          if (value !== null && value !== undefined) fieldSamples.get(key)!.push(value);
         });
       });
 
-      const fieldMapping: Field[] = [...fieldTypes.entries()].map(([name, srcType]) =>
-        mapField(name, srcType),
-      );
+      const fieldMapping: Field[] = [];
+      for (const [name, samples] of fieldSamples) {
+        fieldMapping.push(...emitFieldRows(name, samples, undefined, 0));
+      }
 
       const contentType = {
         otherCmsTitle: type,
@@ -108,6 +116,76 @@ async function extractContentTypes(
     console.error('Error while creating content types:', error?.message);
     return [];
   }
+}
+
+/**
+ * Emit the fieldMapping row(s) for one source field, recursing into groups.
+ *
+ * Leaves emit a single row via mapField. Nested objects / arrays-of-objects emit
+ * a GROUP parent row plus one row per child, where every child row's uids carry
+ * the dotted path (`parent.child`) — the contract the api's buildSchemaTree uses
+ * to build the nested CT schema, and the entry transform uses to find a group's
+ * children (see reference/entry-creation.md). Child fields are the UNION across
+ * all sample objects/array elements (heterogeneous element shapes contribute
+ * their keys). Zero-child or depth-limited groups fall back to a raw `json` leaf
+ * so no data is dropped.
+ *
+ * ⚠️ ADAPT: which inferred types count as "group-shaped" ('object'/'array' here)
+ * and which keys are internal (the `_`-prefix skip) are CMS-specific.
+ */
+function emitFieldRows(
+  name: string,
+  samples: any[],
+  parent: ParentCtx | undefined,
+  depth: number,
+): Field[] {
+  // prefer an informative sample (a populated array over an empty one)
+  const first = samples.find((s) => !(Array.isArray(s) && s.length === 0)) ?? samples[0];
+  const srcType = inferSourceType(first);
+
+  // non-group leaves (incl. rich text / media arrays) keep their existing mapping
+  if (srcType !== 'object' && srcType !== 'array') {
+    return [mapField(name, srcType, parent)];
+  }
+
+  if (depth >= MAX_GROUP_DEPTH) {
+    return [baseField(name, srcType, 'json', parent)]; // too deep -> raw json leaf
+  }
+
+  // gather child samples: object values directly; array elements flattened
+  // across ALL docs and elements (union of heterogeneous shapes)
+  const elements =
+    srcType === 'array'
+      ? samples.flatMap((s) => (Array.isArray(s) ? s : [])).filter((e) => e && typeof e === 'object' && !Array.isArray(e))
+      : samples.filter((s) => s && typeof s === 'object' && !Array.isArray(s));
+
+  const childSamples = new Map<string, any[]>();
+  for (const el of elements) {
+    for (const [k, v] of Object.entries(el)) {
+      if (k.startsWith('_')) continue; // internal keys — adapt to your CMS
+      if (!childSamples.has(k)) childSamples.set(k, []);
+      if (v !== null && v !== undefined) childSamples.get(k)!.push(v);
+    }
+  }
+
+  if (!childSamples.size) {
+    return [baseField(name, srcType, 'json', parent)]; // empty group -> json leaf
+  }
+
+  const parentRow = mapField(name, srcType, parent); // object -> group, array -> group+multiple
+  const childCtx: ParentCtx = { uid: parentRow.contentstackFieldUid, label: parentRow.contentstackField };
+  const rows: Field[] = [parentRow];
+  const seenChildUids = new Set<string>();
+  for (const [childName, childValues] of childSamples) {
+    const childUid = toUid(childName);
+    if (seenChildUids.has(childUid)) {
+      console.warn(`uid collision under group "${name}": "${childName}" -> "${childUid}" already emitted; first wins`);
+      continue;
+    }
+    seenChildUids.add(childUid);
+    rows.push(...emitFieldRows(childName, childValues, childCtx, depth + 1));
+  }
+  return rows;
 }
 
 /**

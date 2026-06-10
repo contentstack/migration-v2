@@ -55,6 +55,15 @@ const newUid = (): string => randomBytes(16).toString('hex');
 // so references resolve. ADAPT to your source's id field.
 const toEntryUid = (id: string): string => String(id).replace(/[^a-z0-9]/gi, '');
 
+/** Last segment of a dotted field uid — group children are stored under it. */
+const getLastUid = (uid: string): string => {
+  const parts = String(uid).split('.');
+  return parts[parts.length - 1];
+};
+
+/** Max nested-group recursion. Keep in sync with the parser's MAX_GROUP_DEPTH. */
+const MAX_GROUP_DEPTH = 5;
+
 interface DocRef { type: string; uid: string }
 
 /**
@@ -69,6 +78,8 @@ function transformField(
   ctUidByType: Record<string, string>,
   assetLookup: Record<string, any>,
   counters: { assetsSkipped: number; groupsSkipped: number },
+  allFields: any[],   // the flat ct.fieldMapping — case 'group' finds its children here
+  depth = 0,
 ): any {
   switch (field?.contentstackFieldType) {
     case 'single_line_text':
@@ -125,10 +136,42 @@ function transformField(
       return resolveOne(value) ?? undefined;
     }
 
-    case 'group':
-      // Deferred unless your parser expands the group's child schema.
-      counters.groupsSkipped += 1;
-      return field?.advanced?.multiple ? [] : undefined;
+    case 'group': {
+      // Build the group from the DOTTED child rows the parser emitted
+      // (`<groupUid>.<childUid>`; the entry stores the LAST segment as key).
+      if (depth >= MAX_GROUP_DEPTH) { counters.groupsSkipped += 1; return undefined; }
+      const parentUid = field?.contentstackFieldUid || '';
+      const oldUid = field?.backupFieldUid || '';
+      const directChild = (f: any): boolean => {
+        const fUid = f?.contentstackFieldUid || '';
+        if (!fUid || f?.isDeleted) return false;
+        for (const p of [parentUid, oldUid]) {
+          if (p && fUid.startsWith(p + '.')) {
+            const rest = fUid.substring(p.length + 1);
+            if (rest && !rest.includes('.')) return true; // exactly one level deeper
+          }
+        }
+        return false;
+      };
+      const children = (allFields ?? []).filter(directChild);
+      if (!children.length) { counters.groupsSkipped += 1; return field?.advanced?.multiple ? [] : undefined; }
+      const buildOne = (el: any): any => {
+        if (!el || typeof el !== 'object' || Array.isArray(el)) return undefined;
+        const out: Record<string, any> = {};
+        for (const child of children) {
+          const raw = el[child?.otherCmsField];
+          if (raw === undefined) continue; // heterogeneous element shapes: absent keys stay unset
+          const v = transformField(raw, child, docIndex, ctUidByType, assetLookup, counters, allFields, depth + 1);
+          if (v !== undefined) out[getLastUid(child.contentstackFieldUid)] = v;
+        }
+        return Object.keys(out).length ? out : undefined;
+      };
+      if (field?.advanced?.multiple) {
+        const arr = (Array.isArray(value) ? value : [value]).map(buildOne).filter(Boolean);
+        return arr.length ? arr : undefined;
+      }
+      return buildOne(Array.isArray(value) ? value[0] : value);
+    }
 
     default:
       return typeof value === 'object' ? undefined : value;
@@ -193,9 +236,12 @@ async function createEntry(
         const entry: any = { uid, title: doc?.title ?? doc?.name ?? `${srcType}-${uid.slice(0, 6)}`, locale, publish_details: [] };
         for (const field of ct?.fieldMapping ?? []) {
           if (field?.isDeleted) continue;
+          // dotted rows are GROUP CHILDREN — handled inside their parent's
+          // case 'group'; processing them here would write literal dotted keys
+          if (field?.contentstackFieldUid?.includes('.')) continue;
           const raw = doc[field?.otherCmsField];
           if (raw === undefined) continue;
-          const val = transformField(raw, field, docIndex, ctUidByType, assetLookup, counters);
+          const val = transformField(raw, field, docIndex, ctUidByType, assetLookup, counters, ct?.fieldMapping ?? []);
           if (val !== undefined) entry[field.contentstackFieldUid] = val;
         }
         entryData[uid] = entry;

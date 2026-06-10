@@ -10,13 +10,14 @@
 // value readers understand Sanity's data shape (NDJSON, `_type`-tagged objects,
 // portable text, references-by-_id).
 //
-// Covered now: single_line_text / multi_line_text / text (incl. slug.current and
+// Covered: single_line_text / multi_line_text / text (incl. slug.current and
 // portable-text→plaintext), isodate, boolean, number, json (portable text →
-// JSON-RTE), reference (resolved via a document index), and file/assets
-// (getAllAssets copies the export's images/ + files/ binaries into the assets
-// package and createEntry resolves file fields to the full asset record).
-// Deferred (logged, not silently dropped): nested `group` expansion — the parser
-// emits groups with an empty child schema, so there are no inner uids to map.
+// JSON-RTE incl. inline embedded assets), reference (resolved via a document
+// index), file/assets (getAllAssets copies the export's images/ + files/
+// binaries; file fields resolve to the full asset record), and nested groups
+// (the parser emits dotted child rows `parent.child`; case 'group' builds the
+// object / array-of-objects keyed by the last uid segment, recursing children
+// through this same switch up to MAX_GROUP_DEPTH).
 import fs from 'fs';
 import path from 'path';
 import { randomBytes } from 'crypto';
@@ -112,6 +113,20 @@ function readNdjson(filePath: string): any[] {
 
 /** Contentstack entry uids are hyphen-free; derive a stable one from the Sanity _id. */
 const toEntryUid = (id: string): string => String(id).replace(/^drafts\./, '').replace(/-/g, '');
+
+/** Last segment of a dotted field uid — group children are stored under it. */
+const getLastUid = (uid: string): string => {
+  const parts = String(uid).split('.');
+  return parts[parts.length - 1];
+};
+
+/**
+ * Max nested-group levels the entry transform recurses into. Keep in sync with
+ * the parser (migration-sanity/libs/contentTypes.ts MAX_GROUP_DEPTH) — the
+ * parser already falls back to json leaves beyond this, so the api guard is
+ * purely defensive against hand-edited mappings.
+ */
+const MAX_GROUP_DEPTH = 5;
 
 /**
  * The asset IDENTITY hash — the 40-hex hash that appears in the images/ filename,
@@ -295,6 +310,8 @@ function transformField(
   ctUidByType: Record<string, string>,
   assetLookup: Record<string, any>,
   counters: { assetsSkipped: number; groupsSkipped: number },
+  allFields: any[],
+  depth = 0,
 ): any {
   switch (field?.contentstackFieldType) {
     case 'single_line_text':
@@ -341,11 +358,49 @@ function transformField(
       return resolveOne(value) ?? undefined;
     }
 
-    case 'group':
-      // Deferred: the parser emits groups with an empty child schema, so there
-      // are no inner field uids to map onto. Emit an empty repeatable group.
-      counters.groupsSkipped += 1;
-      return field?.advanced?.multiple ? [] : undefined;
+    case 'group': {
+      // Build the group value from the dotted child rows the parser emitted
+      // (child uid = `<groupUid>.<childUid>`; the entry stores the LAST segment).
+      if (depth >= MAX_GROUP_DEPTH) {
+        counters.groupsSkipped += 1;
+        return undefined;
+      }
+      const parentUid = field?.contentstackFieldUid || '';
+      const oldUid = field?.backupFieldUid || '';
+      const directChild = (f: any): boolean => {
+        const fUid = f?.contentstackFieldUid || '';
+        if (!fUid || f?.isDeleted) return false;
+        for (const p of [parentUid, oldUid]) {
+          if (p && fUid.startsWith(p + '.')) {
+            const rest = fUid.substring(p.length + 1);
+            if (rest && !rest.includes('.')) return true; // exactly one level deeper
+          }
+        }
+        return false;
+      };
+      const children = (allFields ?? []).filter(directChild);
+      if (!children.length) {
+        // no mapped children (legacy mapping / user deleted them) — keep old behavior
+        counters.groupsSkipped += 1;
+        return field?.advanced?.multiple ? [] : undefined;
+      }
+      const buildOne = (el: any): any => {
+        if (!el || typeof el !== 'object' || Array.isArray(el)) return undefined;
+        const out: Record<string, any> = {};
+        for (const child of children) {
+          const raw = el[child?.otherCmsField];
+          if (raw === undefined) continue; // heterogeneous _type union: absent keys stay unset
+          const v = transformField(raw, child, docIndex, ctUidByType, assetLookup, counters, allFields, depth + 1);
+          if (v !== undefined) out[getLastUid(child.contentstackFieldUid)] = v;
+        }
+        return Object.keys(out).length ? out : undefined;
+      };
+      if (field?.advanced?.multiple) {
+        const arr = (Array.isArray(value) ? value : [value]).map(buildOne).filter(Boolean);
+        return arr.length ? arr : undefined;
+      }
+      return buildOne(Array.isArray(value) ? value[0] : value);
+    }
 
     default:
       return typeof value === 'object' ? undefined : value;
@@ -528,9 +583,12 @@ async function createEntry(
 
         for (const field of ct?.fieldMapping ?? []) {
           if (field?.isDeleted) continue;
+          // dotted rows are GROUP CHILDREN — handled inside their parent's
+          // case 'group'; processing them here would write literal dotted keys
+          if (field?.contentstackFieldUid?.includes('.')) continue;
           const raw = doc[field?.otherCmsField];
           if (raw === undefined) continue;
-          const val = transformField(raw, field, docIndex, ctUidByType, assetLookup, counters);
+          const val = transformField(raw, field, docIndex, ctUidByType, assetLookup, counters, ct?.fieldMapping ?? []);
           if (val !== undefined) entry[field.contentstackFieldUid] = val;
         }
         entryData[uid] = entry;
@@ -554,7 +612,7 @@ async function createEntry(
     if (counters.assetsSkipped || counters.groupsSkipped) {
       console.info(
         `[sanity] unresolved file refs (no matching asset record): ${counters.assetsSkipped}; ` +
-          `nested groups skipped (empty child schema): ${counters.groupsSkipped}.`,
+          `groups skipped (no mapped children or depth limit): ${counters.groupsSkipped}.`,
       );
     }
   } catch (err: any) {
