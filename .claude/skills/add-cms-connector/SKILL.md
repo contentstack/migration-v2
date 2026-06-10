@@ -9,6 +9,19 @@ This repo (`migration-v2`) migrates content from a legacy CMS into Contentstack.
 
 > Read `reference/touchpoints.md` for the exact file list and line anchors before editing. Never rely on memory for which files to touch — open the file and find the current anchor (line numbers drift).
 
+## Tone — memes welcome 🎭
+
+While running this skill, sprinkle light dev-meme humor into your **progress
+updates and status messages** — one-liners, the occasional ASCII meme, migration
+jokes ("moving content like it's moving day 📦", "another NDJSON line, another
+dollar"). Rules:
+
+- Memes go in **chat narration only** — NEVER in code, comments, commit messages,
+  field maps, plan tables, or `AskUserQuestion` option labels (those stay precise).
+- One meme per update max — seasoning, not the meal.
+- When something fails (validator mismatch, parse error), deliver the facts
+  straight first; the joke can follow, not replace.
+
 ## Inputs you need from the user
 
 1. **CMS name** — e.g. `Sanity`. Derive three forms:
@@ -113,6 +126,7 @@ Parse logic in `contentTypes.ts`/`extractLocale.ts` must match the real sample s
 - **Infer types from data** (no schema in most exports): the template's `inferSourceType` detects ISO-8601 dates → `datetime`, tagged objects (`{_type: image|reference|slug}` — CMS-specific) → their type, `block[]` → rich text, media arrays → multiple file, object arrays → repeatable group. Some distinctions (short vs long string) collapse without a schema — that's fine, the user refines in the field-mapping UI.
 - **Expand groups into dotted child rows** (the template's `emitFieldRows`): nested objects / arrays-of-objects emit a group parent row plus per-child rows whose uids carry the dotted path (`parent.child`) — this is what nests the CT schema AND lets the entry transform build group values. See `reference/entry-creation.md` § Nested groups.
 - **Heterogeneous arrays → modular blocks** (the template's `emitModularBlockRows`): arrays whose elements carry ≥ 2 distinct type discriminators emit a `modular_blocks` parent + one `modular_blocks_child` row per type (`otherCmsField` = the raw type — the entry-time join key) + per-type field rows. Homogeneous arrays stay group+multiple. Never nest blocks inside blocks (`inBlocks` flag). See `reference/entry-creation.md` § Modular blocks.
+- **Always emit mandatory `title` + `url` rows** (the template's `ensureMandatoryFields`): Contentstack rejects any content type whose schema lacks a `title` field, and this repo's CT-update path marks every CT as a page (`mergeTwoCts` → `is_page: true`, `sub_title: ['url']`) so a `url` field is required too. The failure surfaces only at migration time — `content_type: should have a 'title' field.` / `schema: should have a 'url' field.` — never during parsing. Re-point the source's display field (`title`/`name`/`label`…) at uid `title` (keep `otherCmsField` pointing at the source name so entry values still resolve); synthesize the `url` row. Model: every `migration-wordpress` extractor ships explicit title/url rows.
 - The emitted CT object keys are `otherCmsTitle`/`otherCmsUid`/`contentstackTitle`/`contentstackUid`/`type`/`fieldMapping` (no top-level `uid`/`title`) — this is the contract the api side consumes; keep them.
 
 ### Step 3 — Wire Layer B: `upload-api/src/`
@@ -128,7 +142,7 @@ Parse logic in `contentTypes.ts`/`extractLocale.ts` must match the real sample s
    - **Modular** like `api/src/services/drupal/`: a folder of per-concern files re-exported from `<cms>.service.ts`.
    Use `templates/api-service.ts` as the starting skeleton. The Contentstack-type → API-data-type map (`mapFieldTypeToDataType`, see `drupal/content-types.service.ts` ~lines 448–474) belongs here — copy it and extend if the new connector introduces a type not already listed.
 
-   ⚠️ **`createEntry` is where entries are actually produced** — content-type *schemas* are created generically, so if `createEntry` is a stub the migration yields content types but **zero entries**. Read `reference/entry-creation.md` before writing it: it documents the runtime inputs (`file_path`/`packagePath`, the `contentTypes` shape from `fieldAttacher`, `mapperKeys`), the exact output layout (`entries/<ct>/<locale>/<locale>.json` + `index.json`), the per-`contentstackFieldType` value transform (hand-roll a switch like Drupal's `processFieldByType` — the shared `entriesFieldCreator` is HTML-oriented), reference resolution via a source-id → entry-uid index, the **`getAllAssets`** pass (runs *before* `createEntry`; copies local export binaries or downloads by url, then `file` fields resolve to the full asset record), **nested groups** via the dotted-child contract (parser emits `parent.child` rows; `buildSchemaTree` nests the CT schema; the group case builds values keyed by the last uid segment — children recurse through the same switch, and `createEntry` must skip dotted rows at top level), and **modular blocks** for heterogeneous arrays (one block per element type; entry value = array of single-key block objects in source order).
+   ⚠️ **`createEntry` is where entries are actually produced** — content-type *schemas* are created generically, so if `createEntry` is a stub the migration yields content types but **zero entries**. Read `reference/entry-creation.md` before writing it: it documents the runtime inputs (`file_path`/`packagePath` — ⚠ for archive connectors `file_path` is the raw `.tar.gz`, the extracted data lives at `packagePath`/`extract_path`; resolve via both bases like `sanity.service.ts`'s `resolveDataFile`, or you get content types but 0 entries/0 assets — plus the `contentTypes` shape from `fieldAttacher` and `mapperKeys`), the exact output layout (`entries/<ct>/<locale>/<locale>.json` + `index.json`), the per-`contentstackFieldType` value transform (hand-roll a switch like Drupal's `processFieldByType` — the shared `entriesFieldCreator` is HTML-oriented), reference resolution via a source-id → entry-uid index, the **`getAllAssets`** pass (runs *before* `createEntry`; copies local export binaries or downloads by url, then `file` fields resolve to the full asset record), **nested groups** via the dotted-child contract (parser emits `parent.child` rows; `buildSchemaTree` nests the CT schema; the group case builds values keyed by the last uid segment — children recurse through the same switch, and `createEntry` must skip dotted rows at top level), and **modular blocks** for heterogeneous arrays (one block per element type; entry value = array of single-key block objects in source order).
 3. `api/src/services/migration.service.ts` — **two edits in two switches**:
    - import: `import { <cms>Service } from './<cms>.service.js';` (~lines 26–42).
    - **Test migration** switch (~lines 452–590): add `case CMS.<CMS>: { ... break; }` calling the service methods (model the `CMS.WORDPRESS` case).
@@ -178,7 +192,9 @@ node -e "const {extractContentTypes,extractLocale}=require('./build/index.js');(
   console.log('locales',await extractLocale('<path-to-sample-export>')); \
   const cts=await extractContentTypes('aff','<path-to-sample-export>',{}); \
   cts.forEach(c=>console.log(c.otherCmsTitle, c.fieldMapping.map(f=>f.otherCmsField+':'+f.contentstackFieldType)));})()"
-# expect: real content-type titles (NOT system docs) + the confirmed field map.
+# expect: real content-type titles (NOT system docs) + the confirmed field map
+#         + a `title` AND `url` row in EVERY content type (Contentstack rejects
+#           the CT update without them — only surfaces at migration time).
 # clean up: rm -rf cmsMigrationData   (the smoke test writes content_types there)
 
 # B. file: dep resolves and upload-api server compiles (catches missing import/case).

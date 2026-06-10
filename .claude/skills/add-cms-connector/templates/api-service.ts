@@ -231,8 +231,12 @@ async function createEntry(
     const locale = master_locale || 'en-us';
 
     // 1) READ source records. ADAPT: single file? folder? NDJSON? DB?
-    //    For folder/archive connectors, file_path is the extracted directory.
-    const records: any[] = []; // = readNdjson(findDataFile(file_path)) etc.
+    //    CAUTION: for archive connectors file_path is the RAW archive
+    //    (legacy_cms.file_path, e.g. backup-export.tar.gz); the extracted dir
+    //    is packagePath (extract_path). Resolve against BOTH bases and accept
+    //    only a real data file (see sanity.service.ts resolveDataFile) —
+    //    trusting file_path alone yields content types but 0 entries/assets.
+    const records: any[] = []; // = readNdjson(resolveDataFile(file_path, packagePath)) etc.
 
     // 1b) Asset lookup written by getAllAssets (re-read from disk; {} if absent).
     let assetLookup: Record<string, any> = {};
@@ -307,6 +311,9 @@ async function createEntry(
  * folders.json} + files/<uid>/<filename>; createEntry re-reads index.json.
  * BINARY: download from a CDN url if your export only has urls (wordpress/contentful),
  * or COPY local bytes if your export ships them (sanity images/). See entry-creation.md.
+ * CAUTION: same file_path-vs-packagePath rule as createEntry — for archive
+ * connectors the binaries live under packagePath's extracted dir, not next to
+ * the .tar.gz; resolve the export root against both bases.
  */
 async function getAllAssets(
   file_path: string,

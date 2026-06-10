@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="1920" viewBox="0 0 940 1920" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c"/>
+    </marker>
+  </defs>
+
+  <style>
+    .box      { fill:#f8fafc; stroke:#334155; stroke-width:1.5; rx:8; }
+    .gate     { fill:#fff7ed; stroke:#c2410c; stroke-width:1.5; }
+    .layers   { fill:#eef2ff; stroke:#3730a3; stroke-width:1.5; }
+    .verify   { fill:#ecfdf5; stroke:#047857; stroke-width:1.5; }
+    .pill     { fill:#0f172a; }
+    .pilltext { fill:#f8fafc; font-size:15px; font-weight:bold; }
+    .h        { font-size:14px; font-weight:bold; fill:#0f172a; }
+    .t        { font-size:12.5px; fill:#334155; }
+    .small    { font-size:11.5px; fill:#64748b; }
+    .warn     { font-size:12.5px; fill:#b91c1c; }
+    .edge     { stroke:#334155; stroke-width:1.5; fill:none; }
+    .edgeRed  { stroke:#b91c1c; stroke-width:1.5; fill:none; stroke-dasharray:5 4; }
+    .lbl      { font-size:11.5px; fill:#0f172a; font-weight:bold; }
+    .lblRed   { font-size:11.5px; fill:#b91c1c; font-weight:bold; }
+  </style>
+
+  <text x="470" y="34" text-anchor="middle" font-size="19" font-weight="bold" fill="#0f172a">add-cms-connector — workflow</text>
+
+  <!-- 1. invoke pill -->
+  <rect class="pill" x="320" y="56" width="300" height="42" rx="21"/>
+  <text class="pilltext" x="470" y="82" text-anchor="middle">/add-cms-connector invoked</text>
+  <line class="edge" x1="470" y1="98" x2="470" y2="128" marker-end="url(#arrow)"/>
+
+  <!-- 2. Step 0a input gate -->
+  <rect class="gate" x="215" y="130" width="510" height="118" rx="8"/>
+  <text class="h" x="470" y="155" text-anchor="middle">STEP 0a — INPUT GATE</text>
+  <text class="t" x="470" y="177" text-anchor="middle">AskUserQuestion — select-and-submit UI (never free-text prose)</text>
+  <text class="t" x="470" y="199" text-anchor="middle">Q1: CMS name  (Sanity / Strapi / Joomla / Other)</text>
+  <text class="t" x="470" y="221" text-anchor="middle">Q2: Export path  (candidate paths / Other)</text>
+  <line class="edge" x1="470" y1="248" x2="470" y2="282" marker-end="url(#arrow)"/>
+
+  <!-- 3. diamond: path exists -->
+  <polygon class="gate" points="470,284 590,344 470,404 350,344"/>
+  <text class="h" x="470" y="340" text-anchor="middle">path exists?</text>
+  <text class="small" x="470" y="358" text-anchor="middle">(ls)</text>
+  <!-- no: loop back to 0a -->
+  <path class="edgeRed" d="M 590 344 H 790 V 189 H 729" marker-end="url(#arrowRed)"/>
+  <text class="lblRed" x="800" y="270">✗ re-ask path</text>
+  <!-- yes -->
+  <line class="edge" x1="470" y1="404" x2="470" y2="438" marker-end="url(#arrow)"/>
+  <text class="lbl" x="482" y="426">✓</text>
+
+  <!-- 4. Step 1a / 1b -->
+  <rect class="box" x="180" y="440" width="580" height="180" rx="8"/>
+  <text class="h" x="470" y="466" text-anchor="middle">STEP 1a — DOCS RESEARCH  (WebSearch / WebFetch)</text>
+  <text class="t" x="470" y="488" text-anchor="middle">full field-type vocabulary + export-format variants</text>
+  <line x1="200" y1="502" x2="740" y2="502" stroke="#cbd5e1" stroke-width="1"/>
+  <text class="h" x="470" y="526" text-anchor="middle">STEP 1b — SAMPLE INSPECTION</text>
+  <text class="t" x="470" y="548" text-anchor="middle">shape: file / NDJSON / folder / archive / DB</text>
+  <text class="small" x="470" y="568" text-anchor="middle">(drives validator key, read strategy, UI entry)</text>
+  <text class="t" x="470" y="592" text-anchor="middle">field map = docs ∪ sample  —  on conflict, SAMPLE WINS</text>
+  <line class="edge" x1="470" y1="620" x2="470" y2="654" marker-end="url(#arrow)"/>
+
+  <!-- 5. Step 0b connector plan -->
+  <rect class="box" x="215" y="656" width="510" height="120" rx="8"/>
+  <text class="h" x="470" y="682" text-anchor="middle">STEP 0b — CONNECTOR PLAN</text>
+  <text class="t" x="470" y="706" text-anchor="middle">(a) export-shape decision    (b) proposed field-map table</text>
+  <text class="t" x="470" y="728" text-anchor="middle">(c) four-layer change list (touchpoints.md)</text>
+  <text class="t" x="470" y="750" text-anchor="middle">(d) verification checklist + honest deferrals</text>
+  <line class="edge" x1="470" y1="776" x2="470" y2="810" marker-end="url(#arrow)"/>
+
+  <!-- 6. diamond: user confirms plan -->
+  <polygon class="gate" points="470,812 610,877 470,942 330,877"/>
+  <text class="h" x="470" y="873" text-anchor="middle">user confirms</text>
+  <text class="h" x="470" y="891" text-anchor="middle">plan?</text>
+  <!-- no: revise plan -->
+  <path class="edgeRed" d="M 610 877 H 800 V 716 H 729" marker-end="url(#arrowRed)"/>
+  <text class="lblRed" x="810" y="800">✗ revise plan</text>
+  <!-- yes -->
+  <line class="edge" x1="470" y1="942" x2="470" y2="982" marker-end="url(#arrow)"/>
+  <text class="lbl" x="482" y="962">✓</text>
+  <text class="small" x="490" y="976">track 1 task per layer + verification</text>
+
+  <!-- 7. four layers -->
+  <rect class="layers" x="150" y="984" width="640" height="372" rx="8"/>
+  <text class="h" x="170" y="1012">STEP 2 — LAYER A: parser package  upload-api/migration-&lt;cms&gt;/</text>
+  <text class="t" x="190" y="1034">schemaMapper switch ← confirmed field map (docs ∪ sample)</text>
+  <text class="t" x="190" y="1054">read strategy · system-record filter · type inference</text>
+  <text class="t" x="190" y="1074">dotted group rows · modular blocks for heterogeneous arrays</text>
+  <line x1="170" y1="1088" x2="770" y2="1088" stroke="#a5b4fc" stroke-width="1"/>
+  <text class="h" x="170" y="1112">STEP 3 — LAYER B: upload-api/src wiring</text>
+  <text class="t" x="190" y="1134">package.json file: dep · controllers/&lt;cms&gt; · createMapper case</text>
+  <text class="t" x="190" y="1154">validators/&lt;cms&gt; + key &lt;cms&gt;-&lt;ext&gt;  (folder/archive → &lt;cms&gt;-folder)</text>
+  <line x1="170" y1="1168" x2="770" y2="1168" stroke="#a5b4fc" stroke-width="1"/>
+  <text class="h" x="170" y="1192">STEP 4 — LAYER C: api/src transform</text>
+  <text class="t" x="190" y="1214">CMS enum · &lt;cms&gt;.service  (createEntry = where entries are actually made)</text>
+  <text class="warn" x="190" y="1234">⚠ migration.service.ts: add the case in BOTH switches (test + full)</text>
+  <line x1="170" y1="1248" x2="770" y2="1248" stroke="#a5b4fc" stroke-width="1"/>
+  <text class="h" x="170" y="1272">STEP 5 — LAYER D: ui registration</text>
+  <text class="t" x="190" y="1294">legacyCms.json entry  (folder/archive → fileformat_id "directory")</text>
+  <text class="t" x="190" y="1314">optional VALIDATION_DOCUMENTATION_URL entry</text>
+  <text class="small" x="190" y="1338">cms_id MUST equal the CMS enum value string</text>
+  <line class="edge" x1="470" y1="1356" x2="470" y2="1390" marker-end="url(#arrow)"/>
+
+  <!-- 8. verify -->
+  <rect class="verify" x="215" y="1392" width="510" height="186" rx="8"/>
+  <text class="h" x="470" y="1418" text-anchor="middle">STEP 6 — VERIFY  (report honestly)</text>
+  <text class="t" x="245" y="1444">A   parser package builds</text>
+  <text class="t" x="245" y="1466">A2  smoke-test parser against the REAL sample export</text>
+  <text class="t" x="245" y="1488">B   upload-api builds (file: dep + wiring resolve)</text>
+  <text class="t" x="245" y="1510">C   api: no NEW errors in YOUR files (baseline is dirty)</text>
+  <text class="t" x="245" y="1532">D   ui builds · legacyCms.json parses</text>
+  <text class="t" x="245" y="1554">E   grep guard: CMS.&lt;CMS&gt; ×2 in migration.service.ts</text>
+  <line class="edge" x1="470" y1="1578" x2="470" y2="1612" marker-end="url(#arrow)"/>
+
+  <!-- 9. optional smoke pill -->
+  <rect x="200" y="1614" width="540" height="64" rx="32" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text class="t" x="470" y="1640" text-anchor="middle">(optional) end-to-end smoke: run api + upload-api + ui,</text>
+  <text class="t" x="470" y="1660" text-anchor="middle">upload the real export → check cmsMigrationData/ + field-map screen</text>
+
+  <!-- 10. meme footnote -->
+  <rect x="150" y="1714" width="640" height="120" rx="8" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text class="h" x="470" y="1742" text-anchor="middle">🎭 Tone — whole run</text>
+  <text class="t" x="470" y="1766" text-anchor="middle">≤ 1 dev-meme per progress update, chat narration only —</text>
+  <text class="t" x="470" y="1788" text-anchor="middle">never in code, plans, field maps, or option labels.</text>
+  <text class="t" x="470" y="1810" text-anchor="middle">On failure: facts first, joke second.</text>
+
+  <text class="small" x="470" y="1880" text-anchor="middle">source: .claude/skills/add-cms-connector/SKILL.md</text>
+</svg>

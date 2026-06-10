@@ -99,6 +99,8 @@ async function extractContentTypes(
         fieldMapping.push(...emitFieldRows(name, samples, undefined, 0));
       }
 
+      ensureMandatoryFields(fieldMapping);
+
       const contentType = {
         otherCmsTitle: type,
         otherCmsUid: `${affix ? affix + '_' : ''}${type}`,
@@ -115,6 +117,52 @@ async function extractContentTypes(
   } catch (error: any) {
     console.error('Error while creating content types:', error?.message);
     return [];
+  }
+}
+
+/**
+ * Contentstack REQUIRES every content type to have a `title` field, and this
+ * repo's CT-update path marks every CT as a page (`mergeTwoCts` sets
+ * `is_page: true`, `sub_title: ['url']`), so a `url` field is required too.
+ * Without these rows the schemas import locally but the CMA rejects the CT
+ * update at migration time:
+ *   "content_type: should have a 'title' field."
+ *   "schema: should have a 'url' field."
+ * Model: every migration-wordpress extractor emits explicit title/url rows.
+ *
+ * Strategy: re-point the source's natural display field at uid `title` when
+ * one exists (entry values still read via `otherCmsField`); otherwise
+ * synthesize a `title` row — the entry transform must then derive a title
+ * (e.g. from the source id). `url` is always synthesizable.
+ * ⚠️ ADAPT TITLE_CANDIDATES to your CMS's display-field conventions.
+ */
+const TITLE_CANDIDATES = ['title', 'name', 'label', 'heading'];
+
+function ensureMandatoryFields(fieldMapping: Field[]): void {
+  const topLevel = (f: Field) => !f.uid.includes('.');
+
+  if (!fieldMapping.some((f) => topLevel(f) && f.contentstackFieldUid === 'title')) {
+    const candidate = fieldMapping.find(
+      (f) =>
+        topLevel(f) &&
+        TITLE_CANDIDATES.includes(f.otherCmsField.toLowerCase()) &&
+        ['single_line_text', 'multi_line_text', 'text'].includes(f.contentstackFieldType),
+    );
+    if (candidate) {
+      candidate.uid = candidate.contentstackFieldUid = candidate.backupFieldUid = 'title';
+      candidate.contentstackField = 'title';
+      candidate.advanced = { ...candidate.advanced, mandatory: true };
+    } else {
+      const row = baseField('title', 'text', 'text');
+      row.advanced = { mandatory: true };
+      fieldMapping.unshift(row);
+    }
+  }
+
+  if (!fieldMapping.some((f) => topLevel(f) && f.contentstackFieldUid === 'url')) {
+    const row = baseField('url', 'text', 'url');
+    row.advanced = { mandatory: true };
+    fieldMapping.push(row);
   }
 }
 

@@ -10,10 +10,20 @@ nothing imported" symptom.
 
 `createEntry(file_path, packagePath, destinationStackId, projectId, contentTypes, mapperKeys, master_locale, project)` — set in `migration.service.ts` before the switch:
 
-- **`file_path`** = `project.legacy_cms.file_path` — the **source export**. For a
-  folder/archive connector this is the **extracted directory** (locate the data
-  file inside it, e.g. `data.ndjson`). For a single-file connector it's the file.
-- **`packagePath`** = `project.extract_path` (a sensible fallback path to read from).
+- **`file_path`** = `project.legacy_cms.file_path` — the **original upload, verbatim**.
+  ⚠️ For an **archive** connector this is the **raw archive** (e.g.
+  `backup-export.tar.gz`), NOT the extracted directory. Reading it as data fails
+  silently: gzip bytes parse to 0 records → content types appear (schemas are
+  created generically) but **0 entries / 0 assets**. For a plain folder upload
+  it's the directory; for a single-file connector, the file.
+- **`packagePath`** = `project.extract_path` — where server-side extraction put
+  the usable export (e.g. `upload-api/extracted_files/<name>/` holding
+  `data.ndjson` + `images/`).
+- **Resolve, don't trust:** locate the data root by trying **both** bases and
+  accepting only a real data file (e.g. an existing `.ndjson` — the archive gets
+  skipped, the extracted dir wins). See `resolveDataFile`/`findExportRoot` in the
+  shipped `sanity.service.ts`. Both `createEntry` **and** `getAllAssets` must
+  resolve this way — asset binaries (`images/`…) live under the extracted dir too.
 - **`contentTypes`** = from `fieldAttacher` (reads the mapper DB). Array of:
   `{ otherCmsTitle, otherCmsUid, contentstackTitle, contentstackUid /* e.g. cs_post */, type /* 'content_type' | 'global_field' */, fieldMapping: Field[] }`
   where each field is `{ otherCmsField /* source field name */, otherCmsType, contentstackFieldUid /* target uid, lowercased */, contentstackFieldType, advanced, isDeleted }`.
@@ -32,6 +42,15 @@ cmsMigrationData/<stackId>/entries/<ct_folder>/<locale>/
 ```
 `<ct_folder>` = `mapperKeys[ct.contentstackUid] ?? ct.contentstackUid`. Entry uids
 must be **hyphen-free**; derive a STABLE uid from the source id so references resolve.
+
+Every entry MUST have a non-empty `title`. The CT schema side guarantees `title`
+and `url` rows exist (parser `ensureMandatoryFields` — Contentstack rejects CT
+updates without them: `should have a 'title'/'url' field`). On the entry side:
+when the parser **re-pointed** a display field (e.g. Sanity `name`) at uid
+`title`, read the value via the row's `otherCmsField`, not the uid; when `title`
+was **synthesized** (no display candidate), derive one (source id / first text
+field). The `url` field may be left empty on entries — only the schema row is
+mandatory.
 Also write `locales/master-locale.json` (createLocale) and `export-info.json`
 (createVersionFile) — see `templates/api-service.ts`.
 
@@ -61,7 +80,9 @@ SAME `toEntryUid()` when indexing and when writing entries, or refs won't match.
 
 `file` fields need a separate `getAllAssets(file_path, packagePath, destinationStackId, projectId)`
 that runs **before** `createEntry` in the migration.service switch (so the asset
-records exist on disk when entries are built). It writes the standard asset
+records exist on disk when entries are built). Same `file_path` caveat as above:
+for an archive upload the binaries are under `packagePath`'s extracted dir, not
+next to the `.tar.gz` — resolve the export root the same way `createEntry` does. It writes the standard asset
 package and `createEntry` re-reads it. Model: `wordpress.service.ts`
 (`startingDirAssests`/`saveAsset`); the shipped `sanity.service.ts` is the local-copy variant.
 
