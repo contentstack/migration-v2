@@ -29,14 +29,21 @@ Both inputs are MANDATORY before anything else happens — see Step 0. The whole
 
 ### Step 0 — Ask for the inputs, then plan first, build second
 When the skill is invoked, the VERY FIRST action — before any research, file
-reading, or planning — is to ask the user (via `AskUserQuestion` or inline) for:
+reading, or planning — is a single `AskUserQuestion` call (the interactive
+select-and-submit UI — NOT inline prose asking the user to type a reply) with
+two questions:
 
-- the **CMS name**, and
-- the **path to the sample export** (file, folder, or archive).
+1. **CMS name** — offer common candidates as options (e.g. Sanity, Strapi,
+   Joomla; put any CMS already implied by the conversation first). The built-in
+   "Other" option covers custom CMSes.
+2. **Export path** — if the conversation/IDE context suggests candidate paths,
+   offer them as options; otherwise offer a "I'll provide the path" style option
+   and let the user supply it via "Other" free text.
 
-Do this even if the conversation seems to imply them — confirm both explicitly.
-Verify the path exists (`ls`) before proceeding. Only after both are confirmed,
-build the **connector plan** and get it confirmed:
+Do this even if the conversation seems to imply both answers — confirm them
+explicitly through the select UI. Verify the chosen path exists (`ls`) before
+proceeding. Only after both are confirmed, build the **connector plan** and get
+it confirmed:
 
 1. Run Steps 1a/1b (docs research + sample inspection) as INPUT to the plan.
 2. The plan covers: (a) the **export shape** decision (file/NDJSON/folder/archive/DB
