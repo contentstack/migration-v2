@@ -11,14 +11,28 @@ This repo (`migration-v2`) migrates content from a legacy CMS into Contentstack.
 
 ## Tone — memes welcome 🎭
 
-While running this skill, sprinkle light dev-meme humor into your **progress
-updates and status messages** — one-liners, the occasional ASCII meme, migration
-jokes ("moving content like it's moving day 📦", "another NDJSON line, another
-dollar"). Rules:
+While running this skill, drop a **real-time** meme at each workflow beat —
+invoke, input gate, docs research, sample cracking-open, each layer A–D
+start/finish, every verification result, long waits (`npm install`, builds),
+and failures. The meme must reference the **live event** — the real CMS name,
+the real error, the real counts ("4 content types, 0 entries — the museum
+exhibit of migrations") — not a generic joke. Mini-bank for inspiration
+(improvise > quote):
 
+- tar extraction: "tar -xzf — the universal greeting 📦"
+- NDJSON parsing: "another NDJSON line, another dollar"
+- both-switches trap: "works in test, ghosts you in full migration — classic"
+- 0 entries/assets: "schemas showed up, entries left on read"
+- `should have a 'title' field`: "Contentstack bouncer: no title, no entry 🚪"
+- builds passing: "tsc said yes — frame it"
+
+Chat is text-only — express the memes with emoji and small ASCII art; never
+auto-open files or windows for them.
+
+Rules:
 - Memes go in **chat narration only** — NEVER in code, comments, commit messages,
   field maps, plan tables, or `AskUserQuestion` option labels (those stay precise).
-- One meme per update max — seasoning, not the meal.
+- Up to one meme per message — seasoning, not the meal.
 - When something fails (validator mismatch, parse error), deliver the facts
   straight first; the joke can follow, not replace.
 
@@ -52,6 +66,15 @@ two questions:
 2. **Export path** — if the conversation/IDE context suggests candidate paths,
    offer them as options; otherwise offer a "I'll provide the path" style option
    and let the user supply it via "Other" free text.
+
+⚠️ Schema gotchas — an out-of-spec call dies with "Invalid tool parameters":
+- Every question needs **2–4 options, never 1**. With only one candidate (e.g. a
+  single highlighted path), add "I'll provide the path" as the second option.
+- Do NOT add your own "Other" option — the UI appends one automatically.
+- `header` must be **≤ 12 characters** ("CMS name", "Export path" — not
+  "Sample export path").
+- Set `multiSelect: false` explicitly on both questions; every option needs both
+  `label` (1–5 words) and `description`.
 
 Do this even if the conversation seems to imply both answers — confirm them
 explicitly through the select UI. Verify the chosen path exists (`ls`) before
