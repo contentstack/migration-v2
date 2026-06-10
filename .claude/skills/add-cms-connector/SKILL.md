@@ -23,13 +23,20 @@ This repo (`migration-v2`) migrates content from a legacy CMS into Contentstack.
 
    ⚠️ Read `reference/upload-flow.md` — it maps each upload kind to its `fileExt`, the `data` shape your validator gets, and the `filePath` your mapper gets. Most CMS exports download as a `.tar.gz`/`.zip` archive; the upload-api extracts them (`isArchive`/`extractArchive` in `src/helper/index.ts`) and runs them as `folder`.
 
-If the user has not given a sample export, ask for one. The whole point is to infer the real field shapes — do not invent them.
+Both inputs are MANDATORY before anything else happens — see Step 0. The whole point is to infer the real field shapes from a real export — do not invent them.
 
 ## Workflow
 
-### Step 0 — Plan first, build second
-When a new CMS request arrives, do NOT start scaffolding. First produce a short
-**connector plan** and get it confirmed:
+### Step 0 — Ask for the inputs, then plan first, build second
+When the skill is invoked, the VERY FIRST action — before any research, file
+reading, or planning — is to ask the user (via `AskUserQuestion` or inline) for:
+
+- the **CMS name**, and
+- the **path to the sample export** (file, folder, or archive).
+
+Do this even if the conversation seems to imply them — confirm both explicitly.
+Verify the path exists (`ls`) before proceeding. Only after both are confirmed,
+build the **connector plan** and get it confirmed:
 
 1. Run Steps 1a/1b (docs research + sample inspection) as INPUT to the plan.
 2. The plan covers: (a) the **export shape** decision (file/NDJSON/folder/archive/DB
