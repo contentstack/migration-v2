@@ -27,6 +27,28 @@ If the user has not given a sample export, ask for one. The whole point is to in
 
 ## Workflow
 
+### Step 0 — Plan first, build second
+When a new CMS request arrives, do NOT start scaffolding. First produce a short
+**connector plan** and get it confirmed:
+
+1. Run Steps 1a/1b (docs research + sample inspection) as INPUT to the plan.
+2. The plan covers: (a) the **export shape** decision (file/NDJSON/folder/archive/DB
+   — drives validator key, parser read strategy, UI entry; note quirks like
+   Strapi's default-encrypted `.tar.gz.enc` needing `--no-encrypt`), (b) the
+   **proposed field-map table** (docs ∪ sample, conflicts + docs-only rows marked),
+   (c) the **four-layer change list** (exact files per `reference/touchpoints.md`),
+   (d) the **verification checklist** (Step 6) and any deferred items, stated
+   honestly up front.
+3. Present it for confirmation (plan mode if active, else `AskUserQuestion` /
+   inline) — the field-map sign-off in Step 1b is part of this gate, not a
+   substitute for it.
+4. Only then execute, tracking the layers as tasks (one per layer + verification)
+   so progress and skipped work stay visible.
+
+Why: every connector bug we've shipped traced back to building before the
+contract was understood (validator key mismatch, missing second switch, archive
+never extracted). The plan is where those get caught — cheaply.
+
 ### Step 1a — Research the source CMS's documented field types
 The sample export only shows types that happen to APPEAR in it — a connector seeded
 solely from the sample silently drops every documented type the sample lacks.
