@@ -4,7 +4,10 @@ import { Field } from '../interface/interface';
  * Map a single source-CMS field to a Contentstack `Field`.
  *
  * SEED the switch below from the confirmed source-type → Contentstack-type table
- * produced in Step 1 of the skill. `sourceType` is the source CMS's field/widget
+ * produced in Step 1b of the skill (the docs ∪ sample union — seed cases for the
+ * CMS's DOCUMENTED types too, not only those observed in the sample, so fields
+ * absent from the sample don't fall through to the default case).
+ * `sourceType` is the source CMS's field/widget
  * type id; `name` is the field name in the source document.
  *
  * Returned `contentstackFieldType` must be one of the values consumed by the api

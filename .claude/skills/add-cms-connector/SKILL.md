@@ -27,11 +27,24 @@ If the user has not given a sample export, ask for one. The whole point is to in
 
 ## Workflow
 
-### Step 1 — Inspect the sample export & infer the field map
+### Step 1a — Research the source CMS's documented field types
+The sample export only shows types that happen to APPEAR in it — a connector seeded
+solely from the sample silently drops every documented type the sample lacks.
+Before inspecting the sample, fetch the CMS's official docs:
+
+- `WebSearch`/`WebFetch` the CMS's **schema / field-type reference** and **export-format docs**. Examples:
+  - Sanity: schema-types reference (`string`, `text`, `slug`, `image`, `file`, `reference`, `array`, `object`, `block`, `boolean`, `number`, `date`, `datetime`, `url`, `geopoint`) + the dataset-export format (NDJSON, `_sanityAsset` vs `asset._ref` forms).
+  - Joomla: the `#__content` / custom-fields tables and field-type list (text, textarea, editor, calendar, checkboxes, list, media, sql, subform, user…) + how `com_fields` values serialize in an export/dump.
+- From the docs, list the CMS's **complete field-type vocabulary** — not just what the sample shows.
+- Also note **export-format variants** the sample may not contain (e.g. Sanity asset refs come in two forms; only one appeared in our sample). The parser/validator must handle the documented variants, not just the observed ones.
+- Contentstack side: the **repo stays the oracle** (existing connectors + written packages define the package formats this pipeline's importer consumes). Use Contentstack docs only as a tie-breaker when the repo has no precedent.
+
+### Step 1b — Inspect the sample export & infer the field map
 - Read the sample. Enumerate the **distinct source field/widget types** present (e.g. Sanity: `string`, `text`, `slug`, `image`, `reference`, `array`, `object`, `block`/portable-text, `boolean`, `number`, `datetime`).
+- Build the mapping table from the **union: documented types (Step 1a) ∪ sample types** — docs give completeness, the sample gives ground truth on the real serialized shapes. **On conflict, the sample wins** (docs describe the studio schema; the export is what you actually parse).
 - For each, choose a Contentstack target type from the vocabulary in `migration-wordpress/interface/interface.ts` (`Field.contentstackFieldType`):
   `single_line_text`, `multi_line_text`, `text`, `html`, `json`, `markdown`, `number`, `boolean`, `isodate`, `file`, `reference`, `taxonomy`, `link`, `group`, `global_field`, `url`.
-- Present the proposed table to the user with `AskUserQuestion` (or inline) and **get confirmation before generating code**. Suggested mapping for common source types:
+- Present the proposed table to the user with `AskUserQuestion` (or inline) and **get confirmation before generating code**. Mark which rows came from docs-only (untested against real data) vs sample-verified. Suggested mapping for common source types:
 
   | source kind | Contentstack type |
   |---|---|
@@ -55,7 +68,7 @@ Create the package from `templates/upload-api-package/`. Copy each template file
 - `index.ts` (exports `extractContentTypes`, `extractLocale`)
 - `interface/interface.ts` (the `Field` shape — keep identical to wordpress so the api side consumes it unchanged)
 - `libs/extractLocale.ts`, `libs/contentTypes.ts`
-- `libs/schemaMapper.ts` — **seed the switch with the confirmed mapping from Step 1**. Each case returns a `Field` with the chosen `contentstackFieldType`.
+- `libs/schemaMapper.ts` — **seed the switch with the confirmed mapping from Step 1b** (the docs ∪ sample union — include the docs-only types so fields absent from the sample don't fall through to the default case). Each case returns a `Field` with the chosen `contentstackFieldType`.
 - `utils/helper.ts`
 
 Parse logic in `contentTypes.ts`/`extractLocale.ts` must match the real sample shape. Concretely:
