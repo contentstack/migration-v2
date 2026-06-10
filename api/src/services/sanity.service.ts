@@ -14,10 +14,13 @@
 // portable-text→plaintext), isodate, boolean, number, json (portable text →
 // JSON-RTE incl. inline embedded assets), reference (resolved via a document
 // index), file/assets (getAllAssets copies the export's images/ + files/
-// binaries; file fields resolve to the full asset record), and nested groups
+// binaries; file fields resolve to the full asset record), nested groups
 // (the parser emits dotted child rows `parent.child`; case 'group' builds the
 // object / array-of-objects keyed by the last uid segment, recursing children
-// through this same switch up to MAX_GROUP_DEPTH).
+// through this same switch up to MAX_GROUP_DEPTH), and modular blocks
+// (heterogeneous arrays: one block per element _type; case 'modular_blocks'
+// routes each element to its block by raw _type and emits the array of
+// single-key block objects in source order).
 import fs from 'fs';
 import path from 'path';
 import { randomBytes } from 'crypto';
@@ -63,6 +66,7 @@ function mapFieldTypeToDataType(fieldType: string | null | undefined): string {
     checkbox: 'boolean',
     global_field: 'global_field',
     group: 'group',
+    modular_blocks: 'blocks',
     url: 'text',
   };
   return fieldTypeMap[fieldType] || 'text';
@@ -246,7 +250,7 @@ function embeddedAssetNode(rec: any): any {
 function portableTextToJsonRte(
   blocks: any,
   assetLookup: Record<string, any>,
-  counters: { assetsSkipped: number; groupsSkipped: number },
+  counters: Counters,
 ): any {
   const arr = Array.isArray(blocks) ? blocks : [];
   const children: any[] = [];
@@ -282,6 +286,38 @@ interface DocRef {
   uid: string;
 }
 
+interface Counters {
+  assetsSkipped: number;
+  groupsSkipped: number;
+  blocksSkipped: number;
+}
+
+/** Same uid normalization the parser's toUid applies (fallback block matching). */
+const toFieldUid = (name: string): string =>
+  String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+/**
+ * Direct children of a (group / modular-blocks) row from the flat fieldMapping:
+ * prefix + exactly-one-level match on contentstackFieldUid, with backupFieldUid
+ * fallback for UI-remapped parents. Optionally filtered by contentstackFieldType.
+ */
+function directChildren(field: any, allFields: any[], csType?: string): any[] {
+  const parentUid = field?.contentstackFieldUid || '';
+  const oldUid = field?.backupFieldUid || '';
+  return (allFields ?? []).filter((f: any) => {
+    const fUid = f?.contentstackFieldUid || '';
+    if (!fUid || f?.isDeleted) return false;
+    if (csType && f?.contentstackFieldType !== csType) return false;
+    for (const p of [parentUid, oldUid]) {
+      if (p && fUid.startsWith(p + '.')) {
+        const rest = fUid.substring(p.length + 1);
+        if (rest && !rest.includes('.')) return true; // exactly one level deeper
+      }
+    }
+    return false;
+  });
+}
+
 /** Resolve a Sanity reference value to Contentstack reference array. */
 function resolveReference(
   value: any,
@@ -309,7 +345,7 @@ function transformField(
   docIndex: Record<string, DocRef>,
   ctUidByType: Record<string, string>,
   assetLookup: Record<string, any>,
-  counters: { assetsSkipped: number; groupsSkipped: number },
+  counters: Counters,
   allFields: any[],
   depth = 0,
 ): any {
@@ -365,20 +401,7 @@ function transformField(
         counters.groupsSkipped += 1;
         return undefined;
       }
-      const parentUid = field?.contentstackFieldUid || '';
-      const oldUid = field?.backupFieldUid || '';
-      const directChild = (f: any): boolean => {
-        const fUid = f?.contentstackFieldUid || '';
-        if (!fUid || f?.isDeleted) return false;
-        for (const p of [parentUid, oldUid]) {
-          if (p && fUid.startsWith(p + '.')) {
-            const rest = fUid.substring(p.length + 1);
-            if (rest && !rest.includes('.')) return true; // exactly one level deeper
-          }
-        }
-        return false;
-      };
-      const children = (allFields ?? []).filter(directChild);
+      const children = directChildren(field, allFields);
       if (!children.length) {
         // no mapped children (legacy mapping / user deleted them) — keep old behavior
         counters.groupsSkipped += 1;
@@ -400,6 +423,49 @@ function transformField(
         return arr.length ? arr : undefined;
       }
       return buildOne(Array.isArray(value) ? value[0] : value);
+    }
+
+    case 'modular_blocks': {
+      // Heterogeneous source arrays: each element routes to its _type's block
+      // (block rows = modular_blocks_child children of this field; their
+      // otherCmsField holds the RAW source _type). Entry value = array of
+      // single-key objects { <blockUid>: { <childUid>: value } } in source order.
+      if (depth >= MAX_GROUP_DEPTH) {
+        counters.blocksSkipped += 1;
+        return undefined;
+      }
+      const blockRows = directChildren(field, allFields, 'modular_blocks_child');
+      if (!blockRows.length) {
+        counters.blocksSkipped += 1;
+        return undefined;
+      }
+      const byType = new Map<string, any>();
+      for (const b of blockRows) {
+        if (b?.otherCmsField && !byType.has(b.otherCmsField)) byType.set(b.otherCmsField, b);
+      }
+      const out: any[] = [];
+      for (const el of Array.isArray(value) ? value : [value]) {
+        const t = el?._type;
+        // primary: raw _type match; fallback: uid-normalized match on the
+        // never-edited backupFieldUid (survives UI renames)
+        const blockRow =
+          (t && byType.get(t)) ||
+          (t && blockRows.find((b: any) => getLastUid(b?.backupFieldUid || '') === toFieldUid(t)));
+        if (!blockRow) {
+          counters.blocksSkipped += 1; // untyped element or block removed in the UI
+          continue;
+        }
+        const children = directChildren(blockRow, allFields);
+        const inner: Record<string, any> = {};
+        for (const child of children) {
+          const raw = el[child?.otherCmsField];
+          if (raw === undefined) continue;
+          const v = transformField(raw, child, docIndex, ctUidByType, assetLookup, counters, allFields, depth + 1);
+          if (v !== undefined) inner[getLastUid(child.contentstackFieldUid)] = v;
+        }
+        if (Object.keys(inner).length) out.push({ [getLastUid(blockRow.contentstackFieldUid)]: inner });
+      }
+      return out.length ? out : undefined;
     }
 
     default:
@@ -569,7 +635,7 @@ async function createEntry(
       if (srcType && ctUid) ctUidByType[srcType] = ctUid;
     });
 
-    const counters = { assetsSkipped: 0, groupsSkipped: 0 };
+    const counters: Counters = { assetsSkipped: 0, groupsSkipped: 0, blocksSkipped: 0 };
 
     for (const ct of cts) {
       const srcType = ct?.otherCmsTitle ?? ct?.contentstackTitle;
@@ -609,10 +675,11 @@ async function createEntry(
       console.info(`[sanity] ${ct?.contentstackUid}: wrote ${Object.keys(entryData).length} entries`);
     }
 
-    if (counters.assetsSkipped || counters.groupsSkipped) {
+    if (counters.assetsSkipped || counters.groupsSkipped || counters.blocksSkipped) {
       console.info(
         `[sanity] unresolved file refs (no matching asset record): ${counters.assetsSkipped}; ` +
-          `groups skipped (no mapped children or depth limit): ${counters.groupsSkipped}.`,
+          `groups skipped (no mapped children or depth limit): ${counters.groupsSkipped}; ` +
+          `block elements skipped (no matching block type): ${counters.blocksSkipped}.`,
       );
     }
   } catch (err: any) {

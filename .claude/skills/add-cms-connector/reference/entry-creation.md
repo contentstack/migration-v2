@@ -153,9 +153,47 @@ entry creation unchanged.
   processed at top level (a child named like a top-level key would otherwise write
   a literal `parent.child` key into the entry).
 
-**Faithfulness note:** heterogeneous arrays (per-element `_type`) flatten into one
-union-shaped group; the per-element discriminator is not preserved. The faithful
-alternative is **modular blocks** (one block type per element `_type`) — a
-worthwhile follow-up, not the default.
+## Modular blocks (heterogeneous arrays)
+
+Arrays whose elements carry a per-element type discriminator with **≥ 2 distinct
+values** (e.g. a Sanity `pageBuilder` mixing `infoSection`/`callToAction`) map to
+Contentstack **modular blocks** — one block type per element type — instead of a
+union-shaped group. Homogeneous arrays (one type / no discriminator) stay
+group+multiple.
+
+**Parser rows** (3 levels, all via `baseField`):
+- parent: bare uid, `contentstackFieldType: 'modular_blocks'` (no `advanced.multiple`
+  — the CT builder hardcodes `multiple: true`);
+- one block row per distinct type: uid `<parent>.<blockUid>`,
+  `'modular_blocks_child'`, and **`otherCmsField` = the RAW source type string** —
+  that's the entry-time join key;
+- per-block field rows recursed from THAT type's elements only: uid
+  `<parent>.<block>.<field>` (groups inside blocks nest further — supported).
+
+`buildSchemaTree` recognizes `modular_blocks_child` rows one level under the
+parent and emits `data_type: 'blocks'` with `{title: <raw type>, uid, schema}` per
+block. A blocks field consumes TWO uid segments, so recurse block fields at
+`depth + 2`.
+
+**Two hard rules:**
+- **No blocks inside blocks** (Contentstack rejects them). Thread an `inBlocks`
+  flag through the recursion ctx; heterogeneous arrays under a blocks ancestor
+  fall back to group+multiple. Blocks inside plain groups are fine.
+- Emit `isDeleted: false` on every parser row — the CT builder's block path
+  filters on `isDeleted === false` **strictly**.
+
+**Entry value** — array of single-key objects in **source order** (this preserves
+the author's interleaving, e.g. `info, cta, info, cta`):
+```json
+"pagebuilder": [
+  { "infosection":  { "heading": "About", "content": { "type": "doc", ... } } },
+  { "calltoaction": { "title": "Buy now", "link": { "href": "/buy" } } }
+]
+```
+The transform routes each element by its RAW type → block row (`otherCmsField`
+match, with a uid-normalized `backupFieldUid` fallback for UI renames), builds the
+inner object from the block's child rows (recursing the same switch — images →
+asset records, portable text → JSON-RTE, nested groups), and skips elements with
+no matching block (count + log; don't synthesize a catch-all block).
 
 Log skipped/unresolved counts explicitly — silent drops read as "fully imported" when they aren't.

@@ -23,8 +23,11 @@ import { Field } from '../interface/interface';
  * entry transform uses to find a group's children. Display name = `Parent > child`.
  */
 export interface ParentCtx {
-  uid: string;   // parent group's (possibly already dotted) contentstackFieldUid
-  label: string; // parent group's display name
+  uid: string;        // parent group's (possibly already dotted) contentstackFieldUid
+  label: string;      // parent group's display name
+  inBlocks?: boolean; // true anywhere under a modular-blocks ancestor — Contentstack
+                      // forbids blocks inside blocks, so heterogeneous arrays there
+                      // fall back to group+multiple
 }
 
 export const toUid = (name: string): string =>
@@ -48,6 +51,7 @@ export const baseField = (
     backupFieldType: csType,
     backupFieldUid: uid,
     advanced: {},
+    isDeleted: false, // api's buildFieldSchema filters on isDeleted === false strictly
   };
 };
 

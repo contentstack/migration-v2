@@ -44,7 +44,7 @@ function mapFieldTypeToDataType(fieldType: string | null | undefined): string {
     json: 'json', markdown: 'text', number: 'number', boolean: 'boolean',
     isodate: 'isodate', file: 'file', reference: 'reference', taxonomy: 'taxonomy',
     link: 'link', dropdown: 'text', radio: 'text', checkbox: 'boolean',
-    global_field: 'global_field', group: 'group', url: 'text',
+    global_field: 'global_field', group: 'group', modular_blocks: 'blocks', url: 'text',
   };
   return fieldTypeMap[fieldType] || 'text';
 }
@@ -66,6 +66,30 @@ const MAX_GROUP_DEPTH = 5;
 
 interface DocRef { type: string; uid: string }
 
+interface Counters { assetsSkipped: number; groupsSkipped: number; blocksSkipped: number }
+
+/**
+ * Direct children of a (group / modular-blocks) row from the flat fieldMapping:
+ * prefix + exactly-one-level match on contentstackFieldUid, with backupFieldUid
+ * fallback for UI-remapped parents. Optionally filtered by contentstackFieldType.
+ */
+function directChildren(field: any, allFields: any[], csType?: string): any[] {
+  const parentUid = field?.contentstackFieldUid || '';
+  const oldUid = field?.backupFieldUid || '';
+  return (allFields ?? []).filter((f: any) => {
+    const fUid = f?.contentstackFieldUid || '';
+    if (!fUid || f?.isDeleted) return false;
+    if (csType && f?.contentstackFieldType !== csType) return false;
+    for (const p of [parentUid, oldUid]) {
+      if (p && fUid.startsWith(p + '.')) {
+        const rest = fUid.substring(p.length + 1);
+        if (rest && !rest.includes('.')) return true; // exactly one level deeper
+      }
+    }
+    return false;
+  });
+}
+
 /**
  * Transform one source value to its Contentstack field value, by target type.
  * ADAPT the readers to your source data shape (this skeleton assumes plain
@@ -77,8 +101,8 @@ function transformField(
   docIndex: Record<string, DocRef>,
   ctUidByType: Record<string, string>,
   assetLookup: Record<string, any>,
-  counters: { assetsSkipped: number; groupsSkipped: number },
-  allFields: any[],   // the flat ct.fieldMapping — case 'group' finds its children here
+  counters: Counters,
+  allFields: any[],   // the flat ct.fieldMapping — group/blocks cases find children here
   depth = 0,
 ): any {
   switch (field?.contentstackFieldType) {
@@ -140,20 +164,7 @@ function transformField(
       // Build the group from the DOTTED child rows the parser emitted
       // (`<groupUid>.<childUid>`; the entry stores the LAST segment as key).
       if (depth >= MAX_GROUP_DEPTH) { counters.groupsSkipped += 1; return undefined; }
-      const parentUid = field?.contentstackFieldUid || '';
-      const oldUid = field?.backupFieldUid || '';
-      const directChild = (f: any): boolean => {
-        const fUid = f?.contentstackFieldUid || '';
-        if (!fUid || f?.isDeleted) return false;
-        for (const p of [parentUid, oldUid]) {
-          if (p && fUid.startsWith(p + '.')) {
-            const rest = fUid.substring(p.length + 1);
-            if (rest && !rest.includes('.')) return true; // exactly one level deeper
-          }
-        }
-        return false;
-      };
-      const children = (allFields ?? []).filter(directChild);
+      const children = directChildren(field, allFields);
       if (!children.length) { counters.groupsSkipped += 1; return field?.advanced?.multiple ? [] : undefined; }
       const buildOne = (el: any): any => {
         if (!el || typeof el !== 'object' || Array.isArray(el)) return undefined;
@@ -171,6 +182,34 @@ function transformField(
         return arr.length ? arr : undefined;
       }
       return buildOne(Array.isArray(value) ? value[0] : value);
+    }
+
+    case 'modular_blocks': {
+      // Heterogeneous source arrays: each element routes to its type's block
+      // (block rows = modular_blocks_child children of this field; their
+      // otherCmsField holds the RAW source element type). Entry value = array of
+      // single-key objects { <blockUid>: { <childUid>: value } } in source order.
+      if (depth >= MAX_GROUP_DEPTH) { counters.blocksSkipped += 1; return undefined; }
+      const blockRows = directChildren(field, allFields, 'modular_blocks_child');
+      if (!blockRows.length) { counters.blocksSkipped += 1; return undefined; }
+      const byType = new Map<string, any>();
+      for (const b of blockRows) if (b?.otherCmsField && !byType.has(b.otherCmsField)) byType.set(b.otherCmsField, b);
+      const out: any[] = [];
+      for (const el of Array.isArray(value) ? value : [value]) {
+        const t = el?._type; // ADAPT: your source's per-element type discriminator
+        const blockRow = t && byType.get(t);
+        if (!blockRow) { counters.blocksSkipped += 1; continue; } // untyped / block removed in UI
+        const children = directChildren(blockRow, allFields);
+        const inner: Record<string, any> = {};
+        for (const child of children) {
+          const raw = el[child?.otherCmsField];
+          if (raw === undefined) continue;
+          const v = transformField(raw, child, docIndex, ctUidByType, assetLookup, counters, allFields, depth + 1);
+          if (v !== undefined) inner[getLastUid(child.contentstackFieldUid)] = v;
+        }
+        if (Object.keys(inner).length) out.push({ [getLastUid(blockRow.contentstackFieldUid)]: inner });
+      }
+      return out.length ? out : undefined;
     }
 
     default:
@@ -222,7 +261,7 @@ async function createEntry(
       if (srcType && ctUid) ctUidByType[srcType] = ctUid;
     });
 
-    const counters = { assetsSkipped: 0, groupsSkipped: 0 };
+    const counters: Counters = { assetsSkipped: 0, groupsSkipped: 0, blocksSkipped: 0 };
 
     // 4) Build + WRITE entries per content type.
     for (const ct of cts) {
@@ -254,8 +293,8 @@ async function createEntry(
       console.info(`[<cms>] ${ct?.contentstackUid}: wrote ${Object.keys(entryData).length} entries`);
     }
 
-    if (counters.assetsSkipped || counters.groupsSkipped) {
-      console.info(`[<cms>] deferred — file/assets: ${counters.assetsSkipped}, groups: ${counters.groupsSkipped}`);
+    if (counters.assetsSkipped || counters.groupsSkipped || counters.blocksSkipped) {
+      console.info(`[<cms>] skipped — file/assets: ${counters.assetsSkipped}, groups: ${counters.groupsSkipped}, block elements: ${counters.blocksSkipped}`);
     }
   } catch (err: any) {
     console.error(`[<cms>] createEntry failed for project ${projectId}:`, err?.message ?? err);

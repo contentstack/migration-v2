@@ -103,9 +103,11 @@ async function extractContentTypes(
  * where every child row's uids carry the dotted path (`parent.child`) — the
  * contract the api's buildSchemaTree uses to build the nested CT schema, and
  * the entry transform uses to find a group's children. Child fields are the
- * UNION across all sample objects/array elements (heterogeneous `_type`
- * elements contribute their keys; `_`-prefixed keys are skipped). Zero-child or
- * depth-limited groups fall back to a raw `json` leaf so no data is dropped.
+ * UNION across all sample objects/array elements (`_`-prefixed keys skipped).
+ * Heterogeneous arrays (>= 2 distinct element `_type`s) become MODULAR BLOCKS
+ * instead — one block per `_type`, fields per block from that `_type`'s
+ * elements only (see emitModularBlockRows). Zero-child or depth-limited
+ * structures fall back to a raw `json` leaf so no data is dropped.
  */
 function emitFieldRows(
   name: string,
@@ -133,21 +135,31 @@ function emitFieldRows(
       ? samples.flatMap((s) => (Array.isArray(s) ? s : [])).filter((e) => e && typeof e === 'object' && !Array.isArray(e))
       : samples.filter((s) => s && typeof s === 'object' && !Array.isArray(s));
 
-  const childSamples = new Map<string, any[]>();
-  for (const el of elements) {
-    for (const [k, v] of Object.entries(el)) {
-      if (k.startsWith('_')) continue; // _type, _key, ...
-      if (!childSamples.has(k)) childSamples.set(k, []);
-      if (v !== null && v !== undefined) childSamples.get(k)!.push(v);
+  // heterogeneous arrays (>= 2 distinct element _types) -> MODULAR BLOCKS, one
+  // block per _type — unless we're already under a blocks ancestor (Contentstack
+  // forbids blocks inside blocks; those fall through to group+multiple).
+  if (srcType === 'array' && !parent?.inBlocks) {
+    const discriminated = elements.filter(
+      (e) => typeof e._type === 'string' && !['block', 'image', 'file'].includes(e._type),
+    );
+    const distinctTypes = [...new Set(discriminated.map((e) => e._type as string))];
+    if (distinctTypes.length >= 2) {
+      return emitModularBlockRows(name, srcType, discriminated, distinctTypes, parent, depth);
     }
   }
+
+  const childSamples = collectChildSamples(elements);
 
   if (!childSamples.size) {
     return [baseField(name, srcType, 'json', parent)]; // empty group -> json leaf
   }
 
   const parentRow = mapField(name, srcType, parent); // object -> group, array -> group+multiple
-  const childCtx: ParentCtx = { uid: parentRow.contentstackFieldUid, label: parentRow.contentstackField };
+  const childCtx: ParentCtx = {
+    uid: parentRow.contentstackFieldUid,
+    label: parentRow.contentstackField,
+    inBlocks: parent?.inBlocks, // propagate the blocks-ancestor flag through groups
+  };
   const rows: Field[] = [parentRow];
   const seenChildUids = new Set<string>();
   for (const [childName, childValues] of childSamples) {
@@ -158,6 +170,89 @@ function emitFieldRows(
     }
     seenChildUids.add(childUid);
     rows.push(...emitFieldRows(childName, childValues, childCtx, depth + 1));
+  }
+  return rows;
+}
+
+/** Union of child field samples across a set of object elements (skips `_` keys). */
+function collectChildSamples(elements: any[]): Map<string, any[]> {
+  const childSamples = new Map<string, any[]>();
+  for (const el of elements) {
+    for (const [k, v] of Object.entries(el)) {
+      if (k.startsWith('_')) continue; // _type, _key, ...
+      if (!childSamples.has(k)) childSamples.set(k, []);
+      if (v !== null && v !== undefined) childSamples.get(k)!.push(v);
+    }
+  }
+  return childSamples;
+}
+
+/**
+ * Emit modular-blocks rows for a heterogeneous array: parent row
+ * (`modular_blocks`), one block row per distinct element `_type`
+ * (`modular_blocks_child`, otherCmsField = the RAW _type — the entry-time join
+ * key), and per-block field rows recursed from THAT _type's elements only.
+ * Blocks whose field union is empty are skipped; if all are empty, fall back
+ * to a raw json leaf. Block field recursion runs with inBlocks=true so deeper
+ * heterogeneous arrays become groups, never nested blocks.
+ */
+function emitModularBlockRows(
+  name: string,
+  srcType: string,
+  elements: any[],
+  distinctTypes: string[],
+  parent: ParentCtx | undefined,
+  depth: number,
+): Field[] {
+  const parentRow = baseField(name, srcType, 'modular_blocks', parent);
+  const rows: Field[] = [parentRow];
+  const seenBlockUids = new Set<string>();
+  let emittedBlocks = 0;
+
+  for (const rawType of distinctTypes) {
+    const typeElements = elements.filter((e) => e._type === rawType);
+    const childSamples = collectChildSamples(typeElements);
+    if (!childSamples.size) {
+      console.warn(`[sanity] block "${rawType}" under "${name}" has no mappable fields; skipped`);
+      continue;
+    }
+
+    const blockRow = baseField(rawType, 'block', 'modular_blocks_child', {
+      uid: parentRow.contentstackFieldUid,
+      label: parentRow.contentstackField,
+    });
+    // deterministic suffix on toUid collisions — entry routing matches by RAW
+    // otherCmsField, so suffixed blocks still receive their data
+    let blockUid = blockRow.contentstackFieldUid;
+    for (let n = 2; seenBlockUids.has(blockUid); n += 1) {
+      blockUid = `${blockRow.contentstackFieldUid}_${n}`;
+      console.warn(`[sanity] block uid collision under "${name}": "${rawType}" -> "${blockUid}"`);
+    }
+    seenBlockUids.add(blockUid);
+    blockRow.uid = blockRow.contentstackFieldUid = blockRow.backupFieldUid = blockUid;
+    rows.push(blockRow);
+    emittedBlocks += 1;
+
+    const blockCtx: ParentCtx = {
+      uid: blockRow.contentstackFieldUid,
+      label: blockRow.contentstackField,
+      inBlocks: true,
+    };
+    const seenChildUids = new Set<string>();
+    for (const [childName, childValues] of childSamples) {
+      const childUid = toUid(childName);
+      if (seenChildUids.has(childUid)) {
+        console.warn(`[sanity] uid collision under block "${rawType}": "${childName}" already emitted; first wins`);
+        continue;
+      }
+      seenChildUids.add(childUid);
+      // a blocks field consumes TWO uid segments (parent + block)
+      rows.push(...emitFieldRows(childName, childValues, blockCtx, depth + 2));
+    }
+  }
+
+  if (!emittedBlocks) {
+    return [baseField(name, srcType, 'json', parent)]; // all blocks empty -> json leaf
   }
   return rows;
 }

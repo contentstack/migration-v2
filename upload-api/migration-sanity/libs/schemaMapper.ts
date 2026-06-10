@@ -19,10 +19,15 @@ import { Field } from '../interface/interface';
  *   reference -> reference              array   -> group (multiple)
  *   object  -> group                    boolean -> boolean
  *   number  -> number                   url     -> url
+ *   array w/ >=2 distinct element _types -> modular_blocks (one block per _type;
+ *   rows built directly with baseField in contentTypes.ts emitFieldRows)
  */
 export interface ParentCtx {
-  uid: string;   // the parent group's (possibly already dotted) contentstackFieldUid
-  label: string; // the parent group's display name
+  uid: string;       // the parent group's (possibly already dotted) contentstackFieldUid
+  label: string;     // the parent group's display name
+  inBlocks?: boolean; // true anywhere under a modular-blocks ancestor — Contentstack
+                      // forbids blocks inside blocks, so heterogeneous arrays there
+                      // fall back to group+multiple
 }
 
 export const toUid = (name: string): string =>
@@ -46,6 +51,7 @@ export const baseField = (
     backupFieldType: csType,
     backupFieldUid: uid,
     advanced: {},
+    isDeleted: false, // buildFieldSchema filters on isDeleted === false strictly
   };
 };
 
