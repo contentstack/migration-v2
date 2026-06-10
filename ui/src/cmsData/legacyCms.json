@@ -228,27 +228,6 @@
       }
     },
     {
-      "cms_id": "sanity",
-      "title": "Sanity",
-      "description": "",
-      "group_name": "lightning",
-      "doc_url": {
-        "title": "https://www.sanity.io/",
-        "href": "https://www.sanity.io/"
-      },
-      "parent": "Sanity",
-      "isactive": true,
-      "allowed_file_formats": [
-        {
-          "fileformat_id": "directory",
-          "title": "Folder",
-          "description": "",
-          "group_name": "directory",
-          "isactive": true
-        }
-      ]
-    },
-    {
       "cms_id": "othercms",
       "_metadata": {
         "uid": "cs7ba494f572446215"

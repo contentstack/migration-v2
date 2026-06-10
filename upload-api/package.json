@@ -68,7 +68,6 @@
     "migration-aem": "file:migration-aem",
     "migration-contentful": "file:migration-contentful",
     "migration-drupal": "file:migration-drupal",
-    "migration-sanity": "file:migration-sanity",
     "migration-sitecore": "file:migration-sitecore",
     "migration-wordpress": "file:migration-wordpress",
     "mkdirp": "^1.0.4",

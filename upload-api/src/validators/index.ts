@@ -3,7 +3,6 @@ import contentfulValidator from './contentful';
 import wordpressValidator from './wordpress';
 import aemValidator from './aem';
 import drupalValidator from './drupal';
-import sanityValidator from './sanity';
 
 const validator = ({
   data,
@@ -36,10 +35,6 @@ const validator = ({
 
     case 'drupal-sql': {
       return drupalValidator({ data, assetsConfig });
-    }
-
-    case 'sanity-folder': {
-      return sanityValidator({ data });
     }
 
     default:
