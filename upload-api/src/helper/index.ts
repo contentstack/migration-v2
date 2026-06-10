@@ -226,11 +226,16 @@ async function updateConfigFile(
 
     const isDrupal = String(config?.cmsType).toLowerCase() === 'drupal';
 
+    // Only treat mysqlDetails as meaningful when at least one field is a non-empty string,
+    // so empty/undefined payloads don't trigger an unnecessary config write below.
+    const { host, database, user } = mysqlDetails ?? {};
+    const hasMysqlDetails =
+      isDrupal && !!(host?.trim() || database?.trim() || user?.trim());
+
     // For drupal the source is a MySQL DB. Persist the host/database/user the user
     // entered in the UI ("Check Connection") into config.mysql, preserving the other
     // mysql fields (e.g. port, password).
-    if (isDrupal && mysqlDetails && typeof mysqlDetails === 'object') {
-      const { host, database, user } = mysqlDetails;
+    if (hasMysqlDetails) {
       config.mysql = {
         ...config.mysql,
         ...(host?.trim() ? { host: host.trim() } : {}),
@@ -260,7 +265,7 @@ async function updateConfigFile(
     }
 
     // No filePath, but drupal mysql details changed — persist them and return updated config.
-    if (isDrupal && mysqlDetails && typeof mysqlDetails === 'object') {
+    if (hasMysqlDetails) {
       const configContent = JSON.stringify(config, null, 2);
       await fs.promises.writeFile(configFilePath, configContent, 'utf8');
     }

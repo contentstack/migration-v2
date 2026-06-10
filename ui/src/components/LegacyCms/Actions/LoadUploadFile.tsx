@@ -154,7 +154,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
                     width="full"
                     version="v2"
                     placeholder="Enter host"
-                    aria-label="host"
+                    aria-label="MySQL host"
                     autoFocus
                   />
                   <TextInput
@@ -163,7 +163,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
                     width="full"
                     version="v2"
                     placeholder="Enter database"
-                    aria-label="database"
+                    aria-label="MySQL database"
                   />
                   <TextInput
                     value={sqlDetails.user}
@@ -171,7 +171,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
                     width="full"
                     version="v2"
                     placeholder="Enter user"
-                    aria-label="user"
+                    aria-label="MySQL user"
                   />
                 </div>
               ) : (
