@@ -11,6 +11,7 @@ Two mapping points per connector. Line numbers drift — grep for the function n
 | drupal | `upload-api/migration-drupal/` field analysis modules | field-type discovery from the SQL schema |
 | aem | `upload-api/migration-aem/` | folder/JCR property mapping |
 | sitecore | `upload-api/migration-sitecore/` | template-field mapping |
+| sanity | `upload-api/migration-sanity/libs/schemaMapper.ts` | type inference from NDJSON sample values; group/modular-blocks rows emitted by `contentTypes.ts` (`emitFieldRows`); `title`/`url` rows guaranteed by `ensureMandatoryFields` |
 
 The `Field` shape and the `contentstackFieldType` union live in each package's `interface/interface.ts`.
 
@@ -23,6 +24,7 @@ The `Field` shape and the `contentstackFieldType` union live in each package's `
 | wordpress | `api/src/services/wordpress.service.ts` | field handling within `createEntry` (~904–950) |
 | aem | `api/src/services/aem.service.ts` | field handling within entry/content-type creation |
 | sitecore | `api/src/services/sitecore.service.ts` | field handling within entry/content-type creation |
+| sanity | `api/src/services/sanity.service.ts` | `mapFieldTypeToDataType` (~38); per-type value switch inside `createEntry` (~383) |
 
 ### Reference: drupal `mapFieldTypeToDataType`
 ```ts
@@ -68,4 +70,5 @@ const fieldTypeMap: { [key: string]: string } = {
 - wordpress: parser `libs/extractItems.ts`; api `wordpress.service.ts` `createEntry`.
 - drupal: api `drupal/entries.service.ts` `createEntry`.
 - contentful: api `contentful.service.ts` `createEntry`.
+- sanity: api `sanity.service.ts` `createEntry` (+ `getAllAssets` local-copy pass; resolve the export root via `resolveDataFile(file_path, packagePath)` — `file_path` may be the raw `.tar.gz`).
 Special shapes already handled in repo: `modular_blocks` (→ blocks), `file` (asset attach), `group` (nested fields), `reference` (entry link).

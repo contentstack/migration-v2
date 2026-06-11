@@ -1,6 +1,6 @@
 ---
 name: add-connector-field
-description: Add or change a single field-type mapping in an EXISTING CMS connector (wordpress, contentful, drupal, aem, sitecore) — e.g. start mapping a source field/widget type that was previously dropped or mis-typed, or change which Contentstack field type a source type produces. Use this when the source CMS already has a connector and only the per-field mapping needs to change. For a brand-new CMS with no connector yet, use add-cms-connector instead.
+description: Add or change a single field-type mapping in an EXISTING CMS connector (wordpress, contentful, drupal, aem, sitecore, sanity) — e.g. start mapping a source field/widget type that was previously dropped or mis-typed, or change which Contentstack field type a source type produces. Use this when the source CMS already has a connector and only the per-field mapping needs to change. For a brand-new CMS with no connector yet, use add-cms-connector instead.
 ---
 
 # Add / change a field-type mapping in an existing connector
@@ -9,13 +9,28 @@ A field flows through two mapping points. To support a new source field type (or
 
 > Read `reference/field-mapping.md` for exactly where each connector's mapper lives.
 
+> Tone: same meme rules as `add-cms-connector` — real-time, chat-narration only,
+> one per message max; never in code, tables, or option labels.
+
 ## Inputs you need from the user
-1. **Which connector** — `wordpress` | `contentful` | `drupal` | `aem` | `sitecore`.
+1. **Which connector** — `wordpress` | `contentful` | `drupal` | `aem` | `sitecore` | `sanity`.
 2. **A sample of the field's value** from a real export (so you can see the source type id and the value shape).
 3. **Desired Contentstack field type** — if unsure, propose one from the vocabulary and confirm:
    `single_line_text`, `multi_line_text`, `text`, `html`, `json`, `markdown`, `number`, `boolean`, `isodate`, `file`, `reference`, `taxonomy`, `link`, `group`, `global_field`, `url`.
 
 ## Workflow
+
+### Step 0 — Ask for the inputs first (select UI)
+The VERY FIRST action is a single `AskUserQuestion` call (the interactive
+select-and-submit UI — not inline prose) asking: (1) which connector, (2) the
+desired Contentstack field type (offer your best-guess proposals as options).
+Ask for the sample field value inline afterwards if it wasn't already provided.
+
+⚠️ Same schema gotchas as `add-cms-connector` Step 0 — an out-of-spec call dies
+with "Invalid tool parameters": 2–4 options per question (never 1), no
+hand-rolled "Other" (the UI appends one), `header` ≤ 12 chars,
+`multiSelect: false`, every option needs `label` + `description`. With 6
+connectors, offer the 3 likeliest and let "Other" cover the rest.
 
 ### Step 1 — Locate the connector's mapper (Layer A, upload-api)
 Open the connector's schema mapper:
@@ -23,6 +38,7 @@ Open the connector's schema mapper:
 - contentful → `upload-api/migration-contentful/` (widget-id inference)
 - drupal → `upload-api/migration-drupal/` (field analysis from DB)
 - aem / sitecore → the respective `upload-api/migration-<cms>/` package
+- sanity → `upload-api/migration-sanity/libs/schemaMapper.ts` (type inference from NDJSON sample values; group/blocks rows come from `contentTypes.ts`'s `emitFieldRows`)
 
 Add or amend the `case` for the source type so it returns a `Field` with the chosen `contentstackFieldType`. Match the file's existing `Field`-builder style (uid generation, `advanced` flags like `multiple`/`mandatory`).
 
@@ -33,6 +49,7 @@ If the chosen `contentstackFieldType` is **not** already in the `Field.contentst
 Ensure the Contentstack-type → API-data-type map accepts the type:
 - drupal → `api/src/services/drupal/content-types.service.ts` → `mapFieldTypeToDataType` (~448–474).
 - contentful → `api/src/services/contentful.service.ts` → `inferContentfulDefaultWidgetId` (~201–217).
+- sanity → `api/src/services/sanity.service.ts` → `mapFieldTypeToDataType` (~38).
 - others → search the connector's service for the equivalent map.
 If the type is missing from the map, add it so the generated content-type schema gets the right `data_type`.
 
@@ -42,16 +59,25 @@ If the new field carries a value shape the entry transformer doesn't already han
 - the api `createEntry` for that connector (`<cms>.service.ts` or `<cms>/entries.service.ts`).
 A pure `single_line_text`/`number`/`boolean` usually needs no extra handling.
 
+⚠️ Folder/archive connectors (sanity, aem): at entry time `file_path` is the
+**raw upload** (possibly a `.tar.gz`), NOT the extracted dir — resolve via
+`packagePath` like `sanity.service.ts`'s `resolveDataFile` (see
+`add-cms-connector/reference/entry-creation.md`).
+
 ### Step 5 — Verify (scoped to the one connector)
 
 ```bash
 # parser package compiles
-cd upload-api/migration-<cms> && npm run build
+cd upload-api/migration-<cms> && npm install && npm run build
 
-# upload-api + api typecheck
-cd .. && npm run build
-cd ../api && npx tsc --noEmit
+# upload-api + api typecheck (npm install first — both have file: deps / missing types)
+cd .. && npm install && npm run build
+cd ../api && npm install && npx tsc --noEmit 2>&1 | grep -E "<cms>" || echo "no new errors in your files"
 ```
+
+⚠️ `api` does NOT compile clean from scratch (pre-existing missing-`@types/*` /
+implicit-any errors in untouched files). Success = **no NEW errors in YOUR
+files**, not zero errors globally — hence the grep filter.
 
 End-to-end: run a migration with an export containing the field; confirm the content-type schema shows the new field with the right type and an entry carries the value (check `upload-api/cmsMigrationData/`).
 
