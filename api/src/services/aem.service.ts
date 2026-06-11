@@ -3,6 +3,7 @@
 /* eslint-disable no-unsafe-optional-chaining */
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'node:crypto';
 import read from 'fs-readdir-recursive';
 import _ from "lodash";
 import { v4 as uuidv4 } from 'uuid';
@@ -400,6 +401,7 @@ const createAssets = async ({
   const pathToUidMap: Record<string, string> = {}; // Path to UID mapping
   const seenFilenames = new Map<string, { uid: string; metadata: any; blobPath: string }>();
   const pathToFilenameMap = new Map<string, string>();
+  const usedAssetUids = new Set<string>();
   
   // Discover assets and deduplicate by filename
   for await (const fileName of read(assetsDir)) {
@@ -429,7 +431,25 @@ const createAssets = async ({
                   pathToFilenameMap.set(value, filename);
                   // Only create asset ONCE per unique filename
                   if (!seenFilenames?.has(filename)) {
-                    const uid = uuidv4?.()?.replace?.(/-/g, '');
+                    // Derive a uid that is stable across export runs so delta
+                    // dedupe (asset-metadata/uid-mapper lookups) can match
+                    // prior iterations: jcr:uuid → hashed DAM path → random.
+                    const jcrUuid = parseData?._raw?.assetNode?.['jcr:uuid'];
+                    let uid =
+                      typeof jcrUuid === 'string' && jcrUuid.trim() !== ''
+                        ? jcrUuid.replace(/-/g, '').toLowerCase()
+                        : '';
+                    if (!uid || usedAssetUids.has(uid)) {
+                      const assetPath = parseData?.asset?.path;
+                      uid =
+                        typeof assetPath === 'string' && assetPath.trim() !== ''
+                          ? createHash('sha256').update(assetPath).digest('hex').slice(0, 32)
+                          : '';
+                    }
+                    if (!uid || usedAssetUids.has(uid)) {
+                      uid = uuidv4?.()?.replace?.(/-/g, '');
+                    }
+                    usedAssetUids.add(uid);
                     const blobPath = firstJson?.replace?.('.metadata.json', '');
                     
                     seenFilenames?.set(filename, {
@@ -1301,6 +1321,7 @@ const createEntry = async ({
   const entriesData: Record<string, Record<string, any[]>> = {};
   const allLocales: object = { ...project?.master_locale, ...project?.locales };
   const entryMapping: Record<string, string[]> = {};
+  const usedEntryUids = new Set<string>();
 
   // Process each entry file
   for await (const fileName of read(entriesDir)) {
@@ -1310,8 +1331,16 @@ const createEntry = async ({
     }
     const content: unknown = await fs.promises.readFile(filePath, 'utf-8');
     if (typeof content === 'string') {
-      const uid = uuidv4?.()?.replace?.(/-/g, '');
       const parseData = JSON.parse(content);
+      // Use the page model's stable "id" as the entry uid so uid-mapper keys
+      // stay consistent across delta iterations; random uuid only as fallback.
+      const modelId = typeof parseData?.id === 'string' && parseData.id.trim() !== ''
+        ? uidCorrector(parseData.id)
+        : '';
+      const uid = modelId && !usedEntryUids.has(modelId)
+        ? modelId
+        : uuidv4?.()?.replace?.(/-/g, '');
+      usedEntryUids.add(uid);
       const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
       const templateUid = isEFragment?.isXF ? parseData?.title : parseData?.templateName ?? parseData?.templateType;

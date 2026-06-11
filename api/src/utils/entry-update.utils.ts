@@ -227,6 +227,16 @@ export const enrichConfigWithAssetMapping = (
         writeLogEntry(`No new asset mapping found for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     }
 
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__assetMapping__ = { old: oldAssetMapping, new: newAssetMapping };
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+    } catch (err) {
+        console.error("Failed to write asset mapping into update config:", err);
+        writeLogEntry(`Failed to write __assetMapping__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithAssetMapping", loggerPath);
+        return;
+    }
+
     writeLogEntry(`Asset mapping enriched into config: old=${Object?.keys(oldAssetMapping)?.length} keys, new=${Object?.keys(newAssetMapping)?.length} keys`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset mapping configuration has been enriched for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset references will be resolved using combined old and new mappings`, "enrichConfigWithAssetMapping", loggerPath);
