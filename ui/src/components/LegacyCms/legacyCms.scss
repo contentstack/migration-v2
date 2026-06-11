@@ -172,9 +172,14 @@
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    
     .TextInput {
       width: 100%;
+    }
+
+    .sql-edit-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
   }
 

@@ -492,6 +492,22 @@ div .table-row {
 }
 
 .entry-mapper-container {
+  // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
+  // so it collapses to just the text. Stretch the table chrome and the empty message to
+  // fill the available viewport space instead of leaving a grey gap below.
+  .TableWrapper,
+  .Table {
+    min-height: calc(100vh - 300px);
+  }
+  .no-table-data {
+    min-height: calc(100vh - 300px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
   .Table {
     // Force row layout alignment
     .Table__head,

@@ -39,7 +39,7 @@ import { ItemStatusMapProp } from '@contentstack/venus-components/build/componen
 // Styles and Assets
 import './index.scss';
 
-const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeId: ContentType | null, tableHeight: number}) => {
+const EntryMapper = ({selectedContentTypeId, tableHeight, onEntrySelectionChange}: {selectedContentTypeId: ContentType | null, tableHeight: number, onEntrySelectionChange?: (contentTypeId: string, hasSelection: boolean) => void}) => {
   // Redux State
   const dispatch = useDispatch();
 
@@ -173,6 +173,12 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
       setPersistedRowIds(initialSelected);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: EntryMapperType) => !item?.isUpdate))
+
+      // Reflect any pre-existing entry selections on the content type icon (green when present)
+      const ctId = contentTypeId || selectedContentTypeId?.id;
+      if (ctId) {
+        onEntrySelectionChange?.(ctId, Object.keys(initialSelected ?? {}).length > 0);
+      }
      
     } catch (error) {
       console.error('fetchData -> error', error);
@@ -272,6 +278,15 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         if (status === 200) {
           setPersistedRowIds({ ...(rowIds ?? {}) });
           setLoading(false);
+
+          // Reflect the saved update on the content type icon: green (Updated) when entries
+          // remain selected after save, blue (Mapped) when all selections were cleared.
+          const ctId = selectedContentTypeId?.id || contentTypeUid;
+          if (ctId) {
+            const hasSelection = Object.values(rowIds ?? {}).some(Boolean);
+            onEntrySelectionChange?.(ctId, hasSelection);
+          }
+
           return Notification({
             notificationContent: { text: 'Entries saved successfully' },
             notificationProps: {
@@ -404,7 +419,8 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         }}
 
     />
-    <div className="mapper-footer">
+    {totalCounts > 0 && (
+      <div className="mapper-footer">
           <div>Total Entries: <strong>{totalCounts}</strong></div>
           <Button
             className="saveButton"
@@ -415,7 +431,8 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
           >
             Save
           </Button>
-    </div>
+      </div>
+    )}
 
       
     </div>
