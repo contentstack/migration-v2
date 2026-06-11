@@ -892,6 +892,12 @@ const Migration = () => {
    * Calls when click Continue button on Content Mapper step and handles to proceed to Test Migration
    */
   const handleOnClickContentMapper = async (event: MouseEvent) => {
+    // The auto-mapped content mapper persist hook was part of the
+    // AutoMappedMergeConfirmModal feature that was reverted on dev. Keep this
+    // as a no-op so the navigation path still resolves; if/when the modal
+    // returns, wire it back to saveRef?.current?.handleUpdateAutoMappedContentMapping.
+    const persistAutoMappedContentMapper = async (): Promise<boolean> => true;
+
     if (newMigrationData?.content_mapping?.isDropDownChanged) {
       setIsModalOpen(true);
 
