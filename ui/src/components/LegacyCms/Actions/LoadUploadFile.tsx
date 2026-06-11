@@ -60,14 +60,16 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
   const dispatch = useDispatch();
   const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
 
-  // SQL editing state — mirrors the local-path edit flow but for the 3 MySQL fields
+  // SQL editing state — mirrors the local-path edit flow but for the 3 MySQL fields.
+  // Prefer the most up-to-date MySQL values from Redux over the (potentially stale) prop,
+  // so the edit inputs (which can start open when iteration > 1) don't seed/overwrite with stale data.
+  const currentMysql = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mysql || fileDetails?.mysql;
   const [isEditingSql, setIsEditingSql] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
   const [sqlDetails, setSqlDetails] = useState({
-    host: fileDetails?.mysql?.host || '',
-    database: fileDetails?.mysql?.database || '',
-    user: fileDetails?.mysql?.user || ''
+    host: currentMysql?.host || '',
+    database: currentMysql?.database || '',
+    user: currentMysql?.user || ''
   });
-  const currentMysql = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mysql || fileDetails?.mysql;
 
   const handleEditFile = async () => {
     // Once the file is validated, editing the path is disabled
