@@ -326,6 +326,39 @@ const putTestData = async (req: Request) => {
 };
 
 /**
+ * Splits the current iteration's content types into "new" vs "old" relative to the
+ * previous iteration, by comparing on `otherCmsUid`.
+ * - mode 'new': content types NOT present in the previous iteration (mapped for the first time).
+ * - mode 'old': content types already present in the previous iteration (already migrated) AND
+ *   that have at least one entry mapping — Step 4 (Map Entry) can only map entries for content
+ *   types that actually have entries, so types with an empty entryMapping are excluded.
+ * Used on delta migrations (iteration > 1) so Step 3 (Map Content Fields) only re-maps new
+ * types and Step 4 (Map Entry) only maps entries of already-migrated types that have entries.
+ * @param currentCts - Content types of the current iteration.
+ * @param prevCts - Content types of the previous iteration.
+ * @param mode - 'new' or 'old'.
+ * @returns The filtered subset of `currentCts`.
+ */
+const filterContentTypesByIteration = (
+  currentCts: ContentTypesMapper[],
+  prevCts: ContentTypesMapper[],
+  mode: 'new' | 'old',
+): ContentTypesMapper[] => {
+  const prevUids = new Set(
+    (prevCts ?? [])
+      .map((ct) => ct?.otherCmsUid)
+      .filter((uid): uid is string => Boolean(uid)),
+  );
+  return (currentCts ?? []).filter((ct) => {
+    if (mode === 'old') {
+      const hasEntries = Array.isArray(ct?.entryMapping) && ct.entryMapping.length > 0;
+      return prevUids.has(ct?.otherCmsUid) && hasEntries;
+    }
+    return !prevUids.has(ct?.otherCmsUid);
+  });
+};
+
+/**
  * Retrieves the content types based on the provided request parameters.
  * @param req - The request object containing the parameters.
  * @returns An object containing the total count and the array of content types.
@@ -336,6 +369,9 @@ const getContentTypes = async (req: Request) => {
   const skip: any = req?.params?.skip;
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
+  // Delta migration: 'new' (default) → first-time content types for Step 3 (field mapping);
+  // 'old' → already-migrated content types for Step 4 (entry mapping). Only applied when iteration > 1.
+  const filter: 'new' | 'old' = req?.query?.filter === 'old' ? 'old' : 'new';
 
   let result: any = [];
   let totalCount = 0;
@@ -385,6 +421,42 @@ const getContentTypes = async (req: Request) => {
     logger.info(
       `📦 [getContentTypes] Found ${content_mapper.length} content types`,
     );
+
+    // Delta migration: from iteration 2 onwards, split content types into new vs old
+    // relative to the previous iteration so Step 3 (field mapping) shows only new types
+    // and Step 4 (entry mapping) shows only already-migrated types. Iteration 1 is untouched.
+    if (iteration > 1) {
+      const PrevContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration - 1);
+      await PrevContentTypesMapperModelLowdb.read();
+      const prevContentMapper =
+        PrevContentTypesMapperModelLowdb.chain.get('ContentTypesMappers').value() ?? [];
+
+      const filtered = filterContentTypesByIteration(content_mapper, prevContentMapper, filter);
+      content_mapper.length = 0;
+      content_mapper.push(...filtered);
+
+      // For Step 4 (Map Entry), derive each content type's status from the entry mapper so the
+      // list icon reflects persisted state on load: 'Updated' (2/green) when the content type has
+      // at least one entry marked isUpdate, otherwise 'Mapped' (1/blue). Without this the UI would
+      // show every type as blue after a reload until the user opens it.
+      if (filter === 'old') {
+        const EntryMapperModelLowdb = getEntryMapperDb(projectId, iteration);
+        await EntryMapperModelLowdb.read();
+        const entryMapperItems = EntryMapperModelLowdb.chain.get('entry_mapper').value() ?? [];
+        const updatedContentTypeIds = new Set(
+          entryMapperItems
+            .filter((entry: any) => entry?.isUpdate)
+            .map((entry: any) => entry?.contentTypeId),
+        );
+        content_mapper.forEach((ct: any) => {
+          ct.status = updatedContentTypeIds.has(ct?.id) ? 2 : 1;
+        });
+      }
+
+      logger.info(
+        `📦 [getContentTypes] iteration ${iteration}, filter '${filter}' → ${content_mapper.length} content types`,
+      );
+    }
 
     if (!isEmpty(content_mapper)) {
       if (search) {

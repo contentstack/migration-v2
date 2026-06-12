@@ -37,6 +37,7 @@ export interface MigrationResponse {
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;
+  iteration?: number;
 }
 
 export interface LegacyCms {

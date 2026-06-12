@@ -105,28 +105,39 @@ const HorizontalStepper = forwardRef(
       if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
         !newMigrationDataRef?.current?.isprojectMapped && setShowStep(stepIndex);
         setStepsCompleted((prev) => {
-          // Drop any completed steps at or beyond the current step so a restart
-          // (navigating back to an earlier step) un-fills the connectors ahead of it.
-          // Steps before the current one remain completed.
-          const updatedStepsCompleted = prev?.filter((i) => i < stepIndex);
+          // Completion is driven by the project's persisted current step, NOT by which step is
+          // currently being viewed. This lets the user navigate back to review an earlier step
+          // without un-filling the connectors for steps they've already completed.
+          // current_step is 1-based, so steps with index < (current_step - 1) are completed.
+          const currentStepNumber =
+            newMigrationData?.project_current_step ?? props?.projectData?.current_step ?? 1;
+
+          // Restart: when the project resets to step 1, all prior progress is cleared, so the
+          // accumulated completed-steps must reset too (don't carry the previous run's filled bar).
+          const previousCompleted = currentStepNumber <= 1 ? [] : (prev ?? []);
+
+          // Furthest progress = max of the persisted current step and the step being viewed
+          // (so navigating forward also fills as expected).
+          const completedThrough = Math.max(currentStepNumber - 1, stepIndex);
+          const completed: number[] = [];
+          for (let i = 0; i < completedThrough; i++) {
+            completed.push(i);
+          }
+
+          // Last step (Execute Migration) gets marked complete only once migration finishes.
+          const lastStepIndex = (steps?.length ?? 1) - 1;
           if (
-            stepIndex === 4 &&
+            stepIndex === lastStepIndex &&
             (props?.projectData?.isMigrationCompleted ||
               newMigrationData?.migration_execution?.migrationCompleted)
           ) {
-            if (!updatedStepsCompleted?.includes(4)) {
-              updatedStepsCompleted.push(4);
-            }
+            completed.push(lastStepIndex);
           }
-          for (let i = 0; i < stepIndex; i++) {
-            if (!updatedStepsCompleted?.includes(i)) {
-              updatedStepsCompleted?.push(i);
-            }
-          }
-          return updatedStepsCompleted;
+
+          return Array.from(new Set([...previousCompleted, ...completed]));
         });
       }
-    }, [stepId, newMigrationData?.migration_execution?.migrationCompleted]);
+    }, [stepId, newMigrationData?.migration_execution?.migrationCompleted, newMigrationData?.project_current_step]);
 
     useImperativeHandle(ref, () => ({
       handleStepChange: (currentStep: number) => {
