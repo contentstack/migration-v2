@@ -218,3 +218,11 @@ module.exports = async ({
     }
     migration.addTask(updateEntryTask());
 };
+
+// Exposed for unit testing only. The CLI invokes the default function export
+// above; these pure helpers are attached as properties on it so `require()`
+// consumers keep calling the function directly while tests can exercise the
+// helpers in isolation.
+module.exports.isAssetField = isAssetField;
+module.exports.resolveAssetField = resolveAssetField;
+module.exports.mergeFlatPayloadIntoEntry = mergeFlatPayloadIntoEntry;
