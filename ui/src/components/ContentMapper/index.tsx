@@ -86,6 +86,7 @@ import {
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 import EntryMapper from './entryMapper';
+import AssetMapper from './assetMapper';
 
 const FIELD_MAP_MENU_VIEW_MARGIN = 8;
 const FIELD_MAP_MENU_HYSTERESIS = 36;
@@ -570,6 +571,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
   const [isResetFetch, setIsResetFetch] = useState<boolean>(false);
   const [iterationCount, setIterationCount] = useState<number>(newMigrationData?.iteration);
+  const [mapperView, setMapperView] = useState<'entries' | 'assets'>('entries');
+  const [assetCount, setAssetCount] = useState<number>(0);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -3285,9 +3288,31 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
               <div className="content-types-list-header d-flex align-items-center justify-content-between">
-                {contentTypesHeading && <h2>{`${contentTypesHeading} (${contentTypes && count})`}</h2>}
+                {mapperView === 'assets'
+                  ? <h2>{`Assets (${assetCount})`}</h2>
+                  : (contentTypesHeading && <h2>{`${contentTypesHeading} (${contentTypes && count})`}</h2>)}
               </div>
 
+              <div className='mapper-view-toggle'>
+                <Button
+                  buttonType={mapperView === 'entries' ? 'secondary' : 'light'}
+                  version="v2"
+                  size="small"
+                  onClick={() => setMapperView('entries')}
+                >
+                  Entries
+                </Button>
+                <Button
+                  buttonType={mapperView === 'assets' ? 'secondary' : 'light'}
+                  version="v2"
+                  size="small"
+                  onClick={() => setMapperView('assets')}
+                >
+                  Assets
+                </Button>
+              </div>
+
+              {mapperView !== 'assets' && (<>
               <div className='ct-search-wrapper'>
                 <div className='d-flex align-items-center'>
                   <Search
@@ -3391,19 +3416,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 </div>
                 : <div className='no-content'>No Content Types Found.</div>
               }
+              </>)}
             </div>
 
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
-                {iteration > 1 ? (
-                  <div>
-                  <EntryMapper
-                    tableHeight={tableHeight}
-                    selectedContentTypeId={selectedContentType ?? null}
-                  />
-                </div>
-                ): (
+                <div>
+                    {mapperView === 'assets' ? (
+                      <AssetMapper tableHeight={tableHeight} onCountChange={setAssetCount} />
+                    ) : iteration > 1 ? (
+                      <EntryMapper
+                        tableHeight={tableHeight}
+                        selectedContentTypeId={selectedContentType ?? null}
+                      />
+                    ) : (
                   <div>
                 <InfiniteScrollTable
                   loading={loading}
@@ -3483,6 +3510,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 </div>
               </div>
                 )}
+                </div>
             </div>
             </div>
           </div> :

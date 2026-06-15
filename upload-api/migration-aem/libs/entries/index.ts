@@ -77,10 +77,20 @@ const extractEntries = async (dirPath: string, contentTypes: any[]): Promise<any
       if (!contentType) {
         continue;
       }
-      const modelId =
+      let modelId =
         typeof parseData?.id === 'string' && parseData.id.trim() !== ''
           ? entryUidCorrector(parseData.id)
           : '';
+      // Template-based entries (experience fragments like xf-web-variation, and
+      // pages like content-page) carry no stable page "id"; derive a stable uid
+      // from title + templateType (or just templateType when there's no title)
+      // so they appear in the mapper and track across iterations (must match
+      // createEntry in the api's aem.service).
+      if (!modelId && parseData?.templateType) {
+        modelId = parseData?.title
+          ? entryUidCorrector(`${parseData.title}_${parseData.templateType}`)
+          : entryUidCorrector(parseData.templateType);
+      }
       // Entries without a stable page model id receive a random uid at migration
       // time and cannot be tracked across iterations, so they get no mapping row.
       // Duplicate ids likewise fall back to random uids on the migration side.

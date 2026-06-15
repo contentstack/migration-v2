@@ -50,8 +50,8 @@ import {
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
-import { clearStaleEntries, enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
-import { removeExistingAssets, saveAssetMetadata } from '../utils/asset-update.utils.js';
+import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
+import { removeExistingAssets, saveAssetMetadata, AssetUpdate } from '../utils/asset-update.utils.js';
 
 /**
  * Creates a test stack.  
@@ -1133,6 +1133,7 @@ const startMigration = async (req: Request): Promise<any> => {
       .value();
     const iteration = projectData?.iteration || 1;
     let configFilePath: string | null = null;
+    let assetUpdates: AssetUpdate[] = [];
     let safeDeltaMigrationLogPath: string | undefined;
     const destinationStackId = project?.destination_stack_id;
 
@@ -1217,7 +1218,7 @@ const startMigration = async (req: Request): Promise<any> => {
     saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
 
     if (iteration > 1) {
-      await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
+      assetUpdates = await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
       configFilePath = await removeEntriesFromDatabase(
         projectId,
         safeDeltaMigrationLogPath
@@ -1235,11 +1236,22 @@ const startMigration = async (req: Request): Promise<any> => {
       loggerPath
     );
 
+    // Make sure an update config exists when there are asset updates but no
+    // entry updates, so the asset-replace step still runs.
+    if (!configFilePath && assetUpdates.length) {
+      configFilePath = ensureUpdateConfigFile(projectId, iteration);
+    }
+
     if (configFilePath) {
       enrichConfigWithAssetMapping(
         configFilePath,
         projectId,
         iteration,
+        safeDeltaMigrationLogPath
+      );
+      enrichConfigWithAssetUpdates(
+        configFilePath,
+        assetUpdates,
         safeDeltaMigrationLogPath
       );
       await utilsUpdateCli?.updateEntryCli(

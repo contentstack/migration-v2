@@ -1,4 +1,5 @@
 import ProjectModelLowdb from "../models/project-lowdb.js";
+import getAssetMapperDb from "../models/assetMapper.js";
 import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
@@ -29,9 +30,26 @@ interface AssetMetadata {
 }
 
 /**
+ * A matched asset the user chose to update in place: the existing Contentstack
+ * asset (kept at the same `uid`) whose binary should be replaced with the file
+ * at `filePath` after the import completes.
+ */
+export interface AssetUpdate {
+  uid: string;
+  filePath: string;
+  filename: string;
+  title: string;
+}
+
+/**
  * Traverses an object and replaces any asset reference whose uid matches
  * a source asset ID with the corresponding Contentstack asset UID.
- * Asset references are objects with a "uid" property matching a known source asset ID.
+ * Two reference shapes are handled:
+ *   1. Object refs — `{ uid: "<sourceUid>", ... }` (mapped "file" fields).
+ *   2. Bare string refs — `{ src: "<sourceUid>" }` etc. AEM stores many asset
+ *      references (e.g. carousel `image[].src`) as the plain uid string, not an
+ *      object; without this branch those refs keep the source uid and the import
+ *      rejects them with "is not a valid upload."
  */
 const replaceAssetRefsInObject = (
   obj: any,
@@ -43,6 +61,14 @@ const replaceAssetRefsInObject = (
 
   for (const key of Object.keys(obj)) {
     const value = obj[key];
+
+    // Bare string asset uid reference, e.g. { src: "<sourceUid>" }.
+    if (typeof value === "string" && assetUidMap?.has(value)) {
+      obj[key] = assetUidMap?.get(value);
+      modified = true;
+      continue;
+    }
+
     if (!value || typeof value !== "object") continue;
 
     if (value?.uid && assetUidMap?.has(value?.uid)) {
@@ -98,7 +124,7 @@ export const saveAssetMetadata = (
 /**
  * Loads asset metadata from a previous iteration.
  */
-const loadPreviousAssetMetadata = (
+export const loadPreviousAssetMetadata = (
   projectId: string,
   prevIteration: number,
 ): Record<string, AssetMetadata> => {
@@ -179,24 +205,30 @@ const hasAssetChanged = (
 };
 
 /**
- * Removes existing (already-migrated) assets from cmsMigrationData to prevent duplicates.
+ * Reconciles already-migrated assets in cmsMigrationData against the user's
+ * Asset Mapper decisions so matched assets are never re-imported as duplicates.
  *
  * For iteration 1: only saves asset metadata for future comparisons.
  * For iteration 2+:
  *   1. Reads uid-mapper.assets from previous iteration
  *   2. Reads asset-metadata.json from previous iteration
  *   3. For each asset in current index.json:
- *      - If NOT in uid-mapper → new asset, keep it
- *      - If in uid-mapper AND metadata matches → unchanged, replace refs with CS UID, remove from import
- *      - If in uid-mapper BUT metadata differs → updated asset, keep it for re-import
- *   4. Replaces asset references in entry JSON files with Contentstack UIDs
- *   5. Removes deduplicated asset entries from index.json and their file folders
+ *      - If NOT in uid-mapper → new asset, keep it for import
+ *      - If in uid-mapper and the user chose "update" (isUpdate=true; default
+ *        when the file changed) → keep its existing CS UID, drop it from the
+ *        import and collect it for an in-place binary replace after import
+ *      - If in uid-mapper and the user chose "reuse" (isUpdate=false) → keep
+ *        its existing CS UID, drop it from the import, leave the asset untouched
+ *   4. Repoints asset references in entry JSON files to the existing CS UID
+ *   5. Removes matched assets from index.json (and reused assets' file folders)
  *   6. Saves current asset metadata for the next iteration
+ *
+ * @returns the assets to replace in place (empty when there are none).
  */
 export const removeExistingAssets = async (
   projectId: string,
   loggerPath?: string,
-): Promise<void> => {
+): Promise<AssetUpdate[]> => {
   await ProjectModelLowdb.read();
   const projectData = ProjectModelLowdb.chain
     .get("projects")
@@ -212,7 +244,7 @@ export const removeExistingAssets = async (
       "removeExistingAssets",
       loggerPath,
     );
-    return;
+    return [];
   }
 
   const assetsDir = path.join(
@@ -231,7 +263,7 @@ export const removeExistingAssets = async (
       "removeExistingAssets",
       loggerPath,
     );
-    return;
+    return [];
   }
   writeLogEntry(
     `Assets index.json found at ${indexPath}`,
@@ -244,7 +276,7 @@ export const removeExistingAssets = async (
     const raw = fs.readFileSync(indexPath, "utf-8");
     if (!raw.trim()) {
       console.error(`Assets index.json is empty at ${indexPath}`);
-      return;
+      return [];
     }
     indexData = JSON.parse(raw);
   } catch (error) {
@@ -252,7 +284,7 @@ export const removeExistingAssets = async (
       `Failed to parse assets index.json at ${indexPath}:`,
       error instanceof Error ? error.message : String(error),
     );
-    return;
+    return [];
   }
 
   saveAssetMetadata(indexData, projectId, iteration, loggerPath);
@@ -263,7 +295,7 @@ export const removeExistingAssets = async (
       "removeExistingAssets",
       loggerPath,
     );
-    return;
+    return [];
   }
   writeLogEntry(
     `Iteration ${iteration} found, loading previous asset uid map and metadata.`,
@@ -286,49 +318,115 @@ export const removeExistingAssets = async (
       "removeExistingAssets",
       loggerPath,
     );
-    return;
+    return [];
   }
   writeLogEntry(
     `Previous asset metadata loaded from ${prevIteration} iteration.`,
     "removeExistingAssets",
     loggerPath,
   );
-  const assetsToReuse = new Map<string, string>();
+  // User decisions from the Asset Mapper screen (present when the connector
+  // provides upload-time asset rows, e.g. AEM). isUpdate=true means "update the
+  // existing Contentstack asset in place (same UID, new file)"; isUpdate=false
+  // means "keep/reuse the existing asset as-is". Assets without a row fall back
+  // to automatic filename+size change detection (changed → update).
+  const AssetMapperModel = getAssetMapperDb(projectId, iteration);
+  await AssetMapperModel.read();
+  const decisionByUid = new Map<string, boolean>();
+  for (const row of (AssetMapperModel.data as any)?.asset_mapper ?? []) {
+    if (row?.otherCmsAssetUid) {
+      decisionByUid.set(row.otherCmsAssetUid, Boolean(row.isUpdate));
+    }
+  }
+
+  // Both reused and updated assets keep their existing Contentstack UID, so
+  // their entry references are repointed to it and they are dropped from the
+  // fresh import (no duplicate). Reused assets need nothing more; updated assets
+  // additionally have their binary replaced in place after the import runs.
+  const assetUidReplacements = new Map<string, string>();
   const assetsToRemoveFromIndex: string[] = [];
+  const assetsToDeleteFiles: string[] = [];
+  const assetUpdates: AssetUpdate[] = [];
+
+  const filesDir = path.join(assetsDir, "files");
 
   for (const [assetId, assetData] of Object.entries(indexData)) {
     const contentstackUid = prevAssetUidMap[assetId];
     if (!contentstackUid) continue;
 
-    if (!hasAssetChanged(assetId, assetData, prevMetadata)) {
-      assetsToReuse.set(assetId, contentstackUid);
+    const decision = decisionByUid.get(assetId);
+
+    // No explicit Asset Mapper decision (e.g. connectors that don't populate
+    // the asset mapper): keep the legacy automatic behavior — unchanged assets
+    // are reused, changed assets are re-imported as new.
+    if (decision === undefined) {
+      if (hasAssetChanged(assetId, assetData, prevMetadata)) {
+        writeLogEntry(
+          `Asset "${assetId}" changed (no mapper decision) → re-import`,
+          "removeExistingAssets",
+          loggerPath,
+        );
+        continue; // leave it in index.json for a normal import
+      }
+      assetUidReplacements.set(assetId, contentstackUid);
       assetsToRemoveFromIndex.push(assetId);
+      assetsToDeleteFiles.push(assetId);
       writeLogEntry(
-        `Asset "${assetId}" unchanged → reuse CS UID "${contentstackUid}"`,
+        `Asset "${assetId}" unchanged (no mapper decision) → reuse existing CS UID "${contentstackUid}"`,
         "removeExistingAssets",
         loggerPath,
       );
+      continue;
+    }
+
+    // Explicit user decision. Either way the asset keeps its existing CS UID and
+    // is dropped from the fresh import; its references are repointed to that UID.
+    assetUidReplacements.set(assetId, contentstackUid);
+    assetsToRemoveFromIndex.push(assetId);
+
+    const filename = assetData?.filename ?? "";
+    const filePath = path.join(filesDir, assetId, filename);
+
+    if (decision && filename && fs.existsSync(filePath)) {
+      assetUpdates.push({
+        uid: contentstackUid,
+        filePath,
+        filename,
+        title: assetData?.title ?? filename,
+      });
       writeLogEntry(
-        `Asset "${assetId}" has been reused from previous migration`,
+        `Asset "${assetId}" → update existing CS UID "${contentstackUid}" in place`,
         "removeExistingAssets",
         loggerPath,
       );
     } else {
-      writeLogEntry(
-        `Asset "${assetId}" changed → will re-import`,
-        "removeExistingAssets",
-        loggerPath,
-      );
+      // Reuse (user unchecked) or update requested but the binary is missing —
+      // keep the existing asset and just repoint the reference, so it never
+      // lands as a dangling source uid in the entry.
+      assetsToDeleteFiles.push(assetId);
+      if (decision) {
+        writeLogEntry(
+          `Asset "${assetId}" marked for update but file missing at ${filePath}; reusing CS UID "${contentstackUid}"`,
+          "removeExistingAssets",
+          loggerPath,
+        );
+      } else {
+        writeLogEntry(
+          `Asset "${assetId}" → reuse existing CS UID "${contentstackUid}"`,
+          "removeExistingAssets",
+          loggerPath,
+        );
+      }
     }
   }
 
-  if (!assetsToReuse?.size) {
+  if (!assetUidReplacements.size) {
     writeLogEntry(
-      "No unchanged assets to deduplicate.",
+      "No matched assets to reuse or update.",
       "removeExistingAssets",
       loggerPath,
     );
-    return;
+    return assetUpdates;
   }
 
   // 1. Replace asset references in entry JSON files
@@ -382,7 +480,7 @@ export const removeExistingAssets = async (
 
             const data = JSON.parse(raw);
 
-            const modified = replaceAssetRefsInObject(data, assetsToReuse);
+            const modified = replaceAssetRefsInObject(data, assetUidReplacements);
             if (modified) {
               fs.writeFileSync(filePath, JSON.stringify(data), "utf-8");
               writeLogEntry(
@@ -420,10 +518,10 @@ export const removeExistingAssets = async (
     loggerPath,
   );
 
-  // 3. Remove asset file folders
-  const filesDir = path.join(assetsDir, "files");
+  // 3. Remove reused assets' file folders. Assets queued for an in-place update
+  //    keep their folder so the replace step can still upload the binary.
   if (fs.existsSync(filesDir)) {
-    for (const assetId of assetsToRemoveFromIndex) {
+    for (const assetId of assetsToDeleteFiles) {
       const assetFolder = path.join(filesDir, assetId);
       if (fs.existsSync(assetFolder)) {
         fs.rmSync(assetFolder, { recursive: true, force: true });
@@ -442,9 +540,11 @@ export const removeExistingAssets = async (
   }
 
   writeLogEntry(
-    `Asset dedup complete: ${assetsToReuse.size} reused, ` +
+    `Asset processing complete: ${assetsToDeleteFiles.length} reused, ` +
+      `${assetUpdates.length} to update in place, ` +
       `${Object?.keys(indexData)?.length} remaining for import.`,
     "removeExistingAssets",
     loggerPath,
   );
+  return assetUpdates;
 };
