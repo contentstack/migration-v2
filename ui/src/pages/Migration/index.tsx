@@ -210,11 +210,18 @@ const Migration = () => {
       return;
     }
 
+    // Fetch project data FIRST so the side-nav is built from the authoritative iteration.
+    // On a hard reload/deep link, redux's newMigrationData.iteration is still the default (1)
+    // until this resolves — building allFlowSteps off stale redux would render the 5-step nav
+    // even for an iteration 2+ project and never recompute. fetchProjectData returns the
+    // resolved iteration so we don't depend on the async redux update landing first.
+    const resolvedIteration = await fetchProjectData();
+
     // Delta migration: the "Map Entry" flow step only exists from iteration 2 onwards.
     // migrationSteps.json statically lists the 6-step (delta) layout, so on iteration 1 we
     // drop the Map Entry step and renumber the steps after it so the side-nav names stay in
     // sync with the 5-step createStepper() flow.
-    const iteration = newMigrationData?.iteration ?? 1;
+    const iteration = resolvedIteration ?? newMigrationData?.iteration ?? 1;
     const allFlowSteps: IFlowStep[] = validateArray(data?.all_steps)
       ? iteration > 1
         ? data?.all_steps
@@ -237,7 +244,6 @@ const Migration = () => {
       })
     );
 
-    await fetchProjectData();
     const stepIndex = allFlowSteps?.findIndex(
       (step: IFlowStep) => `${step?.name}` === params?.stepId
     );
@@ -310,7 +316,7 @@ const Migration = () => {
   /**
    * Fetch the project data
    */
-  const fetchProjectData = async () => {
+  const fetchProjectData = async (): Promise<number | undefined> => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
   setIsProjectMapper(true);
   const migrationData = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
@@ -490,6 +496,10 @@ const Migration = () => {
 
     dispatch(updateNewMigrationData(projectMapper));
     setIsProjectMapper(false);
+
+    // Return the authoritative iteration so the caller can build the side-nav without waiting
+    // for the redux update above to land.
+    return projectData?.iteration ?? 1;
   };
 
   /**

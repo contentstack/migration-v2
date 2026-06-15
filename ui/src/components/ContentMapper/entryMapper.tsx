@@ -178,14 +178,33 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   };
 
+  // Clear the right-panel entry table + selection state. Called when the left list becomes empty
+  // (zero search/filter results) so a stale content type's entry table doesn't linger.
+  const resetEntryTable = () => {
+    setTableData([]);
+    setRowIds({});
+    setPersistedRowIds({});
+    setInitialRowSelectedData([]);
+    setTotalCounts(0);
+    setOtherCmsTitle('');
+    setContentTypeUid('');
+    setOtherCmsUid('');
+    setActive(null);
+  };
+
   // Search content types in the left list
   const handleSearch = async (searchCT: string) => {
     setSearchContentType(searchCT);
     try {
       const { data } = await getContentTypes(projectId, 0, 1000, searchCT || '', 'old');
-      setContentTypes(data?.contentTypes ?? []);
-      setFilteredContentTypes(data?.contentTypes ?? []);
-      setCount(data?.contentTypes?.length ?? 0);
+      const nextContentTypes = data?.contentTypes ?? [];
+      setContentTypes(nextContentTypes);
+      setFilteredContentTypes(nextContentTypes);
+      setCount(nextContentTypes?.length ?? 0);
+      // No matching content types → clear the right panel so the previous CT's table doesn't stick around.
+      if (!nextContentTypes?.length) {
+        resetEntryTable();
+      }
     } catch (error) {
       console.error(error);
       return error;
@@ -247,6 +266,12 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
+      // Filter yielded no content types → clear the right panel so a stale entry table doesn't linger.
+      if (!filteredCT?.length) {
+        resetEntryTable();
+        setShowFilter(false);
+        return;
+      }
       const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
       setActive(selectedIndex >= 0 ? selectedIndex : null);
     } else {
@@ -460,7 +485,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const tableHeight = calcHeight();
 
   const modalProps = {
-    body: 'There is something error occured while generating content mapper. Please go to Legacy Cms step and validate the file again.',
+    body: 'An error occurred while generating the content mapper. Please go to the Legacy CMS step and validate the file again.',
   };
 
   return (
