@@ -21,16 +21,18 @@ import { RootState } from '../../store';
 import { AssetMapperType, TableTypes, UidMap } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 
+// Pure logic (unit-tested in assetMapper.utils.test.ts)
+import {
+  formatFileSize,
+  mapAssetsToRows,
+  buildSelectedRowIds,
+  applySelectionToAssets,
+  toSelectedMap,
+  computeChangedUids,
+} from './assetMapper.utils';
+
 // Styles and Assets
 import './index.scss';
-
-const formatFileSize = (size: number | string | undefined): string => {
-  const bytes = Number(size);
-  if (!Number.isFinite(bytes) || bytes <= 0) return '-';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
 
 const AssetMapper = ({
   tableHeight,
@@ -56,28 +58,6 @@ const AssetMapper = ({
     fetchAssets('');
   }, []);
 
-  const buildSelectedRowIds = (assets: AssetMapperType[]) => {
-    return (assets ?? []).reduce<UidMap>((acc, item) => {
-      if (item?._canSelect && item?.isUpdate) {
-        acc[item.id] = true;
-      }
-      return acc;
-    }, {});
-  };
-
-  const applySelectionToAssets = (
-    assets: AssetMapperType[],
-    selected: Record<string, boolean>,
-  ) => {
-    return (assets ?? []).map((item) => {
-      if (!item?._canSelect) return item;
-      return {
-        ...item,
-        isUpdate: !!selected?.[item.id],
-      };
-    });
-  };
-
   const fetchAssets = async (searchText: string) => {
     try {
       const statusMap: ItemStatusMapProp = {};
@@ -95,12 +75,7 @@ const AssetMapper = ({
       setItemStatusMap({ ...statusMap });
       setLoading(false);
 
-      const validTableData: AssetMapperType[] = (data?.assetMapping ?? []).map(
-        (asset: AssetMapperType) => ({
-          ...asset,
-          _canSelect: !!asset?.contentstackAssetUid,
-        })
-      );
+      const validTableData: AssetMapperType[] = mapAssetsToRows(data?.assetMapping);
 
       const initialSelected = buildSelectedRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
@@ -137,12 +112,7 @@ const AssetMapper = ({
       setItemStatusMap({ ...updateditemStatusMapCopy });
       setLoading(false);
 
-      const validTableData: AssetMapperType[] = (data?.assetMapping ?? []).map(
-        (asset: AssetMapperType) => ({
-          ...asset,
-          _canSelect: !!asset?.contentstackAssetUid,
-        })
-      );
+      const validTableData: AssetMapperType[] = mapAssetsToRows(data?.assetMapping);
 
       setTableData(applySelectionToAssets(validTableData ?? [], rowIds));
     } catch (error) {
@@ -156,10 +126,7 @@ const AssetMapper = ({
    * as-is (reused from the previous migration).
    */
   const handleSelectedAssets = (singleSelectedRowIds: string[]) => {
-    const selectedObj: UidMap = {};
-    singleSelectedRowIds?.forEach((uid: string) => {
-      selectedObj[uid] = true;
-    });
+    const selectedObj: UidMap = toSelectedMap(singleSelectedRowIds);
 
     setRowIds(selectedObj);
     setTableData((prev) => applySelectionToAssets(prev ?? [], selectedObj));
@@ -167,13 +134,7 @@ const AssetMapper = ({
 
   const handleSaveAssets = async () => {
     setisLoadingSaveButton(true);
-    const allKeys = new Set([
-      ...Object.keys(rowIds ?? {}),
-      ...Object.keys(persistedRowIds ?? {}),
-    ]);
-    const changedUids = Array.from(allKeys).filter(
-      (uid) => !!rowIds?.[uid] !== !!persistedRowIds?.[uid],
-    );
+    const changedUids = computeChangedUids(rowIds, persistedRowIds);
 
     try {
       if (changedUids.length === 0) {

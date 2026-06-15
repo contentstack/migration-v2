@@ -3435,11 +3435,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 <div>
                     {mapperView === 'assets' ? (
                       <AssetMapper tableHeight={tableHeight} onCountChange={setAssetCount} />
-                    ) : iteration > 1 ? (
-                      <EntryMapper
-                        tableHeight={tableHeight}
-                        selectedContentTypeId={selectedContentType ?? null}
-                      />
+                    ) : isDeltaIteration ? (
+                      <EntryMapper handleStepChange={handleStepChange} />
                     ) : (
                   <div>
                 <InfiniteScrollTable

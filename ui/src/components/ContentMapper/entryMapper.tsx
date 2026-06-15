@@ -46,6 +46,17 @@ import { ModalObj } from '../Modal/modal.interface';
 // Components
 import SchemaModal from '../SchemaModal';
 
+// Pure logic (unit-tested in __tests__/entryMapper.utils.test.ts)
+import {
+  mapEntriesToRows,
+  buildSelectedEntryRowIds,
+  applySelectionToEntries,
+  selectableInitialRows,
+  filterContentTypesByStatus,
+  applyContentTypeStatus,
+} from './entryMapper.utils';
+import { toSelectedMap, computeChangedUids } from './assetMapper.utils';
+
 // Styles and Assets
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
@@ -131,28 +142,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   }, []);
 
   /********** HELPERS *************/
-  const buildSelectedRowIds = (entries: EntryMapperType[]) => {
-    return (entries ?? []).reduce<UidMap>((acc, item) => {
-      if (item?._canSelect && item?.isUpdate) {
-        acc[item.id] = true;
-      }
-      return acc;
-    }, {});
-  };
-
-  const applySelectionToEntries = (
-    entries: EntryMapperType[],
-    selected: Record<string, boolean>,
-  ) => {
-    return (entries ?? []).map((item) => {
-      if (!item?._canSelect) return item;
-      return {
-        ...item,
-        isUpdate: !!selected?.[item.id],
-      };
-    });
-  };
-
   /********** CONTENT TYPE LIST (left panel) *************/
   // Fetch ALREADY-MIGRATED content types only (filter='old') — these are the ones whose entries
   // exist and can be mapped in this delta iteration.
@@ -262,7 +251,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     li_list?.forEach((ele) => ele?.classList?.remove('active-filter'));
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
 
-    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === value);
+    const filteredCT = filterContentTypesByStatus(contentTypes, value);
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
@@ -306,17 +295,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setItemStatusMap({ ...itemStatusMapLocal });
       setLoading(false);
 
-      const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
-        ...entry,
-        _canSelect: !!entry?.contentstackEntryUid,
-      }));
+      const validTableData: EntryMapperType[] = mapEntriesToRows(data?.entryMapping);
 
-      const initialSelected = buildSelectedRowIds(validTableData ?? []);
+      const initialSelected = buildSelectedEntryRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
       setTotalCounts(validTableData?.length);
-      setInitialRowSelectedData(validTableData?.filter((item: EntryMapperType) => !item?.isUpdate));
+      setInitialRowSelectedData(selectableInitialRows(validTableData));
       // Reflect any pre-existing entry selections on the content type icon (green when present).
       updateContentTypeStatus(ctId, Object.keys(initialSelected ?? {}).length > 0);
     } catch (error) {
@@ -349,10 +335,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setItemStatusMap({ ...updated });
       setLoading(false);
 
-      const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
-        ...entry,
-        _canSelect: !!entry?.contentstackEntryUid,
-      }));
+      const validTableData: EntryMapperType[] = mapEntriesToRows(data?.entryMapping);
 
       setTableData(applySelectionToEntries(validTableData ?? [], rowIds));
     } catch (error) {
@@ -366,32 +349,20 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
    */
   const updateContentTypeStatus = (contentTypeId: string, hasSelection: boolean) => {
     if (!contentTypeId) return;
-    const nextStatus = hasSelection ? '2' : '1';
-    const applyStatus = (list: ContentType[]) =>
-      list?.map?.((ct) => (ct?.id === contentTypeId ? { ...ct, status: nextStatus } : ct));
-    setContentTypes((prev) => applyStatus(prev));
-    setFilteredContentTypes((prev) => applyStatus(prev));
+    setContentTypes((prev) => applyContentTypeStatus(prev, contentTypeId, hasSelection));
+    setFilteredContentTypes((prev) => applyContentTypeStatus(prev, contentTypeId, hasSelection));
   };
 
   // Handle selected entries
   const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
-    const selectedObj: UidMap = {};
-    singleSelectedRowIds?.forEach((uid: string) => {
-      selectedObj[uid] = true;
-    });
+    const selectedObj: UidMap = toSelectedMap(singleSelectedRowIds);
     setRowIds(selectedObj);
     setTableData((prev) => applySelectionToEntries(prev ?? [], selectedObj));
   };
 
   const handleSaveContentType = async () => {
     setisLoadingSaveButton(true);
-    const allKeys = new Set([
-      ...Object.keys(rowIds ?? {}),
-      ...Object.keys(persistedRowIds ?? {}),
-    ]);
-    const changedUids = Array.from(allKeys).filter(
-      (uid) => !!rowIds?.[uid] !== !!persistedRowIds?.[uid],
-    );
+    const changedUids = computeChangedUids(rowIds, persistedRowIds);
     const orgId = selectedOrganisation?.uid;
 
     if (orgId && contentTypeUid) {
