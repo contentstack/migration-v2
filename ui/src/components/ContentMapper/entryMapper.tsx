@@ -1,86 +1,120 @@
 // Libraries
-import { useEffect, useState} from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
+  Search,
+  Icon,
+  Tooltip,
   InfiniteScrollTable,
   Notification,
-
+  cbModal,
+  CircularLoader,
+  EmptyState,
 } from '@contentstack/venus-components';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import {
   getContentTypes,
+  getFieldMapping,
   getEntryMapping,
   updateEntryMapper,
 } from '../../services/api/migration.service';
 
 // Redux
 import { RootState } from '../../store';
-import { updateMigrationData } from '../../store/slice/migrationDataSlice';
+import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES } from '../../utilities/constants';
-import useBlockNavigation from '../../hooks/userNavigation';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
+import { validateArray } from '../../utilities/functions';
 
 // Interface
-import { DEFAULT_CONTENT_MAPPING_DATA } from '../../context/app/app.interface';
+import { DEFAULT_CONTENT_MAPPING_DATA, INewMigration } from '../../context/app/app.interface';
 import {
   ContentType,
   TableTypes,
-  UidMap, 
-  EntryMapperType
+  UidMap,
+  EntryMapperType,
+  MouseOrKeyboardEvent,
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
+import { ModalObj } from '../Modal/modal.interface';
 
+// Components
+import SchemaModal from '../SchemaModal';
 
 // Styles and Assets
 import './index.scss';
+import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 
-const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeId: ContentType | null, tableHeight: number}) => {
-  // Redux State
-  const dispatch = useDispatch();
+interface entryMapperProps {
+  handleStepChange: (currentStep: number) => void;
+}
 
-  const { projectId = '' } = useParams<{ projectId: string }>();
-
+/**
+ * Step 4 — Map Entry (delta migration).
+ * Standalone step: left content-type list (only ALREADY-MIGRATED content types, fetched with
+ * filter='old') + right entry-mapping table. Maps source entries to destination Contentstack
+ * entries for content types that were migrated in a previous iteration.
+ */
+const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
+  /** ALL CONTEXT HERE */
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
 
-  // Component State
+  const {
+    contentMappingData: {
+      content_types_heading: contentTypesHeading,
+      search_placeholder: searchPlaceholder,
+    } = {}
+  } = migrationData;
+
+  const dispatch = useDispatch();
+
+  /** ALL STATE HERE */
   const [tableData, setTableData] = useState<EntryMapperType[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [totalCounts, setTotalCounts] = useState<number>(tableData?.length);
-  const [searchText, setSearchText] = useState<string>('');
-  const [selectedContentType, setSelectedContentType] = useState<ContentType | null>(selectedContentTypeId);
-  const [contentTypes, setContentTypes] = useState<ContentType  []>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
+  const [totalCounts, setTotalCounts] = useState<number>(0);
   const [itemStatusMap, setItemStatusMap] = useState({});
 
+  const [searchText, setSearchText] = useState<string>('');
+  const [searchContentType, setSearchContentType] = useState('');
+  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
+  const [filteredContentTypes, setFilteredContentTypes] = useState<ContentType[]>([]);
+  const [count, setCount] = useState<number>(0);
   const [otherCmsTitle, setOtherCmsTitle] = useState('');
-  const [contentTypeUid, setContentTypeUid] = useState<string>(selectedContentTypeId?.id || '');
+  const [otherCmsUid, setOtherCmsUid] = useState<string>('');
+  const [contentTypeUid, setContentTypeUid] = useState<string>('');
 
-  const [isContentType, setIsContentType] = useState<boolean>(true);
- 
-  const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes?.[0]?.otherCmsUid);
+  const [active, setActive] = useState<number | null>(0);
+  const [showFilter, setShowFilter] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<string>('');
+
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [persistedRowIds, setPersistedRowIds] = useState<Record<string, boolean>>({});
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
   const [initialRowSelectedData, setInitialRowSelectedData] = useState<EntryMapperType[]>([]);
 
+  /** ALL HOOKS HERE */
+  const { projectId = '' } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const filterRef = useRef<HTMLDivElement | null>(null);
+  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
 
-
-    /********** ALL USEEFFECT HERE *************/
+  /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
-    //check if offline CMS data field is set to true, if then read data from cms data file.
+    // check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES.CONTENT_MAPPING)
       .then((data) => {
-        //Check for null
         if (!data) {
           dispatch(updateMigrationData({ contentMappingData: DEFAULT_CONTENT_MAPPING_DATA }));
           return;
         }
-
         dispatch(updateMigrationData({ contentMappingData: data }));
       })
       .catch((err) => {
@@ -90,14 +124,13 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     fetchContentTypes(searchText || '');
   }, []);
 
+  // Close filter panel when clicking outside
   useEffect(() => {
-    if (selectedContentTypeId) {
-        fetchEntries(selectedContentTypeId?.id || '', searchText);
-        setOtherCmsTitle(selectedContentTypeId?.otherCmsTitle);
-    }
-      
-    },[selectedContentTypeId]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
+  /********** HELPERS *************/
   const buildSelectedRowIds = (entries: EntryMapperType[]) => {
     return (entries ?? []).reduce<UidMap>((acc, item) => {
       if (item?._canSelect && item?.isUpdate) {
@@ -120,45 +153,157 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     });
   };
 
-  const fetchContentTypes = async (searchText: string) => {
-    //setIsLoading(true);
-
+  /********** CONTENT TYPE LIST (left panel) *************/
+  // Fetch ALREADY-MIGRATED content types only (filter='old') — these are the ones whose entries
+  // exist and can be mapped in this delta iteration.
+  const fetchContentTypes = async (searchVal: string) => {
+    setIsLoading(true);
     try {
-      const { data } = await getContentTypes(projectId || '', 0, 5000, ''); //org id will always present
+      const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || '', 'old');
 
+      setIsLoading(false);
+      setContentTypes(data?.contentTypes ?? []);
+      setFilteredContentTypes(data?.contentTypes ?? []);
+      setCount(data?.contentTypes?.length ?? 0);
+      setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle ?? '');
+      setContentTypeUid(data?.contentTypes?.[0]?.id ?? '');
+      setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid ?? '');
+      if (data?.contentTypes?.[0]?.id) {
+        fetchEntries(data?.contentTypes?.[0]?.id, searchVal ?? '');
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error(error);
+      return error;
+    }
+  };
 
-      setContentTypes(data?.contentTypes);
-      setSelectedContentType(data?.contentTypes?.[0]);
-      setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
-      setContentTypeUid(data?.contentTypes?.[0]?.id);
-      fetchEntries(data?.contentTypes?.[0]?.id, searchText ?? '');
-      setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
-      setIsContentType(data?.contentTypes?.[0]?.type === "content_type");
+  // Clear the right-panel entry table + selection state. Called when the left list becomes empty
+  // (zero search/filter results) so a stale content type's entry table doesn't linger.
+  const resetEntryTable = () => {
+    setTableData([]);
+    setRowIds({});
+    setPersistedRowIds({});
+    setInitialRowSelectedData([]);
+    setTotalCounts(0);
+    setOtherCmsTitle('');
+    setContentTypeUid('');
+    setOtherCmsUid('');
+    setActive(null);
+  };
+
+  // Search content types in the left list
+  const handleSearch = async (searchCT: string) => {
+    setSearchContentType(searchCT);
+    try {
+      const { data } = await getContentTypes(projectId, 0, 1000, searchCT || '', 'old');
+      const nextContentTypes = data?.contentTypes ?? [];
+      setContentTypes(nextContentTypes);
+      setFilteredContentTypes(nextContentTypes);
+      setCount(nextContentTypes?.length ?? 0);
+      // No matching content types → clear the right panel so the previous CT's table doesn't stick around.
+      if (!nextContentTypes?.length) {
+        resetEntryTable();
+      }
     } catch (error) {
       console.error(error);
       return error;
     }
   };
 
-   // Method to get fieldmapping
-  const fetchEntries = async (contentTypeId: string, searchText: string) => {
+  const handleOpenContentType = (i = 0) => {
+    // Reset scroll position to top when switching content types
+    if (tableWrapperRef?.current) {
+      const elements = tableWrapperRef.current?.querySelectorAll('.Table__body');
+      elements?.forEach((el) => {
+        if (el instanceof HTMLElement) {
+          el.scrollTop = 0;
+        }
+      });
+    }
+
+    setActive(i);
+    const ct = filteredContentTypes?.[i];
+    setOtherCmsTitle(ct?.otherCmsTitle ?? '');
+    setContentTypeUid(ct?.id ?? '');
+    setOtherCmsUid(ct?.otherCmsUid ?? '');
+    if (ct?.id) {
+      fetchEntries(ct.id, searchText || '');
+    }
+  };
+
+  const handleSchemaPreview = async (title: string, ctId: string) => {
     try {
-      const itemStatusMap: ItemStatusMapProp = {};
+      const { data } = await getFieldMapping(ctId ?? '', 0, 1000, searchText ?? '', projectId);
+      return cbModal({
+        component: (props: ModalObj) => (
+          <SchemaModal schemaData={data?.fieldMapping} contentType={title} {...props} />
+        ),
+        modalProps: {
+          shouldCloseOnOverlayClick: true
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      return err;
+    }
+  };
 
-      for (let index = 0; index <= 1000; index++) {
-        itemStatusMap[index] = 'loading';
+  // Toggle filter panel
+  const handleFilter = (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    setShowFilter(!showFilter);
+  };
+
+  // Filter content types by status
+  const handleContentTypeFilter = (value: string, e: MouseOrKeyboardEvent) => {
+    setActiveFilter(value);
+    const li_list = document.querySelectorAll('.filter-wrapper li');
+    li_list?.forEach((ele) => ele?.classList?.remove('active-filter'));
+    (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
+
+    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === value);
+    if (value !== 'All') {
+      setFilteredContentTypes(filteredCT);
+      setCount(filteredCT?.length);
+      // Filter yielded no content types → clear the right panel so a stale entry table doesn't linger.
+      if (!filteredCT?.length) {
+        resetEntryTable();
+        setShowFilter(false);
+        return;
       }
+      const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
+      setActive(selectedIndex >= 0 ? selectedIndex : null);
+    } else {
+      setFilteredContentTypes(contentTypes);
+      setCount(contentTypes?.length);
+      setActive(contentTypes?.findIndex((ct) => ct?.otherCmsUid === otherCmsUid));
+    }
+    setShowFilter(false);
+  };
 
-      setItemStatusMap(itemStatusMap);
+  const handleClickOutside = (evt: MouseEvent) => {
+    if (!filterRef.current?.contains(evt.target as Node)) {
+      setShowFilter(false);
+    }
+  };
+
+  /********** ENTRY TABLE (right panel) *************/
+  const fetchEntries = async (ctId: string, searchVal: string) => {
+    try {
+      const itemStatusMapLocal: ItemStatusMapProp = {};
+      for (let index = 0; index <= 1000; index++) {
+        itemStatusMapLocal[index] = 'loading';
+      }
+      setItemStatusMap(itemStatusMapLocal);
       setLoading(true);
-     
-      const { data } = await getEntryMapping(contentTypeId || '', 0, 1000, searchText, projectId);
-      
-      for (let index = 0; index <= 1000; index++) {
-        itemStatusMap[index] = 'loaded';
-      }
 
-      setItemStatusMap({ ...itemStatusMap });
+      const { data } = await getEntryMapping(ctId || '', 0, 1000, searchVal, projectId);
+
+      for (let index = 0; index <= 1000; index++) {
+        itemStatusMapLocal[index] = 'loaded';
+      }
+      setItemStatusMap({ ...itemStatusMapLocal });
       setLoading(false);
 
       const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
@@ -166,46 +311,42 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         _canSelect: !!entry?.contentstackEntryUid,
       }));
 
-      //setIsAllCheck(true);
       const initialSelected = buildSelectedRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
       setTotalCounts(validTableData?.length);
-      setInitialRowSelectedData(validTableData?.filter((item: EntryMapperType) => !item?.isUpdate))
-     
+      setInitialRowSelectedData(validTableData?.filter((item: EntryMapperType) => !item?.isUpdate));
+      // Reflect any pre-existing entry selections on the content type icon (green when present).
+      updateContentTypeStatus(ctId, Object.keys(initialSelected ?? {}).length > 0);
     } catch (error) {
-      console.error('fetchData -> error', error);
+      console.error('fetchEntries -> error', error);
     }
   };
 
-    // Fetch table data
-  const fetchData = async ({ searchText }: TableTypes) => {
-    setSearchText(searchText)
-    selectedContentTypeId?.id && fetchEntries(selectedContentTypeId?.id, searchText);
+  // Fetch table data on search
+  const fetchData = async ({ searchText: search }: TableTypes) => {
+    setSearchText(search);
+    contentTypeUid && fetchEntries(contentTypeUid, search);
   };
 
-  // Method for Load more table data
-  const loadMoreItems = async ({ searchText, skip, limit, startIndex, stopIndex }: TableTypes) => {
+  // Load more table data
+  const loadMoreItems = async ({ searchText: search, skip, limit, startIndex, stopIndex }: TableTypes) => {
     try {
       const itemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
-
       for (let index = startIndex; index <= stopIndex; index++) {
         itemStatusMapCopy[index] = 'loading';
       }
-
       setItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getEntryMapping(contentTypeUid || '', skip, limit, searchText || '', projectId);
+      const { data } = await getEntryMapping(contentTypeUid || '', skip, limit, search || '', projectId);
 
-      const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
-
+      const updated: ItemStatusMapProp = { ...itemStatusMap };
       for (let index = startIndex; index <= stopIndex; index++) {
-        updateditemStatusMapCopy[index] = 'loaded';
+        updated[index] = 'loaded';
       }
-
-      setItemStatusMap({ ...updateditemStatusMapCopy });
+      setItemStatusMap({ ...updated });
       setLoading(false);
 
       const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
@@ -213,142 +354,114 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         _canSelect: !!entry?.contentstackEntryUid,
       }));
 
-      // eslint-disable-next-line no-unsafe-optional-chaining
       setTableData(applySelectionToEntries(validTableData ?? [], rowIds));
-
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
   };
 
-   /**
-     * Handle the selected entries
-     * @param singleSelectedRowIds - The single selected row IDs
-     * @returns void
-     */
-    const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
-      const selectedObj: UidMap = {};
-      singleSelectedRowIds?.forEach((uid: string) => {
-        selectedObj[uid] = true;
-      });
+  /**
+   * Reflect entry-update selection on the content type's status icon:
+   * has selected entries → 'Updated' (status '2', green); none → 'Mapped' (status '1', blue).
+   */
+  const updateContentTypeStatus = (contentTypeId: string, hasSelection: boolean) => {
+    if (!contentTypeId) return;
+    const nextStatus = hasSelection ? '2' : '1';
+    const applyStatus = (list: ContentType[]) =>
+      list?.map?.((ct) => (ct?.id === contentTypeId ? { ...ct, status: nextStatus } : ct));
+    setContentTypes((prev) => applyStatus(prev));
+    setFilteredContentTypes((prev) => applyStatus(prev));
+  };
 
-      setRowIds(selectedObj);
-      setTableData((prev) => applySelectionToEntries(prev ?? [], selectedObj));
-    };
-    
-    const handleSaveContentType = async () => {
-      console.info("handleSaveContentType", rowIds);
-      setisLoadingSaveButton(true);
-      const allKeys = new Set([
-        ...Object.keys(rowIds ?? {}),
-        ...Object.keys(persistedRowIds ?? {}),
-      ]);
-      const changedUids = Array.from(allKeys).filter(
-        (uid) => !!rowIds?.[uid] !== !!persistedRowIds?.[uid],
-      );
-          const orgId = selectedOrganisation?.uid;
-          // const projectID = projectId;
-      
-      if (orgId && contentTypeUid) {
-        const dataCs = {
-          ids: changedUids
-        };
+  // Handle selected entries
+  const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
+    const selectedObj: UidMap = {};
+    singleSelectedRowIds?.forEach((uid: string) => {
+      selectedObj[uid] = true;
+    });
+    setRowIds(selectedObj);
+    setTableData((prev) => applySelectionToEntries(prev ?? [], selectedObj));
+  };
+
+  const handleSaveContentType = async () => {
+    setisLoadingSaveButton(true);
+    const allKeys = new Set([
+      ...Object.keys(rowIds ?? {}),
+      ...Object.keys(persistedRowIds ?? {}),
+    ]);
+    const changedUids = Array.from(allKeys).filter(
+      (uid) => !!rowIds?.[uid] !== !!persistedRowIds?.[uid],
+    );
+    const orgId = selectedOrganisation?.uid;
+
+    if (orgId && contentTypeUid) {
+      const dataCs = { ids: changedUids };
       try {
         if (changedUids.length === 0) {
           setisLoadingSaveButton(false);
           return Notification({
             notificationContent: { text: 'No changes to save' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
+            notificationProps: { position: 'bottom-center', hideProgressBar: true },
             type: 'info'
           });
         }
-        const {data, status} = await updateEntryMapper(projectId, dataCs);
-        console.info("status", status, typeof status, data);
-      
-        setisLoadingSaveButton(false);  
+        const { status } = await updateEntryMapper(projectId, dataCs);
+        setisLoadingSaveButton(false);
         if (status === 200) {
           setPersistedRowIds({ ...(rowIds ?? {}) });
           setLoading(false);
+          // Reflect the saved state on the content type icon: green (Updated) when entries remain
+          // selected after save, blue (Mapped) when all selections were cleared.
+          updateContentTypeStatus(contentTypeUid, Object.values(rowIds ?? {}).some(Boolean));
           return Notification({
             notificationContent: { text: 'Entries saved successfully' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
+            notificationProps: { position: 'bottom-center', hideProgressBar: true },
             type: 'success'
           });
         }
-        else{
-          setisLoadingSaveButton(false);
-          return Notification({
-            notificationContent: { text: 'Failed to save entries' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'error'
-          });
-        }
+        return Notification({
+          notificationContent: { text: 'Failed to save entries' },
+          notificationProps: { position: 'bottom-center', hideProgressBar: true },
+          type: 'error'
+        });
       } catch (error) {
         console.error(error);
         setisLoadingSaveButton(false);
         return error;
       }
-      
-      }
     }
-   const accessorCall = (data: EntryMapperType) => {
-    // Clean field name (remove parent hierarchy)
-    const cleanFieldName = data?.entryName
-    return (
-        <div>
-          <div className='d-flex align-items-center '>           
-            <div className={'cms-field'}>
-              {cleanFieldName}
-            </div>           
-          </div>
-        </div>
-    );
   };
 
-    const accessorContentstackCall = (data: EntryMapperType) => {
-    // Clean field name (remove parent hierarchy)
-    const cleanFieldName = data?.contentstackEntryUid
-    return ( 
-        <div>
-          <div className='d-flex align-items-center'>           
-            <div className={'cms-field'}>
-              {cleanFieldName ? cleanFieldName : '-'}
-            </div>           
-          </div>
-        </div>
-    
-    );
-  };
-
-  const accessorForCMSUid = (data: EntryMapperType) => { 
-    const cleanFieldName = data?.otherCmsEntryUid
-    return (
-      <div>
-        <div className='d-flex align-items-center'>           
-          <div className={'cms-field'}>
-            {cleanFieldName ? cleanFieldName : '-'}
-          </div>           
-        </div>
+  /********** TABLE COLUMNS *************/
+  const accessorCall = (data: EntryMapperType) => (
+    <div>
+      <div className="d-flex align-items-center">
+        <div className={'cms-field'}>{data?.entryName}</div>
       </div>
-    );
-  }
+    </div>
+  );
 
-   const columns = [
+  const accessorForCMSUid = (data: EntryMapperType) => (
+    <div>
+      <div className="d-flex align-items-center">
+        <div className={'cms-field'}>{data?.otherCmsEntryUid ? data?.otherCmsEntryUid : '-'}</div>
+      </div>
+    </div>
+  );
+
+  const accessorContentstackCall = (data: EntryMapperType) => (
+    <div>
+      <div className="d-flex align-items-center">
+        <div className={'cms-field'}>{data?.contentstackEntryUid ? data?.contentstackEntryUid : '-'}</div>
+      </div>
+    </div>
+  );
+
+  const columns = [
     {
       disableSortBy: true,
       Header: (
-        <span >
-          {`${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`}
-        </span>
+        <span>{`${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`}</span>
       ),
       accessor: accessorCall,
       id: 'uuid',
@@ -356,70 +469,227 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     },
     {
       disableSortBy: true,
-      Header: (
-        <span >
-          {`${newMigrationData?.legacy_cms?.selectedCms?.title} UIDs:`}
-        </span>
-      ),
+      Header: <span>{`${newMigrationData?.legacy_cms?.selectedCms?.title} UIDs:`}</span>,
       accessor: accessorForCMSUid,
       id: '1'
     },
     {
       disableSortBy: true,
-      Header: (
-        <span >
-          {'Contentstack UIDs:'}
-        </span>
-      ),
-     accessor: accessorContentstackCall,
+      Header: <span>{'Contentstack UIDs:'}</span>,
+      accessor: accessorContentstackCall,
       id: '2'
     }
   ];
 
+  const calcHeight = () => window.innerHeight - 361;
+  const tableHeight = calcHeight();
+
+  const modalProps = {
+    body: 'An error occurred while generating the content mapper. Please go to the Legacy CMS step and validate the file again.',
+  };
+
   return (
-    <div className='entry-mapper-container'>
-      <InfiniteScrollTable
-        key={contentTypeUid || selectedContentTypeId?.id || 'entry-mapper-table'}
-        loading={loading}
-        canSearch={true}
-        totalCounts={Math.max(0, tableData?.length)}
-        data={[...tableData]}
-        columns={columns}
-        uniqueKey={'id'}
-        isRowSelect={true}
-        fullRowSelect={true}
-        itemStatusMap={itemStatusMap}
-        fetchTableData={fetchData}
-        loadMoreItems={loadMoreItems}
-        tableHeight={tableHeight}
-        equalWidthColumns={true}
-        columnSelector={false}
-        initialSelectedRowIds={rowIds}
-        itemSize={80}
-        getSelectedRow={handleSelectedEntries}
-        rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
-        name={{
-            singular: '',
-            plural: `${totalCounts === 0 ? 'Count' : ''}`
-        }}
+    isLoading || newMigrationData?.isprojectMapped
+      ? <div className="loader-container">
+        <CircularLoader />
+      </div>
+      :
+      <div className="step-container">
+        {(contentTypes?.length > 0 || tableData?.length > 0) ?
+          <div className="d-flex flex-wrap table-container">
+            {/* Content Types List */}
+            <div className="content-types-list-wrapper">
+              <div className="content-types-list-header d-flex align-items-center justify-content-between">
+                {contentTypesHeading && <h2>{`${contentTypesHeading} (${contentTypes && count})`}</h2>}
+              </div>
 
-    />
-    <div className="mapper-footer">
-          <div>Total Entries: <strong>{totalCounts}</strong></div>
-          <Button
-            className="saveButton"
-            onClick={handleSaveContentType}
+              <div className='ct-search-wrapper'>
+                <div className='d-flex align-items-center'>
+                  <Search
+                    placeholder={searchPlaceholder}
+                    type="secondary"
+                    version="v2"
+                    onChange={(search: string) => handleSearch(search)}
+                    onClear={true}
+                    value={searchContentType}
+                    debounceSearch={true}
+                  />
+
+                  <Button buttonType="light" onClick={handleFilter} className="ml-8">
+                    <Icon icon="Filter" version="v2" />
+                  </Button>
+                  {showFilter && (
+                    <div className='filter-wrapper' ref={filterRef}>
+                      <ul>
+                        {Object.keys(CONTENT_MAPPING_STATUS)?.map?.((key, keyInd) => (
+                          <li key={`${keyInd?.toString()}`}>
+                            <button
+                              className='list-button'
+                              onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e);
+                                }
+                              }}
+                            >
+                              {CONTENT_MAPPING_STATUS[key] && <span className={`${activeFilter === CONTENT_MAPPING_STATUS[key] ? 'filter-status filterButton-color' : 'filter-status'}`}>{CONTENT_MAPPING_STATUS[key]}</span>}
+                              {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {filteredContentTypes && validateArray(filteredContentTypes)
+                ? <div className='ct-list-wrapper'>
+                  <ul className="ct-list">
+                    {filteredContentTypes?.map?.((content: ContentType, index: number) => {
+                      const icon = STATUS_ICON_Mapping[content?.status] || '';
+                      const format = (str: string) => {
+                        const frags = str?.split('_');
+                        for (let i = 0; i < frags?.length; i++) {
+                          frags[i] = frags?.[i]?.charAt?.(0)?.toUpperCase() + frags?.[i]?.slice(1);
+                        }
+                        return frags?.join?.(' ');
+                      };
+                      return (
+                        <li key={`${index?.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
+                          <button
+                            type='button'
+                            className='list-button ct-names'
+                            onClick={(e) => {
+                              if (otherCmsUid === filteredContentTypes[index]?.otherCmsUid) {
+                                e.preventDefault();
+                              } else {
+                                handleOpenContentType(index);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && otherCmsUid !== filteredContentTypes[index]?.otherCmsUid) {
+                                handleOpenContentType(index);
+                              }
+                            }}
+                          >
+                            <div className='cms-title'>
+                              <Tooltip content={format(content?.type)} position="bottom">
+                                {content?.type === "content_type"
+                                  ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small" />
+                                  : <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
+                                }
+                              </Tooltip>
+                              {content?.otherCmsTitle && <span title={content?.otherCmsTitle}>{content?.otherCmsTitle}</span>}
+                            </div>
+                          </button>
+                          <div className='d-flex align-items-center ct-options'>
+                            <span>
+                              {icon && (
+                                <Tooltip content={CONTENT_MAPPING_STATUS[content?.status]} position="bottom">
+                                  <Icon size="small" icon={icon} className={icon === 'CheckedCircle' ? 'mapped-icon' : ''} />
+                                </Tooltip>
+                              )}
+                            </span>
+                            <span className='ml-10'>
+                              <Tooltip content="Schema Preview" position="bottom">
+                                <button className='list-button schema-preview' aria-label="schemaPreview" onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
+                              </Tooltip>
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+                : <div className='no-content'>No Content Types Found.</div>
+              }
+            </div>
+
+            {/* Entry Mapping Table */}
+            <div className="content-types-fields-wrapper">
+              <div className="table-wrapper" ref={tableWrapperRef}>
+                <div className='entry-mapper-container'>
+                  <InfiniteScrollTable
+                    key={contentTypeUid || 'entry-mapper-table'}
+                    loading={loading}
+                    canSearch={true}
+                    totalCounts={Math.max(0, tableData?.length)}
+                    data={[...tableData]}
+                    columns={columns}
+                    uniqueKey={'id'}
+                    isRowSelect={true}
+                    fullRowSelect={true}
+                    itemStatusMap={itemStatusMap}
+                    fetchTableData={fetchData}
+                    loadMoreItems={loadMoreItems}
+                    tableHeight={tableHeight}
+                    equalWidthColumns={true}
+                    columnSelector={false}
+                    initialRowSelectedData={initialRowSelectedData}
+                    initialSelectedRowIds={rowIds}
+                    itemSize={80}
+                    getSelectedRow={handleSelectedEntries}
+                    rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+                    name={{
+                      singular: '',
+                      plural: `${totalCounts === 0 ? 'Count' : ''}`
+                    }}
+                  />
+                  {totalCounts > 0 && (
+                    <div className="mapper-footer">
+                      <div>Total Entries: <strong>{totalCounts}</strong></div>
+                      <Button
+                        className="saveButton"
+                        onClick={handleSaveContentType}
+                        version="v2"
+                        disabled={newMigrationData?.project_current_step > 4}
+                        isLoading={isLoadingSaveButton}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div> :
+          <EmptyState
+            forPage="emptyStateV2"
+            heading={<div className="empty_search_heading">No Content Types available</div>}
+            description={
+              <div className="empty_search_description">
+                {modalProps?.body}
+              </div>
+            }
+            className="mapper-emptystate"
+            img={NoDataFound}
+            actions={
+              <Button buttonType="secondary" size="small" version="v2"
+                onClick={() => {
+                  const newMigrationDataObj: INewMigration = {
+                    ...newMigrationData,
+                    legacy_cms: {
+                      ...newMigrationData?.legacy_cms,
+                      uploadedFile: {
+                        ...newMigrationData?.legacy_cms?.uploadedFile,
+                        reValidate: true,
+                        buttonClicked: true,
+                      }
+                    }
+                  };
+                  dispatch(updateNewMigrationData(newMigrationDataObj));
+                  handleStepChange(0);
+                  const url = `/projects/${projectId}/migration/steps/1`;
+                  navigate(url, { replace: true });
+                }}
+                className='ml-10'>Go to Legacy CMS</Button>
+            }
             version="v2"
-            disabled={newMigrationData?.project_current_step > 4}
-            //isLoading={isLoadingSaveButton}
-          >
-            Save
-          </Button>
-    </div>
+            testId="no-results-found-page"
+          />}
+      </div>
+  );
+};
 
-      
-    </div>
-    
-  )
-}
 export default EntryMapper;

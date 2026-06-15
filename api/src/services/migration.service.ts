@@ -14,7 +14,7 @@ import {
   HTTP_TEXTS,
   HTTP_CODES,
   LOCALE_MAPPER,
-  STEPPER_STEPS,
+  getStepperSteps,
   CMS,
   GET_AUDIT_DATA,
   MIGRATION_DATA_CONFIG,
@@ -151,7 +151,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       
 
       ProjectModelLowdb.update((data: any) => {
-        data.projects[index].current_step = STEPPER_STEPS['TESTING'];
+        // Delta migration: Testing is step 5 on iteration 2+ (4 on iteration 1).
+        data.projects[index].current_step =
+          getStepperSteps(data.projects[index]?.iteration)['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
         data.projects[index].test_stacks.push({
           stackUid: res?.data?.stack?.api_key,

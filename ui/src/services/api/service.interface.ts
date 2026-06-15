@@ -37,6 +37,7 @@ export interface MigrationResponse {
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;
+  iteration?: number;
 }
 
 export interface LegacyCms {
@@ -83,4 +84,10 @@ export interface FileValidationParams {
   projectId: string;
   affix?: string;
   localPath?: string;
+  // MySQL connection details entered in the UI (drupal "Check Connection").
+  mysql?: {
+    host?: string;
+    database?: string;
+    user?: string;
+  };
 }
