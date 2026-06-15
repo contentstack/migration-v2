@@ -191,6 +191,52 @@ describe('asset-update.utils — Asset Mapper decisions', () => {
 
     expect(updates).toEqual([]);
   });
+
+  it('repoints asset references in entry JSON files to the existing CS uid', async () => {
+    // Drives the entry-reference rewrite path: entriesDir exists, so the walk
+    // (content type -> locale -> chunk) runs and replaceAssetRefsInObject swaps
+    // the deduped source uid for the existing Contentstack uid in the entry.
+    mockChainGet.mockReturnValue({
+      find: vi.fn().mockReturnValue({
+        value: vi.fn().mockReturnValue(projectIter2()),
+      }),
+    });
+    mockGetAssetMapperDb.mockReturnValue({
+      read: vi.fn().mockResolvedValue(undefined),
+      data: { asset_mapper: [{ otherCmsAssetUid: 'a1', isUpdate: false }] }, // reuse
+    });
+    mockExistsSync.mockImplementation((p: string) => {
+      const s = String(p);
+      if (s.endsWith('index.json')) return true;
+      if (s.includes('uid-mapper.json')) return true;
+      if (s.includes('asset-metadata.json')) return true;
+      if (s.includes('entries')) return true; // entriesDir + ct + locale dirs exist
+      if (s.includes('files')) return true;
+      return false;
+    });
+    mockReadFileSync.mockImplementation((p: string) => {
+      const s = String(p);
+      if (s.endsWith('index.json')) return JSON.stringify({ a1: { filename: 'f.jpg', file_size: '1', url: '' } });
+      if (s.includes('uid-mapper.json')) return JSON.stringify({ assets: { a1: 'cs-uid-1' } });
+      if (s.includes('asset-metadata.json')) return JSON.stringify({ a1: { filename: 'f.jpg', file_size: '1', url: '' } });
+      if (s.endsWith('entry1.json')) return JSON.stringify({ banner: { uid: 'a1' } });
+      return '{}';
+    });
+    const dirent = (name: string, dir: boolean) => ({ name, isDirectory: () => dir });
+    mockReaddirSync
+      .mockReturnValueOnce([dirent('page', true)]) // content type dirs
+      .mockReturnValueOnce([dirent('en-us', true)]) // locale dirs
+      .mockReturnValueOnce(['entry1.json', 'index.json']); // chunk files (index.json skipped)
+
+    const { removeExistingAssets } = await import('../../../src/utils/asset-update.utils.js');
+    await removeExistingAssets('p1');
+
+    // entry1.json rewritten with the source uid 'a1' replaced by the CS uid 'cs-uid-1'
+    const entryWrite = mockWriteFileSync.mock.calls.find((c) => String(c[0]).endsWith('entry1.json'));
+    expect(entryWrite).toBeDefined();
+    expect(String(entryWrite?.[1])).toContain('cs-uid-1');
+    expect(String(entryWrite?.[1])).not.toContain('a1');
+  });
 });
 
 describe('asset-update.utils — saveAssetMetadata / loadPreviousAssetMetadata', () => {
