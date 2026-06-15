@@ -173,16 +173,22 @@
       }
     },
     {
+      "map_entry": {
+        "step_title": "Map Entry",
+        "step_number": 4
+      }
+    },
+    {
       "test_migration": {
         "step_title": "Test Migration",
-        "step_number": 4
+        "step_number": 5
       }
     },
     {
       "migration_execution": {
         "step_title": "Migration Execution",
         "_metadata": { "uid": "csd1b57ee4b93373fb" },
-        "step_number": 5,
+        "step_number": 6,
         "migration_execution": [
           { "uid": "blt875421bb12019625", "_content_type_uid": "migration_execution" }
         ]
@@ -224,8 +230,15 @@
       "group_name": "Layout"
     },
     {
-      "flow_id": "testMigration",
+      "flow_id": "mapEntry",
       "name": 4,
+      "title": "Map Entry",
+      "description": "Map entries of already-migrated content types",
+      "group_name": "Layout"
+    },
+    {
+      "flow_id": "testMigration",
+      "name": 5,
       "title": "Test Migration",
       "description": "Preview the migration process",
       "group_name": "Layout"
@@ -233,7 +246,7 @@
     {
       "flow_id": "migrationExecution",
       "_metadata": { "uid": "csb100b7a598d9c333" },
-      "name": 5,
+      "name": 6,
       "title": "Migration Execution",
       "description": "Wait for the execution for migration complete.",
       "group_name": "SeeDetails"

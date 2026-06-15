@@ -76,10 +76,18 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         entryMapperItems.map((item: { otherCmsEntryUid: string }) => item?.otherCmsEntryUid)
     );
 
+    // Entries that already exist in Contentstack (have a contentstackEntryUid). These are removed
+    // from the import data so they are NOT re-created — regardless of isUpdate.
+    const csUidMap = new Map<string, string>();
+    // Subset of the above marked isUpdate → collected into the update config so they get updated
+    // in Contentstack. Existing entries that are NOT isUpdate are simply left untouched.
     const updateUidMap = new Map<string, string>();
     for (const item of entryMapperItems) {
-        if (item.isUpdate) {
-            updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+        if (item?.contentstackEntryUid) {
+            csUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            if (item?.isUpdate) {
+                updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            }
         }
     }
 
@@ -145,8 +153,17 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                 let modified = false;
                 for (const key of Object?.keys(data)) {
                     if (sitecoreUids.has(key)) {
-                        const csEntryUid = updateUidMap.get(key);
-                        if (csEntryUid) {
+                        const csEntryUid = csUidMap.get(key);
+                        // No Contentstack entry uid → this entry was never migrated, so leave it in
+                        // the import data to be CREATED this iteration. Deleting it would silently
+                        // drop the entry (data loss).
+                        if (!csEntryUid) {
+                            continue;
+                        }
+
+                        // Entry already exists in Contentstack. If it's marked isUpdate, collect it
+                        // into the update config so it gets updated; otherwise it's left as-is.
+                        if (updateUidMap.has(key)) {
                             const entryData = { ...data[key] };
                             delete entryData?.uid;
 
@@ -158,10 +175,11 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                             writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}"`, "removeEntriesFromDatabase", loggerPath);
                         }
 
+                        // Existing entry → remove from import data so it is NOT re-created.
                         delete data[key];
                         modified = true;
                         writeLogEntry(`Removed entry "${key}" from ${filePath}`, "removeEntriesFromDatabase", loggerPath);
-                        writeLogEntry(`Entry "${key}" has been removed from migration data (will be updated instead of created)`, "removeEntriesFromDatabase", loggerPath);
+                        writeLogEntry(`Entry "${key}" has been removed from migration data (exists in Contentstack)`, "removeEntriesFromDatabase", loggerPath);
                     }
                 }
 

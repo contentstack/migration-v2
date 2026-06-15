@@ -187,7 +187,6 @@ module.exports = async ({
                                 if (updateData && entry) {
                                     for (const field of Object.keys(updateData)) {
                                         if (isAssetField(updateData[field])) {
-                                            console.info('field is asset field');
                                             updateData[field] = resolveAssetField(
                                                 field,
                                                 entryUid,

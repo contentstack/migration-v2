@@ -179,6 +179,24 @@ export const STEPPER_STEPS: any = {
   TESTING: 4,
   MIGRATION: 5,
 };
+
+// Delta migration (iteration > 1) inserts a "Map Entry" step after Content Mapping, shifting
+// Testing and Migration down by one. Iteration 1 keeps the original 5-step numbering.
+export const DELTA_STEPPER_STEPS: any = {
+  LEGACY_CMS: 1,
+  DESTINATION_STACK: 2,
+  CONTENT_MAPPING: 3,
+  MAP_ENTRY: 4,
+  TESTING: 5,
+  MIGRATION: 6,
+};
+
+/**
+ * Returns the step-number map for a given iteration: the 6-step delta layout (with Map Entry)
+ * from iteration 2 onwards, or the original 5-step layout for iteration 1.
+ */
+export const getStepperSteps = (iteration?: number) =>
+  (iteration ?? 1) > 1 ? DELTA_STEPPER_STEPS : STEPPER_STEPS;
 export const PREDEFINED_STATUS = [
   'Draft',
   'Ready',
