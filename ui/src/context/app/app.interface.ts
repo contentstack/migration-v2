@@ -191,8 +191,8 @@ export interface IDestinationStack {
   csLocale: string[];
 }
 export interface IContentMapper {
-  existingGlobal: ContentTypeList[];
-  existingCT: ContentTypeList[];
+  existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
+  existingCT: ContentTypeList[] | (() => ContentTypeList[]);
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
@@ -218,6 +218,9 @@ export interface INewMigration {
   settings:ISetting;
   iteration: number;
   stepValue?: string;
+  // True when the Map Content Fields step (step 3) has loaded but returned zero content types.
+  // Used to gate the step-3 Continue button: disabled on iteration 1 (error), enabled on iteration 2+.
+  hasNoContentTypes?: boolean;
 }
 
 export interface TestStacks {

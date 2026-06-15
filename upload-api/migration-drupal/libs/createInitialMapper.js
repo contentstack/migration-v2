@@ -7,6 +7,7 @@
 const fsp = require('fs/promises'); // for async file operations
 const path = require('path');
 const contentTypeMapper = require('./contentTypeMapper');
+const extractEntries = require('./extractEntries');
 
 /**
  * Internal module dependencies.

@@ -54,15 +54,30 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
 {
   const isSQL = fileFormatId?.toLowerCase() === 'sql';
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const isValidated = newMigrationData?.legacy_cms?.uploadedFile?.isValidated;
   const [isEditing, setIsEditing] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
   const dispatch = useDispatch();
   const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
+
+  // SQL editing state — mirrors the local-path edit flow but for the 3 MySQL fields.
+  // Prefer the most up-to-date MySQL values from Redux over the (potentially stale) prop,
+  // so the edit inputs (which can start open when iteration > 1) don't seed/overwrite with stale data.
+  const currentMysql = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mysql || fileDetails?.mysql;
+  const [isEditingSql, setIsEditingSql] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
+  const [sqlDetails, setSqlDetails] = useState({
+    host: currentMysql?.host || '',
+    database: currentMysql?.database || '',
+    user: currentMysql?.user || ''
+  });
+
   const handleEditFile = async () => {
+    // Once the file is validated, editing the path is disabled
+    if (isValidated) return;
     setIsEditing(true);
     setLocalPath(currentPath);
   };
-    
+
     const handleBlur = async () => {
       setIsEditing(false);
 
@@ -81,20 +96,97 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
             }
           }
         }
-      };  
+      };
       dispatch(updateNewMigrationData(updatedMigrationData));
     };
-  
+
+  const handleEditSql = async () => {
+    // Once the connection is validated, editing the details is disabled
+    if (isValidated) return;
+    setIsEditingSql(true);
+    setSqlDetails({
+      host: currentMysql?.host || '',
+      database: currentMysql?.database || '',
+      user: currentMysql?.user || ''
+    });
+  };
+
+  const handleSqlBlur = async (e: React.FocusEvent<HTMLDivElement>) => {
+    // Only exit edit mode when focus leaves the whole group, not when moving
+    // between the host/database/user inputs.
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+
+    setIsEditingSql(false);
+
+    // Update Redux state with new MySQL details, preserving other mysql fields (e.g. port)
+    const updatedMigrationData = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        uploadedFile: {
+          ...newMigrationData?.legacy_cms?.uploadedFile,
+          file_details: {
+            ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
+            mysql: {
+              ...newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mysql,
+              host: sqlDetails.host,
+              database: sqlDetails.database,
+              user: sqlDetails.user
+            }
+          }
+        }
+      }
+    };
+    dispatch(updateNewMigrationData(updatedMigrationData));
+  };
+
 
   return (
     <div>
       { isSQL ? (
         // ✅ SQL format (from legacyCms.json allowed_file_formats): show MySQL details
         fileDetails?.mysql && (
-          <div>
-            <p className="pb-2">Host: { fileDetails?.mysql?.host }</p>
-            <p className="pb-2">Database: { fileDetails?.mysql?.database }</p>
-            <p className="pb-2">User: { fileDetails?.mysql?.user }</p>
+          <div className="file-container">
+            <div className="file-path-text">
+              {isEditingSql ? (
+                <div className="sql-edit-fields" onBlur={handleSqlBlur}>
+                  <TextInput
+                    value={sqlDetails.host}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSqlDetails((prev) => ({ ...prev, host: e.target.value }))}
+                    width="full"
+                    version="v2"
+                    placeholder="Enter host"
+                    aria-label="MySQL host"
+                    autoFocus
+                  />
+                  <TextInput
+                    value={sqlDetails.database}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSqlDetails((prev) => ({ ...prev, database: e.target.value }))}
+                    width="full"
+                    version="v2"
+                    placeholder="Enter database"
+                    aria-label="MySQL database"
+                  />
+                  <TextInput
+                    value={sqlDetails.user}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSqlDetails((prev) => ({ ...prev, user: e.target.value }))}
+                    width="full"
+                    version="v2"
+                    placeholder="Enter user"
+                    aria-label="MySQL user"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <p className="pb-2">Host: { currentMysql?.host }</p>
+                  <p className="pb-2">Database: { currentMysql?.database }</p>
+                  <p className="pb-2">User: { currentMysql?.user }</p>
+                </div>
+              )}
+            </div>
+            <div className={`edit-icon${isValidated ? ' edit-icon--disabled' : ''}`}>
+              <Icon icon="EditSmallActive" size="small" onClick={handleEditSql} tooltipContent="Edit SQL Details" tooltipPosition='bottom'/>
+            </div>
           </div>
         )
       ) : fileDetails?.isLocalPath ? (
@@ -116,8 +208,8 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
             <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
           )}
         </div>
-        <div className="edit-icon">
-          <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
+        <div className={`edit-icon${isValidated ? ' edit-icon--disabled' : ''}`}>
+          <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} tooltipContent="Edit Local Path" />
         </div>
       </div>
       ) : (
@@ -207,10 +299,18 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
         }
       }
 
+      const validationMysql = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mysql;
       const { data, status } = await fileValidation({
         projectId,
         affix: newMigrationData?.legacy_cms?.affix,
-        localPath: resolvedPath
+        localPath: resolvedPath,
+        mysql: validationMysql
+          ? {
+              host: validationMysql.host,
+              database: validationMysql.database,
+              user: validationMysql.user
+            }
+          : undefined
       });
 
       setProgressPercentage( 70 );

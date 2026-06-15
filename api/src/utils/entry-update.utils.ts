@@ -3,6 +3,7 @@ import ProjectModelLowdb from "../models/project-lowdb.js";
 import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
+import { sanitizeStackId, assertResolvedPathUnderBase } from "./sanitize-path.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -17,6 +18,38 @@ const writeLogEntry = (message: string, methodName: string, loggerPath?: string)
         };
         fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
     }
+};
+
+/**
+ * Deletes the transformed entries tree for a stack before a fresh import.
+ *
+ * Each import run writes entry chunk files with fresh random UUID names and overwrites
+ * index.json, but never removes the previous run's chunk files. Those orphans carry
+ * stale (previous-iteration) content that can later clobber current data during update.
+ * Wiping the entries tree up front guarantees the importer starts from a clean slate.
+ *
+ * Scope is limited to the `entries/` subtree only — assets, references, environments,
+ * locales and content-type creation (driven by the lowdb mappers, not this folder) are
+ * untouched.
+ */
+export const clearStaleEntries = (stackId: string, loggerPath?: string): void => {
+    const safeStackId = sanitizeStackId(stackId);
+    if (!safeStackId) {
+        writeLogEntry(`Invalid stackId, skipping stale entries cleanup.`, "clearStaleEntries", loggerPath);
+        return;
+    }
+
+    const dataBase = path.resolve(process.cwd(), MIGRATION_DATA_CONFIG.DATA);
+    const entriesDir = path.join(dataBase, safeStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME);
+    assertResolvedPathUnderBase(dataBase, entriesDir);
+
+    if (!fs.existsSync(entriesDir)) {
+        writeLogEntry(`No existing entries directory to clear: ${entriesDir}`, "clearStaleEntries", loggerPath);
+        return;
+    }
+
+    fs.rmSync(entriesDir, { recursive: true, force: true });
+    writeLogEntry(`Cleared stale entries directory before import: ${entriesDir}`, "clearStaleEntries", loggerPath);
 };
 
 export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: string): Promise<string | null> => {
@@ -42,10 +75,18 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         entryMapperItems.map((item: { otherCmsEntryUid: string }) => item?.otherCmsEntryUid)
     );
 
+    // Entries that already exist in Contentstack (have a contentstackEntryUid). These are removed
+    // from the import data so they are NOT re-created — regardless of isUpdate.
+    const csUidMap = new Map<string, string>();
+    // Subset of the above marked isUpdate → collected into the update config so they get updated
+    // in Contentstack. Existing entries that are NOT isUpdate are simply left untouched.
     const updateUidMap = new Map<string, string>();
     for (const item of entryMapperItems) {
-        if (item.isUpdate) {
-            updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+        if (item?.contentstackEntryUid) {
+            csUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            if (item?.isUpdate) {
+                updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            }
         }
     }
 
@@ -72,8 +113,36 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
         for (const localeDir of localeDirs) {
             const localePath = path.join(ctPath, localeDir.name);
-            const jsonFiles = fs.readdirSync(localePath)
-                ?.filter((file) => file?.endsWith(".json") && file !== "index.json");
+            // Respect index.json — only the chunk files it lists are current. Each import run
+            // writes chunk files with fresh random UUID names and overwrites index.json, but does
+            // not delete prior runs' chunk files. Globbing all *.json would pick up those orphans,
+            // whose stale (previous-iteration) content can then clobber the current entry data.
+            const indexPath = path.join(localePath, MIGRATION_DATA_CONFIG.ENTRIES_MASTER_FILE);
+            let jsonFiles: string[];
+            if (fs.existsSync(indexPath)) {
+                // Guard against a missing/corrupt/non-object index.json — a parse failure or
+                // unexpected shape here would otherwise throw and abort the entire removal step.
+                let indexData: unknown;
+                try {
+                    indexData = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+                } catch (err) {
+                    writeLogEntry(`Failed to parse index.json at ${indexPath}, skipping locale: ${(err as Error)?.message}`, "removeEntriesFromDatabase", loggerPath);
+                    continue;
+                }
+                if (!indexData || typeof indexData !== "object") {
+                    writeLogEntry(`index.json at ${indexPath} is not an object, skipping locale.`, "removeEntriesFromDatabase", loggerPath);
+                    continue;
+                }
+                jsonFiles = Object.values(indexData as Record<string, unknown>)
+                    // Sanitize to path.basename — index values are trusted verbatim otherwise,
+                    // so an unexpected value could introduce extra path segments.
+                    .filter((file): file is string => typeof file === "string" && file.endsWith(".json"))
+                    .map((file) => path.basename(file));
+            } else {
+                // Legacy data without an index.json — fall back to globbing.
+                jsonFiles = fs.readdirSync(localePath)
+                    ?.filter((file) => file?.endsWith(".json") && file !== MIGRATION_DATA_CONFIG.ENTRIES_MASTER_FILE);
+            }
 
             for (const jsonFile of jsonFiles) {
                 const filePath = path.join(localePath, jsonFile);
@@ -83,8 +152,17 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                 let modified = false;
                 for (const key of Object?.keys(data)) {
                     if (sitecoreUids.has(key)) {
-                        const csEntryUid = updateUidMap.get(key);
-                        if (csEntryUid) {
+                        const csEntryUid = csUidMap.get(key);
+                        // No Contentstack entry uid → this entry was never migrated, so leave it in
+                        // the import data to be CREATED this iteration. Deleting it would silently
+                        // drop the entry (data loss).
+                        if (!csEntryUid) {
+                            continue;
+                        }
+
+                        // Entry already exists in Contentstack. If it's marked isUpdate, collect it
+                        // into the update config so it gets updated; otherwise it's left as-is.
+                        if (updateUidMap.has(key)) {
                             const entryData = { ...data[key] };
                             delete entryData?.uid;
 
@@ -96,10 +174,11 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                             writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}"`, "removeEntriesFromDatabase", loggerPath);
                         }
 
+                        // Existing entry → remove from import data so it is NOT re-created.
                         delete data[key];
                         modified = true;
                         writeLogEntry(`Removed entry "${key}" from ${filePath}`, "removeEntriesFromDatabase", loggerPath);
-                        writeLogEntry(`Entry "${key}" has been removed from migration data (will be updated instead of created)`, "removeEntriesFromDatabase", loggerPath);
+                        writeLogEntry(`Entry "${key}" has been removed from migration data (exists in Contentstack)`, "removeEntriesFromDatabase", loggerPath);
                     }
                 }
 

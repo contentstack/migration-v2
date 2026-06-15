@@ -430,8 +430,8 @@ function attachMediaTextFieldsToChildren(
 
   const mediatypeField = fields?.find(
     (f: any) =>
-      (f?.contentstackFieldType === 'single_line_text' ||
-        f?.contentstackFieldType === 'text') &&
+      (f?.backupFieldType === 'single_line_text' ||
+        f?.backupFieldType === 'text') &&
       fieldMappedUnderModularChild(modularChild, f) &&
       (f?.otherCmsField || '')?.toLowerCase() === 'mediatype',
   );
@@ -1247,12 +1247,12 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
                   }
                   const asset = assetData[`assets_${id}`];
 
-                  const groupCsUid = field?.contentstackFieldUid || '';
+                  const groupCsUid = field?.backupFieldUid || '';
                   const isDirectChildOfThisGroup = (f: any) => {
-                    const uid = f?.contentstackFieldUid || '';
-                    if (groupCsUid && uid.startsWith(`${groupCsUid}.`)) {
-                      const rest = uid.slice(groupCsUid.length + 1);
-                      return Boolean(rest && !rest.includes('.'));
+                    const uid = f?.backupFieldUid || '';
+                    if (groupCsUid && uid?.startsWith(`${groupCsUid}.`)) {
+                      const rest = uid?.slice(groupCsUid?.length + 1);
+                      return Boolean(rest && !rest?.includes('.'));
                     }
                     const slug = getFieldName(childBlockName);
                     return Boolean(slug && f?.contentstackField?.includes(slug));

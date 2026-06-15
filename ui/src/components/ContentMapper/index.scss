@@ -67,27 +67,9 @@
     justify-content: space-between;
     min-height: 42px;
     padding: $px-8 $px-10 $px-8 $px-12;
-
-    > .ct-options {
-      align-items: center;
-      display: flex;
-      flex-shrink: 0;
-      gap: $space-10;
-
-      .ct-schema-preview-wrap {
-        align-items: center;
-        display: inline-flex;
-      }
-    }
-
     .ct-names {
-      align-items: center;
-      display: flex;
       font-size: $size-font-xl;
       line-height: normal;
-      min-height: 0;
-      min-width: 0;
-      text-align: left;
       width: calc(100% - 50px);
       .cms-title {
         align-items: center;
@@ -95,7 +77,6 @@
         max-height: 24px;
         white-space: nowrap;
         .tippy-wrapper {
-          align-items: center;
           display: flex;
         }
         span {
@@ -104,6 +85,9 @@
           overflow: hidden;
           text-overflow: ellipsis;
         }
+      }
+      .ct-options {
+        justify-content: flex-end;
       }
     }
     .schema-preview {
@@ -128,64 +112,6 @@
   circle {
     fill: $color-brand-draft-base;
   }
-}
-
-.ct-status-cluster {
-  align-items: center;
-  column-gap: $space-6;
-  display: flex;
-  flex-shrink: 0;
-
-  .tippy-wrapper {
-    align-items: center;
-    display: inline-flex;
-    line-height: 1;
-  }
-}
-
-/* Venus Pills wrapper: Contentstack draft accent, align with list row */
-.ct-auto-map-pill-wrap {
-  align-items: center;
-  cursor: default;
-  display: inline-flex;
-  max-width: 11rem;
-  background-color: $color-brand-draft-light;
-  stroke: $color-placeholder;
-
-  /*no focus ring or Venus pill click/focus styling */
-  .ct-auto-map-pill.Pill,
-  .ct-auto-map-pill .PillItem {
-    box-shadow: none !important;
-    outline: none !important;
-    pointer-events: none;
-  }
-
-  .ct-auto-map-pill.Pill:focus,
-  .ct-auto-map-pill.Pill:focus-visible,
-  .ct-auto-map-pill .PillItem:focus,
-  .ct-auto-map-pill .PillItem:focus-visible {
-    box-shadow: none !important;
-    outline: none !important;
-  }
-
-  .ct-auto-map-pill.Pill {
-    cursor: default;
-    min-height: 0;
-    padding: 0;
-  }
-
-  .ct-auto-map-pill .PillItem {
-    max-width: 100%;
-  }
-
-  .ct-auto-map-pill .PillItem__text-content {
-    color: $color-brand-draft-base;
-    font-weight: $font-weight-medium;
-  }
-}
-
-.auto-mapped-filter-icon {
-  color: $color-brand-draft-base;
 }
 .dropdown-align {
   .Dropdown__menu--primary {
@@ -214,58 +140,56 @@
 .table-container {
   flex: 1 0 auto;
 }
-.content-mapper-container {
-  .table-wrapper {
-    flex: 1;
-    .TablePanel {
-      border-left: 0 none;
-      .TablePanel__list-count {
-        display: none;
-      }
+.table-wrapper {
+  flex: 1;
+  .TablePanel {
+    border-left: 0 none;
+    .TablePanel__list-count {
+      display: none;
     }
-    .Table {
-      border-left: 0 none;
-      min-height: 24.25rem;
-      .Table__body__row {
-        .Table-select-body {
-          > .checkbox-wrapper {
-            align-items: flex-start;
-          }
-        }
-      }
-      .Table__body__column {
-        padding: 0 1.25rem;
-        &:not(:last-of-type) {
-          display: block;
-        }
-      }
+  }
+  .Table {
+    border-left: 0 none;
+    min-height: 24.25rem;
+    .Table__body__row {
       .Table-select-body {
-        width: 68px;
-      }
-      .cms-field {
-        // text-transform: capitalize;
-        // overflow: hidden;
-        // text-overflow: ellipsis;
-        // white-space: nowrap;
-        // width: 445px;
-
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .InstructionText {
-        font-size: $size-font-small;
-        margin: 0;
-      }
-      .EmptyStateWrapper {
-        margin-top: $px-20;
+        > .checkbox-wrapper {
+          align-items: flex-start;
+        }
       }
     }
-    .import-cta {
+    .Table__body__column {
+      padding: 0 1.25rem;
+      &:not(:last-of-type) {
+        display: block;
+      }
+    }
+    .Table-select-body {
+      width: 68px;
+    }
+    .cms-field {
+      // text-transform: capitalize;
+      // overflow: hidden;
+      // text-overflow: ellipsis;
+      // white-space: nowrap;
+      // width: 445px;
+
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .InstructionText {
+      font-size: $size-font-small;
       margin: 0;
     }
+    .EmptyStateWrapper {
+      margin-top: $px-20;
+    }
+  }
+  .import-cta {
+    margin: 0;
   }
 }
 .disabled-field {
@@ -389,6 +313,15 @@ div .table-row {
 .mapper-emptystate {
   padding: 10px 10px;
 }
+// Delta iteration empty state has no "Go to Legacy CMS" action button, so center it vertically
+// in the available space instead of sitting top-heavy.
+.mapper-emptystate--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
 .Checkbox .Checkbox__tick svg {
   display: block;
 }
@@ -399,11 +332,11 @@ div .table-row {
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
 }
-.filterButton-color{
+.filterButton-color {
   color: $color-brand-primary-base;
   font-weight: $font-weight-bold;
 }
-.icon-padding{
+.icon-padding {
   padding: 10px 10px;
   margin-left: 6px;
 }
@@ -413,23 +346,23 @@ div .table-row {
     font-weight: 600;
     // margin-left: 16px;
   }
-  
+
   &.child-row {
     margin-left: 26px;
   }
-  
+
   &.child-row-level-2 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 36px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-3 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 62px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-4 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 98px;
@@ -508,14 +441,14 @@ div .table-row {
 .table-row {
   display: flex;
   align-items: center;
-  gap: 8px;                   
+  gap: 8px;
 }
 .table-row .select {
-  flex: 1;                    
+  flex: 1;
 }
 .advanced-setting-button,
 .table-row button {
-  flex-shrink: 0;           
+  flex-shrink: 0;
 }
 
 // Prevent header wrapping
@@ -554,7 +487,7 @@ div .table-row {
   overflow-y: auto !important;
 }
 
-// Safety for small screens 
+// Safety for small screens
 @media (max-height: 800px) {
   .mapper-footer {
     padding: 10px;
@@ -563,6 +496,64 @@ div .table-row {
 
 .select {
   .tippy-wrapper {
-    display: inline; 
+    display: inline;
+  }
+}
+
+.entry-mapper-container {
+  // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
+  // so it collapses to just the text. Stretch the table chrome and the empty message to
+  // fill the available viewport space instead of leaving a grey gap below.
+  .TableWrapper,
+  .Table {
+    min-height: calc(100vh - 300px);
+  }
+  .no-table-data {
+    min-height: calc(100vh - 300px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .Table {
+    // Force row layout alignment
+    .Table__head,
+    .Table__body__row {
+      display: flex !important;
+      width: 100%;
+    }
+
+    // Keep the row-select (checkbox) cell at its fixed width and never shrink it,
+    // and vertically center the checkbox so it lines up with the row text.
+    .Table-select-head,
+    .Table-select-body {
+      flex: 0 0 68px !important;
+      width: 68px !important;
+      min-width: 68px !important;
+      display: flex !important;
+      align-items: center !important;
+
+      .checkbox-wrapper {
+        align-items: center !important;
+      }
+    }
+
+    // Target actual column containers
+    .Table__head__column,
+    .Table__body__column {
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      display: flex !important;
+      align-items: center;
+      border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // Remove last column border
+    .Table__head__column:last-child,
+    .Table__body__column:last-child {
+      border-right: none !important;
+    }
   }
 }

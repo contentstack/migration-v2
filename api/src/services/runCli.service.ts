@@ -5,7 +5,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { v4 } from 'uuid';
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES } from '../constants/index.js';
+import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, getStepperSteps } from '../constants/index.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
 // import watchLogs from '../utils/watch.utils.js';
@@ -19,8 +19,7 @@ interface TestStack {
   isMigrated: boolean;
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
-import getUidMapperDb from '../models/uidMapper.js';
-import customLogger from '../utils/custom-logger.utils.js';
+import writeUidMapping from '../utils/uid-mapper.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -318,7 +317,9 @@ export const runCli = async (
           true;
         ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
           false;
-        ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
+        // Migration completed → land on the final Execute step (6 on delta iterations, 5 otherwise).
+        ProjectModelLowdb.data.projects[projectIndex].current_step =
+          getStepperSteps(ProjectModelLowdb.data.projects[projectIndex]?.iteration).MIGRATION;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         await ProjectModelLowdb.write();
       }
