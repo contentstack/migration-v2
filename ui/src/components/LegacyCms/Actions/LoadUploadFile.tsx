@@ -185,7 +185,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
               )}
             </div>
             <div className={`edit-icon${isValidated ? ' edit-icon--disabled' : ''}`}>
-              <Icon icon="EditSmallActive" size="small" onClick={handleEditSql} />
+              <Icon icon="EditSmallActive" size="small" onClick={handleEditSql} tooltipContent="Edit SQL Details" tooltipPosition='bottom'/>
             </div>
           </div>
         )
@@ -209,7 +209,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
           )}
         </div>
         <div className={`edit-icon${isValidated ? ' edit-icon--disabled' : ''}`}>
-          <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
+          <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} tooltipContent="Edit Local Path" />
         </div>
       </div>
       ) : (

@@ -47,6 +47,20 @@ const MigrationFlowHeader = ({
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const dispatch = useDispatch();
 
+  // Delta migration: the "Map Entry" step only exists from iteration 2 onwards, which shifts the
+  // step numbers for Test Migration and Execute Migration. Resolve the semantic step ids by
+  // iteration so all stepId checks stay correct for both the 5-step (iter 1) and 6-step flows.
+  const iteration = newMigrationData?.iteration ?? 1;
+  const isDeltaIteration = iteration > 1;
+  const TEST_MIGRATION_STEP = isDeltaIteration ? '5' : '4';
+  const EXECUTE_MIGRATION_STEP = isDeltaIteration ? '6' : '5';
+  // Mapping steps that show a plain "Continue" CTA: Map Content Fields (3) always, plus
+  // Map Entry (4) and Test Migration on delta iterations.
+  const isMappingContinueStep =
+    params?.stepId === '3' ||
+    (isDeltaIteration && (params?.stepId === '4' || params?.stepId === '5')) ||
+    (!isDeltaIteration && params?.stepId === '4');
+
   useEffect(() => {
     fetchProject();
   }, [selectedOrganisation?.value, params?.projectId]);
@@ -67,12 +81,18 @@ const MigrationFlowHeader = ({
   useEffect(() => {
     let newStepValue;
     
-    // Check conditions in priority order
-    if (newMigrationData?.legacy_cms?.projectStatus === 5 && newMigrationData?.migration_execution?.migrationCompleted) {
+    // Check conditions in priority order.
+    // "Restart Migration" only applies on the final Execute step once a migration has completed —
+    // not while navigating back through earlier (completed) steps in a delta iteration.
+    if (
+      params?.stepId === EXECUTE_MIGRATION_STEP &&
+      newMigrationData?.legacy_cms?.projectStatus === 5 &&
+      newMigrationData?.migration_execution?.migrationCompleted
+    ) {
       newStepValue = 'Restart Migration';
-    } else if (params?.stepId === '5') {
+    } else if (params?.stepId === EXECUTE_MIGRATION_STEP) {
       newStepValue = 'Start Migration';
-    } else if (params?.stepId === '3' || params?.stepId === '4') {
+    } else if (isMappingContinueStep) {
       newStepValue = 'Continue';
     } else {
       newStepValue = 'Save and Continue';
@@ -85,7 +105,7 @@ const MigrationFlowHeader = ({
   }, [params?.stepId, newMigrationData?.legacy_cms?.projectStatus, newMigrationData?.migration_execution?.migrationCompleted, newMigrationData?.stepValue, dispatch]);
 
   const isStep4AndNotMigrated =
-    params?.stepId === '4' &&
+    params?.stepId === TEST_MIGRATION_STEP &&
     !newMigrationData?.testStacks?.some(
       (stack) =>
         stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
@@ -115,12 +135,31 @@ const MigrationFlowHeader = ({
     (finalExecutionStarted || newMigrationData?.migration_execution?.migrationStarted) &&
     !newMigrationData?.migration_execution?.migrationCompleted;
 
+  // Disable the Start Migration button while the start request is in flight / after a successful
+  // start (driven by the local finalExecutionStarted flag from the click handler, NOT by the
+  // migration-completed flag — so the live logs still show while migration runs).
+  const isStartMigrationDisabled =
+    params?.stepId === EXECUTE_MIGRATION_STEP &&
+    !!finalExecutionStarted &&
+    newMigrationData?.stepValue !== 'Restart Migration';
+
   const destinationStackMigrated =
-    params?.stepId === '5' &&
+    params?.stepId === EXECUTE_MIGRATION_STEP &&
     newMigrationData?.destination_stack?.migratedStacks?.includes(
       newMigrationData?.destination_stack?.selectedStack?.value
     );
   const isFileValidated = newMigrationData?.isContentMapperGenerated ? true : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
+
+  // Map Content Fields (step 3) empty-state handling:
+  // - Iteration 1 with no content types = genuine error → keep Continue disabled.
+  // - Iteration 2+ with no NEW content types = valid (nothing new to map) → Continue stays enabled.
+  // ContentMapper reports emptiness via hasNoContentTypes (its local fetch result), which is more
+  // accurate than isContentMapperGenerated (the project's mapper-id array can be non-empty while the
+  // resolved content-type list is empty).
+  const isContentMapperEmptyOnFirstIteration =
+    params?.stepId === '3' &&
+    !isDeltaIteration &&
+    newMigrationData?.hasNoContentTypes === true;
 
   return (
     <div className="d-flex align-items-center justify-content-between migration-flow-header">
@@ -141,6 +180,8 @@ const MigrationFlowHeader = ({
         isLoading={isLoading || newMigrationData?.isprojectMapped}
         disabled={
           isMigrationInProgress ||
+          isStartMigrationDisabled ||
+          isContentMapperEmptyOnFirstIteration ||
           (isProjectStatusThreeAndMapperNotGenerated ?
             isFileValidated :
             isStep4AndNotMigrated ||

@@ -41,7 +41,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, CONTENT_MAPPER_EMPTY_STATE } from '../../utilities/constants';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
 
@@ -85,7 +85,6 @@ import {
 // Styles and Assets
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
-import EntryMapper from './entryMapper';
 
 const FIELD_MAP_MENU_VIEW_MARGIN = 8;
 const FIELD_MAP_MENU_HYSTERESIS = 36;
@@ -494,9 +493,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
-  const iteration = useSelector(
-    (state: RootState) => state?.migration?.newMigrationData?.iteration
-  );
   // When setting contentModels from Redux, ensure it's cloned
   const reduxContentTypes = newMigrationData?.content_mapping?.existingCT; // Assume this gets your Redux state
   const reduxGlobalFields = newMigrationData?.content_mapping?.existingGlobal
@@ -1018,9 +1014,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setIsLoading(true);
 
     try {
-      const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
+      const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || '', 'new'); //org id will always present
 
-      setIsLoading(false);
       setContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
       setFilteredContentTypes(data?.contentTypes);
@@ -1031,9 +1026,17 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       fetchFields(data?.contentTypes?.[0]?.id, searchText || '');
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
       setIsContentType(data?.contentTypes?.[0]?.type === "content_type");
+
+      // Report whether step 3 has any content types so the header can gate the Continue button:
+      // empty on iteration 1 = error (disable), empty on iteration 2+ = no new types (allow continue).
+      dispatch(updateNewMigrationData({ hasNoContentTypes: !(data?.contentTypes?.length > 0) }));
     } catch (error) {
       console.error(error);
+      // On failure treat step 3 as empty so the Continue gate doesn't hang in an undefined state.
+      dispatch(updateNewMigrationData({ hasNoContentTypes: true }));
       return error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1042,7 +1045,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setSearchContentType(searchCT);
 
     try {
-      const { data } = await getContentTypes(projectId, 0, 1000, searchCT || ''); //org id will always present
+      const { data } = await getContentTypes(projectId, 0, 1000, searchCT || '', 'new'); //org id will always present
 
       setContentTypes(data?.contentTypes);
       setFilteredContentTypes(data?.contentTypes);
@@ -1126,19 +1129,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
-  };
-
-  // Method to change the content type
-  /**
-   * Reflect entry-update selection on the content type's status icon:
-   * has selected entries → 'Updated' (status '2', green); none → 'Mapped' (status '1', blue).
-   */
-  const handleEntrySelectionStatusChange = (contentTypeId: string, hasSelection: boolean) => {
-    const nextStatus = hasSelection ? '2' : '1';
-    const applyStatus = (list: ContentType[]) =>
-      list?.map?.((ct) => (ct?.id === contentTypeId ? { ...ct, status: nextStatus } : ct));
-    setContentTypes((prev) => applyStatus(prev));
-    setFilteredContentTypes((prev) => applyStatus(prev));
   };
 
   const handleOpenContentType = (i = 0) => {
@@ -1678,7 +1668,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 4
+              newMigrationData?.project_current_step > 3
             }
           />
         </div>
@@ -1697,12 +1687,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               disabled={
                 data?.otherCmsField === 'title' ||
                 data?.otherCmsField === 'url' ||
-                newMigrationData?.project_current_step > 4
+                newMigrationData?.project_current_step > 3
               }
             >
               <Button
                 buttonType="light"
-                disabled={newMigrationData?.project_current_step > 4}
+                disabled={newMigrationData?.project_current_step > 3}
                 onClick={() =>
                   handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
                 }
@@ -1711,7 +1701,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   version="v2"
                   icon="Sliders"
                   size="small"
-                  disabled={newMigrationData?.project_current_step > 4}
+                  disabled={newMigrationData?.project_current_step > 3}
                 />
 
               </Button>
@@ -2589,7 +2579,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               maxWidth="290px"
               isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
               options={adjustedOptions}
-              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
+              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 3}
             />
           </Tooltip>
         </div>
@@ -2610,7 +2600,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               >
                 <Button
                   buttonType="light"
-                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
+                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 3}
                   onClick={() => {
                     handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
                   }}
@@ -3279,8 +3269,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   //variable for button component in table
   const onlyIcon = true;
 
+  // Delta migration: on iteration 2+, an empty content-type list just means there are no NEW
+  // content types to map this round — that's valid, not an error, and the user can continue.
+  // On iteration 1, an empty list means content-mapper generation failed (genuine error).
+  const isDeltaIteration = (newMigrationData?.iteration ?? 1) > 1;
+
   const modalProps = {
-    body: 'There is something error occured while generating content mapper. Please go to Legacy Cms step and validate the file again.',
+    body: isDeltaIteration
+      ? CONTENT_MAPPER_EMPTY_STATE.NO_NEW_CONTENT_TYPES_DESCRIPTION
+      : CONTENT_MAPPER_EMPTY_STATE.NO_CONTENT_TYPES_DESCRIPTION,
     isCancel: false,
     header: "",
   }
@@ -3408,15 +3405,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
-                {iteration > 1 ? (
-                  <div>
-                  <EntryMapper
-                    tableHeight={tableHeight}
-                    selectedContentTypeId={selectedContentType ?? null}
-                    onEntrySelectionChange={handleEntrySelectionStatusChange}
-                  />
-                </div>
-                ): (
                   <div>
                 <InfiniteScrollTable
                   loading={loading}
@@ -3453,7 +3441,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                                 placeholder={otherContentType?.label}
                                 isSearchable
                                 version="v2"
-                                isDisabled={newMigrationData?.project_current_step > 4}
+                                isDisabled={newMigrationData?.project_current_step > 3}
                               />
                             </div>
 
@@ -3489,7 +3477,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                       className="saveButton"
                       onClick={handleSaveContentType}
                       version="v2"
-                      disabled={newMigrationData?.project_current_step > 4}
+                      disabled={newMigrationData?.project_current_step > 3}
                       isLoading={isLoadingSaveButton}
                     >
                       Save
@@ -3497,21 +3485,23 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   </div>
                 )}
               </div>
-                )}
             </div>
             </div>
           </div> :
           <EmptyState
             forPage="emptyStateV2"
-            heading={<div className="empty_search_heading">No Content Types available</div>}
+            heading={<div className="empty_search_heading">{isDeltaIteration ? CONTENT_MAPPER_EMPTY_STATE.NO_NEW_CONTENT_TYPES_HEADING : CONTENT_MAPPER_EMPTY_STATE.NO_CONTENT_TYPES_HEADING}</div>}
             description={
               <div className="empty_search_description">
                 {modalProps?.body}
               </div>
             }
-            className="mapper-emptystate"
+            className={`mapper-emptystate${isDeltaIteration ? ' mapper-emptystate--centered' : ''}`}
             img={NoDataFound}
-            actions={
+            {...(!isDeltaIteration && {
+              // "Go to Legacy CMS" is only relevant on iteration 1 (empty list = generation error).
+              // On delta iterations an empty list just means no new content types, so omit it entirely.
+              actions: (
                 <Button buttonType="secondary" size="small" version="v2"
                   onClick={() => {
                     const newMigrationDataObj: INewMigration = {
@@ -3531,7 +3521,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     navigate(url, { replace: true });
                   }}
                   className='ml-10'>Go to Legacy CMS</Button>
-            }
+              )
+            })}
             version="v2"
             testId="no-results-found-page"
           />}
