@@ -72,7 +72,8 @@ export const uploadLocalFileToContainer = async (
 export const fileValidation = async ({
   projectId,
   affix = 'cs',
-  localPath = ''
+  localPath = '',
+  mysql
 }: FileValidationParams) => {
   try {
     const options = {
@@ -80,7 +81,11 @@ export const fileValidation = async ({
         app_token: getDataFromLocalStorage('app_token'),
         projectId: projectId,
         affix: affix,
-        file_path: localPath
+        file_path: localPath,
+        // Forwarded for drupal SQL validation; upload-api persists these into config.mysql.
+        ...(mysql?.host ? { mysql_host: mysql.host } : {}),
+        ...(mysql?.database ? { mysql_database: mysql.database } : {}),
+        ...(mysql?.user ? { mysql_user: mysql.user } : {})
       }
     };
     return await getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);

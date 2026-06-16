@@ -5,7 +5,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { v4 } from 'uuid';
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES } from '../constants/index.js';
+import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, getStepperSteps } from '../constants/index.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
 // import watchLogs from '../utils/watch.utils.js';
@@ -318,7 +318,9 @@ export const runCli = async (
           true;
         ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
           false;
-        ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
+        // Migration completed → land on the final Execute step (6 on delta iterations, 5 otherwise).
+        ProjectModelLowdb.data.projects[projectIndex].current_step =
+          getStepperSteps(ProjectModelLowdb.data.projects[projectIndex]?.iteration).MIGRATION;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         // Record every locale that just successfully migrated so the next delta restart can
         // tell which locales need a full pass vs delta. Set-union with prior value.

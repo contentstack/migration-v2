@@ -236,6 +236,86 @@ describe('routes/index', () => {
     });
   });
 
+  describe('GET /validator — MySQL header parsing', () => {
+    it('should parse mysql_* headers and pass trimmed mysqlDetails to updateConfigFile', async () => {
+      mockConfig.localPath = 'sql';
+      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK', file_details: {} });
+      const { updateConfigFile } = await import('../../../src/helper');
+
+      const handler = getHandler(router, 'get', '/validator');
+      const res = mockRes();
+      await handler(
+        mockReq({
+          headers: {
+            projectid: 'proj-1',
+            app_token: 'tk',
+            affix: 'csm',
+            file_path: 'sql',
+            mysql_host: '  127.0.0.1  ',
+            mysql_database: '  mydb  ',
+            mysql_user: '  root  ',
+          },
+        }),
+        res
+      );
+
+      expect(updateConfigFile).toHaveBeenCalledWith('sql', {
+        host: '127.0.0.1',
+        database: 'mydb',
+        user: 'root',
+      });
+    });
+
+    it('should use the first element when mysql_* headers are arrays', async () => {
+      mockConfig.localPath = 'sql';
+      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK', file_details: {} });
+      const { updateConfigFile } = await import('../../../src/helper');
+
+      const handler = getHandler(router, 'get', '/validator');
+      const res = mockRes();
+      await handler(
+        mockReq({
+          headers: {
+            projectid: 'proj-1',
+            app_token: 'tk',
+            affix: 'csm',
+            mysql_host: ['10.0.0.1', '10.0.0.2'],
+            mysql_database: ['firstdb', 'seconddb'],
+            mysql_user: ['admin', 'guest'],
+          },
+        }),
+        res
+      );
+
+      expect(updateConfigFile).toHaveBeenCalledWith(undefined, {
+        host: '10.0.0.1',
+        database: 'firstdb',
+        user: 'admin',
+      });
+    });
+
+    it('should pass undefined mysql fields when headers are missing or blank', async () => {
+      mockConfig.localPath = 'sql';
+      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK', file_details: {} });
+      const { updateConfigFile } = await import('../../../src/helper');
+
+      const handler = getHandler(router, 'get', '/validator');
+      const res = mockRes();
+      await handler(
+        mockReq({
+          headers: { projectid: 'proj-1', app_token: 'tk', affix: 'csm', mysql_host: '   ' },
+        }),
+        res
+      );
+
+      expect(updateConfigFile).toHaveBeenCalledWith(undefined, {
+        host: undefined,
+        database: undefined,
+        user: undefined,
+      });
+    });
+  });
+
   describe('GET /validator — directory path', () => {
     it('should handle directory and call mapper on 200', async () => {
       mockConfig.localPath = '/tmp/content-dir';

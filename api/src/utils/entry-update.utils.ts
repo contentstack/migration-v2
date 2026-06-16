@@ -194,10 +194,11 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                             writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}" (locale "${localeCode}")`, "removeEntriesFromDatabase", loggerPath);
                         }
 
+                        // Existing entry → remove from import data so it is NOT re-created.
                         delete data[key];
                         modified = true;
                         writeLogEntry(`Removed entry "${key}" from ${filePath}`, "removeEntriesFromDatabase", loggerPath);
-                        writeLogEntry(`Entry "${key}" has been removed from migration data (will be updated instead of created)`, "removeEntriesFromDatabase", loggerPath);
+                        writeLogEntry(`Entry "${key}" has been removed from migration data (exists in Contentstack)`, "removeEntriesFromDatabase", loggerPath);
                     }
                 }
 

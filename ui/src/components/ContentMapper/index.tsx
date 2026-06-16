@@ -1016,7 +1016,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     try {
       const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || '', 'new'); //org id will always present
 
-      setIsLoading(false);
       setContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
       setFilteredContentTypes(data?.contentTypes);
@@ -1033,7 +1032,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       dispatch(updateNewMigrationData({ hasNoContentTypes: !(data?.contentTypes?.length > 0) }));
     } catch (error) {
       console.error(error);
+      // On failure treat step 3 as empty so the Continue gate doesn't hang in an undefined state.
+      dispatch(updateNewMigrationData({ hasNoContentTypes: true }));
       return error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

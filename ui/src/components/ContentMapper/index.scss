@@ -152,8 +152,8 @@
     border-left: 0 none;
     min-height: 24.25rem;
     .Table__body__row {
-        .Table-select-body {
-         >.checkbox-wrapper {
+      .Table-select-body {
+        > .checkbox-wrapper {
           align-items: flex-start;
         }
       }
@@ -313,6 +313,15 @@ div .table-row {
 .mapper-emptystate {
   padding: 10px 10px;
 }
+// Delta iteration empty state has no "Go to Legacy CMS" action button, so center it vertically
+// in the available space instead of sitting top-heavy.
+.mapper-emptystate--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
 .Checkbox .Checkbox__tick svg {
   display: block;
 }
@@ -323,11 +332,11 @@ div .table-row {
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
 }
-.filterButton-color{
+.filterButton-color {
   color: $color-brand-primary-base;
   font-weight: $font-weight-bold;
 }
-.icon-padding{
+.icon-padding {
   padding: 10px 10px;
   margin-left: 6px;
 }
@@ -337,23 +346,23 @@ div .table-row {
     font-weight: 600;
     // margin-left: 16px;
   }
-  
+
   &.child-row {
     margin-left: 26px;
   }
-  
+
   &.child-row-level-2 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 36px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-3 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 62px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-4 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 98px;
@@ -432,14 +441,14 @@ div .table-row {
 .table-row {
   display: flex;
   align-items: center;
-  gap: 8px;                   
+  gap: 8px;
 }
 .table-row .select {
-  flex: 1;                    
+  flex: 1;
 }
 .advanced-setting-button,
 .table-row button {
-  flex-shrink: 0;           
+  flex-shrink: 0;
 }
 
 // Prevent header wrapping
@@ -478,7 +487,7 @@ div .table-row {
   overflow-y: auto !important;
 }
 
-// Safety for small screens 
+// Safety for small screens
 @media (max-height: 800px) {
   .mapper-footer {
     padding: 10px;
@@ -487,7 +496,7 @@ div .table-row {
 
 .select {
   .tippy-wrapper {
-    display: inline; 
+    display: inline;
   }
 }
 
@@ -506,6 +515,22 @@ div .table-row {
 }
 
 .entry-mapper-container {
+  // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
+  // so it collapses to just the text. Stretch the table chrome and the empty message to
+  // fill the available viewport space instead of leaving a grey gap below.
+  .TableWrapper,
+  .Table {
+    min-height: calc(100vh - 300px);
+  }
+  .no-table-data {
+    min-height: calc(100vh - 300px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
   .Table {
     // Force row layout alignment
     .Table__head,

@@ -15,6 +15,7 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
+  getStepperSteps,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -934,6 +935,11 @@ const updateCurrentStep = async (req: Request) => {
     const isStepCompleted =
       project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
 
+    // Delta migration: from iteration 2 onwards the flow has an extra "Map Entry" step (step 4),
+    // shifting Testing → 5 and Migration → 6. Resolve the step-number map for this project's
+    // iteration so the state machine progresses through the correct steps.
+    const steps = getStepperSteps(project?.iteration);
+
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
         if (project.status !== NEW_PROJECT_STATUS[0] || !isStepCompleted) {
@@ -998,7 +1004,7 @@ const updateCurrentStep = async (req: Request) => {
         });
         break;
       }
-      case STEPPER_STEPS.CONTENT_MAPPING: {
+      case steps.CONTENT_MAPPING: {
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -1023,13 +1029,31 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step = STEPPER_STEPS.TESTING;
+          // Delta iteration: Content Mapping → Map Entry (step 4). Iteration 1: → Testing (step 4).
+          data.projects[projectIndex].current_step =
+            steps.MAP_ENTRY ?? steps.TESTING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
       }
-      case STEPPER_STEPS.TESTING: {
+      // Map Entry → Testing. Only reachable on delta iterations (step exists from iteration 2).
+      case steps.MAP_ENTRY: {
+        await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
+          data.projects[projectIndex].current_step = steps.TESTING;
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case steps.TESTING: {
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -1056,13 +1080,13 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].current_step = steps.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
       }
-      case STEPPER_STEPS.MIGRATION: {
+      case steps.MIGRATION: {
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -1089,7 +1113,7 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].current_step = steps.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -1575,7 +1599,8 @@ const getMigratedStacks = async (req: Request) => {
         (project: any) =>
           project != null &&
           project?.status === 5 &&
-          project?.current_step === 5 &&
+          // Project is on its final Execute step (6 on delta iterations, 5 otherwise).
+          project?.current_step === getStepperSteps(project?.iteration).MIGRATION &&
           project?.destination_stack_id
       )
       .map((project: any) => project.destination_stack_id)

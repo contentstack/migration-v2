@@ -207,5 +207,5 @@ export const CONTENT_MAPPER_EMPTY_STATE = {
     'There are no new content types in this file. You can still continue.',
   NO_CONTENT_TYPES_HEADING: 'No Content Types available',
   NO_CONTENT_TYPES_DESCRIPTION:
-    'There is something error occured while generating content mapper. Please go to Legacy Cms step and validate the file again.'
+    'An error occurred while generating the content mapper. Please go to the Legacy CMS step and validate the file again.'
 }
