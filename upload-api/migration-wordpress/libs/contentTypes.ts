@@ -80,14 +80,16 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
       }, {});
       
       
-      // Now process each type dynamically
-      for (const [type, items] of Object.entries(groupedByType)) {
-        if (Array?.isArray(items) && items?.length > 0) {
-          await extractItems(items, DataConfig, type, affix, categoriesData, termsData);
-        } else {
-          console.log(`No ${type} found to extract`);
-        }
+    for (const [type, items] of Object.entries(groupedByType)) {
+      const publishableItems = (items as any[])?.filter((item: any) =>
+        ['publish', 'inherit'].includes(item?.['wp:status'])
+      );
+      if (Array?.isArray(publishableItems) && publishableItems?.length > 0) {
+        await extractItems(publishableItems, DataConfig, type, affix, categoriesData, termsData);
+      } else {
+        console.log(`No ${type} found to extract`);
       }
+    }
       
       
     return readJsonFilesFromFolder(contentTypeFolderPath);

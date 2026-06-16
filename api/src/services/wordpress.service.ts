@@ -448,10 +448,11 @@ function attachMediaTextFieldsToChildren(
   if (textValue != null && textValue !== '') out[mtk] = textValue;
 }
 
-async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>, postmeta?: any) {
+async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>, postmeta?: any, link?: string) {
   const schema : any = {
     title: title,
     uid: uid,
+    url: link,
     //fields: fields?.fields,
   };
 
@@ -1488,7 +1489,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
 
           // Pass individual content to createSchema
-          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings, item?.['wp:postmeta']);
+          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings, item?.['wp:postmeta'], item?.link);
 
           if (!project?.acfExportDir && wpPost?.acf) {
             const acfSchema = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
@@ -2061,11 +2062,15 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   try {
     const response = await axios.get(url, {
       responseType: "arraybuffer",
+      timeout: 30000,
+      maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': baseSiteUrl || url,
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
       }
     });
     // Ensure files directory exists
@@ -2366,7 +2371,9 @@ async function saveAssetFromUrl(
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': baseSiteUrl || url,
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
       }
     });
     
