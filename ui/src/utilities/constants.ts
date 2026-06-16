@@ -197,3 +197,15 @@ export const EXECUTION_LOGS_UI_TEXT = {
 export const EXECUTION_LOGS_ERROR_TEXT = {
   ERROR: 'Error in Getting Migration Logs'
 }
+
+// Content Mapper (Map Content Fields step) empty-state text.
+// Delta migration (iteration > 1): an empty list means there are no NEW content types — valid,
+// the user can continue. Iteration 1: an empty list means content-mapper generation failed.
+export const CONTENT_MAPPER_EMPTY_STATE = {
+  NO_NEW_CONTENT_TYPES_HEADING: 'No new content types',
+  NO_NEW_CONTENT_TYPES_DESCRIPTION:
+    'There are no new content types in this file. You can still continue.',
+  NO_CONTENT_TYPES_HEADING: 'No Content Types available',
+  NO_CONTENT_TYPES_DESCRIPTION:
+    'There is something error occured while generating content mapper. Please go to Legacy Cms step and validate the file again.'
+}

@@ -113,12 +113,17 @@ export const getContentTypes = (
   projectId: string,
   skip: number,
   limit: number,
-  searchText: string
+  searchText: string,
+  filter?: 'new' | 'old'
 ) => {
   try {
     const encodedSearchText = encodeURIComponent(searchText);
+    // Delta migration (iteration > 1): 'new' → first-time content types for Step 3 (field
+    // mapping), 'old' → already-migrated content types for Step 4 (entry mapping). Ignored on
+    // iteration 1 by the backend.
+    const filterQuery = filter ? `&filter=${filter}` : '';
     return getCall(
-      `${API_VERSION}/mapper/contentTypes/${projectId}/${skip}/${limit}/${encodedSearchText}?`,
+      `${API_VERSION}/mapper/contentTypes/${projectId}/${skip}/${limit}/${encodedSearchText}?${filterQuery}`,
       options()
     );
   } catch (error) {
