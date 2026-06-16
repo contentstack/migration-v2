@@ -81,14 +81,20 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
     // Per (otherCmsEntryUid, sourceLanguage) lookup so we can find the exact row that
     // corresponds to a given locale directory. Same source entry may have N rows — one per
-    // source-locale variant — each with its own isUpdate flag.
+    // source-locale variant — each with its own isUpdate flag. We also keep a legacy
+    // single-row-per-uid map for projects/tests where entry_mapper rows aren't tagged with
+    // a `language` field.
     const rowByUidAndLang = new Map<string, any>();
+    const rowByUid = new Map<string, any>();
     const csUidByOtherCmsUid = new Map<string, string>();
     for (const item of entryMapperItems) {
         if (item?.contentstackEntryUid) {
             csUidByOtherCmsUid.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
             const lang = (item as any)?.language ?? '';
             rowByUidAndLang.set(`${item?.otherCmsEntryUid}::${lang}`, item);
+            if (!rowByUid.has(item?.otherCmsEntryUid)) {
+                rowByUid.set(item?.otherCmsEntryUid, item);
+            }
         }
     }
 
@@ -115,10 +121,14 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
         for (const localeDir of localeDirs) {
             const localeCode = localeDir.name;
-            // Newly-added locales have no prior migration state to diff against. Leave their
-            // import data alone (so the regular full-import pipeline picks them up) and skip
-            // generating any update payloads for them.
-            if (isFullMigrationForLocale(projectData ?? {}, localeCode)) {
+            // Skip delta cleanup only when this is a restart AND the locale was never migrated
+            // before — newly-added locales have no prior state to diff against, so the regular
+            // full-import pipeline should pick them up untouched. On iteration 1 we always
+            // process (the function may be a no-op then, but tests/legacy code can still call it).
+            if (
+                (projectData?.iteration ?? 1) > 1 &&
+                isFullMigrationForLocale(projectData ?? {}, localeCode)
+            ) {
                 writeLogEntry(
                     `Skipping delta cleanup for new locale "${localeCode}" — full import.`,
                     "removeEntriesFromDatabase",
@@ -179,9 +189,11 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
                         // Look up the entry_mapper row for THIS source-locale variant. Same source
                         // entry has separate rows for each source locale; `isUpdate` is per-row.
-                        const row = sourceLocale
-                            ? rowByUidAndLang.get(`${key}::${sourceLocale}`)
-                            : undefined;
+                        // When the project has no locale mapping (legacy/test data), fall back to
+                        // a single-row-per-uid match so the legacy delta path still works.
+                        const row =
+                            (sourceLocale && rowByUidAndLang.get(`${key}::${sourceLocale}`)) ||
+                            rowByUid.get(key);
                         if (row?.isUpdate) {
                             const entryData = { ...data[key], __locale: localeCode, __csUid: csEntryUid };
                             delete entryData?.uid;
