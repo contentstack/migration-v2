@@ -31,6 +31,7 @@ import getEntryMapperDb, { EntryMapper } from "../models/EntryMapper.js";
 import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 import getUidMapperDb from "../models/uidMapper.js";
 import { isDuplicateEntry } from '../utils/entry-duplicate.utils.js';
+import { getSourceLocaleForDestination } from '../utils/locale-migration.utils.js';
 
 
 const idCorrector = ({ id }: { id: string }) => {
@@ -1880,6 +1881,8 @@ const updateEntryStatus = async (req: Request) => {
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
     const foundEntry: EntryMapper[] = [];
+    // Rows in entry_mapper are already per-(entry × source-locale), so each id uniquely
+    // identifies one locale variant; toggling isUpdate directly is correct.
     await EntryMapperModel.update((data: any) => {
       data?.entry_mapper?.forEach((entry: any) => {
         if (validatedUids.includes(entry?.id)) {
@@ -1928,6 +1931,8 @@ const getEntryMapping = async (req: Request) => {
   const skip: any = req?.params?.skip;
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
+  const locale: string | undefined =
+    (req?.query?.locale as string) || (req?.params as any)?.locale;
 
   let result: any[] = [];
   let filteredResult = [];
@@ -1961,6 +1966,11 @@ const getEntryMapping = async (req: Request) => {
     }
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
+    // Convert the destination locale param (e.g. "en-in") to its source locale code
+    // (e.g. "en-IN") so we can filter the per-source-locale entry_mapper rows.
+    const sourceLocale = locale
+      ? getSourceLocaleForDestination(projectData ?? {}, locale)
+      : null;
     let entryMapping = contentType?.entryMapping?.map?.((mapperUId: any) => {
       const entryMapper = EntryMapperModel.chain
         .get("entry_mapper")
@@ -1990,16 +2000,25 @@ const getEntryMapping = async (req: Request) => {
       entryMapping ?? [],
     );
 
-    if (!isEmpty(enrichedMapping)) {
+    // entry_mapper rows are already per-source-locale (one row per language variant).
+    // Filter to just the rows whose `language` matches the selected destination locale's
+    // source code. Falls open when no locale is provided so legacy callers still work.
+    const localeFiltered = sourceLocale
+      ? (enrichedMapping ?? []).filter(
+          (row: any) => row && (row?.language ?? '') === sourceLocale,
+        )
+      : enrichedMapping;
+
+    if (!isEmpty(localeFiltered)) {
       if (search) {
-        filteredResult = enrichedMapping?.filter?.((item: any) =>
+        filteredResult = localeFiltered?.filter?.((item: any) =>
           item?.entryName?.toLowerCase().includes(search)
         );
         totalCount = filteredResult?.length;
         result = filteredResult?.slice(skip, Number(skip) + Number(limit));
       } else {
-        totalCount = enrichedMapping?.length;
-        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
+        totalCount = localeFiltered?.length;
+        result = localeFiltered?.slice(skip, Number(skip) + Number(limit));
       }
     }
     return {

@@ -4,6 +4,10 @@ import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
 import { sanitizeStackId, assertResolvedPathUnderBase } from "./sanitize-path.utils.js";
+import {
+    isFullMigrationForLocale,
+    getSourceLocaleForDestination,
+} from "./locale-migration.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -75,10 +79,16 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         entryMapperItems.map((item: { otherCmsEntryUid: string }) => item?.otherCmsEntryUid)
     );
 
-    const updateUidMap = new Map<string, string>();
+    // Per (otherCmsEntryUid, sourceLanguage) lookup so we can find the exact row that
+    // corresponds to a given locale directory. Same source entry may have N rows — one per
+    // source-locale variant — each with its own isUpdate flag.
+    const rowByUidAndLang = new Map<string, any>();
+    const csUidByOtherCmsUid = new Map<string, string>();
     for (const item of entryMapperItems) {
-        if (item.isUpdate) {
-            updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+        if (item?.contentstackEntryUid) {
+            csUidByOtherCmsUid.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            const lang = (item as any)?.language ?? '';
+            rowByUidAndLang.set(`${item?.otherCmsEntryUid}::${lang}`, item);
         }
     }
 
@@ -104,6 +114,21 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
             ?.filter((dirent) => dirent?.isDirectory());
 
         for (const localeDir of localeDirs) {
+            const localeCode = localeDir.name;
+            // Newly-added locales have no prior migration state to diff against. Leave their
+            // import data alone (so the regular full-import pipeline picks them up) and skip
+            // generating any update payloads for them.
+            if (isFullMigrationForLocale(projectData ?? {}, localeCode)) {
+                writeLogEntry(
+                    `Skipping delta cleanup for new locale "${localeCode}" — full import.`,
+                    "removeEntriesFromDatabase",
+                    loggerPath,
+                );
+                continue;
+            }
+            // entry_mapper rows are tagged with the SOURCE locale code (e.g. "en-IN");
+            // directories on disk use the DESTINATION code (e.g. "en-in"). Translate.
+            const sourceLocale = getSourceLocaleForDestination(projectData ?? {}, localeCode);
             const localePath = path.join(ctPath, localeDir.name);
             // Respect index.json — only the chunk files it lists are current. Each import run
             // writes chunk files with fresh random UUID names and overwrites index.json, but does
@@ -144,17 +169,29 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                 let modified = false;
                 for (const key of Object?.keys(data)) {
                     if (sitecoreUids.has(key)) {
-                        const csEntryUid = updateUidMap.get(key);
-                        if (csEntryUid) {
-                            const entryData = { ...data[key] };
+                        const csEntryUid = csUidByOtherCmsUid.get(key);
+                        // No Contentstack entry uid → this entry was never migrated, so leave it in
+                        // the import data to be CREATED this iteration. Deleting it would silently
+                        // drop the entry (data loss).
+                        if (!csEntryUid) {
+                            continue;
+                        }
+
+                        // Look up the entry_mapper row for THIS source-locale variant. Same source
+                        // entry has separate rows for each source locale; `isUpdate` is per-row.
+                        const row = sourceLocale
+                            ? rowByUidAndLang.get(`${key}::${sourceLocale}`)
+                            : undefined;
+                        if (row?.isUpdate) {
+                            const entryData = { ...data[key], __locale: localeCode, __csUid: csEntryUid };
                             delete entryData?.uid;
 
                             if (!entriesToUpdate[contentTypeName]) {
                                 entriesToUpdate[contentTypeName] = {};
                             }
-                            entriesToUpdate[contentTypeName][csEntryUid] = entryData;
-                            writeLogEntry(`Collected update entry "${csEntryUid}" for content type "${contentTypeName}"`, "removeEntriesFromDatabase", loggerPath);
-                            writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}"`, "removeEntriesFromDatabase", loggerPath);
+                            entriesToUpdate[contentTypeName][`${csEntryUid}::${localeCode}`] = entryData;
+                            writeLogEntry(`Collected update entry "${csEntryUid}" (locale "${localeCode}") for content type "${contentTypeName}"`, "removeEntriesFromDatabase", loggerPath);
+                            writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}" (locale "${localeCode}")`, "removeEntriesFromDatabase", loggerPath);
                         }
 
                         delete data[key];

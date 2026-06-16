@@ -19,7 +19,7 @@ interface TestStack {
   isMigrated: boolean;
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
-import writeUidMapping from '../utils/uid-mapper.utils.js';
+import writeUidMapping, { writePerLocaleEntryUidMapping } from '../utils/uid-mapper.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -277,6 +277,7 @@ export const runCli = async (
           .value();
         const iteration = projectData?.iteration || 1;
         await writeUidMapping(backupPath, projectId, iteration);
+        await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
       }
 
       // Keep the project status update code:
@@ -319,6 +320,19 @@ export const runCli = async (
           false;
         ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
+        // Record every locale that just successfully migrated so the next delta restart can
+        // tell which locales need a full pass vs delta. Set-union with prior value.
+        const proj: any = ProjectModelLowdb.data.projects[projectIndex];
+        const ranLocales = Array.from(
+          new Set([
+            ...Object.keys(proj?.master_locale ?? {}),
+            ...Object.keys(proj?.locales ?? {}),
+          ]),
+        );
+        const existing: string[] = Array.isArray(proj?.migrated_locales)
+          ? proj.migrated_locales
+          : [];
+        proj.migrated_locales = Array.from(new Set([...existing, ...ranLocales]));
         await ProjectModelLowdb.write();
       }
     } else {

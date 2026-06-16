@@ -382,12 +382,14 @@ export const getEntryMapping = async (
   skip: number,
   limit: number,
   searchText: string,
-  projectId: string
+  projectId: string,
+  locale?: string
 ) => {
   try {
     const encodedSearchText = encodeURIComponent(searchText);
+    const localeQuery = locale ? `locale=${encodeURIComponent(locale)}` : '';
     return await getCall(
-      `${API_VERSION}/mapper/entryMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
+      `${API_VERSION}/mapper/entryMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?${localeQuery}`,
       options()
     );
   } catch (error) {

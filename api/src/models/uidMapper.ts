@@ -10,9 +10,15 @@ import { DATABASE_FILES } from "../constants/index.js";
 interface EntryMapper {
   entry: Record<string, any>;
   assets: Record<string, any>;
+  /**
+   * Per-locale entry uid mapping. Source uid → destination uid, scoped by destination
+   * locale code. Populated by writePerLocaleEntryUidMapping after each CLI import so the
+   * delta flow can tell which entries actually have a variant in a given locale.
+   */
+  entryByLocale?: Record<string, Record<string, string>>;
 }
 
-const defaultData: EntryMapper = { entry: {}, assets: {} };
+const defaultData: EntryMapper = { entry: {}, assets: {}, entryByLocale: {} };
 
 /**
  * Creates and returns a database instance for the field mapper for a specific project.
