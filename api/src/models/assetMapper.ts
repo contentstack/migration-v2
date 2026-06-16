@@ -3,6 +3,7 @@ import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 import path from "path";
 import fs from 'node:fs';
 import { DATABASE_FILES } from "../constants/index.js";
+import { sanitizeProjectId } from "../utils/sanitize-path.utils.js";
 
 /**
  * Represents an asset mapper object. Rows exist only for assets whose source
@@ -35,11 +36,22 @@ const defaultData: AssetMapper = { asset_mapper: [] };
  * @returns The database instance for the asset mapper
  */
 const getAssetMapperDb = (projectId: string, iteration: number) => {
-  fs.mkdirSync(path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString()), { recursive: true });
+  // projectId is HTTP-derived in several routes; validate it via an allowlist
+  // before using it as a path segment to prevent path traversal (CWE-23).
+  // sanitizeProjectId returns null for unsafe input (e.g. containing "..", "/").
+  const safeProjectId = sanitizeProjectId(projectId);
+  if (safeProjectId === null) {
+    throw new Error("Invalid projectId");
+  }
+  const dir = path.join(
+    process.cwd(),
+    DATABASE_FILES.DIRECTORY,
+    safeProjectId,
+    iteration.toString()
+  );
+  fs.mkdirSync(dir, { recursive: true });
   const db = new LowWithLodash(
-    new JSONFile<AssetMapper>(
-      path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString(), DATABASE_FILES.ASSET_MAPPER)
-    ),
+    new JSONFile<AssetMapper>(path.join(dir, DATABASE_FILES.ASSET_MAPPER)),
     defaultData
   );
   return db;

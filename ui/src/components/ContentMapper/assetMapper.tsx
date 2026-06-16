@@ -77,12 +77,17 @@ const AssetMapper = ({
 
       const validTableData: AssetMapperType[] = mapAssetsToRows(data?.assetMapping);
 
+      // The API returns the full (filtered) total separately from the page it
+      // sends back. Use that so the count and pagination are correct when the
+      // result set is larger than the requested page size.
+      const total = data?.count ?? validTableData?.length ?? 0;
+
       const initialSelected = buildSelectedRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
-      setTotalCounts(validTableData?.length);
-      onCountChange?.(validTableData?.length ?? 0);
+      setTotalCounts(total);
+      onCountChange?.(total);
     } catch (error) {
       console.error('fetchAssets -> error', error);
     }
@@ -113,8 +118,18 @@ const AssetMapper = ({
       setLoading(false);
 
       const validTableData: AssetMapperType[] = mapAssetsToRows(data?.assetMapping);
+      const newRows = applySelectionToAssets(validTableData ?? [], rowIds);
 
-      setTableData(applySelectionToAssets(validTableData ?? [], rowIds));
+      // Merge the fetched page into the existing rows at its offset so the
+      // virtualized table keeps previously loaded rows instead of dropping
+      // them when the next range is requested.
+      setTableData((prev) => {
+        const merged = [...(prev ?? [])];
+        newRows.forEach((row, index) => {
+          merged[Number(skip) + index] = row;
+        });
+        return merged;
+      });
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
@@ -265,7 +280,7 @@ const AssetMapper = ({
         key={'asset-mapper-table'}
         loading={loading}
         canSearch={true}
-        totalCounts={Math.max(0, tableData?.length)}
+        totalCounts={Math.max(0, totalCounts)}
         data={[...tableData]}
         columns={columns}
         uniqueKey={'id'}

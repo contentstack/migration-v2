@@ -2290,7 +2290,7 @@ const updateAssetStatus = async (req: Request) => {
       });
     });
 
-    if (foundAssets) {
+    if (foundAssets.length > 0) {
       return {
         status: HTTP_CODES?.OK,
         data: foundAssets
