@@ -1217,12 +1217,22 @@ const startMigration = async (req: Request): Promise<any> => {
       }
     }
 
-    saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
+    // projectId is HTTP-derived and gets interpolated into database/<projectId>/...
+    // paths below; the resulting config file is later read with fs.readFileSync.
+    // Sanitize once and bail on invalid input so a traversal value (e.g. "../../etc")
+    // can never reach the filesystem. sanitizeProjectId rebuilds the value
+    // char-by-char from an allowlist, which breaks the taint chain.
+    if (!safePid) {
+      await customLogger(projectId, destinationStackId, 'error', 'Invalid project id; skipping delta asset/entry processing.');
+      return;
+    }
+
+    saveAssetMetadata(indexData, safePid, iteration, safeDeltaMigrationLogPath);
 
     if (iteration > 1) {
-      assetUpdates = await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
+      assetUpdates = await removeExistingAssets(safePid, safeDeltaMigrationLogPath);
       configFilePath = await removeEntriesFromDatabase(
-        projectId,
+        safePid,
         safeDeltaMigrationLogPath
       );
       await customLogger(projectId, destinationStackId, 'info', `Config file generated at ${configFilePath}`);
@@ -1241,13 +1251,13 @@ const startMigration = async (req: Request): Promise<any> => {
     // Make sure an update config exists when there are asset updates but no
     // entry updates, so the asset-replace step still runs.
     if (!configFilePath && assetUpdates.length) {
-      configFilePath = ensureUpdateConfigFile(projectId, iteration);
+      configFilePath = ensureUpdateConfigFile(safePid, iteration);
     }
 
     if (configFilePath) {
       enrichConfigWithAssetMapping(
         configFilePath,
-        projectId,
+        safePid,
         iteration,
         safeDeltaMigrationLogPath
       );
