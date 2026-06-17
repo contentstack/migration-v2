@@ -346,7 +346,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               placeholder={placeholder}
               isClearable={allStack?.length > 0 && !emptyStackValue}
               // hideSelectedOptions={true}
-              isDisabled={newMigrationData?.project_current_step > 2}
+              isDisabled={newMigrationData?.project_current_step > 2 || (newMigrationData?.iteration ?? 1) > 1}
               error={isLoading ? false : !!isError}
               width="600px"
               hasAddOption={true}

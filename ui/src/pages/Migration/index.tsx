@@ -116,6 +116,11 @@ const Migration = () => {
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
+  // Keep the ref in sync with Redux so dispatches built from `ref.current` don't carry
+  // stale snapshots (e.g. pre-restart state) into later updates.
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
 
   useEffect(() => {
     fetchData();
@@ -652,17 +657,23 @@ const Migration = () => {
 
       if (res?.status === 200) {
         setIsLoading(false);
-        // Check if stack is already selected
-        if (newMigrationData?.destination_stack?.selectedStack?.value) {
+        // On a restart (iteration > 1) we must NOT skip Step 2 — that's where the user
+        // can review/adjust locale mapping (e.g. add a new locale before a delta run).
+        const isRestart = (newMigrationData?.iteration ?? 1) > 1;
+        // Otherwise, if a stack is already chosen we can jump straight to Step 3.
+        if (!isRestart && newMigrationData?.destination_stack?.selectedStack?.value) {
           const url = `/projects/${projectId}/migration/steps/3`;
-
+          // Bump current_step a second time so backend lands on Step 3 (Content Mapping)
+          // — we're skipping Step 2 because the destination stack is already configured.
           await updateCurrentStepData(selectedOrganisation?.value, projectId);
 
           handleStepChange(2);
           navigate(url, { replace: true });
         } else {
+          // Going to Step 2 — backend was already advanced once above (Step 1 → 2). Do NOT
+          // bump again, otherwise current_step ends up at 3 and the `project_current_step > 2`
+          // gate on Step 2's stack/locale/Add-Language buttons would disable everything.
           const url = `/projects/${projectId}/migration/steps/2`;
-          await updateCurrentStepData(selectedOrganisation?.value, projectId);
 
           handleStepChange(1);
           navigate(url, { replace: true });
@@ -917,6 +928,10 @@ const Migration = () => {
   };
 
   const handleRestartMigration = async () => {
+    // Reset the locally-tracked "Start Migration in flight" flag from any prior run, otherwise
+    // MigrationFlowHeader receives finalExecutionStarted=true and disables Save and Continue
+    // on Step 1 (via isMigrationInProgress) until the user refreshes.
+    setDisableMigration(false);
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
