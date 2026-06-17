@@ -237,3 +237,17 @@ export interface EntryMapperType {
   _canSelect?: boolean;
   isDuplicateEntry?: boolean;
 }
+
+export interface AssetMapperType {
+  id: string;
+  projectId: string;
+  otherCmsAssetUid: string;
+  filename: string;
+  title: string;
+  file_size: number | string;
+  assetPath: string;
+  isUpdate: boolean;
+  isChanged?: boolean;
+  contentstackAssetUid?: string;
+  _canSelect?: boolean;
+}

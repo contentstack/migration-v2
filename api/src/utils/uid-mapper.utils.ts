@@ -5,6 +5,32 @@ import customLogger from "./custom-logger.utils";
 import fs from "fs";
 import projectModelLowdb from "../models/project-lowdb";
 
+/**
+ * Merges a previous iteration's uid map under the current run's map (current
+ * wins on conflict). Values can be plain strings (flat old→new maps) or
+ * one-level nested objects (per-content-type entry maps) — nested objects are
+ * merged key-wise so a partial current map doesn't clobber a content type's
+ * previously known uids.
+ */
+const mergeUidMaps = (
+  prev: Record<string, any>,
+  current: Record<string, any>,
+): Record<string, any> => {
+  const merged: Record<string, any> = { ...(prev || {}) };
+  for (const [key, value] of Object.entries(current || {})) {
+    const existing = merged[key];
+    if (
+      value && typeof value === "object" && !Array.isArray(value) &&
+      existing && typeof existing === "object" && !Array.isArray(existing)
+    ) {
+      merged[key] = { ...existing, ...value };
+    } else {
+      merged[key] = value;
+    }
+  }
+  return merged;
+};
+
 const writeUidMapping = async (
   backupPath: string,
   projectId: string,
@@ -41,31 +67,6 @@ const writeUidMapping = async (
       );
     }
 
-    // If no meaningful data found and we have previous iteration, use fallback
-    if (Object?.keys(assetJson)?.length === 0 && iteration > 1) {
-      const prevAssetMapperPath = path.join(
-        process.cwd(),
-        DATABASE_FILES.DIRECTORY,
-        projectId,
-        (iteration - 1).toString(),
-        DATABASE_FILES.UID_MAPPER,
-      );
-      if (fs.existsSync(prevAssetMapperPath)) {
-        const prevData = JSON.parse(
-          fs.readFileSync(prevAssetMapperPath, "utf-8"),
-        );
-        assetJson = prevData?.assets || {};
-      }
-      await customLogger(
-        projectId,
-        destinationStackId,
-        "info",
-        `Using previous iteration data for assets from ${prevAssetMapperPath}: ${JSON.stringify(
-          assetJson,
-        )}`,
-      );
-    }
-
     const entryMapperPath = path.join(
       backupPath,
       "mapper",
@@ -88,47 +89,47 @@ const writeUidMapping = async (
         "info",
         `Entry UID mapping data read successfully from ${entryMapperPath}`,
       );
+    }
 
-      // If no meaningful data found and we have previous iteration, use fallback
-      if (Object?.keys(entryJson)?.length === 0 && iteration > 1) {
-        const prevEntryMapperPath = path.join(
-          process.cwd(),
-          DATABASE_FILES.DIRECTORY,
-          projectId,
-          (iteration - 1).toString(),
-          DATABASE_FILES.UID_MAPPER,
-        );
-        if (fs.existsSync(prevEntryMapperPath)) {
-          const prevData = JSON.parse(
-            fs.readFileSync(prevEntryMapperPath, "utf-8"),
-          );
-          await customLogger(
+    // Carry the previous iteration's mappings forward under the current run's
+    // (current wins on conflict). The CLI only maps what it imported this run —
+    // deduped assets and updated entries are absent — so without this merge
+    // delta matching would only survive a single iteration.
+    if (iteration > 1) {
+      const prevMapperPath = path.join(
+        process.cwd(),
+        DATABASE_FILES.DIRECTORY,
+        projectId,
+        (iteration - 1).toString(),
+        DATABASE_FILES.UID_MAPPER,
+      );
+      if (fs.existsSync(prevMapperPath)) {
+        const prevData = JSON.parse(fs.readFileSync(prevMapperPath, "utf-8"));
+        assetJson = mergeUidMaps(prevData?.assets || {}, assetJson);
+        entryJson = mergeUidMaps(prevData?.entry || {}, entryJson);
+        await customLogger(
           projectId,
           destinationStackId,
           "info",
-          `Using previous iteration data for entries from ${prevEntryMapperPath}: ${JSON.stringify(
-            entryJson,
-          )}`,
+          `Merged previous iteration uid mappings from ${prevMapperPath}`,
         );
-          entryJson = prevData?.entry || {};
-        }
       }
-
-      const combinedMapping = {
-        assets: assetJson,
-        entry: entryJson,
-      };
-      const UidMapperModelLowdb = getUidMapperDb(projectId, iteration);
-      await UidMapperModelLowdb.read();
-      UidMapperModelLowdb.data = combinedMapping;
-      await UidMapperModelLowdb.write();
-      await customLogger(
-        projectId,
-        destinationStackId,
-        "info",
-        "UID mapping data written successfully to Lowdb",
-      );
     }
+
+    const combinedMapping = {
+      assets: assetJson,
+      entry: entryJson,
+    };
+    const UidMapperModelLowdb = getUidMapperDb(projectId, iteration);
+    await UidMapperModelLowdb.read();
+    UidMapperModelLowdb.data = combinedMapping;
+    await UidMapperModelLowdb.write();
+    await customLogger(
+      projectId,
+      destinationStackId,
+      "info",
+      "UID mapping data written successfully to Lowdb",
+    );
   } catch (error) {
     console.error("Error writing UID mapping file:", error);
   }

@@ -579,7 +579,9 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
     }
 
     case 'json': {
-      if (["Object", "Array"].includes(field?.otherCmsType)) {
+      const isAemComponentFallback =
+        typeof field?.otherCmsType === 'string' && field.otherCmsType.includes('/components/');
+      if (isAemComponentFallback || ["Object", "Array"].includes(field?.otherCmsType)) {
         return {
           data_type: "json",
           display_name: field?.title ?? cleanedUid,

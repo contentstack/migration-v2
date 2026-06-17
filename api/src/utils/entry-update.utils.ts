@@ -8,6 +8,7 @@ import {
     isFullMigrationForLocale,
     getSourceLocaleForDestination,
 } from "./locale-migration.utils.js";
+import type { AssetUpdate } from "./asset-update.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -277,7 +278,59 @@ export const enrichConfigWithAssetMapping = (
         writeLogEntry(`No new asset mapping found for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     }
 
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__assetMapping__ = { old: oldAssetMapping, new: newAssetMapping };
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+    } catch (err) {
+        console.error("Failed to write asset mapping into update config:", err);
+        writeLogEntry(`Failed to write __assetMapping__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithAssetMapping", loggerPath);
+        return;
+    }
+
     writeLogEntry(`Asset mapping enriched into config: old=${Object?.keys(oldAssetMapping)?.length} keys, new=${Object?.keys(newAssetMapping)?.length} keys`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset mapping configuration has been enriched for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset references will be resolved using combined old and new mappings`, "enrichConfigWithAssetMapping", loggerPath);
+};
+
+/**
+ * Ensures an update config file exists for this iteration and returns its path.
+ * Used when there are asset updates but no entry updates produced a config, so
+ * the update CLI still has a file to drive the asset-replace task.
+ */
+export const ensureUpdateConfigFile = (
+    projectId: string,
+    iteration: number,
+): string => {
+    const configDir = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString());
+    fs.mkdirSync(configDir, { recursive: true });
+    const configPath = path.join(configDir, DATABASE_FILES.UPDATED_ENTRIES);
+    if (!fs.existsSync(configPath)) {
+        fs.writeFileSync(configPath, JSON.stringify({}), "utf-8");
+    }
+    return configPath;
+};
+
+/**
+ * Injects the assets to replace in place into the update config under
+ * __assetUpdates__. The entry-update-script consumes this to call the
+ * "replace asset" API (same UID, new binary) before updating entries.
+ */
+export const enrichConfigWithAssetUpdates = (
+    configFilePath: string,
+    assetUpdates: AssetUpdate[],
+    loggerPath?: string,
+): void => {
+    if (!assetUpdates?.length) {
+        return;
+    }
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__assetUpdates__ = assetUpdates;
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+        writeLogEntry(`Asset updates enriched into config: ${assetUpdates.length} asset(s) to replace in place`, "enrichConfigWithAssetUpdates", loggerPath);
+    } catch (err) {
+        console.error("Failed to write asset updates into update config:", err);
+        writeLogEntry(`Failed to write __assetUpdates__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithAssetUpdates", loggerPath);
+    }
 };

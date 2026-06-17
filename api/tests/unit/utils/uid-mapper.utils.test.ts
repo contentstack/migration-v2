@@ -94,14 +94,18 @@ describe('uid-mapper.utils - writeUidMapping', () => {
     expect(mockUidWrite).toHaveBeenCalled();
   });
 
-  it('does not write when entry mapper file is missing', async () => {
-    // asset file exists with data, entry file does not exist
+  it('still writes asset mappings when the entry mapper file is missing', async () => {
+    // asset file exists with data, entry file does not exist. writeUidMapping
+    // reads the two mappings independently and always persists the combined
+    // result, so asset mappings survive a run with no entry mapper file (entry
+    // stays empty) — required for delta carry-forward.
     mockExistsSync.mockImplementation((p: string) => p.includes('assets'));
     mockReadFileSync.mockReturnValue(JSON.stringify({ a1: 'asset-uid' }));
 
     await writeUidMapping('/backup', 'p1', 1);
 
-    expect(mockUidWrite).not.toHaveBeenCalled();
+    expect(mockUidWrite).toHaveBeenCalled();
+    expect(uidDb.data).toEqual({ assets: { a1: 'asset-uid' }, entry: {} });
   });
 
   it('falls back to previous iteration for assets when current asset data is empty', async () => {
