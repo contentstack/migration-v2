@@ -12,6 +12,7 @@ import {
   cbModal,
   CircularLoader,
   EmptyState,
+  Select,
 } from '@contentstack/venus-components';
 
 // Services
@@ -22,6 +23,7 @@ import {
   getEntryMapping,
   updateEntryMapper,
 } from '../../services/api/migration.service';
+import { getProject } from '../../services/api/project.service';
 
 // Redux
 import { RootState } from '../../store';
@@ -45,6 +47,17 @@ import { ModalObj } from '../Modal/modal.interface';
 
 // Components
 import SchemaModal from '../SchemaModal';
+
+// Pure logic (unit-tested in __tests__/entryMapper.utils.test.ts)
+import {
+  mapEntriesToRows,
+  buildSelectedEntryRowIds,
+  applySelectionToEntries,
+  selectableInitialRows,
+  filterContentTypesByStatus,
+  applyContentTypeStatus,
+} from './entryMapper.utils';
+import { toSelectedMap, computeChangedUids } from './assetMapper.utils';
 
 // Styles and Assets
 import './index.scss';
@@ -100,6 +113,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
   const [initialRowSelectedData, setInitialRowSelectedData] = useState<EntryMapperType[]>([]);
 
+  // Locale dropdown — sourced from project.json (master_locale + locales) so it reflects the
+  // user's configured mapping regardless of redux hydration timing on restart.
+  const [localeOptions, setLocaleOptions] = useState<{ label: string; value: string }[]>([]);
+  const [selectedLocale, setSelectedLocale] = useState<{ label: string; value: string } | null>(null);
+
   /** ALL HOOKS HERE */
   const { projectId = '' } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -130,29 +148,44 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /********** HELPERS *************/
-  const buildSelectedRowIds = (entries: EntryMapperType[]) => {
-    return (entries ?? []).reduce<UidMap>((acc, item) => {
-      if (item?._canSelect && item?.isUpdate) {
-        acc[item.id] = true;
+  // Fetch the project's configured locale mapping (master + additional) on mount so the
+  // dropdown reflects the actual project state, not stale/missing redux.
+  useEffect(() => {
+    const orgId = selectedOrganisation?.uid;
+    if (!orgId || !projectId) return;
+    (async () => {
+      try {
+        const res: any = await getProject(orgId, projectId);
+        const project = res?.data?.project ?? res?.data ?? res;
+        const masterMap: Record<string, string> = project?.master_locale ?? {};
+        const additional: Record<string, string> = project?.locales ?? {};
+        const opts: { label: string; value: string }[] = [];
+        Object.keys(masterMap).forEach((code) => {
+          opts.push({ label: `${code} (master)`, value: code });
+        });
+        Object.keys(additional).forEach((code) => {
+          if (!opts.some((o) => o.value === code)) {
+            opts.push({ label: code, value: code });
+          }
+        });
+        setLocaleOptions(opts);
+        if (opts?.length > 0) setSelectedLocale(opts[0]);
+      } catch (err) {
+        console.error('Failed to load project locales', err);
       }
-      return acc;
-    }, {});
-  };
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, selectedOrganisation?.uid]);
 
-  const applySelectionToEntries = (
-    entries: EntryMapperType[],
-    selected: Record<string, boolean>,
-  ) => {
-    return (entries ?? []).map((item) => {
-      if (!item?._canSelect) return item;
-      return {
-        ...item,
-        isUpdate: !!selected?.[item.id],
-      };
-    });
-  };
+  // Refetch the entry list when the user switches locale so isUpdate reflects the per-locale flag.
+  useEffect(() => {
+    if (contentTypeUid && selectedLocale?.value) {
+      fetchEntries(contentTypeUid, searchText || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLocale?.value]);
 
+  /********** HELPERS *************/
   /********** CONTENT TYPE LIST (left panel) *************/
   // Fetch ALREADY-MIGRATED content types only (filter='old') — these are the ones whose entries
   // exist and can be mapped in this delta iteration.
@@ -178,14 +211,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   };
 
-  // Clear the right-panel entry table + selection state. Called when the left list becomes empty
-  // (zero search/filter results) so a stale content type's entry table doesn't linger.
-  const resetEntryTable = () => {
+  // Reset the right-hand entry table state — used when the left list becomes empty so we
+  // don't keep showing stale entries from a now-deselected content type.
+  const clearEntryTableState = () => {
     setTableData([]);
+    setTotalCounts(0);
     setRowIds({});
     setPersistedRowIds({});
     setInitialRowSelectedData([]);
-    setTotalCounts(0);
     setOtherCmsTitle('');
     setContentTypeUid('');
     setOtherCmsUid('');
@@ -197,14 +230,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     setSearchContentType(searchCT);
     try {
       const { data } = await getContentTypes(projectId, 0, 1000, searchCT || '', 'old');
-      const nextContentTypes = data?.contentTypes ?? [];
-      setContentTypes(nextContentTypes);
-      setFilteredContentTypes(nextContentTypes);
-      setCount(nextContentTypes?.length ?? 0);
-      // No matching content types → clear the right panel so the previous CT's table doesn't stick around.
-      if (!nextContentTypes?.length) {
-        resetEntryTable();
-      }
+      const next = data?.contentTypes ?? [];
+      setContentTypes(next);
+      setFilteredContentTypes(next);
+      setCount(next?.length ?? 0);
+      if (!next?.length) clearEntryTableState();
     } catch (error) {
       console.error(error);
       return error;
@@ -262,18 +292,18 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     li_list?.forEach((ele) => ele?.classList?.remove('active-filter'));
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
 
-    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === value);
+    const filteredCT = filterContentTypesByStatus(contentTypes, value);
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
-      // Filter yielded no content types → clear the right panel so a stale entry table doesn't linger.
       if (!filteredCT?.length) {
-        resetEntryTable();
-        setShowFilter(false);
-        return;
+        // No content types match the filter — drop the right-hand table so it doesn't
+        // keep showing entries from the previously-selected (now-hidden) content type.
+        clearEntryTableState();
+      } else {
+        const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
+        setActive(selectedIndex >= 0 ? selectedIndex : null);
       }
-      const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
-      setActive(selectedIndex >= 0 ? selectedIndex : null);
     } else {
       setFilteredContentTypes(contentTypes);
       setCount(contentTypes?.length);
@@ -298,7 +328,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setItemStatusMap(itemStatusMapLocal);
       setLoading(true);
 
-      const { data } = await getEntryMapping(ctId || '', 0, 1000, searchVal, projectId);
+      const { data } = await getEntryMapping(ctId || '', 0, 1000, searchVal, projectId, selectedLocale?.value);
 
       for (let index = 0; index <= 1000; index++) {
         itemStatusMapLocal[index] = 'loaded';
@@ -306,17 +336,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setItemStatusMap({ ...itemStatusMapLocal });
       setLoading(false);
 
-      const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
-        ...entry,
-        _canSelect: !!entry?.contentstackEntryUid,
-      }));
+      const validTableData: EntryMapperType[] = mapEntriesToRows(data?.entryMapping);
 
-      const initialSelected = buildSelectedRowIds(validTableData ?? []);
+      const initialSelected = buildSelectedEntryRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
       setTotalCounts(validTableData?.length);
-      setInitialRowSelectedData(validTableData?.filter((item: EntryMapperType) => !item?.isUpdate));
+      setInitialRowSelectedData(selectableInitialRows(validTableData));
       // Reflect any pre-existing entry selections on the content type icon (green when present).
       updateContentTypeStatus(ctId, Object.keys(initialSelected ?? {}).length > 0);
     } catch (error) {
@@ -340,7 +367,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getEntryMapping(contentTypeUid || '', skip, limit, search || '', projectId);
+      const { data } = await getEntryMapping(contentTypeUid || '', skip, limit, search || '', projectId, selectedLocale?.value);
 
       const updated: ItemStatusMapProp = { ...itemStatusMap };
       for (let index = startIndex; index <= stopIndex; index++) {
@@ -349,10 +376,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setItemStatusMap({ ...updated });
       setLoading(false);
 
-      const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
-        ...entry,
-        _canSelect: !!entry?.contentstackEntryUid,
-      }));
+      const validTableData: EntryMapperType[] = mapEntriesToRows(data?.entryMapping);
 
       setTableData(applySelectionToEntries(validTableData ?? [], rowIds));
     } catch (error) {
@@ -366,36 +390,25 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
    */
   const updateContentTypeStatus = (contentTypeId: string, hasSelection: boolean) => {
     if (!contentTypeId) return;
-    const nextStatus = hasSelection ? '2' : '1';
-    const applyStatus = (list: ContentType[]) =>
-      list?.map?.((ct) => (ct?.id === contentTypeId ? { ...ct, status: nextStatus } : ct));
-    setContentTypes((prev) => applyStatus(prev));
-    setFilteredContentTypes((prev) => applyStatus(prev));
+    setContentTypes((prev) => applyContentTypeStatus(prev, contentTypeId, hasSelection));
+    setFilteredContentTypes((prev) => applyContentTypeStatus(prev, contentTypeId, hasSelection));
   };
 
   // Handle selected entries
   const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
-    const selectedObj: UidMap = {};
-    singleSelectedRowIds?.forEach((uid: string) => {
-      selectedObj[uid] = true;
-    });
+    const selectedObj: UidMap = toSelectedMap(singleSelectedRowIds);
     setRowIds(selectedObj);
     setTableData((prev) => applySelectionToEntries(prev ?? [], selectedObj));
   };
 
   const handleSaveContentType = async () => {
     setisLoadingSaveButton(true);
-    const allKeys = new Set([
-      ...Object.keys(rowIds ?? {}),
-      ...Object.keys(persistedRowIds ?? {}),
-    ]);
-    const changedUids = Array.from(allKeys).filter(
-      (uid) => !!rowIds?.[uid] !== !!persistedRowIds?.[uid],
-    );
+    const changedUids = computeChangedUids(rowIds, persistedRowIds);
     const orgId = selectedOrganisation?.uid;
 
     if (orgId && contentTypeUid) {
-      const dataCs = { ids: changedUids };
+      const dataCs: Record<string, unknown> = { ids: changedUids };
+      if (selectedLocale?.value) dataCs.locale = selectedLocale.value;
       try {
         if (changedUids.length === 0) {
           setisLoadingSaveButton(false);
@@ -609,7 +622,22 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
             {/* Entry Mapping Table */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
-                <div className='entry-mapper-container'>
+                <div className={`entry-mapper-container${localeOptions?.length > 1 ? ' has-locale-select' : ''}`}>
+                  {localeOptions?.length > 1 && (
+                    <div className="locale-select-inline">
+                      <Select
+                        className="locale-select"
+                        value={selectedLocale}
+                        options={localeOptions}
+                        onChange={(opt: { label: string; value: string }) => setSelectedLocale(opt)}
+                        isSearchable={false}
+                        isClearable={false}
+                        placeholder="Select locale"
+                        width="240px"
+                        version="v2"
+                      />
+                    </div>
+                  )}
                   <InfiniteScrollTable
                     key={contentTypeUid || 'entry-mapper-table'}
                     loading={loading}

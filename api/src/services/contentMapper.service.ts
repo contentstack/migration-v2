@@ -28,9 +28,12 @@ import FieldMapperModel from '../models/FieldMapper.js';
 import { v4 as uuidv4 } from 'uuid';
 import getFieldMapperDb from "../models/FieldMapper.js";
 import getEntryMapperDb, { EntryMapper } from "../models/EntryMapper.js";
+import getAssetMapperDb, { AssetMapper } from "../models/assetMapper.js";
 import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 import getUidMapperDb from "../models/uidMapper.js";
 import { isDuplicateEntry } from '../utils/entry-duplicate.utils.js';
+import { getSourceLocaleForDestination } from '../utils/locale-migration.utils.js';
+import { loadPreviousAssetMetadata } from '../utils/asset-update.utils.js';
 
 
 const idCorrector = ({ id }: { id: string }) => {
@@ -257,6 +260,48 @@ const putTestData = async (req: Request) => {
     await EntryMapperModel.update((data: any) => {
       data.entry_mapper = allEntries;
     });
+
+    // Store asset mapping rows when the connector provides them (connectors
+    // that can derive stable asset uids at upload time, e.g. AEM). A matched,
+    // changed asset defaults to isUpdate=true ("update the existing asset in
+    // place"); unchanged matched assets default to reuse; brand-new assets are
+    // imported normally.
+    if (Array.isArray(req?.body?.assetMapping)) {
+      const AssetMapperModel = getAssetMapperDb(projectId, iteration);
+      await AssetMapperModel.read();
+      const prevAssetMetadata: Record<string, any> =
+        iteration > 1 ? loadPreviousAssetMetadata(projectId, iteration - 1) : {};
+
+      const assetRows = req.body.assetMapping
+        .filter(Boolean)
+        .map((asset: any) => {
+          const sourceUid = (asset?.otherCmsAssetUid ?? asset?.id ?? '') as string;
+          const contentstackAssetUid =
+            (uidMapperCurrent?.data as any)?.assets?.[sourceUid] ??
+            (uidMapperPrev?.data as any)?.assets?.[sourceUid] ??
+            '';
+          const prev = prevAssetMetadata?.[sourceUid];
+          const isChanged = prev
+            ? String(prev?.filename ?? '') !== String(asset?.filename ?? '') ||
+              String(prev?.file_size ?? '') !== String(asset?.file_size ?? '')
+            : false;
+
+          return {
+            ...asset,
+            id: String(asset?.id ?? sourceUid ?? uuidv4()).replace(/[{}]/g, '').toLowerCase(),
+            projectId,
+            otherCmsAssetUid: sourceUid,
+            contentstackAssetUid,
+            isChanged,
+            isUpdate: Boolean(contentstackAssetUid) && isChanged,
+          };
+        })
+        .filter((row: any) => row?.otherCmsAssetUid);
+
+      await AssetMapperModel.update((data: any) => {
+        data.asset_mapper = assetRows;
+      });
+    }
 
     await ContentTypesMapperModelLowdb.update((data: any) => {
       // Simple approach: just replace with new content types
@@ -1952,6 +1997,8 @@ const updateEntryStatus = async (req: Request) => {
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
     const foundEntry: EntryMapper[] = [];
+    // Rows in entry_mapper are already per-(entry × source-locale), so each id uniquely
+    // identifies one locale variant; toggling isUpdate directly is correct.
     await EntryMapperModel.update((data: any) => {
       data?.entry_mapper?.forEach((entry: any) => {
         if (validatedUids.includes(entry?.id)) {
@@ -2000,6 +2047,8 @@ const getEntryMapping = async (req: Request) => {
   const skip: any = req?.params?.skip;
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
+  const locale: string | undefined =
+    (req?.query?.locale as string) || (req?.params as any)?.locale;
 
   let result: any[] = [];
   let filteredResult = [];
@@ -2033,6 +2082,11 @@ const getEntryMapping = async (req: Request) => {
     }
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
+    // Convert the destination locale param (e.g. "en-in") to its source locale code
+    // (e.g. "en-IN") so we can filter the per-source-locale entry_mapper rows.
+    const sourceLocale = locale
+      ? getSourceLocaleForDestination(projectData ?? {}, locale)
+      : null;
     let entryMapping = contentType?.entryMapping?.map?.((mapperUId: any) => {
       const entryMapper = EntryMapperModel.chain
         .get("entry_mapper")
@@ -2062,16 +2116,25 @@ const getEntryMapping = async (req: Request) => {
       entryMapping ?? [],
     );
 
-    if (!isEmpty(enrichedMapping)) {
+    // entry_mapper rows are already per-source-locale (one row per language variant).
+    // Filter to just the rows whose `language` matches the selected destination locale's
+    // source code. Falls open when no locale is provided so legacy callers still work.
+    const localeFiltered = sourceLocale
+      ? (enrichedMapping ?? []).filter(
+          (row: any) => row && (row?.language ?? '') === sourceLocale,
+        )
+      : enrichedMapping;
+
+    if (!isEmpty(localeFiltered)) {
       if (search) {
-        filteredResult = enrichedMapping?.filter?.((item: any) =>
+        filteredResult = localeFiltered?.filter?.((item: any) =>
           item?.entryName?.toLowerCase().includes(search)
         );
         totalCount = filteredResult?.length;
         result = filteredResult?.slice(skip, Number(skip) + Number(limit));
       } else {
-        totalCount = enrichedMapping?.length;
-        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
+        totalCount = localeFiltered?.length;
+        result = localeFiltered?.slice(skip, Number(skip) + Number(limit));
       }
     }
     return {
@@ -2208,6 +2271,166 @@ const enrichEntriesWithUidMapper = async (
 
 
 
+const updateAssetStatus = async (req: Request) => {
+  const { projectId } = req?.params;
+  const { ids } = req?.body;
+  const validatedUids: string[] = Array.isArray(ids) ? ids : [];
+  const srcFunc = "updateAssetStatus";
+  if (isEmpty(validatedUids)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Invalid ids"
+      )
+    );
+    return {
+      status: HTTP_CODES?.BAD_REQUEST,
+      data: {
+        message: "Invalid ids",
+      },
+    };
+  }
+  try {
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const AssetMapperModel = getAssetMapperDb(projectId, iteration);
+    await AssetMapperModel.read();
+    const foundAssets: AssetMapper["asset_mapper"] = [];
+    await AssetMapperModel.update((data: any) => {
+      data?.asset_mapper?.forEach((asset: any) => {
+        if (validatedUids.includes(asset?.id)) {
+          asset.isUpdate = !asset.isUpdate;
+          foundAssets.push(asset);
+        }
+      });
+    });
+
+    if (foundAssets.length > 0) {
+      return {
+        status: HTTP_CODES?.OK,
+        data: foundAssets
+      };
+    }
+
+    return {
+      status: HTTP_CODES?.NOT_FOUND,
+      data: {
+        message: "Asset not found",
+      },
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while updating asset mapping",
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+    );
+  }
+};
+
+const getAssetMapping = async (req: Request) => {
+  const srcFunc = "getAssetMapping";
+  const projectId = req?.params?.projectId;
+  const skip: any = req?.params?.skip;
+  const limit: any = req?.params?.limit;
+  const search: string = req?.params?.searchText?.toLowerCase();
+
+  let result: any[] = [];
+  let filteredResult = [];
+  let totalCount = 0;
+
+  try {
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+
+    const AssetMapperModel = getAssetMapperDb(projectId, iteration);
+    await AssetMapperModel.read();
+    let assetMapping = AssetMapperModel.chain
+      .get("asset_mapper")
+      .filter({ projectId })
+      .value();
+
+    // Fallback: right after a restart and before a re-upload the current
+    // iteration has no rows yet — show the previous iteration's mapping.
+    if ((!assetMapping || assetMapping?.length === 0) && iteration > 1) {
+      const PrevAssetMapperModel = getAssetMapperDb(projectId, iteration - 1);
+      await PrevAssetMapperModel.read();
+      assetMapping = PrevAssetMapperModel.chain
+        .get("asset_mapper")
+        .filter({ projectId })
+        .value();
+    }
+
+    // Fill missing contentstackAssetUid from uid-mapper (current first, then
+    // the previous iteration) so rows saved before the import resolve later.
+    const uidMapperCurrent = getUidMapperDb(projectId, iteration);
+    await uidMapperCurrent.read();
+    let uidMapperPrev: any = null;
+    if (iteration > 1) {
+      uidMapperPrev = getUidMapperDb(projectId, iteration - 1);
+      await uidMapperPrev.read();
+    }
+    const enrichedMapping = (assetMapping ?? []).map((item: any) => {
+      if (!item) return item;
+      const existing = item?.contentstackAssetUid;
+      if (existing != null && String(existing).trim() !== '') {
+        return item;
+      }
+      const resolved =
+        (uidMapperCurrent?.data as any)?.assets?.[item?.otherCmsAssetUid] ??
+        (uidMapperPrev?.data as any)?.assets?.[item?.otherCmsAssetUid];
+      return resolved ? { ...item, contentstackAssetUid: resolved } : item;
+    });
+
+    if (!isEmpty(enrichedMapping)) {
+      if (search) {
+        filteredResult = enrichedMapping?.filter?.((item: any) =>
+          item?.filename?.toLowerCase().includes(search) ||
+          item?.title?.toLowerCase().includes(search)
+        );
+        totalCount = filteredResult?.length;
+        result = filteredResult?.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = enrichedMapping?.length;
+        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
+      }
+    }
+    return {
+      status: HTTP_CODES?.OK,
+      count: totalCount,
+      assetMapping: result
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while getting asset mapping of projects",
+        error
+      )
+    );
+
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -2226,4 +2449,6 @@ export const contentMapperService = {
   getExistingExtensions,
   getEntryMapping,
   updateEntryStatus,
+  getAssetMapping,
+  updateAssetStatus,
 };

@@ -8,7 +8,7 @@ import { DATABASE_FILES } from "../constants/index.js";
  * Represents an entry mapper object.
  */
 export interface EntryMapper {
-  entry_mapper: { 
+  entry_mapper: {
     id: string;
     projectId: string;
     contentTypeId: string;
@@ -18,6 +18,7 @@ export interface EntryMapper {
     isUpdate: boolean;
     contentstackEntryUid: string;
     isDuplicateEntry: boolean;
+    language?: string;
   }[];
 }
 

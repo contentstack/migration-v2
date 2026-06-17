@@ -188,6 +188,30 @@ const updateEntryStatus = async (req: Request, res: Response): Promise<void> => 
   res.status(resp?.status).json(resp);
 };
 
+/**
+ * Retrieves the asset mapping for a project.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const getAssetMapping = async (req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.getAssetMapping(req);
+  res.status(resp?.status).json(resp);
+};
+
+/**
+ * Toggles the reuse/re-import decision for the given asset mapper rows.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const updateAssetStatus = async (req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.updateAssetStatus(req);
+  res.status(resp?.status).json(resp);
+};
+
 export const contentMapperController = {
   getContentTypes,
   getFieldMapping,
@@ -203,5 +227,7 @@ export const contentMapperController = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
-  updateEntryStatus
+  updateEntryStatus,
+  getAssetMapping,
+  updateAssetStatus
 };

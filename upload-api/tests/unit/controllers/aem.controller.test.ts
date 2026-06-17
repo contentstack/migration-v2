@@ -10,6 +10,8 @@ vi.mock('migration-aem', () => ({
   contentTypes: mockContentTypes,
   locales: mockLocales,
   validator: vi.fn(),
+  extractEntries: vi.fn().mockResolvedValue(undefined),
+  extractAssets: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('axios', () => ({ default: { request: mockAxiosRequest } }));

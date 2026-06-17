@@ -4,13 +4,14 @@ import { createContentTypeObject, ensureField, findComponentByType, writeJsonFil
 import { isContainerComponent, parseXFPath } from "../../helper/component.identifier";
 import { createFragmentComponent } from "./fragment";
 import { IContentTypeMaker } from "./types/createContentTypes.interface";
-import { ModularBlocksField } from "./fields/contentstackFields";
+import { JsonField, ModularBlocksField } from "./fields/contentstackFields";
 import { processContentModels } from "../../helper/fieldMappings.merge";
 import { flattenContentTypes } from "../../helper/contentType.flatten";
 
 
 async function processTemplateItems(itemsOrder: string[], items: any, contentstackComponents: any) {
-  const schema = [];
+  const schema: any[] = [];
+  if (!Array.isArray(itemsOrder)) return schema;
   for (const element of itemsOrder) {
     const item = items?.[element];
     const type = item?.[':type'];
@@ -20,17 +21,26 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
       const keyElement = element?.split('-');
       const segmentData = keys?.filter((segment: string) => keyElement?.includes(segment));
       const referenceField = await createFragmentComponent(segmentData, item, contentstackComponents);
-      schema?.push(referenceField);
+      if (referenceField) {
+        schema?.push(referenceField);
+      } else if (element) {
+        const fallbackField = new JsonField({
+          uid: element,
+          displayName: element,
+        }).toContentstack();
+        if (type) fallbackField.otherCmsType = type;
+        schema?.push(fallbackField);
+      }
     } else if (isContainerCheck?.isContainer) {
       const itemsOrder = item?.[':itemsOrder'];
       const items = item?.[':items'];
       const conatinerSchema: any = await processTemplateItems(itemsOrder, items, contentstackComponents);
+      const modularData = new ModularBlocksField({
+        uid: element,
+        displayName: element,
+        blocks: [],
+      }).toContentstack();
       if (conatinerSchema?.length) {
-        const modularData = new ModularBlocksField({
-          uid: element,
-          displayName: element,
-          blocks: [],
-        }).toContentstack();
         for (const object of conatinerSchema) {
           if (object?.contentstackFieldType === 'group' ||
             object?.contentstackFieldType === 'modular_blocks') {
@@ -61,14 +71,19 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
             modularData.blocks?.push(block);
           }
         }
-        schema?.push(modularData);
       }
+      schema?.push(modularData);
     } else {
       const [, csValue] = findComponentByType(contentstackComponents, type) ?? [];
       if (csValue && typeof csValue === "object" && "type" in csValue) {
         schema?.push(csValue)
-      } else {
-        console.info("🚀 ~ processTemplateItems ~ type:", type);
+      } else if (element) {
+        const fallbackField = new JsonField({
+          uid: element,
+          displayName: element,
+        }).toContentstack();
+        if (type) fallbackField.otherCmsType = type;
+        schema?.push(fallbackField);
       }
     }
   }

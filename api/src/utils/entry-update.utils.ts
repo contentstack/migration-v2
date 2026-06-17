@@ -4,6 +4,11 @@ import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
 import { sanitizeStackId, assertResolvedPathUnderBase } from "./sanitize-path.utils.js";
+import {
+    isFullMigrationForLocale,
+    getSourceLocaleForDestination,
+} from "./locale-migration.utils.js";
+import type { AssetUpdate } from "./asset-update.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -75,17 +80,21 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         entryMapperItems.map((item: { otherCmsEntryUid: string }) => item?.otherCmsEntryUid)
     );
 
-    // Entries that already exist in Contentstack (have a contentstackEntryUid). These are removed
-    // from the import data so they are NOT re-created — regardless of isUpdate.
-    const csUidMap = new Map<string, string>();
-    // Subset of the above marked isUpdate → collected into the update config so they get updated
-    // in Contentstack. Existing entries that are NOT isUpdate are simply left untouched.
-    const updateUidMap = new Map<string, string>();
+    // Per (otherCmsEntryUid, sourceLanguage) lookup so we can find the exact row that
+    // corresponds to a given locale directory. Same source entry may have N rows — one per
+    // source-locale variant — each with its own isUpdate flag. We also keep a legacy
+    // single-row-per-uid map for projects/tests where entry_mapper rows aren't tagged with
+    // a `language` field.
+    const rowByUidAndLang = new Map<string, any>();
+    const rowByUid = new Map<string, any>();
+    const csUidByOtherCmsUid = new Map<string, string>();
     for (const item of entryMapperItems) {
         if (item?.contentstackEntryUid) {
-            csUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
-            if (item?.isUpdate) {
-                updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            csUidByOtherCmsUid.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
+            const lang = (item as any)?.language ?? '';
+            rowByUidAndLang.set(`${item?.otherCmsEntryUid}::${lang}`, item);
+            if (!rowByUid.has(item?.otherCmsEntryUid)) {
+                rowByUid.set(item?.otherCmsEntryUid, item);
             }
         }
     }
@@ -112,6 +121,25 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
             ?.filter((dirent) => dirent?.isDirectory());
 
         for (const localeDir of localeDirs) {
+            const localeCode = localeDir.name;
+            // Skip delta cleanup only when this is a restart AND the locale was never migrated
+            // before — newly-added locales have no prior state to diff against, so the regular
+            // full-import pipeline should pick them up untouched. On iteration 1 we always
+            // process (the function may be a no-op then, but tests/legacy code can still call it).
+            if (
+                (projectData?.iteration ?? 1) > 1 &&
+                isFullMigrationForLocale(projectData ?? {}, localeCode)
+            ) {
+                writeLogEntry(
+                    `Skipping delta cleanup for new locale "${localeCode}" — full import.`,
+                    "removeEntriesFromDatabase",
+                    loggerPath,
+                );
+                continue;
+            }
+            // entry_mapper rows are tagged with the SOURCE locale code (e.g. "en-IN");
+            // directories on disk use the DESTINATION code (e.g. "en-in"). Translate.
+            const sourceLocale = getSourceLocaleForDestination(projectData ?? {}, localeCode);
             const localePath = path.join(ctPath, localeDir.name);
             // Respect index.json — only the chunk files it lists are current. Each import run
             // writes chunk files with fresh random UUID names and overwrites index.json, but does
@@ -152,7 +180,7 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                 let modified = false;
                 for (const key of Object?.keys(data)) {
                     if (sitecoreUids.has(key)) {
-                        const csEntryUid = csUidMap.get(key);
+                        const csEntryUid = csUidByOtherCmsUid.get(key);
                         // No Contentstack entry uid → this entry was never migrated, so leave it in
                         // the import data to be CREATED this iteration. Deleting it would silently
                         // drop the entry (data loss).
@@ -160,18 +188,23 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                             continue;
                         }
 
-                        // Entry already exists in Contentstack. If it's marked isUpdate, collect it
-                        // into the update config so it gets updated; otherwise it's left as-is.
-                        if (updateUidMap.has(key)) {
-                            const entryData = { ...data[key] };
+                        // Look up the entry_mapper row for THIS source-locale variant. Same source
+                        // entry has separate rows for each source locale; `isUpdate` is per-row.
+                        // When the project has no locale mapping (legacy/test data), fall back to
+                        // a single-row-per-uid match so the legacy delta path still works.
+                        const row =
+                            (sourceLocale && rowByUidAndLang.get(`${key}::${sourceLocale}`)) ||
+                            rowByUid.get(key);
+                        if (row?.isUpdate) {
+                            const entryData = { ...data[key], __locale: localeCode, __csUid: csEntryUid };
                             delete entryData?.uid;
 
                             if (!entriesToUpdate[contentTypeName]) {
                                 entriesToUpdate[contentTypeName] = {};
                             }
-                            entriesToUpdate[contentTypeName][csEntryUid] = entryData;
-                            writeLogEntry(`Collected update entry "${csEntryUid}" for content type "${contentTypeName}"`, "removeEntriesFromDatabase", loggerPath);
-                            writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}"`, "removeEntriesFromDatabase", loggerPath);
+                            entriesToUpdate[contentTypeName][`${csEntryUid}::${localeCode}`] = entryData;
+                            writeLogEntry(`Collected update entry "${csEntryUid}" (locale "${localeCode}") for content type "${contentTypeName}"`, "removeEntriesFromDatabase", loggerPath);
+                            writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}" (locale "${localeCode}")`, "removeEntriesFromDatabase", loggerPath);
                         }
 
                         // Existing entry → remove from import data so it is NOT re-created.
@@ -245,7 +278,59 @@ export const enrichConfigWithAssetMapping = (
         writeLogEntry(`No new asset mapping found for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     }
 
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__assetMapping__ = { old: oldAssetMapping, new: newAssetMapping };
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+    } catch (err) {
+        console.error("Failed to write asset mapping into update config:", err);
+        writeLogEntry(`Failed to write __assetMapping__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithAssetMapping", loggerPath);
+        return;
+    }
+
     writeLogEntry(`Asset mapping enriched into config: old=${Object?.keys(oldAssetMapping)?.length} keys, new=${Object?.keys(newAssetMapping)?.length} keys`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset mapping configuration has been enriched for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset references will be resolved using combined old and new mappings`, "enrichConfigWithAssetMapping", loggerPath);
+};
+
+/**
+ * Ensures an update config file exists for this iteration and returns its path.
+ * Used when there are asset updates but no entry updates produced a config, so
+ * the update CLI still has a file to drive the asset-replace task.
+ */
+export const ensureUpdateConfigFile = (
+    projectId: string,
+    iteration: number,
+): string => {
+    const configDir = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId, iteration.toString());
+    fs.mkdirSync(configDir, { recursive: true });
+    const configPath = path.join(configDir, DATABASE_FILES.UPDATED_ENTRIES);
+    if (!fs.existsSync(configPath)) {
+        fs.writeFileSync(configPath, JSON.stringify({}), "utf-8");
+    }
+    return configPath;
+};
+
+/**
+ * Injects the assets to replace in place into the update config under
+ * __assetUpdates__. The entry-update-script consumes this to call the
+ * "replace asset" API (same UID, new binary) before updating entries.
+ */
+export const enrichConfigWithAssetUpdates = (
+    configFilePath: string,
+    assetUpdates: AssetUpdate[],
+    loggerPath?: string,
+): void => {
+    if (!assetUpdates?.length) {
+        return;
+    }
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__assetUpdates__ = assetUpdates;
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+        writeLogEntry(`Asset updates enriched into config: ${assetUpdates.length} asset(s) to replace in place`, "enrichConfigWithAssetUpdates", loggerPath);
+    } catch (err) {
+        console.error("Failed to write asset updates into update config:", err);
+        writeLogEntry(`Failed to write __assetUpdates__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithAssetUpdates", loggerPath);
+    }
 };
