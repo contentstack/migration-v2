@@ -58,7 +58,7 @@ import HorizontalStepper from '../../components/Stepper/HorizontalStepper/Horizo
 import LegacyCms from '../../components/LegacyCms';
 import DestinationStackComponent from '../../components/DestinationStack';
 import ContentMapper from '../../components/ContentMapper';
-import EntryMapper from '../../components/ContentMapper/entryMapper';
+import EntryAssetMapper from '../../components/ContentMapper/entryAssetMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
@@ -547,7 +547,7 @@ const Migration = () => {
       ...(isDeltaIteration
         ? [
             {
-              data: <EntryMapper handleStepChange={handleStepChange} />,
+              data: <EntryAssetMapper handleStepChange={handleStepChange} />,
               id: '4',
               title: 'Map Entry'
             }

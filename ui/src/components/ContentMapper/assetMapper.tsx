@@ -6,6 +6,7 @@ import {
   Button,
   InfiniteScrollTable,
   Notification,
+  EmptyState,
 } from '@contentstack/venus-components';
 
 // Services
@@ -17,9 +18,15 @@ import {
 // Redux
 import { RootState } from '../../store';
 
+// Utilities
+import { ASSET_MAPPER_EMPTY_STATE } from '../../utilities/constants';
+
 // Interface
 import { AssetMapperType, TableTypes, UidMap } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
+
+// Styles and Assets
+import { NoDataFound } from '../../common/assets';
 
 // Pure logic (unit-tested in assetMapper.utils.test.ts)
 import {
@@ -53,6 +60,9 @@ const AssetMapper = ({
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [persistedRowIds, setPersistedRowIds] = useState<Record<string, boolean>>({});
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
+  // True once the initial fetch has settled — used to gate the empty state so it
+  // doesn't flash before assets have loaded.
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
 
   useEffect(() => {
     fetchAssets('');
@@ -88,8 +98,10 @@ const AssetMapper = ({
       setPersistedRowIds(initialSelected);
       setTotalCounts(total);
       onCountChange?.(total);
+      setHasFetched(true);
     } catch (error) {
       console.error('fetchAssets -> error', error);
+      setHasFetched(true);
     }
   };
 
@@ -275,44 +287,60 @@ const AssetMapper = ({
   ];
 
   return (
-    <div className='entry-mapper-container'>
-      <InfiniteScrollTable
-        key={'asset-mapper-table'}
-        loading={loading}
-        canSearch={true}
-        totalCounts={Math.max(0, totalCounts)}
-        data={[...tableData]}
-        columns={columns}
-        uniqueKey={'id'}
-        isRowSelect={true}
-        fullRowSelect={true}
-        itemStatusMap={itemStatusMap}
-        fetchTableData={fetchData}
-        loadMoreItems={loadMoreItems}
-        tableHeight={tableHeight}
-        equalWidthColumns={false}
-        columnSelector={false}
-        initialSelectedRowIds={rowIds}
-        itemSize={80}
-        getSelectedRow={handleSelectedAssets}
-        rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
-        name={{
-          singular: '',
-          plural: `${totalCounts === 0 ? 'Count' : ''}`
-        }}
-      />
-      <div className="mapper-footer">
-        <div>Total Assets: <strong>{totalCounts}</strong></div>
-        <Button
-          className="saveButton"
-          onClick={handleSaveAssets}
+    <div className="step-container">
+      {(hasFetched && !loading && totalCounts === 0) ?
+        <EmptyState
+          forPage="emptyStateV2"
+          heading={<div className="empty_search_heading">{ASSET_MAPPER_EMPTY_STATE.NO_ASSETS_HEADING}</div>}
+          description={
+            <div className="empty_search_description">
+              {ASSET_MAPPER_EMPTY_STATE.NO_ASSETS_DESCRIPTION}
+            </div>
+          }
+          className="mapper-emptystate mapper-emptystate--centered"
+          img={NoDataFound}
           version="v2"
-          disabled={newMigrationData?.project_current_step > 4}
-          isLoading={isLoadingSaveButton}
-        >
-          Save
-        </Button>
-      </div>
+          testId="no-results-found-page"
+        /> :
+        <div className='entry-mapper-container'>
+          <InfiniteScrollTable
+            key={'asset-mapper-table'}
+            loading={loading}
+            canSearch={true}
+            totalCounts={Math.max(0, totalCounts)}
+            data={[...tableData]}
+            columns={columns}
+            uniqueKey={'id'}
+            isRowSelect={true}
+            fullRowSelect={true}
+            itemStatusMap={itemStatusMap}
+            fetchTableData={fetchData}
+            loadMoreItems={loadMoreItems}
+            tableHeight={tableHeight}
+            equalWidthColumns={false}
+            columnSelector={false}
+            initialSelectedRowIds={rowIds}
+            itemSize={80}
+            getSelectedRow={handleSelectedAssets}
+            rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+            name={{
+              singular: '',
+              plural: `${totalCounts === 0 ? 'Count' : ''}`
+            }}
+          />
+          <div className="mapper-footer">
+            <div>Total Assets: <strong>{totalCounts}</strong></div>
+            <Button
+              className="saveButton"
+              onClick={handleSaveAssets}
+              version="v2"
+              disabled={newMigrationData?.project_current_step > 4}
+              isLoading={isLoadingSaveButton}
+            >
+              Save
+            </Button>
+          </div>
+        </div>}
     </div>
   );
 };
