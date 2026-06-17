@@ -101,12 +101,46 @@ module.exports = async ({
     const assetMapping = config.__assetMapping__ || { old: {}, new: {} };
     delete config.__assetMapping__;
 
+    // Assets the user chose to update in place (same UID, new file).
+    const assetUpdates = Array.isArray(config.__assetUpdates__) ? config.__assetUpdates__ : [];
+    delete config.__assetUpdates__;
+
     const oldMapping = assetMapping.old || {};
     const newMapping = assetMapping.new || {};
     console.info(`Asset mappings loaded — old: ${Object.keys(oldMapping).length}, new: ${Object.keys(newMapping).length}`);
+    console.info(`Asset updates to replace in place: ${assetUpdates.length}`);
 
     const contentTypes = Object.keys(config);
     console.info('contentTypes', contentTypes);
+
+    /**
+     * Replaces each selected asset's binary on the existing Contentstack asset
+     * UID. A single asset failing is logged and skipped so it never aborts the
+     * remaining asset or entry updates.
+     */
+    const updateAssetTask = () => {
+        return {
+            title: "Update Assets",
+            successMessage: 'Assets updated successfully',
+            failedMessage: "Failed to update assets",
+            task: async () => {
+                for (const asset of assetUpdates) {
+                    if (!asset || !asset.uid || !asset.filePath) {
+                        continue;
+                    }
+                    try {
+                        await stackSDKInstance
+                            .asset(asset.uid)
+                            .replace({ upload: asset.filePath, title: asset.title });
+                        console.info(`Replaced asset in place: ${asset.uid} (${asset.filename})`);
+                    } catch (error) {
+                        console.error(`Failed to replace asset ${asset.uid} (${asset.filename}):`, error?.message || error);
+                    }
+                }
+                console.info('All asset updates processed');
+            },
+        };
+    };
 
     const updateEntryTask = () => {
         return {
@@ -179,5 +213,16 @@ module.exports = async ({
         };
     };
 
+    if (assetUpdates.length) {
+        migration.addTask(updateAssetTask());
+    }
     migration.addTask(updateEntryTask());
 };
+
+// Exposed for unit testing only. The CLI invokes the default function export
+// above; these pure helpers are attached as properties on it so `require()`
+// consumers keep calling the function directly while tests can exercise the
+// helpers in isolation.
+module.exports.isAssetField = isAssetField;
+module.exports.resolveAssetField = resolveAssetField;
+module.exports.mergeFlatPayloadIntoEntry = mergeFlatPayloadIntoEntry;

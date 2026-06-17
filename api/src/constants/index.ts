@@ -347,6 +347,7 @@ export const DATABASE_FILES = {
   CONTENT_TYPES_MAPPER: 'contentTypesMapper.json',
   FIELD_MAPPER: 'field-mapper.json',
   ENTRY_MAPPER: 'entry-mapper.json',
+  ASSET_MAPPER: 'asset-mapper.json',
   UID_MAPPER: 'uid-mapper.json',
   UPDATED_ENTRIES: 'updated-entries.json',
   ASSET_METADATA: 'asset-metadata.json',
