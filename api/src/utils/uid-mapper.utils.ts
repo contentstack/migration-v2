@@ -135,4 +135,123 @@ const writeUidMapping = async (
   }
 };
 
+/**
+ * Walk the CLI's per-locale entry mapper output and merge a
+ * `entryByLocale: { [destLocale]: { [sourceUid]: destUid } }` map into the
+ * project's uid-mapper lowdb. Leaves the flat `entry` / `assets` maps untouched.
+ *
+ * CLI layout this reads from:
+ *   <backupPath>/mapper/entries/uid-mapping.json                 (flat lookup)
+ *   <backupPath>/mapper/entries/<contentType>/<locale>/index.json
+ *   <backupPath>/mapper/entries/<contentType>/<locale>/<uuid>-entries.json
+ *   <backupPath>/mapper/entries/<contentType>/<locale>/existing/index.json
+ *   <backupPath>/mapper/entries/<contentType>/<locale>/existing/<uuid>-entries.json
+ *
+ * Files that are missing or malformed are skipped silently — this is best-effort
+ * enrichment and must never block the main mapping write.
+ */
+export const writePerLocaleEntryUidMapping = async (
+  backupPath: string,
+  projectId: string,
+  iteration: number,
+): Promise<void> => {
+  try {
+    await projectModelLowdb.read();
+    const projectData = projectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const destinationStackId = projectData?.destination_stack_id;
+
+    const entriesRoot = path.join(backupPath, "mapper", "entries");
+    if (!fs.existsSync(entriesRoot)) return;
+
+    // Flat source → dest lookup from the CLI's top-level uid-mapping.json. Used to fill
+    // dest uids for source uids we discover under each locale directory.
+    const flatMappingPath = path.join(entriesRoot, "uid-mapping.json");
+    let flatMap: Record<string, string> = {};
+    if (fs.existsSync(flatMappingPath)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(flatMappingPath, "utf-8"));
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          flatMap = parsed as Record<string, string>;
+        }
+      } catch {
+        /* malformed top-level mapping; per-locale map will be empty values */
+      }
+    }
+
+    const isDir = (p: string): boolean => {
+      try { return fs.statSync(p).isDirectory(); } catch { return false; }
+    };
+    const readJson = (p: string): any => {
+      try { return JSON.parse(fs.readFileSync(p, "utf-8")); } catch { return null; }
+    };
+
+    // Extract source uids from a chunk-index style file ({ "1": "<uuid>-entries.json", ... }).
+    const collectSourceUidsFromLocaleDir = (localeDir: string): string[] => {
+      const sourceUids: string[] = [];
+      const visit = (indexPath: string, base: string): void => {
+        const idx = readJson(indexPath);
+        if (!idx || typeof idx !== "object" || Array.isArray(idx)) return;
+        for (const file of Object.values(idx as Record<string, unknown>)) {
+          if (typeof file !== "string" || !file.endsWith(".json")) continue;
+          const chunkPath = path.join(base, path.basename(file));
+          const chunk = readJson(chunkPath);
+          if (chunk && typeof chunk === "object" && !Array.isArray(chunk)) {
+            sourceUids.push(...Object.keys(chunk));
+          }
+        }
+      };
+      visit(path.join(localeDir, "index.json"), localeDir);
+      const existingDir = path.join(localeDir, "existing");
+      if (isDir(existingDir)) {
+        visit(path.join(existingDir, "index.json"), existingDir);
+      }
+      return sourceUids;
+    };
+
+    const entryByLocale: Record<string, Record<string, string>> = {};
+
+    for (const ctName of fs.readdirSync(entriesRoot)) {
+      const ctPath = path.join(entriesRoot, ctName);
+      if (!isDir(ctPath)) continue;
+      for (const localeName of fs.readdirSync(ctPath)) {
+        const localePath = path.join(ctPath, localeName);
+        if (!isDir(localePath)) continue;
+        const sourceUids = collectSourceUidsFromLocaleDir(localePath);
+        if (!sourceUids?.length) continue;
+        if (!entryByLocale[localeName]) entryByLocale[localeName] = {};
+        for (const srcUid of sourceUids) {
+          const destUid = flatMap[srcUid];
+          if (destUid) entryByLocale[localeName][srcUid] = destUid;
+        }
+      }
+    }
+
+    if (!Object?.keys(entryByLocale)?.length) return;
+
+    const UidMapperModelLowdb = getUidMapperDb(projectId, iteration);
+    await UidMapperModelLowdb.read();
+    // Merge into any existing per-locale map rather than overwriting, so a follow-up
+    // import that touches only one locale doesn't wipe the others.
+    const existing: Record<string, Record<string, string>> =
+      (UidMapperModelLowdb.data as any)?.entryByLocale ?? {};
+    const merged: Record<string, Record<string, string>> = { ...existing };
+    for (const [loc, m] of Object.entries(entryByLocale)) {
+      merged[loc] = { ...(existing[loc] ?? {}), ...m };
+    }
+    (UidMapperModelLowdb.data as any).entryByLocale = merged;
+    await UidMapperModelLowdb.write();
+    await customLogger(
+      projectId,
+      destinationStackId,
+      "info",
+      `Per-locale entry uid mapping written for locales: ${Object.keys(merged).join(", ")}`,
+    );
+  } catch (error) {
+    console.error("Error writing per-locale uid mapping:", error);
+  }
+};
+
 export default writeUidMapping;

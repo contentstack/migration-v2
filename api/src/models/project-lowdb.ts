@@ -72,6 +72,10 @@ interface Project {
   taxonomies?: any[];
   isSSO: boolean;
   iteration: number;
+  master_locale?: Record<string, string>;
+  locales?: Record<string, string>;
+  source_locales?: string[];
+  migrated_locales?: string[];
 }
 
 interface  ProjectDocument {

@@ -509,6 +509,20 @@ div .table-row {
   }
 }
 
+// Per-locale dropdown floats top-right of the table area, sharing the row with the
+// table's built-in search (search on left, dropdown on right).
+.entry-mapper-container.has-locale-select {
+  position: relative;
+
+  .locale-select-inline {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    z-index: 2;
+    width: 240px;
+  }
+}
+
 .entry-mapper-container {
   // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
   // so it collapses to just the text. Stretch the table chrome and the empty message to

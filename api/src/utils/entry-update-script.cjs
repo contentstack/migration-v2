@@ -18,6 +18,8 @@ const FLAT_PAYLOAD_SKIP = new Set([
     'updated_by',
     '_content_type_uid',
     'content',
+    '__locale',
+    '__csUid',
 ]);
 
 /**
@@ -66,7 +68,7 @@ const resolveAssetField = (fieldName, entryUid, updateValue, stackValue, oldMapp
  * WordPress (and similar) write migration JSON with fields at the root (email, url, …).
  * Fetched stack entries keep custom fields under entry.content — merge flat updateData there.
  */
-const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping) => {
+const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping, updateOpts) => {
     for (const field of Object.keys(updateData)) {
         if (FLAT_PAYLOAD_SKIP.has(field)) {
             continue;
@@ -90,7 +92,7 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
         }
         entry.content[field] = nextVal;
     }
-    await entry.update();
+    await entry.update(updateOpts);
 };
 
 module.exports = async ({
@@ -154,13 +156,22 @@ module.exports = async ({
                         console.info(`Processing content type: ${contentType}, entries: ${entryUids.length}`);
 
                         for (const entryUid of entryUids) {
+                            const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
+                            // Per-locale config keys are "<csUid>::<locale>" with __locale/__csUid
+                            // on the payload. Fall back to the bare key for legacy single-locale
+                            // configs.
+                            const locale = updateData?.__locale;
+                            const realEntryUid = updateData?.__csUid || entryUid;
+                            delete updateData?.__locale;
+                            delete updateData?.__csUid;
+                            const fetchOpts = locale ? { locale } : undefined;
+                            const updateOpts = locale ? { locale } : undefined;
+
                             const entryRef = stackSDKInstance
                                 .contentType(contentType)
-                                .entry(entryUid);
+                                .entry(realEntryUid);
 
-
-                            const entry = await entryRef?.fetch();
-                            const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
+                            const entry = await entryRef?.fetch(fetchOpts);
 
                             const hasStackContent = entry?.content && typeof entry?.content === 'object';
                             const hasNestedUpdate = updateData?.content && typeof updateData?.content === 'object';
@@ -179,10 +190,10 @@ module.exports = async ({
                                     }
                                 }
                                 Object.assign(entry?.content, updateData?.content);
-                                await entry.update();
+                                await entry.update(updateOpts);
                             } else if (hasStackContent) {
-                                console.info(`[${entryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)`);
-                                await mergeFlatPayloadIntoEntry(entry, entryUid, updateData, oldMapping, newMapping);
+                                console.info(`[${realEntryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)${locale ? ` for locale "${locale}"` : ''}`);
+                                await mergeFlatPayloadIntoEntry(entry, realEntryUid, updateData, oldMapping, newMapping, updateOpts);
                             } else {
                                 if (updateData && entry) {
                                     for (const field of Object.keys(updateData)) {
@@ -199,9 +210,9 @@ module.exports = async ({
                                     }
                                 }
                                 Object.assign(entry, updateData);
-                                await entry.update();
+                                await entry.update(updateOpts);
                             }
-                            console.info(`Updated entry: ${entryUid}`);
+                            console.info(`Updated entry: ${realEntryUid}${locale ? ` (locale "${locale}")` : ''}`);
                         }
                     }
                     console.info('All entries updated successfully');

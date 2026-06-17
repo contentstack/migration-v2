@@ -35,14 +35,23 @@ vi.mock('../../../src/utils/custom-logger.utils.js', () => ({
   default: mockCustomLogger,
 }));
 
+const { mockReaddirSync, mockStatSync } = vi.hoisted(() => ({
+  mockReaddirSync: vi.fn(),
+  mockStatSync: vi.fn(),
+}));
+
 vi.mock('fs', () => ({
   default: {
     existsSync: mockExistsSync,
     readFileSync: mockReadFileSync,
+    readdirSync: mockReaddirSync,
+    statSync: mockStatSync,
   },
 }));
 
-import writeUidMapping from '../../../src/utils/uid-mapper.utils';
+import writeUidMapping, {
+  writePerLocaleEntryUidMapping,
+} from '../../../src/utils/uid-mapper.utils';
 
 describe('uid-mapper.utils - writeUidMapping', () => {
   const uidDb = {
@@ -154,5 +163,154 @@ describe('uid-mapper.utils - writeUidMapping', () => {
       expect.any(Error),
     );
     consoleSpy.mockRestore();
+  });
+});
+
+describe('uid-mapper.utils - writePerLocaleEntryUidMapping', () => {
+  const uidDb = {
+    read: mockUidRead,
+    write: mockUidWrite,
+    data: {} as Record<string, unknown>,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    uidDb.data = {};
+    mockProjectRead.mockResolvedValue(undefined);
+    mockChainGet.mockReturnValue({
+      find: vi.fn().mockReturnValue({
+        value: vi.fn().mockReturnValue({
+          id: 'p1',
+          destination_stack_id: 'stack1',
+        }),
+      }),
+    });
+    mockCustomLogger.mockResolvedValue(undefined);
+    mockUidRead.mockResolvedValue(undefined);
+    mockUidWrite.mockResolvedValue(undefined);
+    mockGetUidMapperDb.mockReturnValue(uidDb);
+  });
+
+  it('builds entryByLocale by walking content type / locale directories', async () => {
+    // Filesystem layout the CLI produces:
+    //   <root>/uid-mapping.json
+    //   <root>/article/{en-us,en-in}/{index.json, <uuid>-entries.json}
+    mockExistsSync.mockReturnValue(true);
+    mockStatSync.mockReturnValue({ isDirectory: () => true });
+    mockReaddirSync.mockImplementation((dir: string) => {
+      if (dir.endsWith('/entries')) return ['article'];
+      if (dir.endsWith('/article')) return ['en-us', 'en-in'];
+      return [];
+    });
+    mockReadFileSync.mockImplementation((file: string) => {
+      if (file.endsWith('uid-mapping.json')) {
+        return JSON.stringify({ src1: 'dst1', src2: 'dst2' });
+      }
+      if (file.endsWith('index.json')) {
+        return JSON.stringify({ '1': 'chunk.json' });
+      }
+      // chunk file — same source uids regardless of locale (CS uid is shared)
+      return JSON.stringify({ src1: { title: 'x' }, src2: { title: 'y' } });
+    });
+
+    await writePerLocaleEntryUidMapping('/backup', 'p1', 1);
+
+    expect((uidDb.data as any).entryByLocale).toEqual({
+      'en-us': { src1: 'dst1', src2: 'dst2' },
+      'en-in': { src1: 'dst1', src2: 'dst2' },
+    });
+    expect(mockUidWrite).toHaveBeenCalled();
+  });
+
+  it('merges with any existing entryByLocale instead of overwriting', async () => {
+    uidDb.data = {
+      entryByLocale: { 'fr-fr': { src9: 'dst9' } },
+    };
+    mockExistsSync.mockReturnValue(true);
+    mockStatSync.mockReturnValue({ isDirectory: () => true });
+    mockReaddirSync.mockImplementation((dir: string) => {
+      if (dir.endsWith('/entries')) return ['article'];
+      if (dir.endsWith('/article')) return ['en-us'];
+      return [];
+    });
+    mockReadFileSync.mockImplementation((file: string) => {
+      if (file.endsWith('uid-mapping.json')) return JSON.stringify({ src1: 'dst1' });
+      if (file.endsWith('index.json')) return JSON.stringify({ '1': 'chunk.json' });
+      return JSON.stringify({ src1: {} });
+    });
+
+    await writePerLocaleEntryUidMapping('/backup', 'p1', 1);
+
+    expect((uidDb.data as any).entryByLocale).toEqual({
+      'fr-fr': { src9: 'dst9' },
+      'en-us': { src1: 'dst1' },
+    });
+  });
+
+  it('returns early when the entries root does not exist', async () => {
+    mockExistsSync.mockReturnValue(false);
+
+    await writePerLocaleEntryUidMapping('/backup', 'p1', 1);
+
+    expect(mockUidWrite).not.toHaveBeenCalled();
+  });
+
+  it('skips writing when no source uids were discovered', async () => {
+    mockExistsSync.mockReturnValue(true);
+    mockStatSync.mockReturnValue({ isDirectory: () => true });
+    mockReaddirSync.mockReturnValue([]); // No content types
+    mockReadFileSync.mockReturnValue('{}');
+
+    await writePerLocaleEntryUidMapping('/backup', 'p1', 1);
+
+    expect(mockUidWrite).not.toHaveBeenCalled();
+  });
+
+  it('also reads the `existing/` subdir for entries CLI skipped re-creating', async () => {
+    mockExistsSync.mockReturnValue(true);
+    mockStatSync.mockReturnValue({ isDirectory: () => true });
+    mockReaddirSync.mockImplementation((dir: string) => {
+      if (dir.endsWith('/entries')) return ['article'];
+      if (dir.endsWith('/article')) return ['en-us'];
+      return [];
+    });
+    mockReadFileSync.mockImplementation((file: string) => {
+      if (file.endsWith('uid-mapping.json')) {
+        return JSON.stringify({ srcExisting: 'dstExisting', srcNew: 'dstNew' });
+      }
+      if (file.endsWith('en-us/index.json')) {
+        return JSON.stringify({ '1': 'new.json' });
+      }
+      if (file.endsWith('existing/index.json')) {
+        return JSON.stringify({ '1': 'existing.json' });
+      }
+      if (file.endsWith('new.json')) return JSON.stringify({ srcNew: {} });
+      if (file.endsWith('existing.json')) return JSON.stringify({ srcExisting: {} });
+      return '{}';
+    });
+
+    await writePerLocaleEntryUidMapping('/backup', 'p1', 1);
+
+    expect((uidDb.data as any).entryByLocale).toEqual({
+      'en-us': { srcExisting: 'dstExisting', srcNew: 'dstNew' },
+    });
+  });
+
+  it('does not throw on malformed JSON files (best-effort)', async () => {
+    mockExistsSync.mockReturnValue(true);
+    mockStatSync.mockReturnValue({ isDirectory: () => true });
+    mockReaddirSync.mockImplementation((dir: string) => {
+      if (dir.endsWith('/entries')) return ['article'];
+      if (dir.endsWith('/article')) return ['en-us'];
+      return [];
+    });
+    mockReadFileSync.mockImplementation(() => {
+      throw new Error('parse error');
+    });
+
+    await expect(
+      writePerLocaleEntryUidMapping('/backup', 'p1', 1),
+    ).resolves.toBeUndefined();
+    expect(mockUidWrite).not.toHaveBeenCalled();
   });
 });
