@@ -297,7 +297,7 @@ const resolvedBlockName = (block: any) => {
   if (isMissingBlock) {
     // fallback to originalName, otherwise use body
    
-    return block?.attrs?.originalName ?? "body";
+    return block?.attrs?.originalName ?? "paragraph";
   }
 
   // 3. Handle media-related blocks

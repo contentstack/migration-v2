@@ -17,7 +17,7 @@ const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'
 function resolveBlockName(field: any): string {
   if (field?.attributes?.metadata?.name) return field.attributes.metadata.name;
   if (field?.name === 'core/missing') {
-    return field?.attributes?.originalName || 'body';
+    return field?.attributes?.originalName || 'paragraph';
   }
   if (MEDIA_BLOCK_NAMES.includes(field?.name)) return 'media';
   return field?.name;
