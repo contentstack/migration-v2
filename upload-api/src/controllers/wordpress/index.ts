@@ -39,7 +39,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
     // Populate per-content-type `entryMapping` from the WXR items. Without this the backend
     // content_mapper writes no entry_mapper rows, which leaves the delta-migration Step 4
     // (Map Entry) empty on restart.
-    if (Array.isArray(contentTypeData) && contentTypeData.length > 0) {
+    if (Array.isArray(contentTypeData) && contentTypeData?.length > 0) {
       contentTypeData = await extractEntries(filePath, contentTypeData);
     }
 

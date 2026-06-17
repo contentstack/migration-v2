@@ -219,7 +219,7 @@ export const writePerLocaleEntryUidMapping = async (
         const localePath = path.join(ctPath, localeName);
         if (!isDir(localePath)) continue;
         const sourceUids = collectSourceUidsFromLocaleDir(localePath);
-        if (!sourceUids.length) continue;
+        if (!sourceUids?.length) continue;
         if (!entryByLocale[localeName]) entryByLocale[localeName] = {};
         for (const srcUid of sourceUids) {
           const destUid = flatMap[srcUid];
@@ -228,7 +228,7 @@ export const writePerLocaleEntryUidMapping = async (
       }
     }
 
-    if (!Object.keys(entryByLocale).length) return;
+    if (!Object?.keys(entryByLocale)?.length) return;
 
     const UidMapperModelLowdb = getUidMapperDb(projectId, iteration);
     await UidMapperModelLowdb.read();

@@ -158,7 +158,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
           }
         });
         setLocaleOptions(opts);
-        if (opts.length > 0) setSelectedLocale(opts[0]);
+        if (opts?.length > 0) setSelectedLocale(opts[0]);
       } catch (err) {
         console.error('Failed to load project locales', err);
       }
@@ -222,14 +222,30 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   };
 
+  // Reset the right-hand entry table state — used when the left list becomes empty so we
+  // don't keep showing stale entries from a now-deselected content type.
+  const clearEntryTableState = () => {
+    setTableData([]);
+    setTotalCounts(0);
+    setRowIds({});
+    setPersistedRowIds({});
+    setInitialRowSelectedData([]);
+    setOtherCmsTitle('');
+    setContentTypeUid('');
+    setOtherCmsUid('');
+    setActive(null);
+  };
+
   // Search content types in the left list
   const handleSearch = async (searchCT: string) => {
     setSearchContentType(searchCT);
     try {
       const { data } = await getContentTypes(projectId, 0, 1000, searchCT || '', 'old');
-      setContentTypes(data?.contentTypes ?? []);
-      setFilteredContentTypes(data?.contentTypes ?? []);
-      setCount(data?.contentTypes?.length ?? 0);
+      const next = data?.contentTypes ?? [];
+      setContentTypes(next);
+      setFilteredContentTypes(next);
+      setCount(next?.length ?? 0);
+      if (!next?.length) clearEntryTableState();
     } catch (error) {
       console.error(error);
       return error;
@@ -291,8 +307,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
-      const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
-      setActive(selectedIndex >= 0 ? selectedIndex : null);
+      if (!filteredCT?.length) {
+        // No content types match the filter — drop the right-hand table so it doesn't
+        // keep showing entries from the previously-selected (now-hidden) content type.
+        clearEntryTableState();
+      } else {
+        const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
+        setActive(selectedIndex >= 0 ? selectedIndex : null);
+      }
     } else {
       setFilteredContentTypes(contentTypes);
       setCount(contentTypes?.length);
@@ -505,7 +527,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const tableHeight = calcHeight();
 
   const modalProps = {
-    body: 'There is something error occured while generating content mapper. Please go to Legacy Cms step and validate the file again.',
+    body: 'An error occurred while generating the content mapper. Please go to the Legacy CMS step and validate the file again.',
   };
 
   return (
