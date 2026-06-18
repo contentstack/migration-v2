@@ -136,7 +136,10 @@ const Mapper = ({
     );
     setcsOptions(formattedoptions);
     setsourceoptions(adjustedOptions);
-  }, [selectedCsOptions, selectedSourceOption, options]);
+    // sourceOptions must be in deps: on restart iteration the parent's sourceLocales arrives
+    // asynchronously from Redux *after* mount. Without this, sourceoptions stays stale ([]) and
+    // the Select language dropdown renders empty until Add Language forces unrelated re-renders.
+  }, [selectedCsOptions, selectedSourceOption, options, sourceOptions]);
 
   useEffect(() => {
     const updatedExistingField = {...existingField};
@@ -622,8 +625,12 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           label: item,
           value: item
         }));
-        
-        setsourceLocales(sourceLocale);
+
+        // Guard against clobbering a populated sourceLocales with undefined when fetchData
+        // runs before Redux's sourceLocale has hydrated on a restarted iteration.
+        if (Array.isArray(sourceLocale) && sourceLocale.length > 0) {
+          setsourceLocales(sourceLocale);
+        }
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
         const isRestartIteration = (newMigrationData?.iteration ?? 1) > 1;
@@ -784,9 +791,19 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                 );
               }
               // Restart iteration: button must remain available so users can add a new
-              // destination locale before the delta run. Only block if there's already an
-              // empty in-progress row waiting to be filled (avoid stacking empties).
-              return cmsLocaleOptions?.some((o) => !o?.value);
+              // destination locale before the delta run. Block when (a) there's already an
+              // empty in-progress row waiting to be filled (avoid stacking empties) OR (b)
+              // every available source locale is already mapped — otherwise clicking Add
+              // Language would surface a row whose source dropdown has no unmapped option
+              // to pick (e.g. a single-locale source where `en` is already in use).
+              const hasEmptyRow = cmsLocaleOptions?.some((o) => !o?.value);
+              const mappedSources = new Set(
+                Object.values(newMigrationData?.destination_stack?.localeMapping || {})
+                  .filter((v): v is string => typeof v === 'string' && v.length > 0)
+              );
+              const totalSources = newMigrationData?.destination_stack?.sourceLocale?.length ?? 0;
+              const allSourcesMapped = totalSources > 0 && mappedSources.size >= totalSources;
+              return hasEmptyRow || allSourcesMapped;
             })()}
           >
             Add Language
