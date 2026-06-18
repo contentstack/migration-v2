@@ -463,6 +463,21 @@ div .table-row {
   padding-bottom: 70px;
 }
 
+// Step 4 wrapper: toggle stacked above the active mapper. Fills its parent and lets the
+// child .step-container take the remaining height (avoids nesting two height:100% containers).
+.entry-asset-mapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+
+  // The active child mapper (its own .step-container) fills the space left by the toggle.
+  > .step-container {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
 // Entries / Assets switch shown on delta iterations
 .mapper-view-toggle {
   display: flex;

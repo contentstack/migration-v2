@@ -48,23 +48,58 @@ const Mapper = ({
   isStackChanged: boolean;
   stack: IDropDown
 }) => {
-  const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const dispatch = useDispatch();
+  // Seed from the saved localeMapping in Redux so the component doesn't wipe the existing
+  // mapping on mount. Critical for the restart flow — without this the previous run's locale
+  // mapping disappears the moment the user lands on Step 2 again.
+  const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>(
+    () => ({ ...(newMigrationData?.destination_stack?.localeMapping || {}) }),
+  );
+  // If Redux's localeMapping arrives *after* mount (e.g., fetchData dispatches it post-render),
+  // top up selectedMappings with any keys it has that we don't, so the master/additional rows
+  // keep their saved source values. Existing keys in selectedMappings (user-edited or seeded)
+  // are not overwritten.
+  useEffect(() => {
+    const fromRedux = newMigrationData?.destination_stack?.localeMapping || {};
+    setSelectedMappings((prev) => {
+      let next = prev;
+      for (const [k, v] of Object.entries(fromRedux)) {
+        if (v && (!(k in prev) || !prev[k])) {
+          if (next === prev) next = { ...prev };
+          next[k] = v as string;
+        }
+      }
+      return next;
+    });
+  }, [newMigrationData?.destination_stack?.localeMapping]);
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
   const [existingLocale, setexistingLocale] = useState<ExistingFieldType>({});
   const [selectedCsOptions, setselectedCsOption] = useState<string[]>([]);
   const [selectedSourceOption, setselectedSourceOption] = useState<string[]>([]);
   const [csOptions, setcsOptions] = useState(options);
   const [sourceoptions, setsourceoptions] = useState(sourceOptions);
-  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const dispatch = useDispatch();
   const [selectedStack, setSelectedStack] = useState<IDropDown>();
   const [placeholder] = useState<string>('Select language');
+  // Guards the dispatch effect below from wiping a non-empty Redux localeMapping with an
+  // empty selectedMappings on the very first render (which happens when fetchData hasn't
+  // populated localeMapping yet at the moment of mount).
+  const hasDispatchedOnceRef = useRef(false);
 
   useEffect(()=>{
     setSelectedStack(stack);
   },[]);
 
   useEffect(() => {
+    if (
+      !hasDispatchedOnceRef.current &&
+      Object.keys(selectedMappings || {}).length === 0
+    ) {
+      // First render and we have nothing to dispatch — skip so the sync-from-Redux effect
+      // above can seed selectedMappings without our empty value wiping Redux first.
+      return;
+    }
+    hasDispatchedOnceRef.current = true;
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       destination_stack: {
@@ -144,6 +179,16 @@ const Mapper = ({
           updatedExistingField[index] = {
             label: `${locale?.label}`,
             value: `${locale?.label}-master_locale`,
+          };
+        }
+        // Reflect the saved master source locale in the row UI (the master row reads its
+        // source value from existingLocale[label], not from `locale.value`). Without this
+        // the source dropdown looks blank on restart even though Redux has the value.
+        const savedMasterSource = selectedMappings?.[`${locale?.label}-master_locale`];
+        if (savedMasterSource && !updatedExistingLocale?.[locale?.label]) {
+          updatedExistingLocale[locale?.label] = {
+            label: savedMasterSource,
+            value: savedMasterSource,
           };
         }
 
@@ -431,7 +476,10 @@ const Mapper = ({
                 version="v2"
                 hideSelectedOptions={true}
                 isClearable={true}
-                isDisabled={isDisabled}
+                // Existing rows (have a `value` from the prior mapping) stay locked when the
+                // parent says disabled (e.g. restart iteration). Newly-added rows have an empty
+                // value and must remain editable so the user can pick their locales.
+                isDisabled={isDisabled && !!locale?.value}
                 //className="select-container"
                 menuPlacement="auto"
               />
@@ -480,13 +528,16 @@ const Mapper = ({
                 version="v2"
                 hideSelectedOptions={true}
                 isClearable={true}
-                isDisabled={isDisabled}
+                // Existing rows (have a `value` from the prior mapping) stay locked when the
+                // parent says disabled (e.g. restart iteration). Newly-added rows have an empty
+                // value and must remain editable so the user can pick their locales.
+                isDisabled={isDisabled && !!locale?.value}
                 //className="select-container"
                 menuPlacement="auto"
               />
             }
             <div className={'delete-icon'}>
-              {locale?.value !== 'master_locale' && !isDisabled && (
+              {locale?.value !== 'master_locale' && (!isDisabled || !locale?.value) && (
                 <Tooltip content={'Delete'} position="top" showArrow={false}>
                   <Icon
                     icon="Trash"
@@ -575,62 +626,82 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         setsourceLocales(sourceLocale);
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
-        if((Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || 
-        !keys || 
-        currentStack?.uid !== previousStack?.uid || isStackChanged) &&
-        newMigrationData?.project_current_step <= 2)
-        {
-         setcmsLocaleOptions((prevList: { label: string ; value: string }[]) => {
-          const newLabel = stack?.master_locale ?? '';
-    
-            const isPresent = prevList?.filter(
-              (item: { label: string; value: string }) => (item?.value === 'master_locale')
+        const isRestartIteration = (newMigrationData?.iteration ?? 1) > 1;
+
+        // RESTART (iteration > 1): rebuild the table directly from the saved localeMapping so
+        // each entry becomes exactly one row — the master row keyed `<code>-master_locale`
+        // renders with value='master_locale' (locked); additional rows render with their
+        // source locale value. No master-logic branch and no separate rehydration block, so
+        // the two can't collide and produce phantom duplicates.
+        if (isRestartIteration) {
+          const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
+          const rebuilt = Object?.entries(savedMapping)?.map(([key, value]) => {
+            const isMasterKey = key?.endsWith('-master_locale');
+            return isMasterKey
+              ? { label: key.replace(/-master_locale$/, ''), value: 'master_locale' }
+              : { label: key, value: String(value) };
+          });
+          // Preserve any pending newly-added empty rows the user is filling out.
+          setcmsLocaleOptions((prevList) => {
+            const pendingNewRows = (prevList ?? []).filter((r) => !r?.value);
+            return [...rebuilt, ...pendingNewRows];
+          });
+        } else {
+          if((Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 ||
+          !keys ||
+          currentStack?.uid !== previousStack?.uid || isStackChanged) &&
+          newMigrationData?.project_current_step <= 2)
+          {
+           setcmsLocaleOptions((prevList: { label: string ; value: string }[]) => {
+            const newLabel = stack?.master_locale ?? '';
+
+              const isPresent = prevList?.filter(
+                (item: { label: string; value: string }) => (item?.value === 'master_locale')
+              );
+              if(isPresent?.[0]?.label !== newLabel || currentStack?.uid !== previousStack?.uid || isStackChanged){
+                //setisStackChanged(false);
+                return [
+                  ...prevList?.filter(item => (item?.value !== 'master_locale' && item?.value !== '')) ?? [],
+                  {
+                    label: newLabel,
+                    value: 'master_locale',
+                  }
+                ];
+              }
+              if (isPresent?.length <= 0 ) {
+                return [
+                  ...prevList,
+                  {
+                    label: newLabel,
+                    value: 'master_locale'
+                  }
+                ];
+              }
+
+              return prevList;
+            });}
+          // Re-hydrate the saved locale mapping into the table when the user has progressed past
+          // Step 2 in a normal (non-restart) flow.
+          if (newMigrationData?.project_current_step > 2) {
+            Object?.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
+              ([key, value]) => {
+                setcmsLocaleOptions((prevList) => {
+                  const labelKey = key?.replace(/-master_locale$/, '');
+                  const exists = prevList?.some((item) => item?.label === labelKey);
+                  if (!exists) {
+                    return [
+                      ...prevList,
+                      {
+                        label: labelKey,
+                        value: String(value)
+                      }
+                    ];
+                  }
+                  return prevList;
+                });
+              }
             );
-            if(isPresent?.[0]?.label !== newLabel || currentStack?.uid !== previousStack?.uid || isStackChanged){
-              //setisStackChanged(false);
-              return [
-                ...prevList?.filter(item => (item?.value !== 'master_locale' && item?.value !== '')) ?? [],
-                {
-                  label: newLabel,
-                  value: 'master_locale',
-                }
-              ];
-            }
-            if (isPresent?.length <= 0 ) {
-              return [
-                ...prevList,
-                {
-                  label: newLabel,
-                  value: 'master_locale'
-                }
-              ];
-            }
-
-            return prevList;
-          });}
-        if (newMigrationData?.project_current_step > 2) {
-          Object?.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
-            ([key, value]) => {
-              setcmsLocaleOptions((prevList) => {
-                const labelKey = key?.replace(/-master_locale$/, '');
-
-                // Check if the key already exists in the list
-                const exists = prevList?.some((item) => item?.label === labelKey);
-
-                if (!exists) {
-                  return [
-                    ...prevList,
-                    {
-                      label: labelKey,
-                      value: String(value)
-                    }
-                  ];
-                }
-
-                return prevList; // Return the same list if key exists
-              });
-            }
-          );
+          }
         }
         setisLoading(false);
       } catch (error) {
@@ -685,7 +756,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                 cmsLocaleOptions={cmsLocaleOptions}
                 handleLangugeDelete={handleDeleteLocale}
                 sourceOptions={sourceLocales}
-                isDisabled={newMigrationData?.project_current_step > 2}
+                isDisabled={newMigrationData?.project_current_step > 2 || (newMigrationData?.iteration ?? 1) > 1}
                 isStackChanged={isStackChanged}
                 stack={stack ?? DEFAULT_DROPDOWN}
               />
@@ -699,13 +770,24 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
             icon="AddPlus"
             onClick={addRowComp}
             size="small"
-            disabled={
-              Object.keys(newMigrationData?.destination_stack?.localeMapping || {})?.length ===
-                newMigrationData?.destination_stack?.sourceLocale?.length ||
-              cmsLocaleOptions?.length ===
-                newMigrationData?.destination_stack?.sourceLocale?.length ||
-              newMigrationData?.project_current_step > 2
-            }
+            disabled={(() => {
+              const isRestartIteration = (newMigrationData?.iteration ?? 1) > 1;
+              // Non-restart: lock Add Language past Step 2, and prevent adding more rows than
+              // there are source locales (1:1 mapping is required for first-time migration).
+              if (!isRestartIteration) {
+                return (
+                  Object.keys(newMigrationData?.destination_stack?.localeMapping || {})?.length ===
+                    newMigrationData?.destination_stack?.sourceLocale?.length ||
+                  cmsLocaleOptions?.length ===
+                    newMigrationData?.destination_stack?.sourceLocale?.length ||
+                  newMigrationData?.project_current_step > 2
+                );
+              }
+              // Restart iteration: button must remain available so users can add a new
+              // destination locale before the delta run. Only block if there's already an
+              // empty in-progress row waiting to be filled (avoid stacking empties).
+              return cmsLocaleOptions?.some((o) => !o?.value);
+            })()}
           >
             Add Language
           </Button>

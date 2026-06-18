@@ -123,11 +123,19 @@ const MigrationFlowHeader = ({
     newMigrationData?.legacy_cms?.projectStatus === 3 &&
     newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked 
 
+  // A freshly restarted project is a draft (projectStatus === 0) sitting on step 1. Right after
+  // restart, project_current_step can still hold the old (execute-step) value for a beat — the
+  // restart navigate triggers a project re-fetch that may read backend state before it settles,
+  // overwriting our optimistic project_current_step: 1. That would make isStepInvalid true and wedge
+  // the step-1 CTA disabled until a manual reload. A draft project on an early step is never
+  // "already past", so exclude projectStatus === 0 here (mirrors the isProjectStatusOne guard above).
+  const isProjectStatusDraft = newMigrationData?.legacy_cms?.projectStatus === 0;
   const isStepInvalid =
     params?.stepId &&
     params?.stepId <= '2' &&
-    newMigrationData?.project_current_step?.toString() !== params?.stepId && 
-    parseInt(params?.stepId) < newMigrationData?.project_current_step;
+    newMigrationData?.project_current_step?.toString() !== params?.stepId &&
+    parseInt(params?.stepId) < newMigrationData?.project_current_step &&
+    !isProjectStatusDraft;
 
   // Migration is actively running: it has been started (locally or in redux) but not yet completed.
   // While in progress the CTA must be disabled; once completed it re-enables as "Restart Migration".
