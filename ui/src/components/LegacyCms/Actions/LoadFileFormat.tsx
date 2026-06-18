@@ -88,10 +88,13 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
 
     // Only dispatch when the format actually changed, to avoid a render loop.
     if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() !== extractedFormat?.toLowerCase()) {
+      // Read the latest state from the ref (kept in sync above) rather than the effect's
+      // closure, so narrowing the deps below doesn't dispatch a stale snapshot.
+      const latest = newMigrationDataRef.current;
       dispatch(updateNewMigrationData({
-        ...newMigrationData,
+        ...latest,
         legacy_cms: {
-          ...newMigrationData?.legacy_cms,
+          ...latest?.legacy_cms,
           selectedFileFormat: fileFormatObj
         }
       }));
@@ -99,7 +102,16 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
 
     setFileIcon(fileFormatObj?.title);
     setFileDisplayTitle(getDisplayTitle(fileFormatObj?.title));
-  }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath, dispatch, newMigrationData]);
+    // Depend only on the fields this effect actually reads — the uploaded file path and the
+    // current format. Using the whole newMigrationData object re-ran this on every migration
+    // state change (repeatedly calling the setters). The dispatch reads newMigrationdata via a
+    // ref-fresh closure, so it isn't needed in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
+    newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id,
+    newMigrationData?.legacy_cms?.selectedFileFormat?.title
+  ]);
 
   // Validate the uploaded file's format against the selected CMS's allowed formats.
   // This lives here (not in CMS selection) because the error is about the uploaded

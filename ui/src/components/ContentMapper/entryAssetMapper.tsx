@@ -26,7 +26,11 @@ const EntryAssetMapper = ({ handleStepChange }: entryAssetMapperProps) => {
   const tableHeight = calcHeight();
 
   return (
-    <div className="step-container">
+    // Plain flex-column wrapper — NOT .step-container. Both child mappers render their own
+    // .step-container (height: 100%), so reusing it here would nest two full-height flex
+    // containers around the toggle and clip the table. This wrapper just stacks the toggle
+    // above the child and lets the child own the height.
+    <div className="entry-asset-mapper">
       <div className="mapper-view-toggle">
         <Button
           buttonType={mapperView === 'entries' ? 'secondary' : 'light'}
