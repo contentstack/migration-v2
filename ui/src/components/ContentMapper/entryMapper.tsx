@@ -30,7 +30,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
 
 // Interface
@@ -497,10 +497,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const calcHeight = () => window.innerHeight - 361;
   const tableHeight = calcHeight();
 
-  const modalProps = {
-    body: 'An error occurred while generating the content mapper. Please go to the Legacy CMS step and validate the file again.',
-  };
-
   return (
     isLoading || newMigrationData?.isprojectMapped
       ? <div className="loader-container">
@@ -684,35 +680,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
           </div> :
           <EmptyState
             forPage="emptyStateV2"
-            heading={<div className="empty_search_heading">No Content Types available</div>}
+            heading={<div className="empty_search_heading">{ENTRY_MAPPER_EMPTY_STATE.NO_ENTRIES_HEADING}</div>}
             description={
               <div className="empty_search_description">
-                {modalProps?.body}
+                {ENTRY_MAPPER_EMPTY_STATE.NO_ENTRIES_DESCRIPTION}
               </div>
             }
-            className="mapper-emptystate"
+            className="mapper-emptystate mapper-emptystate--centered"
             img={NoDataFound}
-            actions={
-              <Button buttonType="secondary" size="small" version="v2"
-                onClick={() => {
-                  const newMigrationDataObj: INewMigration = {
-                    ...newMigrationData,
-                    legacy_cms: {
-                      ...newMigrationData?.legacy_cms,
-                      uploadedFile: {
-                        ...newMigrationData?.legacy_cms?.uploadedFile,
-                        reValidate: true,
-                        buttonClicked: true,
-                      }
-                    }
-                  };
-                  dispatch(updateNewMigrationData(newMigrationDataObj));
-                  handleStepChange(0);
-                  const url = `/projects/${projectId}/migration/steps/1`;
-                  navigate(url, { replace: true });
-                }}
-                className='ml-10'>Go to Legacy CMS</Button>
-            }
             version="v2"
             testId="no-results-found-page"
           />}
