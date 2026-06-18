@@ -628,7 +628,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
 
         // Guard against clobbering a populated sourceLocales with undefined when fetchData
         // runs before Redux's sourceLocale has hydrated on a restarted iteration.
-        if (Array.isArray(sourceLocale) && sourceLocale.length > 0) {
+        if (Array.isArray(sourceLocale) && sourceLocale?.length > 0) {
           setsourceLocales(sourceLocale);
         }
         setoptions(allLocales);
@@ -798,8 +798,9 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               // to pick (e.g. a single-locale source where `en` is already in use).
               const hasEmptyRow = cmsLocaleOptions?.some((o) => !o?.value);
               const mappedSources = new Set(
-                Object.values(newMigrationData?.destination_stack?.localeMapping || {})
-                  .filter((v): v is string => typeof v === 'string' && v.length > 0)
+                Object.values(newMigrationData?.destination_stack?.localeMapping || {}).filter(
+                  (v): v is string => typeof v === 'string' && v?.length > 0
+                )
               );
               const totalSources = newMigrationData?.destination_stack?.sourceLocale?.length ?? 0;
               const allSourcesMapped = totalSources > 0 && mappedSources.size >= totalSources;
