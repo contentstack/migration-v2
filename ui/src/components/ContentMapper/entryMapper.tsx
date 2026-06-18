@@ -618,8 +618,8 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
             {/* Entry Mapping Table */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
-                <div className={`entry-mapper-container${localeOptions?.length > 1 ? ' has-locale-select' : ''}`}>
-                  {localeOptions?.length > 1 && (
+                <div className={`entry-mapper-container${localeOptions?.length > 0 ? ' has-locale-select' : ''}`}>
+                  {localeOptions?.length > 0 && (
                     <div className="locale-select-inline">
                       <Select
                         className="locale-select"

@@ -246,6 +246,13 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
   );
 
   const newMigrationDataRef = useRef( newMigrationData );
+  // Keep the ref in sync with Redux so dispatches built from `ref.current` don't clobber
+  // recent state (e.g. a fresh restart resets `iteration` and `isValidated`, but the ref
+  // would otherwise still hold the pre-restart snapshot and overwrite those on next dispatch).
+  useEffect( () =>
+  {
+    newMigrationDataRef.current = newMigrationData;
+  }, [ newMigrationData ] );
   const dispatch = useDispatch();
   const [ isLoading, setIsLoading ] = useState<boolean>( false );
   const [ isValidated, setIsValidated ] = useState<boolean>( newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.isValidated );
