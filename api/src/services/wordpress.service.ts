@@ -322,6 +322,69 @@ function unwrapSingleChildGroup(block: any): any {
   return current;
 }
 
+/**
+ * core/columns and core/column are pure layout wrappers — the schema (upload-api schemaMapper)
+ * flattens them away and bubbles their descendant content up. The entry walker must mirror that,
+ * otherwise content buried under columns/column (e.g. headings, lists, paragraphs) is never matched
+ * to its child fields and silently dropped. core/list is expanded to its core/list-item children so
+ * each maps to a list_item field.
+ *
+ * core/cover and core/media-text also CONTAIN content (the schema emits a media file field plus the
+ * inner blocks). When such a block is nested as an inner child, surface a synthetic image leaf for
+ * its background media AND recurse into its inner content, so both the media and the inner
+ * headings/paragraphs/lists are captured — matching schemaMapper's cover/media-text handling.
+ * Named/leaf blocks pass through untouched so their existing handling still runs.
+ */
+function flattenLayoutWrappers(blocks: any[]): any[] {
+  const out: any[] = [];
+  for (const block of Array.isArray(blocks) ? blocks : []) {
+    const current = unwrapSingleChildGroup(block);
+    const name = current?.blockName;
+    if (name === 'core/columns' || name === 'core/column' || name === 'core/list') {
+      out.push(...flattenLayoutWrappers(current?.innerBlocks || []));
+    } else if (name === 'core/cover' || name === 'core/media-text') {
+      const url = String(current?.attrs?.url ?? current?.attrs?.mediaUrl ?? '').trim();
+      if (url) {
+        out.push({
+          blockName: 'core/image',
+          attrs: { ...(current?.attrs || {}), url, src: url },
+          innerHTML: current?.innerHTML,
+          innerBlocks: []
+        });
+      }
+      out.push(...flattenLayoutWrappers(current?.innerBlocks || []));
+    } else {
+      out.push(current);
+    }
+  }
+  return out;
+}
+
+/**
+ * Top-level mirror of the schema's flattenTopLevelLayout: unwrap layout-only wrappers that hold a
+ * SINGLE child (core/columns, core/column, anonymous single-child core/group) so single-content
+ * columns surface their real block. A MULTI-child column is kept intact so it stays a single
+ * "column" modular child whose fields are populated during the inner descent — its contents are
+ * not scattered to the root. Lists are not expanded here; named groups are preserved.
+ */
+function flattenTopLevelLayout(blocks: any[]): any[] {
+  const out: any[] = [];
+  for (const block of Array.isArray(blocks) ? blocks : []) {
+    const name = block?.blockName;
+    const innerCount = Array.isArray(block?.innerBlocks) ? block.innerBlocks.length : 0;
+    const isSingleLayoutWrap =
+      (name === 'core/columns' || name === 'core/column') && innerCount === 1;
+    const isAnonSingleGroup =
+      name === 'core/group' && !block?.attrs?.metadata?.name && innerCount === 1;
+    if (isSingleLayoutWrap || isAnonSingleGroup) {
+      out.push(...flattenTopLevelLayout(block?.innerBlocks || []));
+    } else {
+      out.push(block);
+    }
+  }
+  return out;
+}
+
 /** core/cover puts the image in attrs — not in innerBlocks; schema maps it to a file field otherCmsField "media". */
 function attachCoverBackgroundMediaToChildren(
   coverBlock: any,
@@ -494,8 +557,10 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
         // CS-path children under modular_blocks_2.* plus legacy backup-path modular_blocks.*
         const modularBlockChildren = getModularBlockChildrenForField(field, fields);
                 
-        // Process each block in blockJson to see if it matches any modular block child
-        for (const block of blockJson) {
+        // Process each block in blockJson to see if it matches any modular block child.
+        // Flatten top-level layout wrappers first so mixed-content columns surface as the same
+        // type-based blocks the schema produced (see flattenTopLevelLayout).
+        for (const block of flattenTopLevelLayout(blockJson)) {
           try {
             const blockForProcessing = unwrapSingleChildGroup(block);
             const blockName = getFieldName(resolvedBlockName(blockForProcessing));
@@ -578,7 +643,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                   childrenObject,
                 );
 
-                const inners = blockForProcessing?.innerBlocks;
+                const inners = flattenLayoutWrappers(blockForProcessing?.innerBlocks);
                 if (Array.isArray(inners) && inners?.length > 0) {
                   inners.forEach((child: any, childIndex: number) => {
                     try {
@@ -856,8 +921,10 @@ function processNestedGroup(
   if (nestedFields?.length === 0 && !modularBlockChild) {
     return {};
   }
- 
-  groupBlock.innerBlocks.forEach((nestedChild: any, nestedIndex: number) => {
+
+  // Flatten layout wrappers (columns/column) and expand lists so nested leaves match their fields,
+  // consistent with the top-level walker and the schema builder.
+  flattenLayoutWrappers(groupBlock.innerBlocks).forEach((nestedChild: any, nestedIndex: number) => {
     try {
       const nestedEffective = unwrapSingleChildGroup(nestedChild);
       const nestedSlug = normalizedWpSlug(

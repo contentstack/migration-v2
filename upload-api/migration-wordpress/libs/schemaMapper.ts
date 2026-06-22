@@ -285,28 +285,27 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         const schemas: Field[] = [];
         for (const item of key) {
             const result = await schemaMapper(item, parentUid, parentFieldName, affix);
-
-            const compareField = Array.isArray(result) ? result[0] : result;
-            const existingBlock: Field | undefined = compareField ? schemas.find((schemaItem: Field) => 
-                compareField?.otherCmsField === schemaItem?.otherCmsField && 
-                schemaItem?.contentstackFieldType === compareField?.contentstackFieldType && 
-                schemaItem?.contentstackField === compareField?.contentstackField &&
-                parentUid && compareField?.contentstackFieldUid?.includes(parentUid) &&
-                parentUid && schemaItem?.contentstackFieldUid?.includes(parentUid)
-            ) : undefined;
-
-            if (existingBlock && typeof existingBlock === 'object' && 'advanced' in existingBlock) {
-                existingBlock.advanced = {
-                  ...(existingBlock.advanced as object),
-                  multiple: true
-                };
-            } else {
-                if (Array.isArray(result)) {
-                    schemas.push(...result);
+            // Dedupe each produced field individually. A single inner block (e.g. core/columns) can
+            // return several fields (heading + list_item + paragraph); comparing only the first one
+            // and dropping the whole result when it collides would silently lose the rest.
+            const produced = (Array.isArray(result) ? result : [result]).filter(Boolean) as Field[];
+            for (const field of produced) {
+                const existingBlock: Field | undefined = schemas.find((schemaItem: Field) =>
+                    field?.otherCmsField === schemaItem?.otherCmsField &&
+                    schemaItem?.contentstackFieldType === field?.contentstackFieldType &&
+                    schemaItem?.contentstackField === field?.contentstackField &&
+                    parentUid && field?.contentstackFieldUid?.includes(parentUid) &&
+                    parentUid && schemaItem?.contentstackFieldUid?.includes(parentUid)
+                );
+                if (existingBlock && typeof existingBlock === 'object' && 'advanced' in existingBlock) {
+                    existingBlock.advanced = {
+                      ...(existingBlock.advanced as object),
+                      multiple: true
+                    };
                 } else {
-                    schemas.push(result);
+                    schemas.push(field);
                 }
-              }
+            }
         }
         return schemas;
     }
@@ -318,7 +317,6 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/html':
         case 'core/pullquote':
         case 'core/table':
-        case 'core/columns':
         case 'core/verse':
         case 'core/code': {
             const rteUid = parentUid ?
@@ -339,6 +337,21 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     id:key?.attributes?.anchor
                 }
             };
+        }
+        case 'core/columns':
+        case 'core/column': {
+            // Layout-only wrappers: flatten by extracting nested content.
+            // core/columns contains core/column children, which in turn hold the
+            // actual content blocks (headings, lists, paragraphs). Without handling
+            // core/column, processInnerBlocks would dead-end and drop everything inside.
+            if (key?.innerBlocks && key.innerBlocks.length > 0) {
+                const innerResults = await processInnerBlocks(key, parentUid, parentFieldName, affix);
+                if (innerResults.length > 0) {
+                    return innerResults;
+                }
+            }
+            // No inner blocks - nothing to map for a pure layout wrapper
+            return [];
         }
         case 'core/missing':
             const rteUid = parentUid ?
@@ -451,8 +464,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         }
 
         case 'core/heading':
-        case 'core/accordion-heading':
-        case 'core/list-item': {
+        case 'core/accordion-heading': {
             const textUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             return {
                 uid: textUid,
@@ -566,7 +578,49 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 
             
          
-        case 'core/list':
+        case 'core/list': {
+            // Handle list blocks by extracting list item content
+            if (key?.innerBlocks && key.innerBlocks.length > 0) {
+                const listItems: Field[] = [];
+                for (const item of key.innerBlocks) {
+                    if (item.name === 'core/list-item' && item.attributes?.content) {
+                        const itemUid = parentUid
+                            ? `${parentUid}.${getFieldUid(`list_item_${clientIdForUid(item.clientId)}`, affix)}`
+                            : getFieldUid(`list_item_${clientIdForUid(item.clientId)}`, affix);
+
+                        listItems.push({
+                            uid: itemUid,
+                            otherCmsField: 'list_item',
+                            otherCmsType: 'text',
+                            contentstackField: `${fieldName} > Item`,
+                            contentstackFieldUid: itemUid,
+                            contentstackFieldType: 'single_line_text',
+                            backupFieldType: 'single_line_text',
+                            backupFieldUid: itemUid,
+                            advanced: {}
+                        });
+                    }
+                }
+                if (listItems.length > 0) {
+                    return listItems;
+                }
+            }
+            // If no inner blocks or empty, treat as paragraph
+            const listUid = parentUid ?
+                `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
+                : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            return {
+                uid: listUid,
+                otherCmsField: getFieldName(key?.name),
+                otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                contentstackField: fieldName,
+                contentstackFieldUid: listUid,
+                contentstackFieldType: 'single_line_text',
+                backupFieldType: 'single_line_text',
+                backupFieldUid: listUid,
+                advanced: {}
+            };
+        }
         case 'core/quote':
         case 'core/social-links':
         case 'core/details':
@@ -577,7 +631,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
 
             const innerBlocks = await processInnerBlocks(
-                key, 
+                key,
                 groupUid ,
                 fieldName,
                 affix
@@ -903,7 +957,6 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }
             return [];
         }
-
     }
     return [];
 }

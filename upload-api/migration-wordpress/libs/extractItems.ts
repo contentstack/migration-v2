@@ -23,6 +23,33 @@ function resolveBlockName(field: any): string {
   return field?.name;
 }
 
+/**
+ * Unwrap layout-only wrappers that hold exactly ONE child — core/columns / core/column with a single
+ * inner block, and anonymous single-child core/group. These add no structure, so we collapse them to
+ * reveal the real content (e.g. a single-column-with-image surfaces the image).
+ *
+ * A column with MULTIPLE inner blocks (heading + list + paragraph …) is kept intact so it becomes a
+ * single "column" modular-block child holding those fields, rather than scattering them at the root.
+ * Named groups (attributes.metadata.name) and lists are always preserved.
+ */
+function flattenTopLevelLayout(blocks: any[]): any[] {
+  const out: any[] = [];
+  for (const b of Array.isArray(blocks) ? blocks : []) {
+    const name = b?.name;
+    const innerCount = Array.isArray(b?.innerBlocks) ? b.innerBlocks.length : 0;
+    const isSingleLayoutWrap =
+      (name === 'core/columns' || name === 'core/column') && innerCount === 1;
+    const isAnonSingleGroup =
+      name === 'core/group' && !b?.attributes?.metadata?.name && innerCount === 1;
+    if (isSingleLayoutWrap || isAnonSingleGroup) {
+      out.push(...flattenTopLevelLayout(b?.innerBlocks || []));
+    } else {
+      out.push(b);
+    }
+  }
+  return out;
+}
+
 const { contentTypes: contentTypesConfig } = config?.modules;
 
 const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
@@ -240,10 +267,70 @@ function getLastUid(uid : string) {
   return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
 }
 
+/**
+ * Structure-aware merge: when a modular-block child of the same generic name already exists
+ * (e.g. another "columns"/"group" block on the page), union the new block's field types into it
+ * instead of dropping the whole block. The new fields are re-rooted under the existing child's UID,
+ * and a field is only added if no field of the same (type + cms name + depth) already lives there —
+ * so one child accumulates every field shape seen across same-named blocks, and every block's
+ * content can populate at entry time. Returns the number of new fields merged.
+ */
+function mergeSchemaIntoExistingChild(
+  existingBlock: Field,
+  schema: Field[],
+  newChildUid: string,
+  CT: CT
+): number {
+  const existingUid = existingBlock?.contentstackFieldUid;
+  if (!existingUid) return 0;
+
+  const fieldKey = (f: Field): string => {
+    const uid = f?.contentstackFieldUid || '';
+    const rel = uid.startsWith(existingUid) ? uid.slice(existingUid.length) : uid;
+    const depth = (rel.match(/\./g) || []).length;
+    return `${f?.contentstackFieldType}|${(f?.otherCmsField || '').toLowerCase()}|${depth}`;
+  };
+
+  const existingByKey = new Map<string, Field>();
+  for (const f of CT.filter((c) => c?.contentstackFieldUid?.startsWith(`${existingUid}.`))) {
+    if (!existingByKey.has(fieldKey(f))) existingByKey.set(fieldKey(f), f);
+  }
+
+  const reRoot = (u: string | undefined): string | undefined =>
+    typeof u === 'string' && u.startsWith(newChildUid) ? existingUid + u.slice(newChildUid.length) : u;
+
+  let added = 0;
+  for (const obj of schema) {
+    if (!obj || obj.contentstackFieldType === 'null') continue;
+    const merged: Field = {
+      ...obj,
+      uid: reRoot(obj.uid) as string,
+      contentstackFieldUid: reRoot(obj.contentstackFieldUid) as string,
+      backupFieldUid: reRoot(obj.backupFieldUid) as string
+    };
+    const k = fieldKey(merged);
+    const existing = existingByKey.get(k);
+    if (existing) {
+      // Field shape already present — if this occurrence repeats, make sure the kept field is
+      // marked multiple so the entry walker captures every instance.
+      if (merged?.advanced?.multiple && !existing?.advanced?.multiple) {
+        existing.advanced = { ...(existing.advanced || {}), multiple: true };
+      }
+      continue;
+    }
+    existingByKey.set(k, merged);
+    CT.push(merged);
+    added++;
+  }
+  return added;
+}
+
 /** Passed to schemaMapper — must be the block itself when switch cases use processInnerBlocks(inner block). If we only pass innerBlocks, parent cases (e.g. core/cover, core/media-text) never run. */
 function rootBlockForSchemaMapper(field: any) {
   if (!field?.innerBlocks?.length) return field;
-  if (field?.name === 'core/cover' || field?.name === 'core/media-text') return field;
+  // core/list must reach schemaMapper whole so its core/list case emits list_item fields;
+  // unwrapping to innerBlocks would hand schemaMapper bare list-items it has no case for.
+  if (field?.name === 'core/cover' || field?.name === 'core/media-text' || field?.name === 'core/list') return field;
   return field.innerBlocks;
 }
 
@@ -388,14 +475,19 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
           'utf8'
         );
 
+        // Flatten layout-only wrappers (columns/column + anonymous single-child groups) so mixed
+        // content inside them surfaces as type-based blocks instead of being dropped by the
+        // name-based dedupe below. Original blocksJson is still written to disk above for reference.
+        const processedBlocks = flattenTopLevelLayout(blocksJson);
+
         // Example usage
-        const result = findSameStructureBlocks(blocksJson);
+        const result = findSameStructureBlocks(processedBlocks);
         // fs?.writeFileSync('result.json', JSON?.stringify(result, null, 4));
-        
-  
+
+
         // Track processed similar blocks to avoid duplicates
-        
-        for (const field of blocksJson) {
+
+        for (const field of processedBlocks) {
             const fieldUid = getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`|| '', affix || '');
             const contentstackFieldName = getFieldName(resolveBlockName(field));
 
@@ -432,13 +524,23 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             if (similarBlocks?.length > 0) {
               // Create a unique key based on the structure/name to track processed groups
               const groupKey = resolveBlockName(field);
-              // Skip if we've already processed this group of similar blocks
-              if (processedSimilarBlocks?.has?.(groupKey) || existingBlock) {
+              // Skip if we've already processed this group of similar blocks within this entry
+              if (processedSimilarBlocks?.has?.(groupKey)) {
                   continue;
               }
-              
-              
-              
+              // A same-named child already exists (e.g. another "columns"): merge this block's
+              // field shapes into it rather than dropping the block, then move on.
+              if (existingBlock) {
+                const childUid = `modular_blocks.${fieldUid}`;
+                const Fieldschema: Field[] | Field = await schemaMapper(rootBlockForSchemaMapper(field), childUid, groupedContentstackField, affix || '');
+                const Schema = Array.isArray(Fieldschema) ? Fieldschema : [Fieldschema];
+                mergeSchemaIntoExistingChild(existingBlock, Schema, childUid, CT);
+                processedSimilarBlocks?.add?.(groupKey);
+                continue;
+              }
+
+
+
               // Create single modular block child for all similar blocks
               if(!existingBlock && ! processedSimilarBlocks?.has?.(groupKey)){
                 // Mark this group as processed
@@ -496,7 +598,18 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             else {
               // Handle single blocks (no similar structures found)
               const singleBlockName = getFieldName(resolveBlockName(field));
-             
+
+              // A same-named child already exists: merge this block's field shapes into it
+              // instead of dropping it.
+              if (existingBlock && !processedSimilarBlocks?.has?.(resolveBlockName(field))) {
+                const childUid = `modular_blocks.${fieldUid}`;
+                const Fieldschema: Field[] | Field = await schemaMapper(rootBlockForSchemaMapper(field), childUid, groupedContentstackField, affix || '');
+                const Schema = Array.isArray(Fieldschema) ? Fieldschema : [Fieldschema];
+                mergeSchemaIntoExistingChild(existingBlock, Schema, childUid, CT);
+                processedSimilarBlocks?.add?.(resolveBlockName(field));
+                continue;
+              }
+
               if(!existingBlock && ! processedSimilarBlocks?.has?.(resolveBlockName(field))){
                 processedSimilarBlocks?.add?.(resolveBlockName(field));
                 
