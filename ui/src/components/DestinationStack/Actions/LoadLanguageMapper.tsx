@@ -626,9 +626,11 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           value: item
         }));
 
-        // Guard against clobbering a populated sourceLocales with undefined when fetchData
-        // runs before Redux's sourceLocale has hydrated on a restarted iteration.
-        if (Array.isArray(sourceLocale) && sourceLocale?.length > 0) {
+        // Guard against clobbering a populated sourceLocales with `undefined` when fetchData
+        // runs before Redux's sourceLocale has hydrated on a restarted iteration. A legitimately
+        // empty array IS a valid state (e.g. a source with no locales yet), so only skip when
+        // the value isn't an array at all.
+        if (Array.isArray(sourceLocale)) {
           setsourceLocales(sourceLocale);
         }
         setoptions(allLocales);
@@ -802,9 +804,14 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                   (v): v is string => typeof v === 'string' && v?.length > 0
                 )
               );
-              const totalSources = newMigrationData?.destination_stack?.sourceLocale?.length ?? 0;
+              // Drive the count from the hydrated `sourceLocales` state (not directly from
+              // Redux), so during the async-hydration window — when Redux's sourceLocale is
+              // still undefined/empty — the button stays disabled instead of letting users
+              // add a row whose source dropdown has nothing to pick from yet.
+              const totalSources = sourceLocales?.length ?? 0;
+              const sourcesNotReady = totalSources === 0;
               const allSourcesMapped = totalSources > 0 && mappedSources.size >= totalSources;
-              return hasEmptyRow || allSourcesMapped;
+              return hasEmptyRow || sourcesNotReady || allSourcesMapped;
             })()}
           >
             Add Language
