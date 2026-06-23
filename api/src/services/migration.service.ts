@@ -23,15 +23,11 @@ import {
   ExceptionFunction,
 } from '../utils/custom-errors.utils.js';
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
-// import { siteCoreService } from './sitecore.service.js';
-// import { wordpressService } from './wordpress.service.js';
-// import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
 import fs from 'fs';
-// import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
@@ -39,7 +35,6 @@ import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
-// import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { cmsMigrationStrategies } from '../strategies/cms-migration.strategy.js';
 
