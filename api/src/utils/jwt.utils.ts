@@ -12,6 +12,6 @@ import { config } from "../config/index.js";
  */
 export const generateToken = (payload: AppTokenPayload): string => {
   return jwt.sign(payload, config.APP_TOKEN_KEY, {
-    expiresIn: config.APP_TOKEN_EXP,
+    expiresIn: config.APP_TOKEN_EXP as any,
   });
 };

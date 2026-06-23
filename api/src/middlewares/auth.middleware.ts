@@ -29,7 +29,7 @@ export const authenticateUser = (
       attaches the decoded token payload to the request object, 
       and then passes control to the next middleware or request handler. 
     */
-  jwt.verify(token, config.APP_TOKEN_KEY, (err, payload) => {
+  jwt.verify(token, config.APP_TOKEN_KEY, (err: Error | null, payload: any) => {
     if (err)
       return res
         .status(status)

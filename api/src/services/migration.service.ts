@@ -23,15 +23,15 @@ import {
   ExceptionFunction,
 } from '../utils/custom-errors.utils.js';
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
-import { siteCoreService } from './sitecore.service.js';
-import { wordpressService } from './wordpress.service.js';
-import { drupalService } from './drupal.service.js';
+// import { siteCoreService } from './sitecore.service.js';
+// import { wordpressService } from './wordpress.service.js';
+// import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
 import fs from 'fs';
-import { contentfulService } from './contentful.service.js';
+// import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
@@ -39,8 +39,9 @@ import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
-import { aemService } from './aem.service.js';
+// import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
+import { cmsMigrationStrategies } from '../strategies/cms-migration.strategy.js';
 
 /**
  * Creates a test stack.
@@ -448,208 +449,17 @@ const startTestMigration = async (req: Request): Promise<any> => {
       current_test_stack_id: project?.current_test_stack_id,
     });
 
-    switch (cms) {
-      case CMS.SITECORE_V8:
-      case CMS.SITECORE_V9:
-      case CMS.SITECORE_V10: {
-        if (packagePath) {
-          await siteCoreService?.createEntry({
-            packagePath,
-            contentTypes,
-            master_locale: project?.stackDetails?.master_locale,
-            destinationStackId: project?.current_test_stack_id,
-            projectId,
-            keyMapper: project?.mapperKeys,
-            project,
-          });
-          await siteCoreService?.createLocale(
-            req,
-            project?.current_test_stack_id,
-            projectId,
-            project
-          );
-          await siteCoreService?.createEnvironment(
-            project?.current_test_stack_id
-          );
-          await siteCoreService?.createVersionFile(
-            project?.current_test_stack_id
-          );
-        }
-        break;
-      }
-      case CMS.WORDPRESS: {
-        if (packagePath) {
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId);
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
-        }
-        break;
-      }
-      case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
-        await contentfulService?.createLocale(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId,
-          project
-        );
-        await contentfulService?.createRefrence(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId
-        );
-        await contentfulService?.createWebhooks(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId
-        );
-        await contentfulService?.createEnvironment(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId
-        );
-        await contentfulService?.createAssets(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId,
-          true
-        );
-        await contentfulService?.createTaxonomy(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId,
-        );
-        await contentfulService?.createEntry(
-          cleanLocalPath,
-          project?.current_test_stack_id,
-          projectId,
-          contentTypes,
-          project?.mapperKeys,
-          project?.stackDetails?.master_locale,
-          project
-        );
-        await contentfulService?.createVersionFile(
-          project?.current_test_stack_id,
-          projectId
-        );
-        break;
-      }
+    await cmsMigrationStrategies[cms]?.run({
+      req,
+      projectId,
+      project,
+      file_path,
+      packagePath,
+      contentTypes,
+      stackId: project?.current_test_stack_id,
+      isTest: true
+    });
 
-      case CMS.AEM: {
-        await aemService.createAssets({
-          projectId,
-          packagePath,
-          destinationStackId: project?.current_test_stack_id,
-        });
-        await aemService.createEntry({
-          packagePath,
-          contentTypes,
-          master_locale: project?.stackDetails?.master_locale,
-          destinationStackId: project?.current_test_stack_id,
-          projectId,
-          keyMapper: project?.mapperKeys,
-          project,
-        });
-        await aemService?.createLocale(
-          req,
-          project?.current_test_stack_id,
-          projectId,
-          project
-        );
-        await aemService?.createVersionFile(project?.current_test_stack_id);
-        break;
-      }
-
-      case CMS.DRUPAL: {
-        // Get database configuration from project
-        const dbConfig = {
-          host: project?.legacy_cms?.mySQLDetails?.host,
-          user: project?.legacy_cms?.mySQLDetails?.user,
-          password: project?.legacy_cms?.mySQLDetails?.password || '',
-          database: project?.legacy_cms?.mySQLDetails?.database,
-          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
-        };
-
-        // Get Drupal assets URL configuration from project, request body, or environment variables
-        // Priority: project config > request body > environment variables > empty (auto-detection)
-        const drupalAssetsConfig = {
-          base_url:
-            project?.legacy_cms?.assetsConfig?.base_url ||
-            req.body?.assetsConfig?.base_url ||
-            process.env.DRUPAL_ASSETS_BASE_URL ||
-            '',
-          public_path:
-            project?.legacy_cms?.assetsConfig?.public_path ||
-            req.body?.assetsConfig?.public_path ||
-            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
-            '',
-        };
-
-        // Run Drupal migration services in proper order (following test-drupal-services sequence)
-        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
-        await drupalService?.createQuery(
-          dbConfig,
-          project?.current_test_stack_id,
-          projectId
-        );
-
-
-        // Step 3: Create assets from Drupal database
-        await drupalService?.createAssets(
-          dbConfig,
-          project?.current_test_stack_id,
-          projectId,
-          true,
-          drupalAssetsConfig
-        );
-
-        // Step 4: Create references
-        await drupalService?.createRefrence(
-          dbConfig,
-          project?.current_test_stack_id,
-          projectId,
-          true
-        );
-
-        // Step 5: Create taxonomy
-        await drupalService?.createTaxonomy(
-          dbConfig,
-          project?.current_test_stack_id,
-          projectId
-        );
-
-        // Step 6: Create entries
-        await drupalService?.createEntry(
-          dbConfig,
-          project?.current_test_stack_id,
-          projectId,
-          true,
-          project?.stackDetails?.master_locale,
-          project,
-          contentTypes
-        );
-
-        // Step 7: Create locale
-        await drupalService?.createLocale(
-          dbConfig,
-          project?.current_test_stack_id,
-          projectId,
-          project
-        );
-
-        // Step 8: Create version file
-        await drupalService?.createVersionFile(
-          project?.current_test_stack_id,
-          projectId
-        );
-        break;
-      }
-
-      default:
-        break;
-    }
     if (cms !== CMS.AEM) {
       await testFolderCreator?.({
         destinationStackId: project?.current_test_stack_id,
@@ -852,216 +662,18 @@ const startMigration = async (req: Request): Promise<any> => {
       stackId: project?.destination_stack_id,
       current_test_stack_id: project?.destination_stack_id,
     });
-    switch (cms) {
-      case CMS.SITECORE_V8:
-      case CMS.SITECORE_V9:
-      case CMS.SITECORE_V10: {
-        if (packagePath) {
-          await siteCoreService?.createEntry({
-            packagePath,
-            contentTypes,
-            master_locale: project?.stackDetails?.master_locale,
-            destinationStackId: project?.destination_stack_id,
-            projectId,
-            keyMapper: project?.mapperKeys,
-            project,
-          });
-          await siteCoreService?.createLocale(
-            req,
-            project?.destination_stack_id,
-            projectId,
-            project
-          );
-          await siteCoreService?.createVersionFile(
-            project?.destination_stack_id
-          );
-        }
-        break;
-      }
-      case CMS.WORDPRESS: {
-        if (packagePath) {
-          await wordpressService?.createLocale(
-            req,
-            project?.current_test_stack_id,
-            projectId,
-            project
-          );
-          await wordpressService?.getAllAssets(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-       
-          //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.createVersionFile(
-            project?.destination_stack_id,
-            projectId
-          );
-        }
-        break;
-      }
-      case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
-        await contentfulService?.createLocale(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId,
-          project
-        );
-        await contentfulService?.createRefrence(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId
-        );
-        await contentfulService?.createWebhooks(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId
-        );
-        await contentfulService?.createEnvironment(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId
-        );
-        await contentfulService?.createAssets(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId
-        );
-        await contentfulService?.createTaxonomy(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId,
-        );
-        await contentfulService?.createEntry(
-          cleanLocalPath,
-          project?.destination_stack_id,
-          projectId,
-          contentTypes,
-          project?.mapperKeys,
-          project?.stackDetails?.master_locale,
-          project
-        );
-        await contentfulService?.createVersionFile(
-          project?.destination_stack_id,
-          projectId
-        );
-        break;
-      }
-      case CMS.AEM: {
-        await aemService.createAssets({
-          projectId,
-          packagePath,
-          destinationStackId: project?.destination_stack_id,
-        });
-        await aemService.createEntry({
-          packagePath,
-          contentTypes,
-          master_locale: project?.stackDetails?.master_locale,
-          destinationStackId: project?.destination_stack_id,
-          projectId,
-          keyMapper: project?.mapperKeys,
-          project,
-        });
-        await aemService?.createLocale(
-          req,
-          project?.destination_stack_id,
-          projectId,
-          project
-        );
-        await aemService?.createVersionFile(project?.destination_stack_id);
-        break;
-      }
 
-      case CMS.DRUPAL: {
-        // Get database configuration from project
-        const dbConfig = {
-          host: project?.legacy_cms?.mySQLDetails?.host,
-          user: project?.legacy_cms?.mySQLDetails?.user,
-          password: project?.legacy_cms?.mySQLDetails?.password || '',
-          database: project?.legacy_cms?.mySQLDetails?.database,
-          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
-        };
+    await cmsMigrationStrategies[cms]?.run({
+      req,
+      projectId,
+      project,
+      file_path,
+      packagePath,
+      contentTypes,
+      stackId: project?.destination_stack_id,
+      isTest: false
+    });
 
-        // Get Drupal assets URL configuration from project, request body, or environment variables
-        const drupalAssetsConfig = {
-          base_url:
-            project?.legacy_cms?.assetsConfig?.base_url ||
-            req.body?.assetsConfig?.base_url ||
-            process.env.DRUPAL_ASSETS_BASE_URL ||
-            '',
-          public_path:
-            project?.legacy_cms?.assetsConfig?.public_path ||
-            req.body?.assetsConfig?.public_path ||
-            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
-            '',
-        };
-
-        // Run Drupal migration services in proper order
-        // Step 1: Generate dynamic queries from database analysis
-        await drupalService?.createQuery(
-          dbConfig,
-          project?.destination_stack_id,
-          projectId
-        );
-
-        // Step 3: Create assets from Drupal database
-        await drupalService?.createAssets(
-          dbConfig,
-          project?.destination_stack_id,
-          projectId,
-          false, // Not a test migration
-          drupalAssetsConfig
-        );
-
-        // Step 4: Create references
-        await drupalService?.createRefrence(
-          dbConfig,
-          project?.destination_stack_id,
-          projectId,
-          false // Not a test migration
-        );
-
-        // Step 5: Create taxonomy
-        await drupalService?.createTaxonomy(
-          dbConfig,
-          project?.destination_stack_id,
-          projectId
-        );
-
-        // Step 6: Create entries
-        await drupalService?.createEntry(
-          dbConfig,
-          project?.destination_stack_id,
-          projectId,
-          false, // Not a test migration
-          project?.stackDetails?.master_locale,
-          project,
-          contentTypes
-        );
-
-        // Step 7: Create locale
-        await drupalService?.createLocale(
-          dbConfig,
-          project?.destination_stack_id,
-          projectId,
-          project
-        );
-
-        // Step 8: Create version file
-        await drupalService?.createVersionFile(
-          project?.destination_stack_id,
-          projectId
-        );
-        break;
-      }
-
-      default:
-        break;
-    }
     await utilsCli?.runCli(
       region,
       user_id,
@@ -1213,7 +825,7 @@ const getAuditData = async (req: Request): Promise<any> => {
       if (filter != GET_AUDIT_DATA?.FILTERALL) {
         const filters = filter?.split('-');
         transformedData = transformedData?.filter((log) => {
-          return filters?.some((filter) => {
+          return filters?.some((filter: string) => {
             return (
               log?.display_type
                 ?.toLowerCase()
@@ -1243,7 +855,7 @@ const getAuditData = async (req: Request): Promise<any> => {
     if (filter != GET_AUDIT_DATA?.FILTERALL) {
       const filters = filter?.split('-');
       transformedData = transformedData?.filter((log) => {
-        return filters?.some((filter) => {
+        return filters?.some((filter: string) => {
           return log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase());
         });
       });
@@ -1390,7 +1002,7 @@ const getLogs = async (req: Request): Promise<any> => {
       if (filter !== 'all') {
         const filters = filter?.split('-') ?? [];
         logEntries = logEntries?.filter((log) => {
-          return filters?.some((filter) => {
+          return filters?.some((filter: string) => {
             return log?.level
               ?.toLowerCase()
               ?.includes?.(filter?.toLowerCase() ?? '');

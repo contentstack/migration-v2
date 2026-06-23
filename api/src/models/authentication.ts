@@ -14,6 +14,11 @@ interface AuthenticationDocument {
     created_at: string;
     updated_at: string;
     access_token: string;
+    refresh_token?: string;
+    organization_uid?: string;
+    is_sso?: boolean;
+    sso_failed?: boolean;
+    sso_error?: string;
   }[];
 }
 

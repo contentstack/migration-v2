@@ -176,7 +176,7 @@ const createAssets = async ({
       const blobPath: any = path.join(packagePath, 'blob', 'master');
       const assetsPath = read(blobPath);
       if (assetsPath?.length) {
-        const isIdPresent = assetsPath?.find((ast) => {
+        const isIdPresent = assetsPath?.find((ast: string) => {
           return ast?.includes(metaData?.id);
         });
         if (isIdPresent) {

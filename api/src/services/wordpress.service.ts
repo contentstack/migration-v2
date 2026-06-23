@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import fs, { existsSync } from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import axios from "axios";
 import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from "../constants/index.js";
 import jsdom from "jsdom";
@@ -17,12 +16,6 @@ import { getMimeTypeFromExtension } from "../utils/mimeTypes.js";
 import { MEDIA_BLOCK_NAMES, WORDPRESS_MISSSING_BLOCKS  } from "../constants/index.js";
 
 const { JSDOM } = jsdom;
-
-// Get the current file's path
-const __filename = fileURLToPath(import.meta.url);
-
-// Get the current directory
-const __dirname = path.dirname(__filename);
 
 const { DATA, EXPORT_INFO_FILE } = MIGRATION_DATA_CONFIG
 
