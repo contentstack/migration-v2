@@ -372,7 +372,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         "backupFieldUid": "title",
         "otherCmsField": "title",
         "otherCmsType": "text",
-        "contentstackField": "title",
+        "contentstackField": "Title",
         "contentstackFieldUid": "title",
         "contentstackFieldType": "text",
         "backupFieldType": "text",
@@ -755,7 +755,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             "updateAt": "",
             "otherCmsTitle": type,
             "otherCmsUid": type,
-            "contentstackTitle": type,
+            "contentstackTitle": type ? type.charAt(0).toUpperCase() + type.slice(1) : type,
             "contentstackUid": type?.toLowerCase(),
             "type": "content_type",
             "fieldMapping": CT
