@@ -93,30 +93,15 @@ const createMapper = async (
   // 3. Old cached schemas don't interfere with new migrations
   clearAllMigrationData();
 
-  switch (CMSIdentifier) {
-    case 'sitecore': {
-      return await createSitecoreMapper(filePath, projectId, app_token, affix, config);
-    }
+  const mapperMap: Record<string, (...args: any[]) => any> = {
+    'sitecore':   () => createSitecoreMapper(filePath, projectId, app_token, affix, config),
+    'contentful': () => createContentfulMapper(projectId, app_token, affix, config),
+    'wordpress':  () => createWordpressMapper(filePath, projectId, app_token, affix, config),
+    'aem':        () => createAemMapper(filePath, projectId, app_token, affix),
+    'drupal':     () => createDrupalMapper(config, projectId, app_token, affix),
+  };
 
-    case 'contentful': {
-      return await createContentfulMapper(projectId, app_token, affix, config);
-    }
-
-    case 'wordpress': {
-      return createWordpressMapper(filePath, projectId, app_token, affix, config);
-    }
-
-    case 'aem': {
-      return createAemMapper(filePath, projectId, app_token, affix);
-    }
-
-    case 'drupal': {
-      return createDrupalMapper(config, projectId, app_token, affix);
-    }
-
-    default:
-      return false;
-  }
+  return await mapperMap[CMSIdentifier]?.() ?? false;
 };
 
 export default createMapper;

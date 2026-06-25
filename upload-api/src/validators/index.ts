@@ -4,6 +4,14 @@ import wordpressValidator from './wordpress';
 import aemValidator from './aem';
 import drupalValidator from './drupal';
 
+const validatorMap: Record<string, (args: any) => any> = {
+  'sitecore-zip':    ({ data }) => sitecoreValidator({ data }),
+  'contentful-json': ({ data }) => contentfulValidator(data),
+  'wordpress-xml':   ({ data }) => wordpressValidator(data),
+  'aem-folder':      ({ data }) => aemValidator({ data }),
+  'drupal-sql':      ({ data, assetsConfig }) => drupalValidator({ data, assetsConfig }),
+};
+
 const validator = ({
   data,
   type,
@@ -16,30 +24,7 @@ const validator = ({
   assetsConfig?: { base_url?: string; public_path?: string };
 }) => {
   const CMSIdentifier = `${type}-${extension}`;
-  switch (CMSIdentifier) {
-    case 'sitecore-zip': {
-      return sitecoreValidator({ data });
-    }
-
-    case 'contentful-json': {
-      return contentfulValidator(data);
-    }
-
-    case 'wordpress-xml': {
-      return wordpressValidator(data);
-    }
-
-    case 'aem-folder': {
-      return aemValidator({ data });
-    }
-
-    case 'drupal-sql': {
-      return drupalValidator({ data, assetsConfig });
-    }
-
-    default:
-      return false;
-  }
+  return validatorMap[CMSIdentifier]?.({ data, assetsConfig }) ?? false;
 };
 
 export default validator;
