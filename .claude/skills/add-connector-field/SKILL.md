@@ -37,7 +37,8 @@ Open the connector's schema mapper:
 - wordpress → `upload-api/migration-wordpress/libs/schemaMapper.ts` (switch on Gutenberg block `name`)
 - contentful → `upload-api/migration-contentful/` (widget-id inference)
 - drupal → `upload-api/migration-drupal/` (field analysis from DB)
-- aem / sitecore → the respective `upload-api/migration-<cms>/` package
+- aem → **per-component handlers**, NOT a single switch. Each AEM component (`:type`) has a class in `upload-api/migration-aem/libs/contentType/components/*.ts` with `isXxx()` (detects on the `:type` substring) + `mapXxxToContentstack()` (returns the `Field`/group). They're dispatched by the `mappingRules` array in `libs/contentType/index.ts` (`processComponents`). A source `:type` that matches no rule is **silently dropped**. To support a new component: add a `*Component.ts` (model it on `TitleComponent`/`TeaserComponent`), export it from `components/index.ts`, and add a rule to `mappingRules`. Field *shapes* come from `Field`-builder classes in `libs/contentType/fields/contentstackFields/index.ts`.
+- sitecore → the `upload-api/migration-sitecore/` package
 - sanity → `upload-api/migration-sanity/libs/schemaMapper.ts` (type inference from NDJSON sample values; group/blocks rows come from `contentTypes.ts`'s `emitFieldRows`)
 
 Add or amend the `case` for the source type so it returns a `Field` with the chosen `contentstackFieldType`. Match the file's existing `Field`-builder style (uid generation, `advanced` flags like `multiple`/`mandatory`).
@@ -45,11 +46,18 @@ Add or amend the `case` for the source type so it returns a `Field` with the cho
 ### Step 2 — Extend the type union if needed
 If the chosen `contentstackFieldType` is **not** already in the `Field.contentstackFieldType` union in that package's `interface/interface.ts`, add it (the union ends in `| string`, so it compiles either way — but list real types explicitly for clarity).
 
+⚠️ **aem has no `interface/interface.ts` union** — `contentstackFieldType` is a
+plain string set by `Field`-builder classes in
+`libs/contentType/fields/contentstackFields/index.ts` (`TextField`, `JsonField`,
+`HtmlField`, `GroupField`, …). To add a new type, add a new `Field` subclass
+there (model it on the existing ones) and use it from the component handler.
+
 ### Step 3 — Map the type on the api side (Layer C)
 Ensure the Contentstack-type → API-data-type map accepts the type:
 - drupal → `api/src/services/drupal/content-types.service.ts` → `mapFieldTypeToDataType` (~448–474).
 - contentful → `api/src/services/contentful.service.ts` → `inferContentfulDefaultWidgetId` (~201–217).
 - sanity → `api/src/services/sanity.service.ts` → `mapFieldTypeToDataType` (~38).
+- aem → has **no per-connector data_type map**; the content-type schema is built by the **generic** `api/src/utils/content-type-creator.utils.ts` → `switch (field?.contentstackFieldType)` (~540). It already covers `single_line_text`, `boolean`, `json`, `html`, `reference`, `taxonomy`, `group`, etc. — so a type already in that switch needs **no** api schema change. Note the `json` case branches on `otherCmsType`: `'Object'`/`'Array'` → structured JSON extension field; anything else → JSON RTE.
 - others → search the connector's service for the equivalent map.
 If the type is missing from the map, add it so the generated content-type schema gets the right `data_type`.
 
@@ -57,7 +65,15 @@ If the type is missing from the map, add it so the generated content-type schema
 If the new field carries a value shape the entry transformer doesn't already handle (e.g. a media object, a nested group, a reference id), add handling in:
 - the parser package's entry extractor (e.g. wordpress `libs/extractItems.ts`), and
 - the api `createEntry` for that connector (`<cms>.service.ts` or `<cms>/entries.service.ts`).
+- aem → entry values are built by `api/src/services/aem.service.ts` → `processFieldsRecursive` (`switch (field?.contentstackFieldType)` ~588), keyed off the AEM `:type`/field name via `getFieldValue`.
 A pure `single_line_text`/`number`/`boolean` usually needs no extra handling.
+
+⚠️ **Structured JSON (arrays/objects) is easy to silently drop.** The api `json`
+entry case may only keep *string* content (rich-text path) — an array value then
+serialises to empty. To preserve it: set the field's `otherCmsType` to
+`'Array'`/`'Object'` in the parser (so the schema builder emits a structured JSON
+field) AND ensure the entry `case 'json'` stores the value verbatim for those.
+This was exactly the aem `anchor-links` `links` case.
 
 ⚠️ Folder/archive connectors (sanity, aem): at entry time `file_path` is the
 **raw upload** (possibly a `.tar.gz`), NOT the extracted dir — resolve via
