@@ -6,9 +6,13 @@ import { getDataFromLocalStorage } from '../../utilities/functions';
 //Axios Calls for Upload server
 export const getCall = async (url: string, options?: any) => {
   try {
-    const response = await axios.get(url, { ...options });
+    const response = await axios.get(url, { ...options, timeout: 10000 });
     return response;
   } catch (err: any) {
+    if (!err.response) {
+      // Network error — upload-api is not reachable
+      return { status: 503, data: { isServiceDown: true } };
+    }
     return err.response;
   }
 };

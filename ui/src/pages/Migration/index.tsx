@@ -300,7 +300,20 @@ const Migration = () => {
   setIsProjectMapper(true);
   const migrationData = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
   const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
-  const {data} = await getConfig();
+  const configResponse = await getConfig();
+  if (configResponse?.data?.isServiceDown) {
+    setIsProjectMapper(false);
+    setIsLoading(false);
+    Notification({
+      notificationContent: {
+        text: 'Upload service is not running.',
+        description: 'Open a new terminal, navigate to the project folder, and run: npm run upload'
+      },
+      type: 'error'
+    });
+    return;
+  }
+  const { data } = configResponse ?? {};
   const fileFormat =  fetchFileFormat(data);
   const uploadObj = getFileInfo(data);
  

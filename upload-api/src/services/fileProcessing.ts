@@ -5,12 +5,19 @@ import validator from '../validators';
 import config from '../config/index';
 import logger from '../utils/logger.js';
 
+type FileProcessingResult = {
+  status: number;
+  message: any;
+  file_details: any;
+  file?: string;
+};
+
 const handleFileProcessing = async (
   fileExt: string,
   zipBuffer: any,
   cmsType: string,
   name: string
-) => {
+): Promise<FileProcessingResult | undefined> => {
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);

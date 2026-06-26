@@ -5,7 +5,7 @@ import { fileValidation } from '../../../services/api/upload.service';
 import { getMigrationData } from '../../../services/api/migration.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Button, Paragraph } from '@contentstack/venus-components';
+import { Button, Notification, Paragraph } from '@contentstack/venus-components';
 import { isEmptyString } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { ICardType } from '../../../components/Common/Card/card.interface';
@@ -143,7 +143,22 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
 
       await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
 
-      const { data, status } = await fileValidation( projectId, newMigrationData?.legacy_cms?.affix );
+      const validationResponse = await fileValidation( projectId, newMigrationData?.legacy_cms?.affix );
+
+      if (validationResponse?.data?.isServiceDown) {
+        setIsLoading(false);
+        setShowProgress(false);
+        Notification({
+          notificationContent: {
+            text: 'Upload service is not running.',
+            description: 'Open a new terminal, navigate to the project folder, and run: npm run upload'
+          },
+          type: 'error'
+        });
+        return;
+      }
+
+      const { data, status } = validationResponse ?? {};
 
       setProgressPercentage( 70 );
       setProcessing( 'Processing...70%' );
