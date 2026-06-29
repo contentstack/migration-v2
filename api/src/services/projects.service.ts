@@ -173,6 +173,18 @@ const importProject = async (req: Request) => {
   const zip = new AdmZip(file.buffer);
   const entries = zip.getEntries();
 
+  // Zip-bomb guard: the upload itself is capped by multer (100 MB compressed),
+  // but the decompressed size is unbounded. Reject archives whose total
+  // uncompressed size exceeds a sane cap before reading any entry into memory.
+  const MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024; // 500 MB
+  const totalUncompressed = entries.reduce(
+    (sum: number, entry: any) => sum + (entry?.header?.size ?? 0),
+    0
+  );
+  if (totalUncompressed > MAX_UNCOMPRESSED_BYTES) {
+    throw new BadRequestError('Invalid project archive: uncompressed size exceeds the allowed limit');
+  }
+
   // Locate the project record. It lives at `<oldId>/project.json`.
   const projectEntry = entries.find((entry: any) =>
     entry?.entryName?.replace(/\\/g, '/').endsWith('/project.json')
@@ -209,6 +221,57 @@ const importProject = async (req: Request) => {
     isDeleted: false,
   };
 
+  // Copy the mapper stores into the new project's database folder, rewriting
+  // any internal references to the old project id. This runs BEFORE the project
+  // record is persisted so that a failure mid-copy (or a tripped zip-slip
+  // guard) leaves no orphan project record pointing at missing/partial mappers.
+  const newProjectDir = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, newId);
+  const newProjectRoot = path.resolve(newProjectDir);
+  try {
+    for (const entry of entries) {
+      const normalized = entry?.entryName?.replace(/\\/g, '/');
+      if (entry?.isDirectory || !normalized?.startsWith(`${oldId}/`)) {
+        continue;
+      }
+      // Strip the leading `<oldId>/` and skip the top-level project.json.
+      const relativePath = normalized.slice(oldId.length + 1);
+      if (!relativePath || relativePath === 'project.json') {
+        continue;
+      }
+
+      const destPath = path.join(newProjectDir, relativePath);
+
+      // Zip Slip guard: the archive is fully user-supplied, so a crafted entry
+      // name (e.g. `<oldId>/../../../etc/x.json`) could resolve outside the new
+      // project's folder and overwrite arbitrary files. Reject anything that
+      // does not stay within newProjectRoot.
+      const resolvedDest = path.resolve(destPath);
+      if (
+        resolvedDest !== newProjectRoot &&
+        !resolvedDest.startsWith(newProjectRoot + path.sep)
+      ) {
+        throw new BadRequestError('Invalid project archive: path traversal detected');
+      }
+
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+      // Rewrite the old project id inside JSON mapper stores so the mappers stay
+      // consistent with the new project.
+      if (relativePath.endsWith('.json')) {
+        const content = zip.readAsText(entry).split(oldId).join(newId);
+        fs.writeFileSync(destPath, content);
+      } else {
+        fs.writeFileSync(destPath, entry.getData());
+      }
+    }
+  } catch (err) {
+    // Roll back any partially-written mapper files so we don't leave a stray
+    // database folder behind, then surface the error.
+    fs.rmSync(newProjectDir, { recursive: true, force: true });
+    throw err;
+  }
+
+  // Mappers are on disk; only now persist the project record.
   await ProjectModelLowdb.read();
   await ProjectModelLowdb.update((data: any) => {
     if (!data?.projects || !Array.isArray(data?.projects)) {
@@ -216,33 +279,6 @@ const importProject = async (req: Request) => {
     }
     data?.projects?.push?.(projectData);
   });
-
-  // Copy the mapper stores into the new project's database folder, rewriting
-  // any internal references to the old project id.
-  const newProjectDir = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, newId);
-  for (const entry of entries) {
-    const normalized = entry?.entryName?.replace(/\\/g, '/');
-    if (entry?.isDirectory || !normalized?.startsWith(`${oldId}/`)) {
-      continue;
-    }
-    // Strip the leading `<oldId>/` and skip the top-level project.json.
-    const relativePath = normalized.slice(oldId.length + 1);
-    if (!relativePath || relativePath === 'project.json') {
-      continue;
-    }
-
-    const destPath = path.join(newProjectDir, relativePath);
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-
-    // Rewrite the old project id inside JSON mapper stores so the mappers stay
-    // consistent with the new project.
-    if (relativePath.endsWith('.json')) {
-      const content = zip.readAsText(entry).split(oldId).join(newId);
-      fs.writeFileSync(destPath, content);
-    } else {
-      fs.writeFileSync(destPath, entry.getData());
-    }
-  }
 
   logger.info(
     getLogMessage(

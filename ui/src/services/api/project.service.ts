@@ -41,9 +41,9 @@ export const exportProject = async (orgId: string, projectId: string) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in userSession: ${error.message}`);
+      throw new Error(`Error in exportProject: ${error.message}`);
     } else {
-      throw new Error('Unknown error in userSession');
+      throw new Error('Unknown error in exportProject');
     }
   }
 };
@@ -60,9 +60,9 @@ export const importProject = async (orgId: string, file: File) => {
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in userSession: ${error.message}`);
+      throw new Error(`Error in importProject: ${error.message}`);
     } else {
-      throw new Error('Unknown error in userSession');
+      throw new Error('Unknown error in importProject');
     }
   }
 };

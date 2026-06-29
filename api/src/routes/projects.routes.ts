@@ -25,9 +25,13 @@ router.get("/:projectId", asyncRouter(projectController.getProject));
 router.get("/:projectId/export", asyncRouter(projectController.exportProject));
 
 // Import a project from an exported zip archive.
-// `authenticateUser` (mounted on the router) sets `req.body.token_payload`, but
-// multer replaces `req.body` with the parsed multipart fields. Stash the payload
-// before multer runs and restore it afterwards so the controller still sees it.
+//
+// `authenticateUser` is mounted on this router in server.ts
+// (`app.use('/v2/org/:orgId/project', authenticateUser, projectRoutes)`), so it
+// always runs before these handlers and sets `req.body.token_payload`. multer
+// then replaces `req.body` with the parsed multipart fields, wiping it. We move
+// the payload onto `req` (which multer never touches) before multer runs, then
+// restore it onto `req.body` afterwards so the controller/service still see it.
 router.post(
   "/import",
   (req, _res, next) => {

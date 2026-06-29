@@ -359,7 +359,11 @@ const createEntry = async ({
               // fields (e.g. system-only `__` fields). These don't depend on
               // fieldMapping at all.
               entryObj.title = entry?.meta?.name;
-              entryObj.url = `/${entry?.meta?.key}`;
+              // Only build a url when a key is present, otherwise we'd emit
+              // a meaningless "/undefined".
+              if (entry?.meta?.key) {
+                entryObj.url = `/${entry?.meta?.key}`;
+              }
               for await (const field of entry?.fields?.field ?? []) {
                 for await (const fsc of ctType?.fieldMapping ?? []) {
                   if (

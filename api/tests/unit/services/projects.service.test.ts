@@ -47,6 +47,7 @@ const {
     existsSync: vi.fn().mockReturnValue(false),
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn(),
+    rmSync: vi.fn(),
   };
   // A single shared AdmZip instance returned by the constructor so tests can
   // configure its entries / readers per case.
@@ -294,6 +295,25 @@ describe('projects.service', () => {
       expect(mockFs.writeFileSync).not.toHaveBeenCalled();
     });
 
+    it('should reject Zip Slip path traversal and not write outside the project dir', async () => {
+      const imported = { id: oldId, name: 'Imported' };
+      const evilEntry = {
+        entryName: `${oldId}/../../../../tmp/evil.json`,
+        isDirectory: false,
+        __content: '{"pwned":true}',
+      };
+      setupZip(imported, [evilEntry]);
+
+      await expect(
+        projectService.importProject(makeImportReq())
+      ).rejects.toThrow('path traversal detected');
+      // Nothing should have been written to disk for the malicious entry.
+      expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+      // Partial project dir is cleaned up and no orphan record is persisted.
+      expect(mockFs.rmSync).toHaveBeenCalled();
+      expect(mockProjectUpdate).not.toHaveBeenCalled();
+    });
+
     it('should throw BadRequestError when orgId is missing', async () => {
       await expect(
         projectService.importProject({ params: {}, body: { token_payload: tokenPayload }, file: { buffer: Buffer.from('z') } } as any)
@@ -328,6 +348,21 @@ describe('projects.service', () => {
       await expect(
         projectService.importProject(makeImportReq())
       ).rejects.toThrow('not valid JSON');
+    });
+
+    it('should reject a zip bomb whose uncompressed size exceeds the limit', async () => {
+      const projectEntry = {
+        entryName: `${oldId}/project.json`,
+        isDirectory: false,
+        header: { size: 600 * 1024 * 1024 }, // 600 MB uncompressed, over the 500 MB cap
+      };
+      mockAdmZipInstance.getEntries.mockReturnValue([projectEntry]);
+      await expect(
+        projectService.importProject(makeImportReq())
+      ).rejects.toThrow('uncompressed size exceeds the allowed limit');
+      // Guard trips before anything is written or persisted.
+      expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+      expect(mockProjectUpdate).not.toHaveBeenCalled();
     });
   });
 
