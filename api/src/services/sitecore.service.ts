@@ -354,20 +354,18 @@ const createEntry = async ({
             async ([uid, entry]: any) => {
               const entryObj: any = {};
               entryObj.uid = uid;
+              // Always set title/url from the Sitecore meta block so entries
+              // get created even when the content type has no mappable user
+              // fields (e.g. system-only `__` fields). These don't depend on
+              // fieldMapping at all.
+              entryObj.title = entry?.meta?.name;
+              entryObj.url = `/${entry?.meta?.key}`;
               for await (const field of entry?.fields?.field ?? []) {
                 for await (const fsc of ctType?.fieldMapping ?? []) {
                   if (
                     fsc?.contentstackFieldType !== 'group' &&
                     !field?.$?.key?.includes('__')
                   ) {
-                    if (fsc?.contentstackFieldUid === 'title') {
-                      entryObj[fsc?.contentstackFieldUid] = entry?.meta?.name;
-                    }
-                    if (fsc?.contentstackFieldUid === 'url') {
-                      entryObj[
-                        fsc?.contentstackFieldUid
-                      ] = `/${entry?.meta?.key}`;
-                    }
                     if (getLastKey(fsc?.uid) === field?.$?.key) {
                       const content: any = await entriesFieldCreator({
                         field: fsc,

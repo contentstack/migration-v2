@@ -205,7 +205,14 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
               autoFocus
             />
           ) : (
-            <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
+            // Inserts zero-width spaces (​) after each "/" so a long path
+            // wraps at segment boundaries instead of breaking mid-segment.
+            // Displayed text is visually unchanged.
+            <Paragraph
+              tagName="p"
+              variant="p1"
+              text={`Local Path: ${currentPath?.replace(/\//g, '/​')}`}
+            />
           )}
         </div>
         <div className={`edit-icon${isValidated ? ' edit-icon--disabled' : ''}`}>

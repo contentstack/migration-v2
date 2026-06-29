@@ -15,6 +15,9 @@ const {
   mockFieldDb,
   getContentTypesMapperDbMock,
   getFieldMapperDbMock,
+  mockFs,
+  mockAdmZipInstance,
+  mockAdmZipCtor,
 } = vi.hoisted(() => {
   const mockCtChainGet = vi.fn().mockReturnValue({
     filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
@@ -40,6 +43,20 @@ const {
     chain: { get: mockFieldChainGet },
     data: { field_mapper: [] as unknown[] },
   };
+  const mockFs = {
+    existsSync: vi.fn().mockReturnValue(false),
+    mkdirSync: vi.fn(),
+    writeFileSync: vi.fn(),
+  };
+  // A single shared AdmZip instance returned by the constructor so tests can
+  // configure its entries / readers per case.
+  const mockAdmZipInstance = {
+    getEntries: vi.fn().mockReturnValue([]),
+    readAsText: vi.fn().mockReturnValue('{}'),
+  };
+  const mockAdmZipCtor = vi.fn(function () {
+    return mockAdmZipInstance;
+  });
   return {
     mockProjectRead: vi.fn(),
     mockProjectUpdate: vi.fn(),
@@ -54,6 +71,9 @@ const {
     mockFieldDb,
     getContentTypesMapperDbMock: vi.fn(() => mockContentTypesDb),
     getFieldMapperDbMock: vi.fn(() => mockFieldDb),
+    mockFs,
+    mockAdmZipInstance,
+    mockAdmZipCtor,
   };
 });
 
@@ -72,6 +92,9 @@ vi.mock('../../../src/models/project-lowdb.js', () => ({
     data: { projects: [] },
   },
 }));
+
+vi.mock('node:fs', () => ({ default: mockFs, ...mockFs }));
+vi.mock('adm-zip', () => ({ __esModule: true, default: mockAdmZipCtor }));
 
 vi.mock('../../../src/utils/get-project.utils.js', () => ({ default: mockGetProjectUtil }));
 vi.mock('../../../src/utils/https.utils.js', () => ({ default: mockHttps }));
@@ -167,6 +190,144 @@ describe('projects.service', () => {
       await expect(
         projectService.getProject(makeReq({}, { token_payload: tokenPayload }))
       ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+  });
+
+  describe('exportProject', () => {
+    it('should return the project and its database path', async () => {
+      const project = createMockProject();
+      mockGetProjectUtil.mockResolvedValue(project);
+
+      const result = await projectService.exportProject(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+
+      expect(result.project).toEqual(project);
+      expect(result.databasePath).toContain(project.id);
+      // Scopes the lookup to the current user / org, like getProject.
+      expect(mockGetProjectUtil).toHaveBeenCalledWith(
+        project.id,
+        expect.objectContaining({ id: project.id, org_id: 'org-123', owner: 'user-123' }),
+        'exportProject'
+      );
+    });
+
+    it('should throw BadRequestError when orgId or projectId missing', async () => {
+      await expect(
+        projectService.exportProject(makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload }))
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+
+    it('should throw BadRequestError when token_payload is missing', async () => {
+      await expect(
+        projectService.exportProject(makeReq({ orgId: 'org-123', projectId: 'p1' }, {}))
+      ).rejects.toThrow('Token payload is required');
+    });
+  });
+
+  describe('importProject', () => {
+    const oldId = 'old-project-id';
+    const makeImportReq = (fileOverride?: any) =>
+      ({
+        params: { orgId: 'org-999' },
+        body: { token_payload: tokenPayload },
+        file: fileOverride === undefined ? { buffer: Buffer.from('zip') } : fileOverride,
+      } as any);
+
+    const setupZip = (importedProject: any, extraEntries: any[] = []) => {
+      const projectEntry = { entryName: `${oldId}/project.json`, isDirectory: false };
+      mockAdmZipInstance.getEntries.mockReturnValue([projectEntry, ...extraEntries]);
+      mockAdmZipInstance.readAsText.mockImplementation((entry: any) => {
+        if (entry === projectEntry) return JSON.stringify(importedProject);
+        return entry?.__content ?? '{}';
+      });
+    };
+
+    beforeEach(() => {
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [] };
+        fn(data);
+        return data;
+      });
+    });
+
+    it('should create a new project re-owned under the current user/org', async () => {
+      const imported = { id: oldId, org_id: 'OLD_ORG', owner: 'OLD_USER', name: 'Imported', current_step: 3 };
+      setupZip(imported);
+
+      const result = await projectService.importProject(makeImportReq());
+
+      expect(result.status).toBe('success');
+      expect(result.project.name).toBe('Imported');
+      expect(result.project.current_step).toBe(3);
+      // Fresh id, not the original.
+      expect(result.project.id).not.toBe(oldId);
+      expect(mockProjectUpdate).toHaveBeenCalled();
+    });
+
+    it('should extract mapper files and rewrite the old project id', async () => {
+      const imported = { id: oldId, name: 'Imported' };
+      const mapperEntry = {
+        entryName: `${oldId}/1/contentTypesMapper.json`,
+        isDirectory: false,
+        __content: `{"projectId":"${oldId}"}`,
+      };
+      setupZip(imported, [mapperEntry]);
+
+      await projectService.importProject(makeImportReq());
+
+      expect(mockFs.mkdirSync).toHaveBeenCalled();
+      expect(mockFs.writeFileSync).toHaveBeenCalledTimes(1);
+      // The written content must have the old id rewritten to the new one.
+      const written = mockFs.writeFileSync.mock.calls[0][1] as string;
+      expect(written).not.toContain(oldId);
+    });
+
+    it('should skip directory entries and the top-level project.json when copying mappers', async () => {
+      const imported = { id: oldId, name: 'Imported' };
+      const dirEntry = { entryName: `${oldId}/1/`, isDirectory: true, __content: '' };
+      setupZip(imported, [dirEntry]);
+
+      await projectService.importProject(makeImportReq());
+
+      // Only the project.json + a directory entry -> nothing copied to disk.
+      expect(mockFs.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestError when orgId is missing', async () => {
+      await expect(
+        projectService.importProject({ params: {}, body: { token_payload: tokenPayload }, file: { buffer: Buffer.from('z') } } as any)
+      ).rejects.toThrow('Organization ID is required');
+    });
+
+    it('should throw BadRequestError when token_payload is missing', async () => {
+      await expect(
+        projectService.importProject({ params: { orgId: 'org-999' }, body: {}, file: { buffer: Buffer.from('z') } } as any)
+      ).rejects.toThrow('Token payload is required');
+    });
+
+    it('should throw BadRequestError when no file is uploaded', async () => {
+      await expect(
+        projectService.importProject(makeImportReq(null))
+      ).rejects.toThrow('A project zip file is required');
+    });
+
+    it('should throw BadRequestError when project.json is not in the archive', async () => {
+      mockAdmZipInstance.getEntries.mockReturnValue([
+        { entryName: `${oldId}/1/field-mapper.json`, isDirectory: false },
+      ]);
+      await expect(
+        projectService.importProject(makeImportReq())
+      ).rejects.toThrow('project.json not found');
+    });
+
+    it('should throw BadRequestError when project.json is invalid JSON', async () => {
+      const projectEntry = { entryName: `${oldId}/project.json`, isDirectory: false };
+      mockAdmZipInstance.getEntries.mockReturnValue([projectEntry]);
+      mockAdmZipInstance.readAsText.mockReturnValue('not-json{');
+      await expect(
+        projectService.importProject(makeImportReq())
+      ).rejects.toThrow('not valid JSON');
     });
   });
 
