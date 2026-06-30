@@ -33,6 +33,40 @@ export const getProject = async (orgId: string, projectId: string) => {
   }
 };
 
+export const exportProject = async (orgId: string, projectId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/org/${orgId}/project/${projectId}/export`, {
+      ...options(),
+      responseType: 'blob'
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in exportProject: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in exportProject');
+    }
+  }
+};
+
+export const importProject = async (orgId: string, file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await postCall(`${API_VERSION}/org/${orgId}/project/import`, formData, {
+      headers: {
+        ...options().headers,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in importProject: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in importProject');
+    }
+  }
+};
+
 export const createProject = async (orgId: string, data: ObjectType) => {
   try {
     return await postCall(`${API_VERSION}/org/${orgId}/project/`, data, options());

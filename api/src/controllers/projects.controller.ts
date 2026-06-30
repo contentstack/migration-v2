@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import fs from "node:fs";
+import { ZipArchive } from "archiver";
 import { projectService } from "../services/projects.service.js";
 
 /**
@@ -23,6 +25,66 @@ const getAllProjects = async (req: Request, res: Response): Promise<void> => {
 const getProject = async (req: Request, res: Response): Promise<void> => {
   const project = await projectService.getProject(req);
   res.status(200).json(project);
+};
+
+/**
+ * Exports a project as a zip archive containing the project record and its
+ * on-disk database folder (content type mappers, field mappers, etc.).
+ *
+ * The archive is structured as:
+ *   <projectId>/project.json        -> the project record
+ *   <projectId>/<iteration>/*.json  -> the mapper stores, mirrored as stored
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const exportProject = async (req: Request, res: Response): Promise<void> => {
+  const { project, databasePath } = await projectService.exportProject(req);
+  const projectId = project?.id;
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${projectId}.zip"`
+  );
+
+  const archive = new ZipArchive({ zlib: { level: 9 } });
+
+  // If archiving fails after streaming has begun we can no longer change the
+  // status code, so just tear the connection down.
+  archive.on("error", (err: Error) => {
+    res.destroy(err);
+  });
+
+  archive.pipe(res);
+
+  // The project record itself.
+  archive.append(JSON.stringify(project, null, 2), {
+    name: `${projectId}/project.json`,
+  });
+
+  // The mapper stores, mirrored under the same folder. The folder may not
+  // exist yet if no mapping has been done — that's fine, we still export the
+  // project record on its own.
+  if (fs.existsSync(databasePath)) {
+    archive.directory(databasePath, projectId);
+  }
+
+  await archive.finalize();
+};
+
+/**
+ * Imports a project from an uploaded zip archive and returns the newly
+ * created project.
+ *
+ * @param req - The request object (expects a multipart `file` field).
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const importProject = async (req: Request, res: Response): Promise<void> => {
+  const result = await projectService.importProject(req);
+  res.status(201).json(result);
 };
 
 /**
@@ -179,6 +241,8 @@ const getMigratedStacks = async (req: Request, res: Response): Promise<void> => 
 export const projectController = {
   getAllProjects,
   getProject,
+  exportProject,
+  importProject,
   createProject,
   updateProject,
   updateLegacyCMS,
