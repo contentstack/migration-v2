@@ -180,6 +180,18 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    // Asset mapper: long filenames/paths should wrap within their own column
+    // instead of clamping to one line and bleeding into the next column.
+    .cms-field--wrap {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      -webkit-line-clamp: unset;
+      overflow: visible;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
     .InstructionText {
       font-size: $size-font-small;
       margin: 0;
@@ -529,23 +541,38 @@ div .table-row {
 .entry-mapper-container.has-locale-select {
   position: relative;
 
+  // The dropdown floats top-right, vertically centered in the table's search row.
   .locale-select-inline {
     position: absolute;
-    top: 8px;
+    top: 12px;
     right: 16px;
     z-index: 2;
     width: 240px;
+  }
+
+  // The dropdown floats over the table's search row, so the row must be tall enough
+  // to contain it — otherwise the dropdown's bottom overlaps the table header below.
+  // min-height fits the dropdown (top:12px + ~40px tall + gap); padding-right keeps
+  // the built-in search clear of the dropdown on the right.
+  .TablePanel {
+    min-height: 64px;
+    padding-right: 272px;
+  }
+
+  // With pagination on, the venus pagination bar renders at the bottom of the table.
+  // Let the Total/Save footer flow below it (not sticky-overlapping) so the two bars
+  // don't collide and the Save button isn't clipped at the viewport edge.
+  .mapper-footer {
+    position: static;
   }
 }
 
 .entry-mapper-container {
   // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
-  // so it collapses to just the text. Stretch the table chrome and the empty message to
-  // fill the available viewport space instead of leaving a grey gap below.
-  .TableWrapper,
-  .Table {
-    min-height: calc(100vh - 300px);
-  }
+  // so it collapses to just the text. Stretch only the empty message to fill the viewport.
+  // NOTE: do NOT force .TableWrapper/.Table to full height here — in paginated mode venus
+  // renders the pagination bar as a sibling below the scroll body, and a full-height wrapper
+  // pushes that bar off the bottom (.no-table-data below still handles the empty-state gap).
   .no-table-data {
     min-height: calc(100vh - 300px);
     display: flex;
@@ -586,6 +613,21 @@ div .table-row {
       display: flex !important;
       align-items: center;
       border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // Long filenames/paths must wrap and stay inside their own column instead
+    // of overflowing into the next one. min-width:0 above lets the flex item
+    // actually shrink; these make the inner content honour the column width.
+    .Table__body__column {
+      overflow: hidden;
+
+      .cms-field {
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
     }
 
     // Remove last column border

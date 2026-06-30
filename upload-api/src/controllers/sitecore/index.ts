@@ -13,7 +13,8 @@ const {
   reference,
   ExtractFiles,
   extractLocales,
-  extractEntries
+  extractEntries,
+  extractAssets
 } = require('migration-sitecore');
 
 const { CONTENT_TYPES_DIR_NAME, GLOBAL_FIELDS_DIR_NAME, GLOBAL_FIELDS_FILE_NAME } =
@@ -145,7 +146,8 @@ const createSitecoreMapper = async (
     await extractEntries(newPath);
     const infoMap = await reference();
     if (infoMap?.contentTypeUids?.length) {
-      const fieldMapping: any = { contentTypes: [], extractPath: filePath };
+      const assetMapping = await extractAssets(filePath);
+      const fieldMapping: any = { contentTypes: [], extractPath: filePath, assetMapping };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
         const fileContent = readFileSync(
           path?.join?.(infoMap?.path, CONTENT_TYPES_DIR_NAME, contentType),
