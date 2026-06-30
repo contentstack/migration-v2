@@ -19,7 +19,7 @@ import useBlockNavigation from '../../hooks/userNavigation';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
-import { createProject, getAllProjects } from '../../services/api/project.service';
+import { createProject, getAllProjects, importProject } from '../../services/api/project.service';
 
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
@@ -151,8 +151,18 @@ const Projects = () => {
         return res;
 
   }
+
+  const importProjectCall = async (file: File): Promise<CreateProjectResponse> => {
+    const res = await importProject(selectedOrganisation?.uid || '', file);
+    if (res?.status === 201) {
+      const projectId = res?.data?.project?.id;
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
+      navigate(`/projects/${projectId}/migration/steps/${res?.data?.project?.current_step ?? 1}`);
+    }
+    return res;
+  };
   // Function for open modal
-  const openModal = () => {
+  const openModal = (initialStep: 'create' | 'import' = 'create') => {
     setIsModalOpen(true);
 
     cbModal({
@@ -164,6 +174,8 @@ const Projects = () => {
           selectedOrg={selectedOrganisation}
           isOpen={setIsModalOpen}
           createProject={createProjectCall}
+          importProject={importProjectCall}
+          initialStep={initialStep}
           {...props}
         />
       ),
@@ -182,7 +194,8 @@ const Projects = () => {
         setSearchText={setSearchText}
         cta={cta}
         restore_cta={restore_cta}
-        handleModal={openModal}
+        handleModal={() => openModal('create')}
+        handleImportModal={() => openModal('import')}
         allProject={projects}
       />
     )

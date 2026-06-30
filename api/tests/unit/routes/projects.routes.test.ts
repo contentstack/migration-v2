@@ -4,6 +4,8 @@ vi.mock('../../../src/controllers/projects.controller.js', () => ({
   projectController: {
     getAllProjects: vi.fn((_req: any, res: any) => res.status(200).json([])),
     getProject: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    exportProject: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    importProject: vi.fn((_req: any, res: any) => res.status(201).json({})),
     createProject: vi.fn((_req: any, res: any) => res.status(201).json({})),
     updateProject: vi.fn((_req: any, res: any) => res.status(200).json({})),
     updateLegacyCMS: vi.fn((_req: any, res: any) => res.status(200).json({})),
@@ -24,6 +26,14 @@ vi.mock('../../../src/controllers/projects.controller.js', () => ({
 vi.mock('../../../src/validators/index.js', () => ({
   default: () => (_req: any, _res: any, next: any) => next(),
 }));
+
+vi.mock('multer', () => {
+  const multer: any = () => ({
+    single: () => (_req: any, _res: any, next: any) => next(),
+  });
+  multer.memoryStorage = () => ({});
+  return { default: multer };
+});
 
 vi.mock('../../../src/utils/async-router.utils.js', () => ({
   asyncRouter: (fn: any) => fn,
@@ -152,5 +162,19 @@ describe('projects.routes', () => {
       .filter((layer: any) => layer.route?.methods?.get)
       .map((layer: any) => layer.route.path);
     expect(routes).toContain('/:projectId/get-migrated-stacks');
+  });
+
+  it('should register GET /:projectId/export', () => {
+    const routes = router.stack
+      .filter((layer: any) => layer.route?.methods?.get)
+      .map((layer: any) => layer.route.path);
+    expect(routes).toContain('/:projectId/export');
+  });
+
+  it('should register POST /import', () => {
+    const routes = router.stack
+      .filter((layer: any) => layer.route?.methods?.post && layer.route.path === '/import')
+      .map((layer: any) => layer.route.path);
+    expect(routes).toContain('/import');
   });
 });
