@@ -10,9 +10,9 @@ const router = express.Router({ mergeParams: true });
 
 /**
  * GET all org stacks route.
- * @param searchText - Optional parameter for searching stacks.
+ * @param search - Optional query param for searching stacks.
  */
-router.get("/stacks/:searchText?", asyncRouter(orgController.getAllStacks));
+router.get("/stacks", asyncRouter(orgController.getAllStacks));
 
 /**
  * Create a new stack route.

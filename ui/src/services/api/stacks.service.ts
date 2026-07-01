@@ -11,7 +11,7 @@ const options = () => ({
 
 export const getAllStacksInOrg = async (orgId: string, searchText: string) => {
   try {
-    return await getCall(`${API_VERSION}/org/${orgId}/stacks/${searchText}?`, options());
+    return await getCall(`${API_VERSION}/org/${orgId}/stacks?search=${searchText}`, options());
   } catch (error) {
     return error;
   }

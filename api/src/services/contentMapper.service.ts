@@ -207,9 +207,9 @@ const putTestData = async (req: Request) => {
 const getContentTypes = async (req: Request) => {
   const sourceFn = 'getContentTypes';
   const projectId = req?.params?.projectId;
-  const skip: any = req?.params?.skip;
-  const limit: any = req?.params?.limit;
-  const search: string = req?.params?.searchText?.toLowerCase();
+  const skip: any = req?.query?.skip;
+  const limit: any = req?.query?.limit;
+  const search: string = (req?.query?.search as string)?.toLowerCase();
 
   let result: any = [];
   let totalCount = 0;
@@ -310,9 +310,9 @@ const getFieldMapping = async (req: Request) => {
   const srcFunc = 'getFieldMapping';
   const contentTypeId = req?.params?.contentTypeId;
   const projectId = req?.params?.projectId;
-  const skip: any = req?.params?.skip;
-  const limit: any = req?.params?.limit;
-  const search: string = req?.params?.searchText?.toLowerCase();
+  const skip: any = req?.query?.skip;
+  const limit: any = req?.query?.limit;
+  const search: string = (req?.query?.search as string)?.toLowerCase();
 
   let result: any[] = [];
   let filteredResult = [];

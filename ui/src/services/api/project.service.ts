@@ -85,7 +85,7 @@ export const getMigratedStacks = async (orgId: string, projectId: string) => {
 };
 export const getAuditData = async (orgId: string, projectId: string, stackId: string, moduleName: string, skip: number, limit: number, startIndex: number, stopIndex: number, searchText: string, filter: string) => {
   try {
-    return await getCall(`${API_VERSION}/migration/get_audit_data/${orgId}/${projectId}/${stackId}/${moduleName}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`, options());
+    return await getCall(`${API_VERSION}/migration/get_audit_data/${orgId}/${projectId}/${stackId}/${moduleName}?skip=${skip}&limit=${limit}&startIndex=${startIndex}&stopIndex=${stopIndex}&search=${searchText}&filter=${filter}`, options());
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Error in fetching audit data: ${error?.message}`);

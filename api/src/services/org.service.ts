@@ -27,7 +27,7 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getAllStacks";
   const orgId = req?.params?.orgId;
   const { token_payload } = req?.body;
-  const search: string = req?.params?.searchText?.toLowerCase();
+  const search: string = (req?.query?.search as string)?.toLowerCase();
 
   try {
     let headers: any = {

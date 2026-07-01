@@ -683,11 +683,11 @@ const getAuditData = async (req: Request): Promise<any> => {
   const projectId = path?.basename(req?.params?.projectId);
   const stackId = path?.basename(req?.params?.stackId);
   const moduleName = path.basename(req?.params?.moduleName);
-  const limit = parseInt(req?.params?.limit);
-  const startIndex = parseInt(req?.params?.startIndex);
+  const limit = parseInt(req?.query?.limit as string);
+  const startIndex = parseInt(req?.query?.startIndex as string);
   const stopIndex = startIndex + limit;
-  const searchText = req?.params?.searchText;
-  const filter = req?.params?.filter;
+  const searchText = req?.query?.search as string;
+  const filter = req?.query?.filter as string;
   const srcFunc = 'getAuditData';
   if (
     projectId?.includes('..') ||
@@ -934,11 +934,11 @@ const transformAndFlattenData = (
 const getLogs = async (req: Request): Promise<any> => {
   const projectId = req?.params?.projectId ? path?.basename(req.params.projectId): '';
   const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : '';
-  const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
-  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
+  const limit = req?.query?.limit ? parseInt(req.query.limit as string) : 10;
+  const startIndex = req?.query?.startIndex ? parseInt(req.query.startIndex as string) : 0;
   const stopIndex = startIndex + limit;
-  const searchText = req?.params?.searchText ?? null;
-  const filter = req?.params?.filter ?? 'all';
+  const searchText = (req?.query?.search as string) ?? null;
+  const filter = (req?.query?.filter as string) ?? 'all';
   const srcFunc = 'getLogs';
   if (
     !projectId ||

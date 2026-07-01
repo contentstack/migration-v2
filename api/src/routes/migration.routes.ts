@@ -60,11 +60,11 @@ router.post(
 );
 
 router.get(
-  "/get_migration_logs/:orgId/:projectId/:stackId/:skip/:limit/:startIndex/:stopIndex/:searchText/:filter",
+  "/get_migration_logs/:orgId/:projectId/:stackId",
   asyncRouter(migrationController.getLogs)
 )
 router.get(
-  "/get_audit_data/:orgId/:projectId/:stackId/:moduleName/:skip/:limit/:startIndex/:stopIndex/:searchText/:filter",
+  "/get_audit_data/:orgId/:projectId/:stackId/:moduleName",
   asyncRouter(migrationController?.getAuditData)
 )
 /**

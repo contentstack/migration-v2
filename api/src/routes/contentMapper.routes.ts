@@ -15,19 +15,19 @@ router.post(
 
 /**
  * Get ContentTypes List
- * @route GET /contentTypes/:projectId/:skip/:limit/:searchText?
+ * @route GET /contentTypes/:projectId?skip=&limit=&search=
  */
 router.get(
-  "/contentTypes/:projectId/:skip/:limit/:searchText?",
+  "/contentTypes/:projectId",
   asyncRouter(contentMapperController.getContentTypes)
 );
 
 /**
  * Get FieldMapping List
- * @route GET /fieldMapping/:contentTypeId/:skip/:limit/:searchText?
+ * @route GET /fieldMapping/:projectId/:contentTypeId?skip=&limit=&search=
  */
 router.get(
-  "/fieldMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
+  "/fieldMapping/:projectId/:contentTypeId",
   asyncRouter(contentMapperController.getFieldMapping)
 );
 
