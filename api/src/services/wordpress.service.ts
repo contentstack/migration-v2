@@ -1605,6 +1605,39 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
   }
   return entryData;
 }
+/**
+ * Replicate the master-locale entries JSON + index into each additional destination locale
+ * folder so the CLI import creates entry variants under every mapped locale, not just master.
+ * WP's WXR format doesn't carry per-locale content, so each locale gets the same payload —
+ * Contentstack's fallback chain handles the read-side behavior and the user can edit the
+ * variants later.
+ */
+async function fanOutEntriesToAdditionalLocales(
+  postFolderPath: string,
+  masterLocaleCode: string,
+  contentTypeRoot: string,
+  project: any,
+): Promise<void> {
+  const additional = project?.locales ?? {};
+  const masterFilePath = path.join(postFolderPath, `${masterLocaleCode}.json`);
+  if (!existsSync(masterFilePath)) return;
+  const masterContent = await fs.promises.readFile(masterFilePath, 'utf-8');
+  for (const destLocale of Object.keys(additional)) {
+    if (!destLocale || destLocale === masterLocaleCode) continue;
+    const localeFolderPath = path.join(contentTypeRoot, destLocale);
+    if (!existsSync(localeFolderPath)) {
+      await fs.promises.mkdir(localeFolderPath, { recursive: true });
+    }
+    const localeFilePath = path.join(localeFolderPath, `${destLocale}.json`);
+    await fs.promises.writeFile(localeFilePath, masterContent, 'utf-8');
+    await fs.promises.writeFile(
+      path.join(localeFolderPath, 'index.json'),
+      JSON.stringify({ '1': `${destLocale}.json` }, null, 4),
+      'utf-8',
+    );
+  }
+}
+
 async function createEntry(file_path: string, packagePath: string, destinationStackId: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any){
   const locale = getLocale(master_locale, project) || master_locale;
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
@@ -1652,6 +1685,12 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
     await fs.promises.writeFile(path.join(postFolderPath, "index.json"),
       JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
     );
+    await fanOutEntriesToAdditionalLocales(
+      postFolderPath,
+      locale,
+      path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, postsFolderName),
+      project,
+    );
   }
 
   const termsContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'terms');
@@ -1672,6 +1711,12 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
 
     await fs.promises.writeFile(path.join(termsFolderPath, "index.json"),
       JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
+    );
+    await fanOutEntriesToAdditionalLocales(
+      termsFolderPath,
+      locale,
+      path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, termsFolderName),
+      project,
     );
   }
   const postContentTypes = contentTypes?.filter(
@@ -1712,6 +1757,12 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
 
       await fs.promises.writeFile(path.join(postFolderPath, "index.json"),
         JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
+      );
+      await fanOutEntriesToAdditionalLocales(
+        postFolderPath,
+        locale,
+        path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, postsFolderName),
+        project,
       );
       console.info(`Processed content for ${contentType?.contentstackTitle}:`, Object?.keys(content)?.length, "items");
     }

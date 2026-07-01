@@ -65,3 +65,23 @@
 .create-project-cta {
   line-height: $line-height-default;
 }
+
+.new-project-dropdown {
+  position: relative;
+  display: inline-block;
+
+  // Push the dropdown menu below the button, aligned to the button's edges
+  // and matching its width.
+  .Dropdown__menu--primary,
+  .Dropdown__menu--secondary,
+  .Dropdown__menu--tertiary,
+  .Dropdown__menu--quaternary {
+    top: calc(100% + 8px) !important;
+    bottom: auto !important;
+    left: $px-10 !important; // offset for the button's .ml-10
+    right: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    z-index: 10;
+  }
+}

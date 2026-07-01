@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockAxiosRequest, mockDeleteFolderSync, mockExtractLocale, mockExtractContentTypes } = vi.hoisted(() => ({
+const { mockAxiosRequest, mockDeleteFolderSync, mockExtractLocale, mockExtractContentTypes, mockExtractEntries } = vi.hoisted(() => ({
   mockAxiosRequest: vi.fn(),
   mockDeleteFolderSync: vi.fn(),
   mockExtractLocale: vi.fn().mockResolvedValue([]),
   mockExtractContentTypes: vi.fn().mockResolvedValue(null),
+  // `extractEntries` is called between extractContentTypes and the POST to enrich each
+  // content type with its entry list. Default: pass the input through unchanged.
+  mockExtractEntries: vi.fn().mockImplementation((_p: string, ct: any) => ct),
 }));
 
 vi.mock('migration-wordpress', () => ({
   extractLocale: mockExtractLocale,
   extractContentTypes: mockExtractContentTypes,
+  extractEntries: mockExtractEntries,
 }));
 
 vi.mock('axios', () => ({ default: { request: mockAxiosRequest } }));

@@ -18,6 +18,8 @@ const FLAT_PAYLOAD_SKIP = new Set([
     'updated_by',
     '_content_type_uid',
     'content',
+    '__locale',
+    '__csUid',
 ]);
 
 /**
@@ -66,7 +68,7 @@ const resolveAssetField = (fieldName, entryUid, updateValue, stackValue, oldMapp
  * WordPress (and similar) write migration JSON with fields at the root (email, url, …).
  * Fetched stack entries keep custom fields under entry.content — merge flat updateData there.
  */
-const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping) => {
+const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping, updateOpts) => {
     for (const field of Object.keys(updateData)) {
         if (FLAT_PAYLOAD_SKIP.has(field)) {
             continue;
@@ -90,7 +92,7 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
         }
         entry.content[field] = nextVal;
     }
-    await entry.update();
+    await entry.update(updateOpts);
 };
 
 module.exports = async ({
@@ -101,12 +103,46 @@ module.exports = async ({
     const assetMapping = config.__assetMapping__ || { old: {}, new: {} };
     delete config.__assetMapping__;
 
+    // Assets the user chose to update in place (same UID, new file).
+    const assetUpdates = Array.isArray(config.__assetUpdates__) ? config.__assetUpdates__ : [];
+    delete config.__assetUpdates__;
+
     const oldMapping = assetMapping.old || {};
     const newMapping = assetMapping.new || {};
     console.info(`Asset mappings loaded — old: ${Object.keys(oldMapping).length}, new: ${Object.keys(newMapping).length}`);
+    console.info(`Asset updates to replace in place: ${assetUpdates.length}`);
 
     const contentTypes = Object.keys(config);
     console.info('contentTypes', contentTypes);
+
+    /**
+     * Replaces each selected asset's binary on the existing Contentstack asset
+     * UID. A single asset failing is logged and skipped so it never aborts the
+     * remaining asset or entry updates.
+     */
+    const updateAssetTask = () => {
+        return {
+            title: "Update Assets",
+            successMessage: 'Assets updated successfully',
+            failedMessage: "Failed to update assets",
+            task: async () => {
+                for (const asset of assetUpdates) {
+                    if (!asset || !asset.uid || !asset.filePath) {
+                        continue;
+                    }
+                    try {
+                        await stackSDKInstance
+                            .asset(asset.uid)
+                            .replace({ upload: asset.filePath, title: asset.title });
+                        console.info(`Replaced asset in place: ${asset.uid} (${asset.filename})`);
+                    } catch (error) {
+                        console.error(`Failed to replace asset ${asset.uid} (${asset.filename}):`, error?.message || error);
+                    }
+                }
+                console.info('All asset updates processed');
+            },
+        };
+    };
 
     const updateEntryTask = () => {
         return {
@@ -120,13 +156,22 @@ module.exports = async ({
                         console.info(`Processing content type: ${contentType}, entries: ${entryUids.length}`);
 
                         for (const entryUid of entryUids) {
+                            const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
+                            // Per-locale config keys are "<csUid>::<locale>" with __locale/__csUid
+                            // on the payload. Fall back to the bare key for legacy single-locale
+                            // configs.
+                            const locale = updateData?.__locale;
+                            const realEntryUid = updateData?.__csUid || entryUid;
+                            delete updateData?.__locale;
+                            delete updateData?.__csUid;
+                            const fetchOpts = locale ? { locale } : undefined;
+                            const updateOpts = locale ? { locale } : undefined;
+
                             const entryRef = stackSDKInstance
                                 .contentType(contentType)
-                                .entry(entryUid);
+                                .entry(realEntryUid);
 
-
-                            const entry = await entryRef?.fetch();
-                            const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
+                            const entry = await entryRef?.fetch(fetchOpts);
 
                             const hasStackContent = entry?.content && typeof entry?.content === 'object';
                             const hasNestedUpdate = updateData?.content && typeof updateData?.content === 'object';
@@ -145,10 +190,10 @@ module.exports = async ({
                                     }
                                 }
                                 Object.assign(entry?.content, updateData?.content);
-                                await entry.update();
+                                await entry.update(updateOpts);
                             } else if (hasStackContent) {
-                                console.info(`[${entryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)`);
-                                await mergeFlatPayloadIntoEntry(entry, entryUid, updateData, oldMapping, newMapping);
+                                console.info(`[${realEntryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)${locale ? ` for locale "${locale}"` : ''}`);
+                                await mergeFlatPayloadIntoEntry(entry, realEntryUid, updateData, oldMapping, newMapping, updateOpts);
                             } else {
                                 if (updateData && entry) {
                                     for (const field of Object.keys(updateData)) {
@@ -165,9 +210,9 @@ module.exports = async ({
                                     }
                                 }
                                 Object.assign(entry, updateData);
-                                await entry.update();
+                                await entry.update(updateOpts);
                             }
-                            console.info(`Updated entry: ${entryUid}`);
+                            console.info(`Updated entry: ${realEntryUid}${locale ? ` (locale "${locale}")` : ''}`);
                         }
                     }
                     console.info('All entries updated successfully');
@@ -179,5 +224,16 @@ module.exports = async ({
         };
     };
 
+    if (assetUpdates.length) {
+        migration.addTask(updateAssetTask());
+    }
     migration.addTask(updateEntryTask());
 };
+
+// Exposed for unit testing only. The CLI invokes the default function export
+// above; these pure helpers are attached as properties on it so `require()`
+// consumers keep calling the function directly while tests can exercise the
+// helpers in isolation.
+module.exports.isAssetField = isAssetField;
+module.exports.resolveAssetField = resolveAssetField;
+module.exports.mergeFlatPayloadIntoEntry = mergeFlatPayloadIntoEntry;

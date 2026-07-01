@@ -501,7 +501,9 @@ const contentTypeMapper = ({
             if (compType?.content === 'Droplink') {
               if (sourceTree) {
                 if (item?.content?.includes(configChecker)) {
-                  sourceType = makeUnique({ data: sourceTree?.[item?.content] });
+                  sourceType = makeUnique({
+                    data: source?.[item?.content] ?? sourceTree?.[item?.content]
+                  });
                   compType.content = 'Droplist';
                   if (isKeyPresent('key', sourceType)) {
                     advanced = false; // 🔧 FIX: Set dropdown advanced to false

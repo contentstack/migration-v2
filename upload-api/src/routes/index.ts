@@ -373,7 +373,8 @@ router.get(
           return res.send('Filename could not be determined from the local path.');
         }
 
-        const name = fileName?.split?.('.')?.[0];
+        
+        const name = sanitizeFilename(fileName?.split?.('.')?.[0] ?? '');
         const fileExt = fileName?.split('.')?.pop() ?? '';
 
         const bodyStream = createReadStream(localPath);

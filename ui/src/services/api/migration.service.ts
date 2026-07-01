@@ -387,12 +387,14 @@ export const getEntryMapping = async (
   skip: number,
   limit: number,
   searchText: string,
-  projectId: string
+  projectId: string,
+  locale?: string
 ) => {
   try {
     const encodedSearchText = encodeURIComponent(searchText);
+    const localeQuery = locale ? `locale=${encodeURIComponent(locale)}` : '';
     return await getCall(
-      `${API_VERSION}/mapper/entryMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
+      `${API_VERSION}/mapper/entryMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?${localeQuery}`,
       options()
     );
   } catch (error) {
@@ -410,6 +412,46 @@ export const updateEntryMapper = async (
   try {
     return await putCall(
       `${API_VERSION}/mapper/updateEntryStatus/${projectId}`,
+      data,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
+export const getAssetMapping = async (
+  skip: number,
+  limit: number,
+  searchText: string,
+  projectId: string
+) => {
+  try {
+    const encodedSearchText = encodeURIComponent(searchText);
+    return await getCall(
+      `${API_VERSION}/mapper/assetMapping/${projectId}/${skip}/${limit}/${encodedSearchText}?`,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
+export const updateAssetMapper = async (
+  projectId: string,
+  data: ObjectType
+) => {
+  try {
+    return await putCall(
+      `${API_VERSION}/mapper/updateAssetStatus/${projectId}`,
       data,
       options()
     );

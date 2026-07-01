@@ -3484,8 +3484,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     </Button>
                   </div>
                 )}
-              </div>
-            </div>
+                </div>
+                </div>
             </div>
           </div> :
           <EmptyState

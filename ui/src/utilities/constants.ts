@@ -209,3 +209,17 @@ export const CONTENT_MAPPER_EMPTY_STATE = {
   NO_CONTENT_TYPES_DESCRIPTION:
     'An error occurred while generating the content mapper. Please go to the Legacy CMS step and validate the file again.'
 }
+
+// Entry Mapper (Map Entry step) empty-state text.
+export const ENTRY_MAPPER_EMPTY_STATE = {
+  NO_ENTRIES_HEADING: 'No entries available for mapping',
+  NO_ENTRIES_DESCRIPTION:
+    'There are no entries available to map for the already-migrated content types. You can still continue.'
+}
+
+// Asset Mapper (Map Entry step → Assets tab) empty-state text.
+export const ASSET_MAPPER_EMPTY_STATE = {
+  NO_ASSETS_HEADING: 'No assets available for mapping',
+  NO_ASSETS_DESCRIPTION:
+    'There are no assets available to map for the already-migrated content. You can still continue.'
+}

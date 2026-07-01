@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { Button, Icon, PageHeader, Search } from '@contentstack/venus-components';
+import { Button, Dropdown, Icon, PageHeader, Search } from '@contentstack/venus-components';
 
 // Interface
 import { ProjectsHeaderType } from './projectsHeader.interface';
@@ -13,7 +13,8 @@ const ProjectsHeader = ({
   searchPlaceholder,
   cta,
   allProject,
-  handleModal
+  handleModal,
+  handleImportModal
 }: ProjectsHeaderType) => {
   const [disableCreateProject, setDisableCreateProject] = useState<boolean>(false);
 
@@ -53,20 +54,36 @@ const ProjectsHeader = ({
   const pageActions: any = [
     {
       label: cta?.title && (
-        <Button
-          buttonType={cta?.theme}
-          className="ml-10 create-project-cta"
-          onClick={handleModal}
-          version="v2"
-          size="medium"
-          aria-label={cta?.title}
-          disabled={disableCreateProject}
+        <div className="new-project-dropdown">
+        <Dropdown
+          type="click"
+          dropDownPosition="bottom"
+          list={[
+            {
+              label: 'Create New',
+              action: () => handleModal?.()
+            },
+            {
+              label: 'Import Existing',
+              action: () => handleImportModal?.()
+            }
+          ]}
         >
-          {cta?.with_icon && (
-            <Icon icon="Plus" version="v2" size="tiny" fill="white" stroke="white" />
-          )}
-          {cta?.title}
-        </Button>
+          <Button
+            buttonType={cta?.theme}
+            className="ml-10 create-project-cta"
+            version="v2"
+            size="medium"
+            aria-label={cta?.title}
+            disabled={disableCreateProject}
+          >
+            {cta?.with_icon && (
+              <Icon icon="Plus" version="v2" size="tiny" fill="white" stroke="white" />
+            )}
+            {cta?.title}
+          </Button>
+        </Dropdown>
+        </div>
       ),
       type: 'primary'
     }
