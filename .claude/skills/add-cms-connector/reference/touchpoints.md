@@ -15,7 +15,7 @@ Line numbers are anchors at time of writing — they drift. Always open the file
 - `interface/interface.ts` — `Field`, `FieldAdvanced`, `DataConfig`, `CT = Field[]`. Keep `Field` identical to wordpress.
 - `config/index.json` — `data: "./cmsMigrationData"`, module dir names (`content_types`, `entries`, `assets`, ...).
 - `libs/extractLocale.ts` — returns `string[]` of locale codes.
-- `libs/contentTypes.ts` — `extractContentTypes(affix, filePath, DataConfig)`; reads sample, groups records by type, writes `content_types/*.json`, returns the parsed CTs.
+- `libs/contentTypes.ts` — `extractContentTypes(affix, filePath, DataConfig)`; reads sample, groups records by type, writes `content_types/*.json`, returns the parsed CTs. Always call `ensureMandatoryFields(schema)` before writing each CT — it must inject both `title` (mandatory) **and** `url` (non-mandatory text field) unconditionally, regardless of `options.is_page`. Contentstack rejects any CT missing a `url` field when the CT is page-type, and `is_page` defaults to `true` for most models — do not rely on the flag.
 - `libs/schemaMapper.ts` — switch: source field/widget type → `Field` with chosen `contentstackFieldType`.
 - `utils/helper.ts` — file I/O helpers.
 

@@ -113,12 +113,25 @@ function transformField(
       return typeof value === 'string' ? value : String(value ?? '');
 
     case 'html':
-    case 'json':
-      // RTE: convert your source rich text into a Contentstack JSON-RTE doc
-      // ({ type:'doc', uid, attrs:{}, children:[{type:'p',uid,attrs:{},children:[{text}]}] }).
-      // Don't drop media embedded IN the rich text — emit embedded-asset nodes
-      // (resolve via assetLookup; shape in reference/entry-creation.md).
-      return value;
+      return typeof value === 'string' ? value : '';
+
+    case 'json': {
+      // Step 1: already a valid CS JSON-RTE doc — pass through untouched.
+      // A valid doc has: { type: 'doc', children: [...] }
+      if (value && typeof value === 'object' && !Array.isArray(value)
+          && (value as any).type === 'doc' && Array.isArray((value as any).children)) {
+        return value;
+      }
+      // Step 2: ADAPT — call your CMS-specific RTE converter here before returning.
+      // e.g. for DatoCMS DAST:      return convertDastToCSRte(value, entryIdMap, recordToCtUid, locale);
+      // e.g. for Portable Text:     return convertPortableTextToCSRte(value, assetLookup);
+      // e.g. for Contentful RT:     return convertContentfulRteToCSRte(value);
+
+      // Step 3: safe fallback — return an empty doc so the entry is never silently dropped.
+      // ⚠️ The CS CLI calls jsonRteData.children.forEach() with no null guard; any non-CS-RTE
+      // value (null, string, DAST object, etc.) crashes and silently drops the WHOLE entry.
+      return { type: 'doc', uid: newUid(), attrs: {}, children: [{ type: 'p', uid: newUid(), attrs: {}, children: [{ text: '' }] }] };
+    }
 
     case 'isodate': {
       if (!value) return null;
@@ -227,6 +240,10 @@ async function createEntry(
   master_locale: string,
   _project: any,
 ): Promise<void> {
+  // ⚠️ Every fs.promises call in this function MUST be awaited. A missing await
+  // (fire-and-forget) means the function returns before writes complete — the CS CLI
+  // then reads files that don't exist yet, producing only partial output (e.g. only
+  // 1 entry visible) with NO error shown.
   try {
     const locale = master_locale || 'en-us';
 
@@ -292,6 +309,9 @@ async function createEntry(
 
       const folderPath = path.join(DATA, destinationStackId, ENTRIES_DIR_NAME, folderName, locale);
       await fs.promises.mkdir(folderPath, { recursive: true });
+      // ⚠️ BOTH files are required. CS CLI reads index.json first as a manifest — if it is
+      // missing, indexerCount = 0 and the entry loop never runs for this CT. The actual entry
+      // data in <locale>.json is never reached and zero entries are created (no error shown).
       await fs.promises.writeFile(path.join(folderPath, `${locale}.json`), JSON.stringify(entryData, null, 4), 'utf-8');
       await fs.promises.writeFile(path.join(folderPath, 'index.json'), JSON.stringify({ '1': `${locale}.json` }, null, 4), 'utf-8');
       console.info(`[<cms>] ${ct?.contentstackUid}: wrote ${Object.keys(entryData).length} entries`);
@@ -323,6 +343,9 @@ async function getAllAssets(
 ): Promise<void> {
   const assetsSave = path.join(DATA, destinationStackId, ASSETS_DIR_NAME);
   await fs.promises.mkdir(path.join(assetsSave, 'files'), { recursive: true });
+  // ⚠️ BOTH files are required. CS CLI reads assets.json first as a manifest — if it is
+  // missing, indexerCount = 0 and the upload loop never runs. The actual asset records in
+  // index.json are never reached and zero assets are uploaded (no error shown).
   await fs.promises.writeFile(path.join(assetsSave, ASSETS_FILE_NAME), JSON.stringify({ '1': ASSETS_SCHEMA_FILE }, null, 4));
   await fs.promises.writeFile(path.join(assetsSave, ASSETS_FOLDER_FILE_NAME), '{}');
 
