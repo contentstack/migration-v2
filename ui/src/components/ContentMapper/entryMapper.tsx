@@ -42,7 +42,6 @@ import {
   EntryMapperType,
   MouseOrKeyboardEvent,
 } from './contentMapper.interface';
-import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
 
 // Components
@@ -93,7 +92,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
   const [totalCounts, setTotalCounts] = useState<number>(0);
-  const [itemStatusMap, setItemStatusMap] = useState({});
 
   const [searchText, setSearchText] = useState<string>('');
   const [searchContentType, setSearchContentType] = useState('');
@@ -180,7 +178,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   // Refetch the entry list when the user switches locale so isUpdate reflects the per-locale flag.
   useEffect(() => {
     if (contentTypeUid && selectedLocale?.value) {
-      fetchEntries(contentTypeUid, searchText || '');
+      fetchEntries(contentTypeUid, searchText || '', { seedSelection: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocale?.value]);
@@ -202,7 +200,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setContentTypeUid(data?.contentTypes?.[0]?.id ?? '');
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid ?? '');
       if (data?.contentTypes?.[0]?.id) {
-        fetchEntries(data?.contentTypes?.[0]?.id, searchVal ?? '');
+        fetchEntries(data?.contentTypes?.[0]?.id, searchVal ?? '', { seedSelection: true });
       }
     } catch (error) {
       setIsLoading(false);
@@ -258,7 +256,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     setContentTypeUid(ct?.id ?? '');
     setOtherCmsUid(ct?.otherCmsUid ?? '');
     if (ct?.id) {
-      fetchEntries(ct.id, searchText || '');
+      fetchEntries(ct.id, searchText || '', { seedSelection: true });
     }
   };
 
@@ -292,22 +290,34 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     li_list?.forEach((ele) => ele?.classList?.remove('active-filter'));
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
 
-    const filteredCT = filterContentTypesByStatus(contentTypes, value);
-    if (value !== 'All') {
-      setFilteredContentTypes(filteredCT);
-      setCount(filteredCT?.length);
-      if (!filteredCT?.length) {
-        // No content types match the filter — drop the right-hand table so it doesn't
-        // keep showing entries from the previously-selected (now-hidden) content type.
-        clearEntryTableState();
-      } else {
-        const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
-        setActive(selectedIndex >= 0 ? selectedIndex : null);
-      }
+    const nextList = value !== 'All' ? filterContentTypesByStatus(contentTypes, value) : contentTypes;
+    setFilteredContentTypes(nextList);
+    setCount(nextList?.length ?? 0);
+
+    if (!nextList?.length) {
+      // No content types match the filter — drop the right-hand table so it doesn't
+      // keep showing entries from the previously-selected (now-hidden) content type.
+      clearEntryTableState();
+      setShowFilter(false);
+      return;
+    }
+
+    // Keep the current selection if it's still in the filtered list; otherwise fall
+    // back to the first content type and load its entries. Without this, resetting the
+    // filter (or applying one that hides the active CT) leaves the table on "No Records
+    // Found" because the entry list is never re-fetched.
+    const selectedIndex = nextList.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
+    if (selectedIndex >= 0) {
+      setActive(selectedIndex);
     } else {
-      setFilteredContentTypes(contentTypes);
-      setCount(contentTypes?.length);
-      setActive(contentTypes?.findIndex((ct) => ct?.otherCmsUid === otherCmsUid));
+      const first = nextList[0];
+      setActive(0);
+      setOtherCmsTitle(first?.otherCmsTitle ?? '');
+      setContentTypeUid(first?.id ?? '');
+      setOtherCmsUid(first?.otherCmsUid ?? '');
+      if (first?.id) {
+        fetchEntries(first.id, searchText || '', { seedSelection: true });
+      }
     }
     setShowFilter(false);
   };
@@ -319,69 +329,56 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   };
 
   /********** ENTRY TABLE (right panel) *************/
-  const fetchEntries = async (ctId: string, searchVal: string) => {
+  // Single server-paginated fetch for the entry table. The Venus table drives
+  // paging by calling fetchData with { skip, limit, searchText }; we ask the API
+  // for just that page and use the returned `count` as the grand total.
+  //
+  // seedSelection: only on the initial content-type open (page 0, no search) do we
+  // seed rowIds/persistedRowIds from the server's persisted isUpdate and refresh the
+  // content-type status icon. On search / clear-search / page change we instead
+  // re-apply the user's current (possibly unsaved) selection so nothing gets wiped.
+  const fetchEntries = async (
+    ctId: string,
+    searchVal: string,
+    { skip = 0, limit = 30, seedSelection = false }: { skip?: number; limit?: number; seedSelection?: boolean } = {},
+  ) => {
     try {
-      const itemStatusMapLocal: ItemStatusMapProp = {};
-      for (let index = 0; index <= 1000; index++) {
-        itemStatusMapLocal[index] = 'loading';
-      }
-      setItemStatusMap(itemStatusMapLocal);
       setLoading(true);
 
-      const { data } = await getEntryMapping(ctId || '', 0, 1000, searchVal, projectId, selectedLocale?.value);
+      const { data } = await getEntryMapping(ctId || '', skip, limit, searchVal, projectId, selectedLocale?.value);
 
-      for (let index = 0; index <= 1000; index++) {
-        itemStatusMapLocal[index] = 'loaded';
-      }
-      setItemStatusMap({ ...itemStatusMapLocal });
       setLoading(false);
 
       const validTableData: EntryMapperType[] = mapEntriesToRows(data?.entryMapping);
+      const total = data?.count ?? validTableData?.length ?? 0;
+
+      setTotalCounts(total);
+      setInitialRowSelectedData(selectableInitialRows(validTableData));
+
+      if (!seedSelection) {
+        // Re-apply the user's current selection onto the freshly fetched page;
+        // don't touch rowIds/persistedRowIds so nothing gets deselected.
+        setTableData(applySelectionToEntries(validTableData ?? [], rowIds));
+        return;
+      }
 
       const initialSelected = buildSelectedEntryRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
-      setTotalCounts(validTableData?.length);
-      setInitialRowSelectedData(selectableInitialRows(validTableData));
       // Reflect any pre-existing entry selections on the content type icon (green when present).
       updateContentTypeStatus(ctId, Object.keys(initialSelected ?? {}).length > 0);
     } catch (error) {
       console.error('fetchEntries -> error', error);
-    }
-  };
-
-  // Fetch table data on search
-  const fetchData = async ({ searchText: search }: TableTypes) => {
-    setSearchText(search);
-    contentTypeUid && fetchEntries(contentTypeUid, search);
-  };
-
-  // Load more table data
-  const loadMoreItems = async ({ searchText: search, skip, limit, startIndex, stopIndex }: TableTypes) => {
-    try {
-      const itemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
-      for (let index = startIndex; index <= stopIndex; index++) {
-        itemStatusMapCopy[index] = 'loading';
-      }
-      setItemStatusMap({ ...itemStatusMapCopy });
-      setLoading(true);
-
-      const { data } = await getEntryMapping(contentTypeUid || '', skip, limit, search || '', projectId, selectedLocale?.value);
-
-      const updated: ItemStatusMapProp = { ...itemStatusMap };
-      for (let index = startIndex; index <= stopIndex; index++) {
-        updated[index] = 'loaded';
-      }
-      setItemStatusMap({ ...updated });
       setLoading(false);
-
-      const validTableData: EntryMapperType[] = mapEntriesToRows(data?.entryMapping);
-
-      setTableData(applySelectionToEntries(validTableData ?? [], rowIds));
-    } catch (error) {
-      console.error('loadMoreItems -> error', error);
     }
+  };
+
+  // Driven by the table: page change, rows-per-page change, and search all land here.
+  const fetchData = async ({ searchText: search, skip, limit }: TableTypes) => {
+    setSearchText(search ?? '');
+    // Searching / paging must not drop the user's in-progress selection.
+    contentTypeUid && fetchEntries(contentTypeUid, search ?? '', { skip, limit });
   };
 
   /**
@@ -494,7 +491,10 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   ];
 
-  const calcHeight = () => window.innerHeight - 361;
+  // Must match the .Table__body height in index.scss so the react-window list is exactly
+  // as tall as the scroll body. Leave ~140px below for the search row, pagination bar and
+  // Save footer; the body scrolls internally so all rows of a page stay reachable.
+  const calcHeight = () => window.innerHeight - 520;
   const tableHeight = calcHeight();
 
   return (
@@ -638,21 +638,22 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                     key={contentTypeUid || 'entry-mapper-table'}
                     loading={loading}
                     canSearch={true}
-                    totalCounts={Math.max(0, tableData?.length)}
+                    totalCounts={totalCounts ?? 0}
                     data={[...tableData]}
                     columns={columns}
                     uniqueKey={'id'}
                     isRowSelect={true}
                     fullRowSelect={true}
-                    itemStatusMap={itemStatusMap}
                     fetchTableData={fetchData}
-                    loadMoreItems={loadMoreItems}
                     tableHeight={tableHeight}
                     equalWidthColumns={true}
                     columnSelector={false}
+                    v2Features={{ pagination: true, isNewEmptyState: true }}
+                    rowPerPageOptions={[10, 30, 50, 100]}
+                    minBatchSizeToFetch={30}
                     initialRowSelectedData={initialRowSelectedData}
                     initialSelectedRowIds={rowIds}
-                    itemSize={80}
+                    itemSize={70}
                     getSelectedRow={handleSelectedEntries}
                     rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
                     name={{
@@ -662,7 +663,9 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                   />
                   {totalCounts > 0 && (
                     <div className="mapper-footer">
-                      <div>Total Entries: <strong>{totalCounts}</strong></div>
+                      <div>
+                        {/* Total Entries: <strong>{totalCounts}</strong> */}
+                      </div>
                       <Button
                         className="saveButton"
                         onClick={handleSaveContentType}
