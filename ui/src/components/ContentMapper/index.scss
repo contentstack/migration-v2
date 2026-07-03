@@ -560,10 +560,12 @@ div .table-row {
   }
 
   // With pagination on, the venus pagination bar renders at the bottom of the table.
-  // Let the Total/Save footer flow below it (not sticky-overlapping) so the two bars
-  // don't collide and the Save button isn't clipped at the viewport edge.
+  // Pin the Total/Save footer to the viewport bottom so it stays reachable when the
+  // table + pagination combined exceed the available viewport height. Without this the
+  // Save button gets clipped off-screen on small windows (Map Entry step 4).
   .mapper-footer {
-    position: static;
+    position: sticky;
+    bottom: 0;
   }
 }
 

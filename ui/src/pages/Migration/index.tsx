@@ -660,8 +660,27 @@ const Migration = () => {
         // On a restart (iteration > 1) we must NOT skip Step 2 — that's where the user
         // can review/adjust locale mapping (e.g. add a new locale before a delta run).
         const isRestart = (newMigrationData?.iteration ?? 1) > 1;
-        // Otherwise, if a stack is already chosen we can jump straight to Step 3.
-        if (!isRestart && newMigrationData?.destination_stack?.selectedStack?.value) {
+        // Also require every source locale to have a filled mapping before we skip Step 2.
+        // Step 2 is where BOTH the destination stack AND per-locale mappings get configured;
+        // a project where the stack is chosen but some source locales are still unmapped
+        // (e.g. multi-locale source with only master mapped so far) needs a Step 2 visit to
+        // finish the mapping — the earlier `selectedStack.value` alone was too permissive
+        // and could skip users past locale mapping they hadn't completed yet.
+        const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
+        const mappedSourceCount = Object.values(savedMapping).filter(
+          (v): v is string => typeof v === 'string' && v.length > 0
+        ).length;
+        const sourceCount =
+          newMigrationData?.destination_stack?.sourceLocale?.length ?? 0;
+        const allSourceLocalesMapped =
+          sourceCount > 0 && mappedSourceCount >= sourceCount;
+        // Otherwise, if a stack is already chosen AND every locale is mapped, we can jump
+        // straight to Step 3.
+        if (
+          !isRestart &&
+          newMigrationData?.destination_stack?.selectedStack?.value &&
+          allSourceLocalesMapped
+        ) {
           const url = `/projects/${projectId}/migration/steps/3`;
           // Bump current_step a second time so backend lands on Step 3 (Content Mapping)
           // — we're skipping Step 2 because the destination stack is already configured.

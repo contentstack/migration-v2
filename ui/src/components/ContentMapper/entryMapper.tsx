@@ -649,7 +649,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                       plural: `${totalCounts === 0 ? 'Count' : ''}`
                     }}
                   />
-                  {totalCounts > 0 && (
+                  {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
                     <div className="mapper-footer">
                       <div>
                         {/* Total Entries: <strong>{totalCounts}</strong> */}
@@ -658,7 +658,12 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                         className="saveButton"
                         onClick={handleSaveContentType}
                         version="v2"
-                        disabled={newMigrationData?.project_current_step > 4}
+                        // Lock the Save button only while an actual migration is in flight, not
+                        // just because the user has already visited a later step once. Delta
+                        // iterations legitimately need to revisit Map Entry and re-save the
+                        // entry selection after progressing to Test Migration or Execute —
+                        // the previous `project_current_step > 4` gate blocked that entirely.
+                        disabled={!!newMigrationData?.migration_execution?.migrationStarted}
                         isLoading={isLoadingSaveButton}
                       >
                         Save
