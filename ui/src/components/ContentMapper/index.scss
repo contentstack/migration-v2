@@ -570,11 +570,24 @@ div .table-row {
 }
 
 .entry-mapper-container {
+  // Empty state: venus renders "No Records Found" (.EmptyState) with no scroll body, so
+  // the table collapses. Give .Table an explicit height so it fills like ExecutionLogs.
+  .Table:has(.EmptyState) {
+    height: calc(100vh - 22rem) !important;
+  }
+
+  // Size the scroll body via CSS (ExecutionLogs pattern) rather than the tableHeight
+  // prop: this keeps the venus pagination bar (a sibling below the body) visible while
+  // the body scrolls internally. Height fits a full page and reserves room for the
+  // search row, pagination bar and Save footer.
+  .Table__body,
+  .Table.TableWithPaginated .Table__body {
+    height: calc(100vh - 520px) !important;
+    max-height: calc(100vh - 520px) !important;
+  }
+
   // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
   // so it collapses to just the text. Stretch only the empty message to fill the viewport.
-  // NOTE: do NOT force .TableWrapper/.Table to full height here — in paginated mode venus
-  // renders the pagination bar as a sibling below the scroll body, and a full-height wrapper
-  // pushes that bar off the bottom (.no-table-data below still handles the empty-state gap).
   .no-table-data {
     min-height: calc(100vh - 300px);
     display: flex;
@@ -583,6 +596,7 @@ div .table-row {
     justify-content: center;
     width: 100%;
   }
+
 
   .Table {
     // Force row layout alignment

@@ -290,22 +290,34 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     li_list?.forEach((ele) => ele?.classList?.remove('active-filter'));
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
 
-    const filteredCT = filterContentTypesByStatus(contentTypes, value);
-    if (value !== 'All') {
-      setFilteredContentTypes(filteredCT);
-      setCount(filteredCT?.length);
-      if (!filteredCT?.length) {
-        // No content types match the filter — drop the right-hand table so it doesn't
-        // keep showing entries from the previously-selected (now-hidden) content type.
-        clearEntryTableState();
-      } else {
-        const selectedIndex = filteredCT.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
-        setActive(selectedIndex >= 0 ? selectedIndex : null);
-      }
+    const nextList = value !== 'All' ? filterContentTypesByStatus(contentTypes, value) : contentTypes;
+    setFilteredContentTypes(nextList);
+    setCount(nextList?.length ?? 0);
+
+    if (!nextList?.length) {
+      // No content types match the filter — drop the right-hand table so it doesn't
+      // keep showing entries from the previously-selected (now-hidden) content type.
+      clearEntryTableState();
+      setShowFilter(false);
+      return;
+    }
+
+    // Keep the current selection if it's still in the filtered list; otherwise fall
+    // back to the first content type and load its entries. Without this, resetting the
+    // filter (or applying one that hides the active CT) leaves the table on "No Records
+    // Found" because the entry list is never re-fetched.
+    const selectedIndex = nextList.findIndex((ct) => ct?.otherCmsUid === otherCmsUid);
+    if (selectedIndex >= 0) {
+      setActive(selectedIndex);
     } else {
-      setFilteredContentTypes(contentTypes);
-      setCount(contentTypes?.length);
-      setActive(contentTypes?.findIndex((ct) => ct?.otherCmsUid === otherCmsUid));
+      const first = nextList[0];
+      setActive(0);
+      setOtherCmsTitle(first?.otherCmsTitle ?? '');
+      setContentTypeUid(first?.id ?? '');
+      setOtherCmsUid(first?.otherCmsUid ?? '');
+      if (first?.id) {
+        fetchEntries(first.id, searchText || '', { seedSelection: true });
+      }
     }
     setShowFilter(false);
   };
@@ -479,10 +491,10 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   ];
 
-  // Leave room below the scroll body for the taller search row (locale dropdown),
-  // the venus pagination bar (~56px) and our Total/Save footer (~64px) so none of
-  // them get clipped off the bottom.
-  const calcHeight = () => window.innerHeight - 361 - 160;
+  // Must match the .Table__body height in index.scss so the react-window list is exactly
+  // as tall as the scroll body. Leave ~140px below for the search row, pagination bar and
+  // Save footer; the body scrolls internally so all rows of a page stay reachable.
+  const calcHeight = () => window.innerHeight - 520;
   const tableHeight = calcHeight();
 
   return (
@@ -641,7 +653,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                     minBatchSizeToFetch={30}
                     initialRowSelectedData={initialRowSelectedData}
                     initialSelectedRowIds={rowIds}
-                    itemSize={80}
+                    itemSize={70}
                     getSelectedRow={handleSelectedEntries}
                     rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
                     name={{
