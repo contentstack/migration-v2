@@ -179,14 +179,17 @@ const MigrationFlowHeader = ({
     );
   const isFileValidated = newMigrationData?.isContentMapperGenerated ? true : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
 
-  // Map Content Fields (step 3) empty-state handling:
+  // Map Content Fields empty-state handling:
   // - Iteration 1 with no content types = genuine error → keep Continue disabled.
   // - Iteration 2+ with no NEW content types = valid (nothing new to map) → Continue stays enabled.
   // ContentMapper reports emptiness via hasNoContentTypes (its local fetch result), which is more
   // accurate than isContentMapperGenerated (the project's mapper-id array can be non-empty while the
   // resolved content-type list is empty).
+  // CS source has an extra Audit Report at step 3, pushing Content Mapping to step 4.
+  // Non-CS sources go directly to Content Mapping at step 3.
+  const CONTENT_MAPPING_STEP = isContentstackSource ? '4' : '3';
   const isContentMapperEmptyOnFirstIteration =
-    params?.stepId === '3' &&
+    params?.stepId === CONTENT_MAPPING_STEP &&
     !isDeltaIteration &&
     newMigrationData?.hasNoContentTypes === true;
 
