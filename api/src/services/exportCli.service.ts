@@ -88,7 +88,8 @@ const runCommand = (command: string, args: string[] = []): Promise<void> =>
 export const exportStackCli = async (
   stackId: string,
   region: string,
-  user_id: string
+  user_id: string,
+  iteration: number = 1
 ) => {
   try {
     const regionPresent = CS_REGIONS.find((item) => item === region) ?? 'NA';
@@ -111,7 +112,14 @@ export const exportStackCli = async (
     // Set up authentication configuration for CLI
     setBasicAuthConfig(userData);
 
-    const outputPath = path.join(process.cwd(), 'export-stack', stackId);
+    // Per-iteration export folder so delta runs don't clobber prior baselines.
+    const iterationSegment = String(iteration > 0 ? iteration : 1);
+    const outputPath = path.join(
+      process.cwd(),
+      'export-stack',
+      stackId,
+      iterationSegment
+    );
     if (fs.existsSync(outputPath)) {
       fs.rmSync(outputPath, { recursive: true, force: true });
     }

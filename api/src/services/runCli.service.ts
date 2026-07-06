@@ -109,7 +109,18 @@ const resolveSourcePathForImport = (project: any, stackUid: string): string => {
       project?.extract_path;
     if (!sourcePath) return defaultPath;
     try {
-      return assertExportPathInAllowedRoot(sourcePath);
+      const resolved = assertExportPathInAllowedRoot(sourcePath);
+      // Back-compat: old exports landed at export-stack/{stackId}/ (flat).
+      // New exports land at export-stack/{stackId}/{iteration}/.
+      // If the stored path doesn't exist on disk but its iteration subfolder does, use that.
+      if (!fs.existsSync(resolved)) {
+        const iteration = project?.iteration || 1;
+        const iterationPath = path.join(resolved, String(iteration));
+        if (fs.existsSync(iterationPath)) {
+          return assertExportPathInAllowedRoot(iterationPath);
+        }
+      }
+      return resolved;
     } catch {
       return defaultPath;
     }
