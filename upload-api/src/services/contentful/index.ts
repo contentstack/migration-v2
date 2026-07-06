@@ -11,7 +11,8 @@ const {
   extractContentTypes,
   createInitialMapper,
   extractLocale,
-  extractTaxonomy
+  extractTaxonomy,
+  extractAssets
 } = require('migration-contentful');
 
 const createContentfulMapper = async (
@@ -51,6 +52,9 @@ const createContentfulMapper = async (
     // Must run after createInitialMapper: that step deletes contentfulMigrationData (contentfulSchema) and would remove taxonomy files written earlier.
     await extractTaxonomy(cleanLocalPath);
 
+    // Asset mapping rows for the AssetMapper UI (same flow as AEM/Sitecore).
+    const assetMapping = await extractAssets(cleanLocalPath);
+
     let taxonomies: any[] = [];
     try {
       const taxonomyPath = path.join(
@@ -77,7 +81,8 @@ const createContentfulMapper = async (
       },
       data: JSON.stringify({
         ...initialMapper,
-        taxonomies
+        taxonomies,
+        assetMapping
       })
     };
     const { data} = await axios.request(req);

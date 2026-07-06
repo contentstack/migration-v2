@@ -7,7 +7,7 @@ import logger from '../../utils/logger';
 import { HTTP_CODES, HTTP_TEXTS } from '../../constants';
 import { Config } from '../../models/types';
 
-const { createInitialMapper, extractLocale, extractTaxonomy } = require('migration-drupal');
+const { createInitialMapper, extractLocale, extractTaxonomy, extractAssets } = require('migration-drupal');
 
 const createDrupalMapper = async (
   config: Config,
@@ -56,6 +56,9 @@ const createDrupalMapper = async (
 
     const initialMapper = await createInitialMapper(config, affix);
 
+    // Asset mapping rows for the AssetMapper UI (same flow as AEM/Sitecore/Contentful/WordPress).
+    const assetMapping = await extractAssets(config);
+
     // Read extracted taxonomies from file
     let taxonomies: any[] = [];
     try {
@@ -84,7 +87,8 @@ const createDrupalMapper = async (
       contentTypes: initialMapper.contentTypes, // All content types (no profile)
       assetsConfig: config.assetsConfig,
       mySQLDetails: config.mysql,
-      taxonomies: taxonomies // Add taxonomies to payload
+      taxonomies: taxonomies, // Add taxonomies to payload
+      assetMapping // Asset rows for the AssetMapper UI
     };
 
     const req = {
