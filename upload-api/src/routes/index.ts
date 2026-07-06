@@ -278,7 +278,19 @@ router.get(
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
       const rawFilePath = Array.isArray(req?.headers?.file_path) ? req?.headers?.file_path?.[0] : req?.headers?.file_path;
       const filePath: string | undefined = rawFilePath && typeof rawFilePath === 'string' && rawFilePath.trim() !== '' ? rawFilePath.trim() : undefined;
-      const config = await updateConfigFile(filePath);
+
+      // MySQL connection details from the UI ("Check Connection"); only used for drupal.
+      const readHeader = (value: string | string[] | undefined): string | undefined => {
+        const raw = Array.isArray(value) ? value[0] : value;
+        return raw && typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : undefined;
+      };
+      const mysqlDetails = {
+        host: readHeader(req?.headers?.mysql_host),
+        database: readHeader(req?.headers?.mysql_database),
+        user: readHeader(req?.headers?.mysql_user)
+      };
+
+      const config = await updateConfigFile(filePath, mysqlDetails);
       if (!config) {
         logger.error('Failed to load application config');
         return res.status(500).json({
@@ -369,7 +381,8 @@ router.get(
           return res.send('Filename could not be determined from the local path.');
         }
 
-        const name = fileName?.split?.('.')?.[0];
+        
+        const name = sanitizeFilename(fileName?.split?.('.')?.[0] ?? '');
         const fileExt = fileName?.split('.')?.pop() ?? '';
 
         const bodyStream = createReadStream(localPath);

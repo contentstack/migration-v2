@@ -4,11 +4,17 @@ import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
-import { isEmptyString, getFileExtension } from '../../../utilities/functions';
+import { isEmptyString, getFileExtension, validateArray } from '../../../utilities/functions';
 
 // Components
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
+
+// Interface
+import { ICardType } from '../../../components/Common/Card/card.interface';
+
+// Style
+import '../legacyCms.scss';
 
 interface LoadFileFormatProps {
   stepComponentProps?: () => {};
@@ -33,46 +39,116 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
   const [fileIcon, setFileIcon]  = useState(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title);
   const [fileDisplayTitle, setFileDisplayTitle] = useState(getDisplayTitle(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title));
 
+  // Error state for when the uploaded file's format isn't supported by the selected CMS
+  const [isError, setIsError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
   /****  ALL USEEffects  HERE  ****/
   // Update ref whenever newMigrationData changes
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
   }, [newMigrationData]);
 
-  // Handle file format extraction - RUN IMMEDIATELY ON MOUNT AND WHEN DATA CHANGES
+  // Handle file format extraction - RUN IMMEDIATELY ON MOUNT AND WHENEVER THE FILE PATH CHANGES.
+  // The displayed format is always derived from the ACTUAL uploaded file extension, never from a
+  // stale selectedFileFormat (which gets pre-seeded to the CMS default on CMS selection). This is
+  // why editing the file path (e.g. zip → json) now updates the label, icon, and Redux in sync.
   useEffect(() => {
     const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '';
     const currentFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.title;
-    
-    // If we have a file path but no format, extract it NOW
-    if (!isEmptyString(filePath) && isEmptyString(currentFormat)) {
-      const extractedFormat = getFileExtension(filePath);
-      
-      if (!isEmptyString(extractedFormat)) {
-        const fileFormatObj = {
-          description: '',
-          fileformat_id: extractedFormat,
-          group_name: extractedFormat,
-          isactive: true,
-          title: extractedFormat === 'zip' ? 'Zip' : extractedFormat.toUpperCase()
-        };
-                
-        dispatch(updateNewMigrationData({
-          ...newMigrationData,
-          legacy_cms: {
-            ...newMigrationData?.legacy_cms,
-            selectedFileFormat: fileFormatObj
-          }
-        }));
-        
-        setFileIcon(fileFormatObj?.title);
-        setFileDisplayTitle(getDisplayTitle(fileFormatObj?.title));
+
+    // No file yet — fall back to whatever format is already in Redux (e.g. SQL/directory CMS types
+    // that don't carry a localPath).
+    if (isEmptyString(filePath)) {
+      if (!isEmptyString(currentFormat)) {
+        setFileIcon(currentFormat);
+        setFileDisplayTitle(getDisplayTitle(currentFormat));
       }
-    } else if (!isEmptyString(currentFormat)) {
-      setFileIcon(currentFormat);
-      setFileDisplayTitle(getDisplayTitle(currentFormat));
+      return;
     }
-  }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath, newMigrationData?.legacy_cms?.selectedFileFormat, dispatch, newMigrationData]);
+
+    const extractedFormat = getFileExtension(filePath);
+
+    // Couldn't read a valid extension — keep displaying the existing format rather than blanking it.
+    if (isEmptyString(extractedFormat)) {
+      if (!isEmptyString(currentFormat)) {
+        setFileIcon(currentFormat);
+        setFileDisplayTitle(getDisplayTitle(currentFormat));
+      }
+      return;
+    }
+
+    const fileFormatObj = {
+      description: '',
+      fileformat_id: extractedFormat,
+      group_name: extractedFormat,
+      isactive: true,
+      title: extractedFormat === 'zip' ? 'Zip' : extractedFormat.toUpperCase()
+    };
+
+    // Only dispatch when the format actually changed, to avoid a render loop.
+    if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() !== extractedFormat?.toLowerCase()) {
+      // Read the latest state from the ref (kept in sync above) rather than the effect's
+      // closure, so narrowing the deps below doesn't dispatch a stale snapshot.
+      const latest = newMigrationDataRef.current;
+      dispatch(updateNewMigrationData({
+        ...latest,
+        legacy_cms: {
+          ...latest?.legacy_cms,
+          selectedFileFormat: fileFormatObj
+        }
+      }));
+    }
+
+    setFileIcon(fileFormatObj?.title);
+    setFileDisplayTitle(getDisplayTitle(fileFormatObj?.title));
+    // Depend only on the fields this effect actually reads — the uploaded file path and the
+    // current format. Using the whole newMigrationData object re-ran this on every migration
+    // state change (repeatedly calling the setters). The dispatch reads newMigrationdata via a
+    // ref-fresh closure, so it isn't needed in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
+    newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id,
+    newMigrationData?.legacy_cms?.selectedFileFormat?.title
+  ]);
+
+  // Validate the uploaded file's format against the selected CMS's allowed formats.
+  // This lives here (not in CMS selection) because the error is about the uploaded
+  // file, not the CMS the user picked.
+  //
+  // We derive the format from the actual uploaded file extension — NOT from
+  // selectedFileFormat, which gets pre-seeded to the CMS's default format on CMS
+  // selection and would otherwise mask a mismatching upload (e.g. CMS default "zip"
+  // hiding a ".pdf" upload).
+  useEffect(() => {
+    const selectedCms = newMigrationData?.legacy_cms?.selectedCms;
+    const allowedFormats = selectedCms?.allowed_file_formats;
+    const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '';
+    const uploadedFormat = getFileExtension(filePath);
+
+    // Nothing to validate until we have both a CMS with allowed formats and an uploaded file.
+    if (!validateArray(allowedFormats) || isEmptyString(uploadedFormat)) {
+      setIsError(false);
+      setErrorMessage('');
+      return;
+    }
+
+    const isSupported = allowedFormats?.some(
+      (format: ICardType) => format?.fileformat_id?.toLowerCase() === uploadedFormat?.toLowerCase()
+    );
+
+    if (isSupported) {
+      setIsError(false);
+      setErrorMessage('');
+    } else {
+      setIsError(true);
+      setErrorMessage('Current file format is not supported for the selected CMS. Please upload a file with a supported format.');
+    }
+  }, [
+    newMigrationData?.legacy_cms?.selectedCms,
+    newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath
+  ]);
 
   return (
     <div className="p-3">
@@ -95,6 +171,9 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
             disabled={true}
           />
         </label>
+        {isError && (
+          <div className="px-3 py-1 fs-6 errorMessage">{errorMessage}</div>
+        )}
       </div>
     </div>
   );

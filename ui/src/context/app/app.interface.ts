@@ -239,6 +239,9 @@ export interface INewMigration {
   iteration: number;
   /** Primary migration flow CTA label (MigrationFlowHeader) */
   stepValue?: string;
+  // True when the Map Content Fields step (step 3) has loaded but returned zero content types.
+  // Used to gate the step-3 Continue button: disabled on iteration 1 (error), enabled on iteration 2+.
+  hasNoContentTypes?: boolean;
 }
 
 export interface TestStacks {

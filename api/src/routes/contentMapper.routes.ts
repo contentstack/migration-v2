@@ -119,6 +119,24 @@ router.put(
 );
 
 /**
+ * Get Asset Mapping List
+ * @route GET /assetMapping/:projectId/:skip/:limit/:searchText?
+ */
+router.get(
+  "/assetMapping/:projectId/:skip/:limit/:searchText?",
+  asyncRouter(contentMapperController.getAssetMapping)
+);
+
+/**
+ * Update Asset Status (toggle reuse/re-import per asset)
+ * @route PUT /updateAssetStatus/:projectId
+ */
+router.put(
+  "/updateAssetStatus/:projectId",
+  asyncRouter(contentMapperController.updateAssetStatus)
+);
+
+/**
  * Get Single Global Field data
  * @route GET /:projectId/:globalFieldUid
  */

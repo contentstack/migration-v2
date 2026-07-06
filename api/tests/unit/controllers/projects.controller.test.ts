@@ -1,29 +1,48 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockProjectService } = vi.hoisted(() => ({
-  mockProjectService: {
-    getAllProjects: vi.fn(),
-    getProject: vi.fn(),
-    createProject: vi.fn(),
-    updateProject: vi.fn(),
-    updateLegacyCMS: vi.fn(),
-    updateAffix: vi.fn(),
-    affixConfirmation: vi.fn(),
-    updateFileFormat: vi.fn(),
-    fileformatConfirmation: vi.fn(),
-    updateDestinationStack: vi.fn(),
-    updateCurrentStep: vi.fn(),
-    deleteProject: vi.fn(),
-    revertProject: vi.fn(),
-    updateStackDetails: vi.fn(),
-    updateMigrationExecution: vi.fn(),
-    getMigratedStacks: vi.fn(),
-  },
-}));
+const { mockProjectService, mockArchive, mockZipArchiveCtor, mockFs } = vi.hoisted(() => {
+  const mockArchive = {
+    on: vi.fn(),
+    pipe: vi.fn(),
+    append: vi.fn(),
+    directory: vi.fn(),
+    finalize: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    mockProjectService: {
+      getAllProjects: vi.fn(),
+      getProject: vi.fn(),
+      exportProject: vi.fn(),
+      importProject: vi.fn(),
+      createProject: vi.fn(),
+      updateProject: vi.fn(),
+      updateLegacyCMS: vi.fn(),
+      updateAffix: vi.fn(),
+      affixConfirmation: vi.fn(),
+      updateFileFormat: vi.fn(),
+      fileformatConfirmation: vi.fn(),
+      updateDestinationStack: vi.fn(),
+      updateCurrentStep: vi.fn(),
+      deleteProject: vi.fn(),
+      revertProject: vi.fn(),
+      updateStackDetails: vi.fn(),
+      updateMigrationExecution: vi.fn(),
+      getMigratedStacks: vi.fn(),
+    },
+    mockArchive,
+    mockZipArchiveCtor: vi.fn(function () {
+      return mockArchive;
+    }),
+    mockFs: { existsSync: vi.fn().mockReturnValue(false) },
+  };
+});
 
 vi.mock('../../../src/services/projects.service.js', () => ({
   projectService: mockProjectService,
 }));
+
+vi.mock('archiver', () => ({ ZipArchive: mockZipArchiveCtor }));
+vi.mock('node:fs', () => ({ __esModule: true, default: mockFs, ...mockFs }));
 
 import { projectController } from '../../../src/controllers/projects.controller.js';
 
@@ -40,6 +59,8 @@ describe('projects.controller', () => {
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
+      setHeader: vi.fn().mockReturnThis(),
+      destroy: vi.fn(),
     };
   });
 
@@ -117,5 +138,63 @@ describe('projects.controller', () => {
 
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(project);
+  });
+
+  describe('exportProject', () => {
+    it('should stream a zip with attachment headers', async () => {
+      mockProjectService.exportProject.mockResolvedValue({
+        project: { id: 'proj-123' },
+        databasePath: '/db/proj-123',
+      });
+
+      await projectController.exportProject(req, res);
+
+      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/zip');
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="proj-123.zip"'
+      );
+      expect(mockArchive.pipe).toHaveBeenCalledWith(res);
+      expect(mockArchive.append).toHaveBeenCalledWith(
+        expect.any(String),
+        { name: 'proj-123/project.json' }
+      );
+      expect(mockArchive.finalize).toHaveBeenCalled();
+    });
+
+    it('should include the database folder when it exists', async () => {
+      mockProjectService.exportProject.mockResolvedValue({
+        project: { id: 'proj-123' },
+        databasePath: '/db/proj-123',
+      });
+      mockFs.existsSync.mockReturnValue(true);
+
+      await projectController.exportProject(req, res);
+
+      expect(mockArchive.directory).toHaveBeenCalledWith('/db/proj-123', 'proj-123');
+    });
+
+    it('should not include the database folder when it does not exist', async () => {
+      mockProjectService.exportProject.mockResolvedValue({
+        project: { id: 'proj-123' },
+        databasePath: '/db/proj-123',
+      });
+      mockFs.existsSync.mockReturnValue(false);
+
+      await projectController.exportProject(req, res);
+
+      expect(mockArchive.directory).not.toHaveBeenCalled();
+    });
+  });
+
+  it('importProject should return 201 with the imported project', async () => {
+    const result = { status: 'success', project: { id: 'new-proj' } };
+    mockProjectService.importProject.mockResolvedValue(result);
+
+    await projectController.importProject(req, res);
+
+    expect(mockProjectService.importProject).toHaveBeenCalledWith(req);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(result);
   });
 });

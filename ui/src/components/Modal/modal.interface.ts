@@ -11,6 +11,8 @@ export interface ProjectModalProps {
   closeModal: () => void;
   isOpen: (flag: boolean) => void;
   createProject: (values : FormData)=> Promise<CreateProjectResponse>
+  importProject: (file: File) => Promise<CreateProjectResponse>
+  initialStep?: 'create' | 'import'
 }
 export interface SettingsModalProps {
   selectedOrg: IDropDown;

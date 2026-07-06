@@ -219,14 +219,48 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-async function updateConfigFile(filePath?: string): Promise<any | undefined> {
+interface MySQLDetails {
+  host?: string;
+  database?: string;
+  user?: string;
+}
+
+async function updateConfigFile(
+  filePath?: string,
+  mysqlDetails?: MySQLDetails
+): Promise<any | undefined> {
   try {
     const { src: configFilePath } = getConfigFilePaths();
     const config: any = JSON.parse(await fs.promises.readFile(configFilePath, 'utf8'));
 
+    const isDrupal = String(config?.cmsType).toLowerCase() === 'drupal';
+
+    // Only treat mysqlDetails as meaningful when at least one field is a non-empty string,
+    // so empty/undefined payloads don't trigger an unnecessary config write below.
+    const { host, database, user } = mysqlDetails ?? {};
+    const hasMysqlDetails =
+      isDrupal && !!(host?.trim() || database?.trim() || user?.trim());
+
+    // For drupal the source is a MySQL DB. Persist the host/database/user the user
+    // entered in the UI ("Check Connection") into config.mysql, preserving the other
+    // mysql fields (e.g. port, password).
+    if (hasMysqlDetails) {
+      config.mysql = {
+        ...config.mysql,
+        ...(host?.trim() ? { host: host.trim() } : {}),
+        ...(database?.trim() ? { database: database.trim() } : {}),
+        ...(user?.trim() ? { user: user.trim() } : {})
+      };
+    }
+
     // If filePath is provided and not empty, update the config file
     if (filePath && typeof filePath === 'string' && filePath.trim() !== '') {
-      const resolvedFilePath = path.resolve(filePath.trim());
+      const trimmed = filePath.trim();
+      // "sql" is a sentinel for MySQL validation (routes/index.ts), not a filesystem path.
+      // For drupal the source is a MySQL DB, so localPath must stay "sql" rather than a
+      // resolved path. path.resolve("sql") would incorrectly become <cwd>/sql and break SQL mode.
+      const resolvedFilePath =
+        isDrupal || trimmed.toLowerCase() === 'sql' ? 'sql' : path.resolve(trimmed);
 
       const updatedConfig = {
         ...config,
@@ -237,6 +271,12 @@ async function updateConfigFile(filePath?: string): Promise<any | undefined> {
       await fs.promises.writeFile(configFilePath, configContent, 'utf8');
 
       return updatedConfig;
+    }
+
+    // No filePath, but drupal mysql details changed — persist them and return updated config.
+    if (hasMysqlDetails) {
+      const configContent = JSON.stringify(config, null, 2);
+      await fs.promises.writeFile(configFilePath, configContent, 'utf8');
     }
 
     return config;

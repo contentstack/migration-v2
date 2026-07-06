@@ -61,6 +61,7 @@ import LegacyCms from '../../components/LegacyCms';
 import DestinationStackComponent from '../../components/DestinationStack';
 import ContentMapper from '../../components/ContentMapper';
 import AuditReport from '../../components/AuditReport';
+import EntryAssetMapper from '../../components/ContentMapper/entryAssetMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
@@ -118,6 +119,11 @@ const Migration = () => {
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
+  // Keep the ref in sync with Redux so dispatches built from `ref.current` don't carry
+  // stale snapshots (e.g. pre-restart state) into later updates.
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
 
   useEffect(() => {
     fetchData();
@@ -212,22 +218,41 @@ const Migration = () => {
       return;
     }
 
+    // Fetch project data FIRST so the side-nav is built from the authoritative iteration.
+    // On a hard reload/deep link, redux's newMigrationData.iteration is still the default (1)
+    // until this resolves — building allFlowSteps off stale redux would render the 5-step nav
+    // even for an iteration 2+ project and never recompute. fetchProjectData returns the
+    // resolved iteration so we don't depend on the async redux update landing first.
+    const resolvedIteration = await fetchProjectData();
+
+    // Delta migration: the "Map Entry" flow step only exists from iteration 2 onwards.
+    // migrationSteps.json statically lists the 6-step (delta) layout, so on iteration 1 we
+    // drop the Map Entry step and renumber the steps after it so the side-nav names stay in
+    // sync with the 5-step createStepper() flow.
+    const iteration = resolvedIteration ?? newMigrationData?.iteration ?? 1;
+    const allFlowSteps: IFlowStep[] = validateArray(data?.all_steps)
+      ? iteration > 1
+        ? data?.all_steps
+        : data?.all_steps
+            ?.filter((step: IFlowStep) => step?.flow_id !== 'mapEntry')
+            ?.map((step: IFlowStep, index: number) => ({ ...step, name: `${index + 1}` }))
+      : data?.all_steps;
+
     //get Flow Steps and update it in APP Context
-    const currentFlowStep = validateArray(data?.all_steps)
-      ? data?.all_steps?.find((step: IFlowStep) => `${step.name}` === params?.stepId)
+    const currentFlowStep = validateArray(allFlowSteps)
+      ? allFlowSteps?.find((step: IFlowStep) => `${step.name}` === params?.stepId)
       : DEFAULT_IFLOWSTEP;
 
     dispatch(
       updateMigrationData({
-        allFlowSteps: data?.all_steps,
+        allFlowSteps: allFlowSteps,
         currentFlowStep: currentFlowStep,
         migration_steps_heading: data?.migration_steps_heading,
         settings: data?.settings
       })
     );
 
-    await fetchProjectData();
-    const stepIndex = data?.all_steps?.findIndex(
+    const stepIndex = allFlowSteps?.findIndex(
       (step: IFlowStep) => `${step?.name}` === params?.stepId
     );
     setCurrentStepIndex(stepIndex !== -1 ? stepIndex : 0);
@@ -299,7 +324,7 @@ const Migration = () => {
   /**
    * Fetch the project data
    */
-  const fetchProjectData = async () => {
+  const fetchProjectData = async (): Promise<number | undefined> => {
     if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
     setIsProjectMapper(true);
     try {
@@ -507,6 +532,10 @@ const Migration = () => {
     };
 
       dispatch(updateNewMigrationData(projectMapper));
+
+      // Return the authoritative iteration so the caller can build the side-nav without waiting
+      // for the redux update above to land.
+      return projectData?.iteration ?? 1;
     } catch (error) {
       console.error('Error while fetching project/config data:', error);
       Notification({
@@ -519,6 +548,7 @@ const Migration = () => {
       setIsLoading(false);
       setIsProjectMapper(false);
     }
+    return undefined;
   };
 
   /**
@@ -529,7 +559,11 @@ const Migration = () => {
     handleStepChange: (currentStep: number) => void
   ) => {
     const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
-    
+    // Delta migration: the "Map Entry" step (and the 6-step flow) only exists from iteration 2
+    // onwards. Iteration 1 is the original 5-step flow with no entry mapping.
+    const iteration = projectData?.iteration ?? newMigrationData?.iteration ?? 1;
+    const isDeltaIteration = iteration > 1;
+
     const steps = [
       {
         data: (
@@ -576,14 +610,24 @@ const Migration = () => {
         id: nextId,
         title: 'Map Content Fields'
       },
+      // Map Entry only from iteration 2+
+      ...(isDeltaIteration
+        ? [
+            {
+              data: <EntryAssetMapper handleStepChange={handleStepChange} />,
+              id: '4',
+              title: 'Map Entry'
+            }
+          ]
+        : []),
       {
         data: <TestMigration />,
-        id: testId,
+        id: isDeltaIteration ? '5' : (isContentstackSource ? '5' : '4'),
         title: 'Run Test Migration'
       },
       {
         data: <MigrationExecution handleStepChange={handleStepChange} />,
-        id: migrationId,
+        id: isDeltaIteration ? '6' : (isContentstackSource ? '6' : '5'),
         title: 'Execute Migration'
       }
     );
@@ -684,17 +728,23 @@ const Migration = () => {
 
       if (res?.status === 200) {
         setIsLoading(false);
-        // Check if stack is already selected
-        if (newMigrationData?.destination_stack?.selectedStack?.value) {
+        // On a restart (iteration > 1) we must NOT skip Step 2 — that's where the user
+        // can review/adjust locale mapping (e.g. add a new locale before a delta run).
+        const isRestart = (newMigrationData?.iteration ?? 1) > 1;
+        // Otherwise, if a stack is already chosen we can jump straight to Step 3.
+        if (!isRestart && newMigrationData?.destination_stack?.selectedStack?.value) {
           const url = `/projects/${projectId}/migration/steps/3`;
-
+          // Bump current_step a second time so backend lands on Step 3 (Content Mapping)
+          // — we're skipping Step 2 because the destination stack is already configured.
           await updateCurrentStepData(selectedOrganisation?.value, projectId);
 
           handleStepChange(2);
           navigate(url, { replace: true });
         } else {
+          // Going to Step 2 — backend was already advanced once above (Step 1 → 2). Do NOT
+          // bump again, otherwise current_step ends up at 3 and the `project_current_step > 2`
+          // gate on Step 2's stack/locale/Add-Language buttons would disable everything.
           const url = `/projects/${projectId}/migration/steps/2`;
-          await updateCurrentStepData(selectedOrganisation?.value, projectId);
 
           handleStepChange(1);
           navigate(url, { replace: true });
@@ -952,7 +1002,21 @@ const Migration = () => {
   };
 
   /**
-   * Calls when click Continue button on Test Migration step and handles to proceed to Migration Execution
+   * Calls when click Continue button on Map Entry step (delta iteration only) and handles to
+   * proceed to Test Migration. Map Entry is step 4 (index 3), Test Migration is step 5 (index 4).
+   */
+  const handleOnClickMapEntry = async () => {
+    setIsLoading(false);
+    await updateCurrentStepData(selectedOrganisation.value, projectId);
+    handleStepChange(4);
+    const url = `/projects/${projectId}/migration/steps/5`;
+    navigate(url, { replace: true });
+  };
+
+  /**
+   * Calls when click Continue button on Test Migration step and handles to proceed to Migration Execution.
+   * Delta migration: Test Migration is step 5 / index 4 on iteration 2+ (Execute is step 6 / index 5),
+   * but step 4 / index 3 on iteration 1 (Execute is step 5 / index 4).
    */
   const handleOnClickTestMigration = async () => {
     setIsLoading(false);
@@ -961,13 +1025,11 @@ const Migration = () => {
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     //if (res?.status === 200) {
-      // For non-Contentstack sources the audit step is absent, so the
-      // migration-execution step is at position 5 (not 6).
-      const isCS =
-        newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
-      const nextStep = isCS ? 6 : 5;
-      handleStepChange(nextStep);
-      const url = `/projects/${projectId}/migration/steps/${nextStep}`;
+      const isDeltaIteration = (newMigrationData?.iteration ?? 1) > 1;
+      const isCS = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
+      const executeStepIndex = isDeltaIteration ? 5 : (isCS ? 5 : 4);
+      handleStepChange(executeStepIndex);
+      const url = `/projects/${projectId}/migration/steps/${executeStepIndex + 1}`;
       navigate(url, { replace: true });
     //}
   };
@@ -989,6 +1051,9 @@ const Migration = () => {
     );
 
     if (newMigrationData?.stepValue !== 'Restart Migration') {
+      // Disable the Start Migration button immediately on click; keep it disabled on success
+      // (migration is now running) and only re-enable it if the API call fails.
+      setDisableMigration(true);
       try {
         const migrationRes = await startMigration(
           newMigrationData?.destination_stack?.selectedOrg?.value,
@@ -996,7 +1061,6 @@ const Migration = () => {
         );
 
         if (migrationRes?.status === 200) {
-          setDisableMigration(true);
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
             migration_execution: {
@@ -1015,7 +1079,7 @@ const Migration = () => {
             type: 'message'
           });
         } else {
-          // Surface server-provided message when available.
+          setDisableMigration(false);
           Notification({
             notificationContent: {
               text:
@@ -1030,6 +1094,7 @@ const Migration = () => {
         }
       } catch (error) {
         console.error(error);
+        setDisableMigration(false);
         Notification({
           notificationContent: { text: 'Failed to start migration' },
           type: 'error'
@@ -1043,6 +1108,10 @@ const Migration = () => {
   };
 
   const handleRestartMigration = async () => {
+    // Reset the locally-tracked "Start Migration in flight" flag from any prior run, otherwise
+    // MigrationFlowHeader receives finalExecutionStarted=true and disables Save and Continue
+    // on Step 1 (via isMigrationInProgress) until the user refreshes.
+    setDisableMigration(false);
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
@@ -1099,19 +1168,21 @@ const Migration = () => {
   };
 
   const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
+  const isDeltaIteration = (newMigrationData?.iteration ?? 1) > 1;
 
-  // Re-dispatch flow steps with the audit step filtered out (and remaining
-  // step `name` values renumbered) for non-Contentstack sources, so that URL
-  // stepIds and the rendered stepper stay in sync.
+  // Re-dispatch flow steps filtering out audit for non-CS and mapEntry for iteration 1.
   useEffect(() => {
     let cancelled = false;
     getCMSDataFromFile(CS_ENTRIES.MIGRATION_FLOW).then((data: any) => {
       if (cancelled || !validateArray(data?.all_steps)) return;
       const rawSteps: IFlowStep[] = data.all_steps;
-      const filtered = (isContentstackSource
-        ? rawSteps
-        : rawSteps.filter((s: any) => s?.flow_id !== 'auditReport')
-      ).map((s: any, i: number) => ({ ...s, name: i + 1 }));
+      const filtered = rawSteps
+        .filter((s: any) => {
+          if (s?.flow_id === 'auditReport' && !isContentstackSource) return false;
+          if (s?.flow_id === 'mapEntry' && !isDeltaIteration) return false;
+          return true;
+        })
+        .map((s: any, i: number) => ({ ...s, name: i + 1 }));
       const currentFlowStep =
         filtered.find((s: any) => `${s?.name}` === params?.stepId) ??
         DEFAULT_IFLOWSTEP;
@@ -1127,19 +1198,22 @@ const Migration = () => {
     return () => {
       cancelled = true;
     };
-  }, [isContentstackSource, params?.stepId, dispatch]);
+  }, [isContentstackSource, isDeltaIteration, params?.stepId, dispatch]);
 
-  // Memoize stepper steps to update when CMS selection changes
+  // Memoize stepper steps to update when CMS selection or iteration changes
   const stepperSteps = useMemo(() => {
     return createStepper(projectData ?? defaultMigrationResponse, handleStepChange);
-  }, [projectData, newMigrationData?.legacy_cms?.selectedCms?.cms_id, handleStepChange]);
-  
+  }, [projectData, newMigrationData?.legacy_cms?.selectedCms?.cms_id, newMigrationData?.iteration, handleStepChange]);
+
+  // CTA handlers indexed by step position. The Map Entry step (and its handler) only exists from
+  // iteration 2 onwards, so it is inserted between Content Mapper and Test Migration only then.
   const handleOnClickFunctions = isContentstackSource
     ? [
         handleOnClickLegacyCms,
         handleOnClickDestinationStack,
         handleOnClickAuditReport,
         handleOnClickContentMapper,
+        ...(isDeltaIteration ? [handleOnClickMapEntry] : []),
         handleOnClickTestMigration,
         handleOnClickMigrationExecution
       ]
@@ -1147,6 +1221,7 @@ const Migration = () => {
         handleOnClickLegacyCms,
         handleOnClickDestinationStack,
         handleOnClickContentMapper,
+        ...(isDeltaIteration ? [handleOnClickMapEntry] : []),
         handleOnClickTestMigration,
         handleOnClickMigrationExecution
       ];

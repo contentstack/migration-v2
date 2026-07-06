@@ -18,8 +18,7 @@ import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 import { ProjectModalProps, FormData } from './modal.interface';
 
 // Services
-import { useState } from 'react';
-import { createProject } from '../../services/api/project.service';
+import { useRef, useState } from 'react';
 
 const Modal = (props: ProjectModalProps) => {
   const {
@@ -33,12 +32,49 @@ const Modal = (props: ProjectModalProps) => {
       secondary_cta: secondaryCta,
       title
     },
-    selectedOrg,
     isOpen,
-    createProject
+    createProject,
+    importProject,
+    initialStep = 'create'
   } = props;
 
   const [inputValue, setInputValue] = useState<boolean>(false);
+  const step = initialStep;
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const closeAll = () => {
+    closeModal();
+    isOpen(false);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event?.target?.files?.[0] ?? null;
+    setSelectedFile(file);
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) return;
+    setIsImporting(true);
+    const result = await importProject(selectedFile);
+    setIsImporting(false);
+
+    if (result) {
+      Notification({
+        notificationContent: { text: 'Project imported successfully' },
+        notificationProps: { hideProgressBar: true },
+        type: 'success'
+      });
+      closeAll();
+    } else {
+      Notification({
+        notificationContent: { text: 'Error occurred while importing project.' },
+        notificationProps: { hideProgressBar: true },
+        type: 'error'
+      });
+    }
+  };
 
   const handleSubmit = async (values: FormData)=> {
     // const payload = {name: values?.name, description: values?.description || ''}
@@ -81,13 +117,64 @@ const Modal = (props: ProjectModalProps) => {
     <>
       <ModalHeader
         title={title}
-        closeModal={() => {
-          closeModal();
-          isOpen(false);
-        }}
+        closeModal={closeAll}
         closeIconTestId="cs-default-header-close"
       />
 
+      {step === 'import' && (
+        <>
+          <ModalBody className="modalBodyCustomClass">
+            <Field className="mb-30">
+              <FieldLabel htmlFor="import-file" version="v2">
+                Project File (.zip)
+              </FieldLabel>
+              <input
+                ref={fileInputRef}
+                id="import-file"
+                type="file"
+                accept=".zip"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                data-testid="import-file-input"
+              />
+              <div className="flex-v-center" style={{ gap: '12px', marginTop: '8px' }}>
+                <Button
+                  buttonType="secondary"
+                  version="v2"
+                  icon="Download"
+                  onClick={() => fileInputRef?.current?.click()}
+                >
+                  Choose File
+                </Button>
+                <span>{selectedFile?.name ?? 'No file selected'}</span>
+              </div>
+            </Field>
+          </ModalBody>
+          <ModalFooter>
+            <ButtonGroup>
+              <Button
+                buttonType="light"
+                onClick={closeAll}
+                size="large"
+                className="baseColorButton"
+              >
+                Cancel
+              </Button>
+              <Button
+                buttonType="primary"
+                onClick={handleImport}
+                disabled={!selectedFile || isImporting}
+                isLoading={isImporting}
+                size="large"
+              >
+                Import Project
+              </Button>
+            </ButtonGroup>
+          </ModalFooter>
+        </>
+      )}
+
+      {step === 'create' && (
       <FinalForm
         className="customForm"
         onSubmit={handleSubmit}
@@ -205,39 +292,35 @@ const Modal = (props: ProjectModalProps) => {
                 </Field>
               </ModalBody>
               <ModalFooter>
-                {((primaryCta && primaryCta?.title) ?? (secondaryCta && secondaryCta?.title)) && (
-                  <ButtonGroup>
-                    {secondaryCta && secondaryCta?.title && (
-                      <Button
-                        buttonType={secondaryCta?.theme}
-                        onClick={() => {
-                          closeModal();
-                          isOpen(false);
-                        }}
-                        size="large"
-                        className="baseColorButton"
-                      >
-                        {secondaryCta?.title}
-                      </Button>
-                    )}
+                <ButtonGroup>
+                  {secondaryCta && secondaryCta?.title && (
+                    <Button
+                      buttonType={secondaryCta?.theme}
+                      onClick={closeAll}
+                      size="large"
+                      className="baseColorButton"
+                    >
+                      {secondaryCta?.title}
+                    </Button>
+                  )}
 
-                    {primaryCta && primaryCta?.title && (
-                      <Button
-                        type="submit"
-                        buttonType={primaryCta?.theme}
-                        disabled={!inputValue}
-                        size="large"
-                      >
-                        {primaryCta?.title}
-                      </Button>
-                    )}
-                  </ButtonGroup>
-                )}
+                  {primaryCta && primaryCta?.title && (
+                    <Button
+                      type="submit"
+                      buttonType={primaryCta?.theme}
+                      disabled={!inputValue}
+                      size="large"
+                    >
+                      {primaryCta?.title}
+                    </Button>
+                  )}
+                </ButtonGroup>
               </ModalFooter>
             </form>
           );
         }}
       />
+      )}
     </>
   );
 };

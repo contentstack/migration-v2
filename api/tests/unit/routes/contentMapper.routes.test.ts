@@ -14,6 +14,10 @@ vi.mock('../../../src/controllers/projects.contentMapper.controller.js', () => (
     updateContentMapper: vi.fn((_req: any, res: any) => res.status(200).json({})),
     getEntryMapping: vi.fn((_req: any, res: any) => res.status(200).json({})),
     updateEntryStatus: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    getSingleContentTypes: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    getSingleGlobalField: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    getAssetMapping: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    updateAssetStatus: vi.fn((_req: any, res: any) => res.status(200).json({})),
   },
 }));
 

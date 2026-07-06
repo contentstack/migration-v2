@@ -14,7 +14,7 @@ import {
   HTTP_TEXTS,
   HTTP_CODES,
   LOCALE_MAPPER,
-  STEPPER_STEPS,
+  getStepperSteps,
   CMS,
   GET_AUDIT_DATA,
   MIGRATION_DATA_CONFIG,
@@ -52,8 +52,8 @@ import {
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
-import { clearStaleEntries, enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
-import { removeExistingAssets, saveAssetMetadata } from '../utils/asset-update.utils.js';
+import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
+import { removeExistingAssets, saveAssetMetadata, AssetUpdate } from '../utils/asset-update.utils.js';
 import { contentMapperService } from './contentMapper.service.js';
 import { exportStackCli } from './exportCli.service.js';
 import {
@@ -161,9 +161,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       
 
       ProjectModelLowdb.update((data: any) => {
-        // Match projects.service updateCurrentStep(CONTENT_MAPPING → TESTING)
-        data.projects[index].current_step = STEPPER_STEPS.TESTING;
-        data.projects[index].status = NEW_PROJECT_STATUS[4];
+        // Delta migration: Testing is step 5 on iteration 2+ (4 on iteration 1).
+        data.projects[index].current_step =
+          getStepperSteps(data.projects[index]?.iteration)['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
         data.projects[index].test_stacks.push({
           stackUid: res?.data?.stack?.api_key,
@@ -1258,6 +1258,7 @@ const startMigration = async (req: Request): Promise<any> => {
       .value();
     const iteration = projectData?.iteration || 1;
     let configFilePath: string | null = null;
+    let assetUpdates: AssetUpdate[] = [];
     let safeDeltaMigrationLogPath: string | undefined;
     const destinationStackId = project?.destination_stack_id;
 
@@ -1344,12 +1345,22 @@ const startMigration = async (req: Request): Promise<any> => {
       }
     }
 
-    saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
+    // projectId is HTTP-derived and gets interpolated into database/<projectId>/...
+    // paths below; the resulting config file is later read with fs.readFileSync.
+    // Sanitize once and bail on invalid input so a traversal value (e.g. "../../etc")
+    // can never reach the filesystem. sanitizeProjectId rebuilds the value
+    // char-by-char from an allowlist, which breaks the taint chain.
+    if (!safePid) {
+      await customLogger(projectId, destinationStackId, 'error', 'Invalid project id; skipping delta asset/entry processing.');
+      return;
+    }
+
+    saveAssetMetadata(indexData, safePid, iteration, safeDeltaMigrationLogPath);
 
     if (iteration > 1) {
-      await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
+      assetUpdates = await removeExistingAssets(safePid, safeDeltaMigrationLogPath);
       configFilePath = await removeEntriesFromDatabase(
-        projectId,
+        safePid,
         safeDeltaMigrationLogPath
       );
       await customLogger(projectId, destinationStackId, 'info', `Config file generated at ${configFilePath}`);
@@ -1408,7 +1419,13 @@ const exportSourceStack = async (req: Request): Promise<any> => {
 
   const sourceRegion = sourceDetails?.source_region_id || region;
   const sourceBranch = sourceDetails?.source_branch || "main";
-  const exportPath = await exportStackCli(sourceStackId, sourceRegion, user_id);
+  const iteration = project?.iteration || 1;
+  const exportPath = await exportStackCli(
+    sourceStackId,
+    sourceRegion,
+    user_id,
+    iteration
+  );
 
   await ProjectModelLowdb.update((data: any) => {
     const timestamp = new Date().toISOString();
@@ -1733,11 +1750,22 @@ const runSourceAudit = async (req: Request): Promise<any> => {
       "Export path is required before running audit. Please complete Step 1 (Export) first.",
     );
 
+    // Make sure an update config exists when there are asset updates but no
+    // entry updates, so the asset-replace step still runs.
+    if (!configFilePath && assetUpdates.length) {
+      configFilePath = ensureUpdateConfigFile(safePid, iteration);
+    }
+
     if (configFilePath) {
       enrichConfigWithAssetMapping(
         configFilePath,
-        projectId,
+        safePid,
         iteration,
+        safeDeltaMigrationLogPath
+      );
+      enrichConfigWithAssetUpdates(
+        configFilePath,
+        assetUpdates,
         safeDeltaMigrationLogPath
       );
       await utilsUpdateCli?.updateEntryCli(

@@ -22,7 +22,7 @@ import { Setting } from './setting.interface';
 import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
-import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
+import { deleteProject, exportProject, getProject, updateProject } from '../../../services/api/project.service';
 import { CS_ENTRIES, HTTP_CODES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
@@ -131,6 +131,33 @@ const Settings = () => {
       });
     }
   };
+  const handleExportProject = async () => {
+    const response = await exportProject(
+      selectedOrganisation?.value || '',
+      params?.projectId ?? ''
+    );
+
+    if (response?.status === HTTP_CODES?.OK) {
+      const url = window.URL.createObjectURL(new Blob([response?.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${params?.projectId}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } else {
+      Notification({
+        notificationContent: { text: 'Failed to Export Project' },
+        notificationProps: {
+          hideProgressBar: true,
+          position: 'bottom-center'
+        },
+        type: 'error'
+      });
+    }
+  };
+
   const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
     const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
 
@@ -254,6 +281,14 @@ const Settings = () => {
                     label={'Success'}
                     onClick={handleUpdateProject}>
                     {cmsData?.project?.save_project?.title}
+                  </Button>
+                  <Button
+                    buttonType="secondary"
+                    aria-label="export project"
+                    version="v2"
+                    icon="Download"
+                    onClick={handleExportProject}>
+                    Export Project
                   </Button>
                 </div>
               </form>

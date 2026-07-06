@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak, @typescript-eslint/no-explicit-any */
 
 import { Request } from 'express';
+import path from 'path';
+import fs from 'node:fs';
+import AdmZip from 'adm-zip';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import ContentTypesMapperModelLowdb, { getContentTypesMapperDb } from '../models/contentTypesMapper-lowdb.js';
 import FieldMapperModel from '../models/FieldMapper.js';
@@ -16,6 +19,8 @@ import {
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
   CMS,
+  getStepperSteps,
+  DATABASE_FILES,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -97,6 +102,205 @@ const getProject = async (req: Request) => {
   );
 
   return project;
+};
+
+/**
+ * Resolves the project record and the absolute path to its on-disk database
+ * folder so the caller can bundle both into an export archive.
+ *
+ * @param req - The request object containing the orgId, projectId and token_payload.
+ * @returns The project record and the absolute path to its `database/<projectId>` folder.
+ */
+const exportProject = async (req: Request) => {
+  const orgId = req?.params?.orgId;
+  const projectId = req?.params?.projectId;
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
+  const { user_id = '', region = '' } = decodedToken;
+
+  // Reuse the same ownership-scoped lookup as getProject so users can only
+  // export projects they actually own.
+  const project = await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: region,
+      owner: user_id,
+    },
+    'exportProject'
+  );
+
+  const databasePath = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId);
+
+  return { project, databasePath };
+};
+
+/**
+ * Imports a project from a previously exported zip archive.
+ *
+ * The archive is expected to contain `<oldId>/project.json` plus the mapper
+ * stores under `<oldId>/...`. A brand-new project is created under the current
+ * user / org with a fresh id, and the mapper stores are copied into the new
+ * project's database folder with their internal `projectId` references rewritten.
+ *
+ * @param req - The request object. Expects `req.file` (the uploaded zip) and `token_payload`.
+ * @returns The summary of the newly created project.
+ */
+const importProject = async (req: Request) => {
+  const srcFunc = 'importProject';
+  const orgId = req?.params?.orgId;
+  if (!orgId) {
+    throw new BadRequestError('Organization ID is required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
+  const { user_id = '', region = '' } = decodedToken;
+
+  const file = (req as any)?.file;
+  if (!file?.buffer) {
+    throw new BadRequestError('A project zip file is required');
+  }
+
+  const zip = new AdmZip(file.buffer);
+  const entries = zip.getEntries();
+
+  // Zip-bomb guard: the upload itself is capped by multer (100 MB compressed),
+  // but the decompressed size is unbounded. Reject archives whose total
+  // uncompressed size exceeds a sane cap before reading any entry into memory.
+  const MAX_UNCOMPRESSED_BYTES = 500 * 1024 * 1024; // 500 MB
+  const totalUncompressed = entries.reduce(
+    (sum: number, entry: any) => sum + (entry?.header?.size ?? 0),
+    0
+  );
+  if (totalUncompressed > MAX_UNCOMPRESSED_BYTES) {
+    throw new BadRequestError('Invalid project archive: uncompressed size exceeds the allowed limit');
+  }
+
+  // Locate the project record. It lives at `<oldId>/project.json`.
+  const projectEntry = entries.find((entry: any) =>
+    entry?.entryName?.replace(/\\/g, '/').endsWith('/project.json')
+  );
+  if (!projectEntry) {
+    throw new BadRequestError('Invalid project archive: project.json not found');
+  }
+
+  let importedProject: any;
+  try {
+    importedProject = JSON.parse(zip.readAsText(projectEntry));
+  } catch {
+    throw new BadRequestError('Invalid project archive: project.json is not valid JSON');
+  }
+
+  // The folder the archive nested everything under (the original project id).
+  const oldId = projectEntry.entryName.replace(/\\/g, '/').split('/')[0];
+  const newId = uuidv4();
+  const now = new Date().toISOString();
+
+  // Re-own the project under the current user / org with a fresh id, carrying
+  // over the content the user actually built.
+  const projectData = {
+    ...importedProject,
+    id: newId,
+    region,
+    org_id: orgId,
+    owner: user_id,
+    created_by: user_id,
+    updated_by: user_id,
+    former_owner_ids: [],
+    created_at: now,
+    updated_at: now,
+    isDeleted: false,
+  };
+
+  // Copy the mapper stores into the new project's database folder, rewriting
+  // any internal references to the old project id. This runs BEFORE the project
+  // record is persisted so that a failure mid-copy (or a tripped zip-slip
+  // guard) leaves no orphan project record pointing at missing/partial mappers.
+  const newProjectDir = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, newId);
+  const newProjectRoot = path.resolve(newProjectDir);
+  try {
+    for (const entry of entries) {
+      const normalized = entry?.entryName?.replace(/\\/g, '/');
+      if (entry?.isDirectory || !normalized?.startsWith(`${oldId}/`)) {
+        continue;
+      }
+      // Strip the leading `<oldId>/` and skip the top-level project.json.
+      const relativePath = normalized.slice(oldId.length + 1);
+      if (!relativePath || relativePath === 'project.json') {
+        continue;
+      }
+
+      const destPath = path.join(newProjectDir, relativePath);
+
+      // Zip Slip guard: the archive is fully user-supplied, so a crafted entry
+      // name (e.g. `<oldId>/../../../etc/x.json`) could resolve outside the new
+      // project's folder and overwrite arbitrary files. Reject anything that
+      // does not stay within newProjectRoot.
+      const resolvedDest = path.resolve(destPath);
+      if (
+        resolvedDest !== newProjectRoot &&
+        !resolvedDest.startsWith(newProjectRoot + path.sep)
+      ) {
+        throw new BadRequestError('Invalid project archive: path traversal detected');
+      }
+
+      fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+      // Rewrite the old project id inside JSON mapper stores so the mappers stay
+      // consistent with the new project.
+      if (relativePath.endsWith('.json')) {
+        const content = zip.readAsText(entry).split(oldId).join(newId);
+        fs.writeFileSync(destPath, content);
+      } else {
+        fs.writeFileSync(destPath, entry.getData());
+      }
+    }
+  } catch (err) {
+    // Roll back any partially-written mapper files so we don't leave a stray
+    // database folder behind, then surface the error.
+    fs.rmSync(newProjectDir, { recursive: true, force: true });
+    throw err;
+  }
+
+  // Mappers are on disk; only now persist the project record.
+  await ProjectModelLowdb.read();
+  await ProjectModelLowdb.update((data: any) => {
+    if (!data?.projects || !Array.isArray(data?.projects)) {
+      data.projects = [];
+    }
+    data?.projects?.push?.(projectData);
+  });
+
+  logger.info(
+    getLogMessage(
+      srcFunc,
+      `Project successfully imported. New Id : ${newId} (from ${oldId}).`,
+      decodedToken
+    )
+  );
+
+  return {
+    status: 'success',
+    message: 'Project imported successfully',
+    project: {
+      name: projectData?.name,
+      id: projectData?.id,
+      status: projectData?.status,
+      created_at: projectData?.created_at,
+      modified_at: projectData?.updated_at,
+      current_step: projectData?.current_step,
+    },
+  };
 };
 
 /**
@@ -1066,6 +1270,11 @@ const updateCurrentStep = async (req: Request) => {
     const isStepCompleted =
       project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
 
+    // Delta migration: from iteration 2 onwards the flow has an extra "Map Entry" step (step 4),
+    // shifting Testing → 5 and Migration → 6. Resolve the step-number map for this project's
+    // iteration so the state machine progresses through the correct steps.
+    const steps = getStepperSteps(project?.iteration);
+
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
         if (project.status !== NEW_PROJECT_STATUS[0] || !isStepCompleted) {
@@ -1175,7 +1384,7 @@ const updateCurrentStep = async (req: Request) => {
         });
         break;
       }
-      case STEPPER_STEPS.CONTENT_MAPPING: {
+      case steps.CONTENT_MAPPING: {
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -1200,13 +1409,31 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step = STEPPER_STEPS.TESTING;
+          // Delta iteration: Content Mapping → Map Entry (step 4). Iteration 1: → Testing (step 4).
+          data.projects[projectIndex].current_step =
+            steps.MAP_ENTRY ?? steps.TESTING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
       }
-      case STEPPER_STEPS.TESTING: {
+      // Map Entry → Testing. Only reachable on delta iterations (step exists from iteration 2).
+      case steps.MAP_ENTRY: {
+        await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
+          data.projects[projectIndex].current_step = steps.TESTING;
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case steps.TESTING: {
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -1233,13 +1460,13 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].current_step = steps.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
       }
-      case STEPPER_STEPS.MIGRATION: {
+      case steps.MIGRATION: {
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -1266,7 +1493,7 @@ const updateCurrentStep = async (req: Request) => {
           ) {
             throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
           }
-          data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].current_step = steps.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -1763,7 +1990,8 @@ const getMigratedStacks = async (req: Request) => {
           project?.isDeleted !== true &&
           project?.id !== projectId &&
           project?.status === 5 &&
-          project?.current_step === STEPPER_STEPS.MIGRATION &&
+          // Project is on its final Execute step (6 on delta iterations, 5 otherwise).
+          project?.current_step === getStepperSteps(project?.iteration).MIGRATION &&
           project?.destination_stack_id
       )
       .map((project: any) => project.destination_stack_id)
@@ -1892,6 +2120,8 @@ const updateAuditSelections = async (req: Request) => {
 export const projectService = {
   getAllProjects,
   getProject,
+  exportProject,
+  importProject,
   createProject,
   updateProject,
   updateLegacyCMS,

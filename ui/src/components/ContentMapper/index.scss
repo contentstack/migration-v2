@@ -152,8 +152,8 @@
     border-left: 0 none;
     min-height: 24.25rem;
     .Table__body__row {
-        .Table-select-body {
-         >.checkbox-wrapper {
+      .Table-select-body {
+        > .checkbox-wrapper {
           align-items: flex-start;
         }
       }
@@ -179,6 +179,18 @@
       -webkit-line-clamp: 1;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    // Asset mapper: long filenames/paths should wrap within their own column
+    // instead of clamping to one line and bleeding into the next column.
+    .cms-field--wrap {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      -webkit-line-clamp: unset;
+      overflow: visible;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .InstructionText {
       font-size: $size-font-small;
@@ -313,6 +325,15 @@ div .table-row {
 .mapper-emptystate {
   padding: 10px 10px;
 }
+// Delta iteration empty state has no "Go to Legacy CMS" action button, so center it vertically
+// in the available space instead of sitting top-heavy.
+.mapper-emptystate--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
 .Checkbox .Checkbox__tick svg {
   display: block;
 }
@@ -323,11 +344,11 @@ div .table-row {
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
 }
-.filterButton-color{
+.filterButton-color {
   color: $color-brand-primary-base;
   font-weight: $font-weight-bold;
 }
-.icon-padding{
+.icon-padding {
   padding: 10px 10px;
   margin-left: 6px;
 }
@@ -337,23 +358,23 @@ div .table-row {
     font-weight: 600;
     // margin-left: 16px;
   }
-  
+
   &.child-row {
     margin-left: 26px;
   }
-  
+
   &.child-row-level-2 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 36px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-3 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 62px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-4 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 98px;
@@ -432,14 +453,14 @@ div .table-row {
 .table-row {
   display: flex;
   align-items: center;
-  gap: 8px;                   
+  gap: 8px;
 }
 .table-row .select {
-  flex: 1;                    
+  flex: 1;
 }
 .advanced-setting-button,
 .table-row button {
-  flex-shrink: 0;           
+  flex-shrink: 0;
 }
 
 // Prevent header wrapping
@@ -452,6 +473,30 @@ div .table-row {
 .table-wrapper {
   position: relative;
   padding-bottom: 70px;
+}
+
+// Step 4 wrapper: toggle stacked above the active mapper. Fills its parent and lets the
+// child .step-container take the remaining height (avoids nesting two height:100% containers).
+.entry-asset-mapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+
+  // The active child mapper (its own .step-container) fills the space left by the toggle.
+  > .step-container {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+// Entries / Assets switch shown on delta iterations
+.mapper-view-toggle {
+  display: flex;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #e5e5e5;
+  background: #fff;
 }
 
 // Sticky footer for Save button
@@ -478,7 +523,7 @@ div .table-row {
   overflow-y: auto !important;
 }
 
-// Safety for small screens 
+// Safety for small screens
 @media (max-height: 800px) {
   .mapper-footer {
     padding: 10px;
@@ -487,11 +532,70 @@ div .table-row {
 
 .select {
   .tippy-wrapper {
-    display: inline; 
+    display: inline;
+  }
+}
+
+// Per-locale dropdown floats top-right of the table area, sharing the row with the
+// table's built-in search (search on left, dropdown on right).
+.entry-mapper-container.has-locale-select {
+  position: relative;
+
+  // The dropdown floats top-right, vertically centered in the table's search row.
+  .locale-select-inline {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    z-index: 2;
+    width: 240px;
+  }
+
+  // The dropdown floats over the table's search row, so the row must be tall enough
+  // to contain it — otherwise the dropdown's bottom overlaps the table header below.
+  // min-height fits the dropdown (top:12px + ~40px tall + gap); padding-right keeps
+  // the built-in search clear of the dropdown on the right.
+  .TablePanel {
+    min-height: 64px;
+    padding-right: 272px;
+  }
+
+  // With pagination on, the venus pagination bar renders at the bottom of the table.
+  // Let the Total/Save footer flow below it (not sticky-overlapping) so the two bars
+  // don't collide and the Save button isn't clipped at the viewport edge.
+  .mapper-footer {
+    position: static;
   }
 }
 
 .entry-mapper-container {
+  // Empty state: venus renders "No Records Found" (.EmptyState) with no scroll body, so
+  // the table collapses. Give .Table an explicit height so it fills like ExecutionLogs.
+  .Table:has(.EmptyState) {
+    height: calc(100vh - 22rem) !important;
+  }
+
+  // Size the scroll body via CSS (ExecutionLogs pattern) rather than the tableHeight
+  // prop: this keeps the venus pagination bar (a sibling below the body) visible while
+  // the body scrolls internally. Height fits a full page and reserves room for the
+  // search row, pagination bar and Save footer.
+  .Table__body,
+  .Table.TableWithPaginated .Table__body {
+    height: calc(100vh - 520px) !important;
+    max-height: calc(100vh - 520px) !important;
+  }
+
+  // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
+  // so it collapses to just the text. Stretch only the empty message to fill the viewport.
+  .no-table-data {
+    min-height: calc(100vh - 300px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+
   .Table {
     // Force row layout alignment
     .Table__head,
@@ -523,6 +627,21 @@ div .table-row {
       display: flex !important;
       align-items: center;
       border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // Long filenames/paths must wrap and stay inside their own column instead
+    // of overflowing into the next one. min-width:0 above lets the flex item
+    // actually shrink; these make the inner content honour the column width.
+    .Table__body__column {
+      overflow: hidden;
+
+      .cms-field {
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
     }
 
     // Remove last column border

@@ -2,7 +2,7 @@ import axios from "axios";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import { extractContentTypes, extractLocale } from 'migration-wordpress';
+import { extractContentTypes, extractLocale, extractEntries } from 'migration-wordpress';
 import { deleteFolderSync } from "../../helper";
 import path from "path";
 
@@ -33,8 +33,15 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
       });
     }
 
-    const contentTypeData : any = await extractContentTypes(affix as string, filePath, config);
+    let contentTypeData : any = await extractContentTypes(affix as string, filePath, config);
     //const contentTypeData = await contentTypeMaker(affix, filePath)
+
+    // Populate per-content-type `entryMapping` from the WXR items. Without this the backend
+    // content_mapper writes no entry_mapper rows, which leaves the delta-migration Step 4
+    // (Map Entry) empty on restart.
+    if (Array.isArray(contentTypeData) && contentTypeData?.length > 0) {
+      contentTypeData = await extractEntries(filePath, contentTypeData);
+    }
 
     if(contentTypeData){
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };

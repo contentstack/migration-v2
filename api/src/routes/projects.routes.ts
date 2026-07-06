@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import { projectController } from "../controllers/projects.controller.js";
 import { asyncRouter } from "../utils/async-router.utils.js";
 import validator from "../validators/index.js";
@@ -8,11 +9,43 @@ import validator from "../validators/index.js";
  */
 const router = express.Router({ mergeParams: true });
 
+// In-memory upload handling for project import zips (capped at 100 MB).
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+});
+
 // GET all projects route
 router.get("/", asyncRouter(projectController.getAllProjects));
 
 // GET a single project route
 router.get("/:projectId", asyncRouter(projectController.getProject));
+
+// Export a project (project record + mapper stores) as a zip archive
+router.get("/:projectId/export", asyncRouter(projectController.exportProject));
+
+// Import a project from an exported zip archive.
+//
+// `authenticateUser` is mounted on this router in server.ts
+// (`app.use('/v2/org/:orgId/project', authenticateUser, projectRoutes)`), so it
+// always runs before these handlers and sets `req.body.token_payload`. multer
+// then replaces `req.body` with the parsed multipart fields, wiping it. We move
+// the payload onto `req` (which multer never touches) before multer runs, then
+// restore it onto `req.body` afterwards so the controller/service still see it.
+router.post(
+  "/import",
+  (req, _res, next) => {
+    (req as any).tokenPayload = (req as any)?.body?.token_payload;
+    next();
+  },
+  upload.single("file"),
+  (req, _res, next) => {
+    (req as any).body = (req as any).body || {};
+    (req as any).body.token_payload = (req as any).tokenPayload;
+    next();
+  },
+  asyncRouter(projectController.importProject)
+);
 
 // Create a new project route
 router.post("/", asyncRouter(projectController.createProject));

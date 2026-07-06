@@ -3,7 +3,7 @@ import axios, { AxiosResponse, AxiosError } from "axios";
 import http from 'http';
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
-import { contentTypes, locales } from 'migration-aem';
+import { contentTypes, locales, extractEntries, extractAssets } from 'migration-aem';
 
 interface RequestParams {
   payload: any;
@@ -109,7 +109,9 @@ const createAemMapper = async (filePath: string, projectId: string | string[], a
     const localeData = await locales().processAndSave(filePath);
     await createLocaleSource({ app_token, projectId, localeData });
     const ctData = await ct.convertAndCreate(filePath);
-    const fieldMapping: any = { contentTypes: ctData, extractPath: filePath };
+    await extractEntries(filePath, ctData as any[]);
+    const assetMapping = await extractAssets(filePath);
+    const fieldMapping: any = { contentTypes: ctData, extractPath: filePath, assetMapping };
     const { data } = await sendRequestWithRetry({
       payload: fieldMapping,
       projectId,

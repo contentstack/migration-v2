@@ -173,16 +173,22 @@
       }
     },
     {
+      "map_entry": {
+        "step_title": "Map Entry",
+        "step_number": 4
+      }
+    },
+    {
       "test_migration": {
         "step_title": "Test Migration",
-        "step_number": 4
+        "step_number": 5
       }
     },
     {
       "migration_execution": {
         "step_title": "Migration Execution",
         "_metadata": { "uid": "csd1b57ee4b93373fb" },
-        "step_number": 5,
+        "step_number": 6,
         "migration_execution": [
           { "uid": "blt875421bb12019625", "_content_type_uid": "migration_execution" }
         ]
@@ -229,6 +235,13 @@
       "name": 4,
       "title": "Content Mapping",
       "description": "Review of content mapping on the target stack",
+      "group_name": "Layout"
+    },
+    {
+      "flow_id": "mapEntry",
+      "name": 4,
+      "title": "Map Entry",
+      "description": "Map entries of already-migrated content types",
       "group_name": "Layout"
     },
     {
