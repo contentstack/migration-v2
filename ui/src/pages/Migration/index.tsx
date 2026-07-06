@@ -667,13 +667,15 @@ const Migration = () => {
         // finish the mapping — the earlier `selectedStack.value` alone was too permissive
         // and could skip users past locale mapping they hadn't completed yet.
         const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
-        const mappedSourceCount = Object.values(savedMapping).filter(
-          (v): v is string => typeof v === 'string' && v.length > 0
-        ).length;
-        const sourceCount =
-          newMigrationData?.destination_stack?.sourceLocale?.length ?? 0;
+        const sourceLocales: string[] = newMigrationData?.destination_stack?.sourceLocale ?? [];
+        const mappedSourceValues = new Set(
+          Object.entries(savedMapping)
+            .filter(([k]) => k && k.trim() && k !== CS_ENTRIES.UNMAPPED_LOCALE_KEY)
+            .map(([, v]) => v)
+            .filter((v): v is string => typeof v === 'string' && v.length > 0)
+        );
         const allSourceLocalesMapped =
-          sourceCount > 0 && mappedSourceCount >= sourceCount;
+          sourceLocales.length > 0 && sourceLocales.every((loc: string) => mappedSourceValues.has(loc));
         // Otherwise, if a stack is already chosen AND every locale is mapped, we can jump
         // straight to Step 3.
         if (

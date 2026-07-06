@@ -176,10 +176,10 @@ const Mapper = ({
       key?.includes('-master_locale')
     );
 
-    const recentMsterLocale = cmsLocaleOptions?.find(
+    const recentMasterLocale = cmsLocaleOptions?.find(
       (item) => item?.value === 'master_locale'
     )?.label;
-    const presentLocale = `${recentMsterLocale}-master_locale`;
+    const presentLocale = `${recentMasterLocale}-master_locale`;
 
     Object.keys(updatedExistingField || {})?.forEach((key) => {
       if (existingMasterID !== presentLocale || isStackChanged) {
@@ -511,21 +511,6 @@ const Mapper = ({
             locale?.value === 'master_locale' ||
             (stack?.master_locale != null &&
               locale?.label === stack?.master_locale);
-          // Row is "saved" iff its mapping key exists in Redux `localeMapping` with a
-          // non-empty source value. This is a race-free complement to the parent
-          // `isDisabled` prop (which reads `project_current_step`/`iteration` and can lag
-          // during Step 1 → Step 2 navigation). Master and non-master rows use different
-          // key shapes.
-          // Non-restart added rows have a numeric index as label (e.g. '1', '2').
-          // The actual CS locale code lives in existingField[index].value once the
-          // user has picked a destination. Restart-rebuilt rows already have the CS
-          // locale code as label, so the fallback covers both paths correctly.
-          const savedKey = isMasterRow
-            ? `${locale?.label}-master_locale`
-            : (existingField?.[index]?.value || locale?.label);
-          const savedValue = reduxLocaleMapping?.[savedKey];
-          const isRowSaved =
-            typeof savedValue === 'string' && savedValue.length > 0;
           // Lock rows only when the parent flag is set (step > 2 or iteration > 1) AND
           // the row has a rebuilt value from a prior iteration. Rebuilt rows always have
           // locale.value set; newly-added rows keep value='' so they stay editable until
