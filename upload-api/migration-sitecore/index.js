@@ -10,11 +10,13 @@ const ExtractFiles = require('./libs/convert.js');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const extractLocales = require('./libs/extractLocales.js');
 const extractEntries = require('./libs/extractEntries.js');
+const extractAssets = require('./libs/extractAssets.js');
 module.exports = {
   contentTypes,
   ExtractConfiguration,
   reference,
   ExtractFiles,
   extractLocales,
-  extractEntries
+  extractEntries,
+  extractAssets
 };

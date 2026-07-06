@@ -209,7 +209,7 @@ const AssetMapper = ({
     return (
       <div>
         <div className='d-flex align-items-center'>
-          <div className={'cms-field'}>
+          <div className={'cms-field cms-field--wrap'}>
             {data?.filename || data?.title || '-'}
           </div>
         </div>
@@ -221,7 +221,7 @@ const AssetMapper = ({
     return (
       <div>
         <div className='d-flex align-items-center'>
-          <div className={'cms-field'}>
+          <div className={'cms-field cms-field--wrap'}>
             {data?.assetPath || '-'}
           </div>
         </div>
