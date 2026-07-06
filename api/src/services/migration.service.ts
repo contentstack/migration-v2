@@ -15,6 +15,7 @@ import {
   HTTP_CODES,
   LOCALE_MAPPER,
   getStepperSteps,
+  STEPPER_STEPS,
   CMS,
   GET_AUDIT_DATA,
   MIGRATION_DATA_CONFIG,
@@ -1385,7 +1386,7 @@ const startMigration = async (req: Request): Promise<any> => {
           data.projects[index].isMigrationCompleted = true;
           data.projects[index].isMigrationStarted = false;
           data.projects[index].status = 5;
-          data.projects[index].current_step = STEPPER_STEPS.MIGRATION;
+          data.projects[index].current_step = getStepperSteps(data.projects[index]?.iteration).MIGRATION;
         }
       });
     }
