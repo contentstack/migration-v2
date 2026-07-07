@@ -2,7 +2,7 @@ import axios from "axios";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import { extractContentTypes, extractLocale, extractEntries } from 'migration-wordpress';
+import { extractContentTypes, extractLocale, extractEntries, extractAssets } from 'migration-wordpress';
 import { deleteFolderSync } from "../../helper";
 import path from "path";
 
@@ -44,7 +44,8 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
     }
 
     if(contentTypeData){
-      const fieldMapping: any = { contentTypes: [], extractPath: filePath };
+      const assetMapping = await extractAssets(filePath);
+      const fieldMapping: any = { contentTypes: [], extractPath: filePath, assetMapping };
       contentTypeData.forEach((contentType: any) => {
         const jsonfileContent = contentType;
         jsonfileContent.type = "content_type";
