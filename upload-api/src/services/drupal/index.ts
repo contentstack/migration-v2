@@ -7,7 +7,7 @@ import logger from '../../utils/logger';
 import { HTTP_CODES, HTTP_TEXTS } from '../../constants';
 import { Config } from '../../models/types';
 
-const { createInitialMapper, extractLocale, extractTaxonomy, extractAssets } = require('migration-drupal');
+import { createInitialMapper, extractLocale, extractTaxonomy, extractAssets } from 'migration-drupal';
 
 const createDrupalMapper = async (
   config: Config,
@@ -52,7 +52,7 @@ const createDrupalMapper = async (
     }
 
     // Extract taxonomy vocabularies and save to drupalMigrationData
-    await extractTaxonomy(config?.mysql);
+    await extractTaxonomy(config?.mysql as object);
 
     const initialMapper = await createInitialMapper(config, affix);
 

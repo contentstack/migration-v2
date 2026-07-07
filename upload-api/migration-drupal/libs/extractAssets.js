@@ -46,12 +46,23 @@ const extractAssets = async (config) => {
   try {
     connection = dbConnection(config);
 
+    // Bound the result set so a very large media library can't be pulled fully into
+    // memory. Configurable via assetsConfig.maxAssets; parameterized to keep it out of
+    // the SQL string.
+    const maxAssets = Number(config?.assetsConfig?.maxAssets) || 100000;
     const query = `
       SELECT fid, uuid, filename, uri, filesize, filemime
       FROM file_managed
       ORDER BY fid
+      LIMIT ?
     `;
-    const [results] = await connection.promise().query(query);
+    const [results] = await connection.promise().query(query, [maxAssets]);
+
+    if (Array.isArray(results) && results.length === maxAssets) {
+      console.warn(
+        `extractAssets (Drupal): hit maxAssets cap of ${maxAssets}; some assets may be omitted`
+      );
+    }
 
     const seenIds = new Set();
 
@@ -60,21 +71,21 @@ const extractAssets = async (config) => {
         continue;
       }
 
-      const id = file.fid != null ? String(file.fid) : '';
+      const id = file?.fid != null ? String(file?.fid) : '';
       if (!id || seenIds.has(id)) {
         continue;
       }
       seenIds.add(id);
 
-      const filename = file.filename ? String(file.filename) : `File ${id}`;
+      const filename = file?.filename ? String(file?.filename) : `File ${id}`;
 
       rows.push({
         id,
         otherCmsAssetUid: id,
         filename,
         title: filename,
-        file_size: file.filesize != null ? String(file.filesize) : '',
-        assetPath: assetPathFromUri(file.uri, file.filename),
+        file_size: file?.filesize != null ? String(file?.filesize) : '',
+        assetPath: assetPathFromUri(file?.uri, filename),
         isUpdate: false
       });
     }
@@ -86,7 +97,11 @@ const extractAssets = async (config) => {
     return rows;
   } finally {
     if (connection) {
-      connection.end();
+      try {
+        connection.end();
+      } catch (endErr) {
+        console.error('extractAssets (Drupal) connection close error:', endErr?.message || endErr);
+      }
     }
   }
 };

@@ -39,9 +39,11 @@ const extractAssets = (cleanLocalPath) => {
   try {
     const alldata = readFile(cleanLocalPath);
     const assets = alldata?.assets;
-    const locales = alldata?.locales?.map((locale) => locale?.code) ?? [];
+    const locales = Array.isArray(alldata?.locales)
+      ? alldata?.locales?.map((locale) => locale?.code).filter(Boolean)
+      : [];
 
-    if (!assets || !Array.isArray(assets) || assets.length === 0) {
+    if (!assets || !Array?.isArray(assets) || assets?.length === 0) {
       console.info('No assets found in Contentful export');
       return [];
     }
@@ -66,12 +68,18 @@ const extractAssets = (cleanLocalPath) => {
       }
 
       const file = pickLocalized(asset?.fields?.file);
-      const title = pickLocalized(asset?.fields?.title);
+      const titleValue = pickLocalized(asset?.fields?.title);
+      const title = typeof titleValue === 'string' ? titleValue : '';
 
-      const filename = file?.fileName ?? title ?? '';
+      const filename =
+        (typeof file?.fileName === 'string' && file?.fileName) || title || '';
       const fileSize = file?.details?.size ?? '';
-      // Contentful serves assets from a CDN URL rather than a folder path.
-      const assetPath = file?.url ?? '';
+      // Contentful serves assets from a protocol-relative CDN URL ("//...");
+      // normalize to https so downstream consumers get an absolute URL.
+      let assetPath = typeof file?.url === 'string' ? file?.url : '';
+      if (assetPath.startsWith('//')) {
+        assetPath = `https:${assetPath}`;
+      }
 
       seenIds.add(id);
 
@@ -79,7 +87,7 @@ const extractAssets = (cleanLocalPath) => {
         id,
         otherCmsAssetUid: id,
         filename,
-        title: title ?? filename,
+        title: title || filename,
         file_size: fileSize,
         assetPath,
         isUpdate: false,

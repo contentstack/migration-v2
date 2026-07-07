@@ -1,9 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockAxiosRequest } = vi.hoisted(() => ({
+const { mockAxiosRequest, mockExtractLocale, mockExtractTaxonomy, mockCreateInitialMapper, mockExtractAssets } = vi.hoisted(() => ({
   mockAxiosRequest: vi.fn(),
+  mockExtractLocale: vi.fn().mockResolvedValue(new Set()),
+  mockExtractTaxonomy: vi.fn().mockResolvedValue(undefined),
+  mockCreateInitialMapper: vi.fn().mockResolvedValue({ contentTypes: [] }),
+  mockExtractAssets: vi.fn().mockResolvedValue([]),
 }));
 
+// Mock the connector explicitly (the service imports from 'migration-drupal').
+vi.mock('migration-drupal', () => ({
+  extractLocale: mockExtractLocale,
+  extractTaxonomy: mockExtractTaxonomy,
+  createInitialMapper: mockCreateInitialMapper,
+  extractAssets: mockExtractAssets,
+}));
 vi.mock('axios', () => ({ default: { request: mockAxiosRequest } }));
 vi.mock('../../../src/utils/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() } }));
 vi.mock('fs', () => ({
@@ -13,6 +24,7 @@ vi.mock('fs', () => ({
 }));
 
 import createDrupalMapper from '../../../src/services/drupal/index';
+const extractAssets = mockExtractAssets;
 
 describe('createDrupalMapper', () => {
   const config: any = {
@@ -53,5 +65,26 @@ describe('createDrupalMapper', () => {
     await expect(
       createDrupalMapper(config, 'proj-1', 'token', 'csm')
     ).resolves.toBeUndefined();
+  });
+
+  it('sends the extracted assetMapping in the createDummyData payload', async () => {
+    const assetRows = [
+      { id: '5', otherCmsAssetUid: '5', filename: 'a.jpg', title: 'a.jpg', file_size: '10', assetPath: '2023', isUpdate: false },
+    ];
+    (extractAssets as any).mockResolvedValueOnce(assetRows);
+    // localeMapper POST first, createDummyData POST second.
+    mockAxiosRequest
+      .mockResolvedValueOnce({ status: 200, data: {} })
+      .mockResolvedValueOnce({ data: { data: { content_mapper: [1] } } });
+
+    await createDrupalMapper(config, 'proj-1', 'token', 'csm');
+
+    expect(extractAssets).toHaveBeenCalledWith(config);
+    const dummyDataCall = mockAxiosRequest.mock.calls.find(
+      ([req]) => typeof req?.url === 'string' && req.url.includes('createDummyData')
+    );
+    expect(dummyDataCall).toBeTruthy();
+    const payload = JSON.parse((dummyDataCall as any[])[0].data as string);
+    expect(payload.assetMapping).toEqual(assetRows);
   });
 });
