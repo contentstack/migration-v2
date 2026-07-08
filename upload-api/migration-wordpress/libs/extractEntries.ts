@@ -49,10 +49,7 @@ const getEntryName = (item: any): string => {
   return 'Untitled Entry';
 };
 
-/**
- * All WordPress source entry keys use `posts_${...}` (any content type) so they align with
- * wordpress.service export JSON and CLI uid-mapping.
- */
+
 const getSourceEntryUid = (item: any): string => {
   const postId = item?.['wp:post_id'];
   if (postId != null && String(postId).trim() !== '') {

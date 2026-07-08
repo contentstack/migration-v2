@@ -365,7 +365,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         // Track processed similar blocks to avoid duplicates
         
         for (const field of blocksJson) {
-            const fieldUid = getFieldUid(`${field?.name}${stableSuffix(field)}`|| '', affix || '');
+            // Guard a missing block name (freeform/whitespace separators parse with name: null)
+            // so the UID never gets a literal "undefined" prefix.
+            const blockName = field?.name || 'block';
+            const fieldUid = getFieldUid(`${blockName}${stableSuffix(field)}`, affix || '');
             const contentstackFieldName = getFieldName(resolveBlockName(field));
 
             const similarBlocks = findSimilarBlocks(result, field?.clientId);
@@ -428,7 +431,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){
                   CT?.push?.({
-                  "uid": `modular_blocks.${getFieldUid(`${field?.name}${stableSuffix(field)}`, affix)}`,
+                  "uid": `modular_blocks.${getFieldUid(`${blockName}${stableSuffix(field)}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,
@@ -484,7 +487,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){ 
                   CT?.push?.({
-                  "uid": `modular_blocks.${getFieldUid(`${field?.name}${stableSuffix(field)}`, affix)}`,
+                  "uid": `modular_blocks.${getFieldUid(`${blockName}${stableSuffix(field)}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,

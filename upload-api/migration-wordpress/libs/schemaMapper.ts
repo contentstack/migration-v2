@@ -371,7 +371,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/social-link':
         case 'core/navigation-link': {
            
-            const LinkUid = parentUid ? `${parentUid}.${getFieldUid(key?.name, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
+            const LinkUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             return {
                 uid: LinkUid,
                 otherCmsField: getFieldName(key?.name),
