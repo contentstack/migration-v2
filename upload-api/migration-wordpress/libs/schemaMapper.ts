@@ -595,13 +595,13 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             if (innerBlocks?.length === 1) {
                 const items = Array.isArray(innerBlocks[0]) ? innerBlocks[0] : [innerBlocks[0]];
                 items?.forEach((item: Field) => {
-                    
-                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`;
+
+                    item.uid = groupUid;
                     item.otherCmsField = getFieldName(resolveBlockName(key));
                     item.otherCmsType = getFieldName(resolveBlockName(key));
                     item.contentstackField = `${parentFieldName} > ${getFieldName(resolveBlockName(key))}`;
-                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`;
-                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`;
+                    item.contentstackFieldUid = groupUid;
+                    item.backupFieldUid = groupUid;
                 });
                 return items;
             }

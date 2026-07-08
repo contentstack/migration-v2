@@ -131,7 +131,6 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     if (termData) {
       const termEntries = normalizeArray(termData).map((term: any) => ({
         'wp:post_type': 'terms',
-        'wp:post_id': term?.['wp:term_id'],
         title: term?.['wp:term_name'] || term?.['wp:term_slug'],
         'wp:term_id': term?.['wp:term_id'],
         'wp:term_taxonomy': term?.['wp:term_taxonomy'],
