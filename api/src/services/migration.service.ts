@@ -1679,6 +1679,7 @@ const readEntriesFromCsExport = (exportPath: string, contentTypeUid: string): an
   const readJson = (p: string): any => {
     // Confirm each file path stays within the entries directory before reading.
     try { assertResolvedPathUnderBase(entriesDir, p); } catch { return null; }
+    // deepcode ignore PT: p is validated by assertResolvedPathUnderBase above; entriesDir derives from assertExportPathInAllowedRoot
     try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; }
   };
   const isDir = (p: string): boolean => {
@@ -1687,6 +1688,7 @@ const readEntriesFromCsExport = (exportPath: string, contentTypeUid: string): an
 
   let localeDirs: string[] = [];
   try {
+    // deepcode ignore PT: entriesDir derives from safeExportPath validated by assertExportPathInAllowedRoot (allowlist + char rebuild)
     localeDirs = fs.readdirSync(entriesDir).filter((d: string) => isDir(path.join(entriesDir, d)));
   } catch { return []; }
 
