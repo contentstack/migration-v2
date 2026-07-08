@@ -53,7 +53,7 @@ const EntryAssetMapper = ({ handleStepChange }: entryAssetMapperProps) => {
       {mapperView === 'assets' ? (
         <AssetMapper tableHeight={tableHeight} />
       ) : (
-        <EntryMapper handleStepChange={handleStepChange} />
+        <EntryMapper handleStepChange={handleStepChange} extraHeightOffset={120} />
       )}
     </div>
   );

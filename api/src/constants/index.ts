@@ -196,8 +196,7 @@ export const STEPPER_STEPS: any = {
   MIGRATION: 6,
 };
 
-// Delta migration (iteration > 1) inserts a "Map Entry" step after Content Mapping, shifting
-// Testing and Migration down by one. Iteration 1 keeps the original 5-step numbering.
+// Delta migration (iteration > 1), non-CS source: inserts Map Entry after Content Mapping.
 export const DELTA_STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
@@ -207,12 +206,29 @@ export const DELTA_STEPPER_STEPS: any = {
   MIGRATION: 6,
 };
 
+// CS source delta: Audit Report AND Map Entry are both extra steps → 7 total.
+export const CS_DELTA_STEPPER_STEPS: any = {
+  LEGACY_CMS: 1,
+  DESTINATION_STACK: 2,
+  AUDIT_REPORT: 3,
+  CONTENT_MAPPING: 4,
+  MAP_ENTRY: 5,
+  TESTING: 6,
+  MIGRATION: 7,
+};
+
 /**
- * Returns the step-number map for a given iteration: the 6-step delta layout (with Map Entry)
- * from iteration 2 onwards, or the original 5-step layout for iteration 1.
+ * Returns the step-number map for a given iteration and CMS type.
+ * - CS source, iteration 1: 6 steps (STEPPER_STEPS, includes Audit Report)
+ * - Non-CS, iteration 2+:   6 steps (DELTA_STEPPER_STEPS, includes Map Entry)
+ * - CS source, iteration 2+: 7 steps (CS_DELTA_STEPPER_STEPS, includes both)
  */
-export const getStepperSteps = (iteration?: number) =>
-  (iteration ?? 1) > 1 ? DELTA_STEPPER_STEPS : STEPPER_STEPS;
+export const getStepperSteps = (iteration?: number, isCsSource?: boolean) => {
+  const isDelta = (iteration ?? 1) > 1;
+  if (isDelta && isCsSource) return CS_DELTA_STEPPER_STEPS;
+  if (isDelta) return DELTA_STEPPER_STEPS;
+  return STEPPER_STEPS;
+};
 export const PREDEFINED_STATUS = [
   'Draft',
   'Ready',

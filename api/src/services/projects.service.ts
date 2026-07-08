@@ -1273,7 +1273,8 @@ const updateCurrentStep = async (req: Request) => {
     // Delta migration: from iteration 2 onwards the flow has an extra "Map Entry" step (step 4),
     // shifting Testing → 5 and Migration → 6. Resolve the step-number map for this project's
     // iteration so the state machine progresses through the correct steps.
-    const steps = getStepperSteps(project?.iteration);
+    const isCsSource = project?.legacy_cms?.cms === CMS.CONTENTSTACK;
+    const steps = getStepperSteps(project?.iteration, isCsSource);
 
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
@@ -1991,7 +1992,7 @@ const getMigratedStacks = async (req: Request) => {
           project?.id !== projectId &&
           project?.status === 5 &&
           // Project is on its final Execute step (6 on delta iterations, 5 otherwise).
-          project?.current_step === getStepperSteps(project?.iteration).MIGRATION &&
+          project?.current_step === getStepperSteps(project?.iteration, project?.legacy_cms?.cms === CMS.CONTENTSTACK).MIGRATION &&
           project?.destination_stack_id
       )
       .map((project: any) => project.destination_stack_id)

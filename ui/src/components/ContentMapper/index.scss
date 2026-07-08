@@ -469,10 +469,8 @@ div .table-row {
   display: inline-block;
 }
 
-// Make sure table and save button stay fully visible
 .table-wrapper {
   position: relative;
-  padding-bottom: 70px;
 }
 
 // Step 4 wrapper: toggle stacked above the active mapper. Fills its parent and lets the
@@ -559,11 +557,11 @@ div .table-row {
     padding-right: 272px;
   }
 
-  // With pagination on, the venus pagination bar renders at the bottom of the table.
-  // Let the Total/Save footer flow below it (not sticky-overlapping) so the two bars
-  // don't collide and the Save button isn't clipped at the viewport edge.
+  // Pagination bar is inside InfiniteScrollTable's fixed-height box, so sticky footer
+  // sits naturally below it — no collision. Keep sticky so the button is always visible.
   .mapper-footer {
-    position: static;
+    position: sticky;
+    bottom: 0;
   }
 }
 

@@ -1194,7 +1194,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           payload?.export_path || payload?.exportPath || payload?.file_details?.localPath || '';
         const exportedAt = new Date().toISOString();
 
-        // Update Redux with export success
+        // Update Redux with export success. Reset isValidated so the user can re-validate
+        // the new export (a stale is_fileValid:true from a previous validation must not block it).
         dispatch(
           updateNewMigrationData({
             ...newMigrationData,
@@ -1202,6 +1203,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               ...newMigrationData?.legacy_cms,
               uploadedFile: {
                 ...newMigrationData?.legacy_cms?.uploadedFile,
+                isValidated: false,
                 name: exportPath,
                 url: exportPath,
                 file_details: {
@@ -1267,6 +1269,23 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         const exportPath =
           payload?.export_path || payload?.exportPath || payload?.file_details?.localPath || '';
 
+        // Fetch updated project so we can include source_locales in the dispatch.
+        let sourceLocales: any[] | undefined;
+        try {
+          if (selectedOrganisation?.value && projectId) {
+            const migrationDataResponse = await getMigrationData(
+              selectedOrganisation.value,
+              projectId
+            );
+            const projectData = migrationDataResponse?.data;
+            if (projectData?.source_locales && Array.isArray(projectData.source_locales)) {
+              sourceLocales = projectData.source_locales;
+            }
+          }
+        } catch {
+          // Non-fatal — language mapper step will still show empty but user can continue
+        }
+
         // Update Redux with validation success - similar to other CMS validation
         dispatch(
           updateNewMigrationData({
@@ -1289,7 +1308,13 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                   cmsType: 'contentstack'
                 }
               }
-            }
+            },
+            ...(sourceLocales !== undefined && {
+              destination_stack: {
+                ...newMigrationData?.destination_stack,
+                sourceLocale: sourceLocales
+              }
+            })
           })
         );
 

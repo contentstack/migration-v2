@@ -604,6 +604,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     }
   }, [newMigrationData?.iteration, iterationCount, searchText]);
 
+  // For CS source: audit generation seeds the content mapper after this component has already
+  // mounted and fetched (getting an empty result). Re-fetch once when isContentMapperGenerated
+  // becomes true so the mapper list populates correctly.
+  useEffect(() => {
+    if (newMigrationData?.isContentMapperGenerated) {
+      fetchContentTypes(searchText || '');
+    }
+  }, [newMigrationData?.isContentMapperGenerated]);
+
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
@@ -1668,7 +1677,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 3
+              newMigrationData?.project_current_step > 4
             }
           />
         </div>
@@ -1687,12 +1696,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               disabled={
                 data?.otherCmsField === 'title' ||
                 data?.otherCmsField === 'url' ||
-                newMigrationData?.project_current_step > 3
+                newMigrationData?.project_current_step > 4
               }
             >
               <Button
                 buttonType="light"
-                disabled={newMigrationData?.project_current_step > 3}
+                disabled={newMigrationData?.project_current_step > 4}
                 onClick={() =>
                   handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
                 }
@@ -1701,7 +1710,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   version="v2"
                   icon="Sliders"
                   size="small"
-                  disabled={newMigrationData?.project_current_step > 3}
+                  disabled={newMigrationData?.project_current_step > 4}
                 />
 
               </Button>
@@ -2579,7 +2588,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               maxWidth="290px"
               isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
               options={adjustedOptions}
-              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 3}
+              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
             />
           </Tooltip>
         </div>
@@ -2600,7 +2609,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               >
                 <Button
                   buttonType="light"
-                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 3}
+                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
                   onClick={() => {
                     handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
                   }}
@@ -3441,7 +3450,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                                 placeholder={otherContentType?.label}
                                 isSearchable
                                 version="v2"
-                                isDisabled={newMigrationData?.project_current_step > 3}
+                                isDisabled={newMigrationData?.project_current_step > 4}
                               />
                             </div>
 
@@ -3477,7 +3486,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                       className="saveButton"
                       onClick={handleSaveContentType}
                       version="v2"
-                      disabled={newMigrationData?.project_current_step > 3}
+                      disabled={newMigrationData?.project_current_step > 4}
                       isLoading={isLoadingSaveButton}
                     >
                       Save

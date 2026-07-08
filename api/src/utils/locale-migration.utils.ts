@@ -21,16 +21,29 @@ export const getAllMappedLocales = (project: ProjectLike): string[] => {
  * (e.g. "en-IN") via the project's master_locale + locales lookup. Returns
  * null if the destination locale isn't mapped on the project.
  */
+/**
+ * Extracts a bare locale code from a stored value that may be a display label
+ * like "English - United States (en-us)". Returns the content inside the last
+ * pair of parentheses if present, otherwise returns the value as-is.
+ * Handles the case where LoadLanguageMapper.tsx previously stored the label
+ * instead of the code (now fixed, but existing project data may still carry labels).
+ */
+const extractLocaleCode = (value: string): string => {
+  if (!value) return value;
+  const match = value.match(/\(([^)]+)\)\s*$/);
+  return match ? match[1] : value;
+};
+
 export const getSourceLocaleForDestination = (
   project: ProjectLike,
   destLocale: string,
 ): string | null => {
   if (!destLocale) return null;
   if (project?.master_locale && destLocale in project.master_locale) {
-    return project.master_locale[destLocale];
+    return extractLocaleCode(project.master_locale[destLocale]);
   }
   if (project?.locales && destLocale in project.locales) {
-    return project.locales[destLocale];
+    return extractLocaleCode(project.locales[destLocale]);
   }
   return null;
 };

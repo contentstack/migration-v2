@@ -48,19 +48,21 @@ const MigrationFlowHeader = ({
   const dispatch = useDispatch();
   const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
 
-  // Delta migration: the "Map Entry" step only exists from iteration 2 onwards, which shifts the
-  // step numbers for Test Migration and Execute Migration. Resolve the semantic step ids by
-  // iteration so all stepId checks stay correct for both the 5-step (iter 1) and 6-step flows.
   const iteration = newMigrationData?.iteration ?? 1;
   const isDeltaIteration = iteration > 1;
-  const TEST_MIGRATION_STEP = isDeltaIteration ? '5' : '4';
-  const EXECUTE_MIGRATION_STEP = isDeltaIteration ? '6' : '5';
-  // Mapping steps that show a plain "Continue" CTA: Map Content Fields (3) always, plus
-  // Map Entry (4) and Test Migration on delta iterations.
+  // CS source delta has 7 steps (Audit Report + Map Entry both present).
+  const isCsDelta = isContentstackSource && isDeltaIteration;
+  // Semantic step IDs for the CTA label logic.
+  const TEST_MIGRATION_STEP  = isCsDelta ? '6' : (isDeltaIteration || isContentstackSource) ? '5' : '4';
+  const EXECUTE_MIGRATION_STEP = isCsDelta ? '7' : (isDeltaIteration || isContentstackSource) ? '6' : '5';
+  // Map Content Fields step: CS=4, non-CS=3. Map Entry step: CS-delta=5, plain-delta=4.
+  // Both show a plain "Continue" CTA.
+  const CONTENT_MAPPING_STEP_ID = isContentstackSource ? '4' : '3';
+  const MAP_ENTRY_STEP_ID = isCsDelta ? '5' : '4';
   const isMappingContinueStep =
-    params?.stepId === '3' ||
-    (isDeltaIteration && (params?.stepId === '4' || params?.stepId === '5')) ||
-    (!isDeltaIteration && params?.stepId === '4');
+    params?.stepId === CONTENT_MAPPING_STEP_ID ||
+    (isDeltaIteration && params?.stepId === MAP_ENTRY_STEP_ID) ||
+    (isDeltaIteration && params?.stepId === TEST_MIGRATION_STEP);
 
   useEffect(() => {
     fetchProject();
@@ -115,10 +117,6 @@ const MigrationFlowHeader = ({
 
   const stepValue = newMigrationData?.stepValue ?? 'Save and Continue';
 
-  /** Final migration step: Contentstack has an extra Audit step, so execution is on 6; other CMS use 5. */
-  const finalMigrationStepId = isContentstackSource ? '6' : '5';
-
-  const testMigrationStepId = isContentstackSource ? '5' : '4';
   const isStep4AndNotMigrated =
     params?.stepId === TEST_MIGRATION_STEP &&
     !newMigrationData?.testStacks?.some(
@@ -185,11 +183,8 @@ const MigrationFlowHeader = ({
   // ContentMapper reports emptiness via hasNoContentTypes (its local fetch result), which is more
   // accurate than isContentMapperGenerated (the project's mapper-id array can be non-empty while the
   // resolved content-type list is empty).
-  // CS source has an extra Audit Report at step 3, pushing Content Mapping to step 4.
-  // Non-CS sources go directly to Content Mapping at step 3.
-  const CONTENT_MAPPING_STEP = isContentstackSource ? '4' : '3';
   const isContentMapperEmptyOnFirstIteration =
-    params?.stepId === CONTENT_MAPPING_STEP &&
+    params?.stepId === CONTENT_MAPPING_STEP_ID &&
     !isDeltaIteration &&
     newMigrationData?.hasNoContentTypes === true;
 

@@ -442,13 +442,14 @@ export const runCli = async (
         if (projectIndex > -1 && !isTest) {
           ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
           ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
-          // Migration completed → land on the final Execute step (6 on delta iterations, 5 otherwise).
-          ProjectModelLowdb.data.projects[projectIndex].current_step =
-            getStepperSteps(ProjectModelLowdb.data.projects[projectIndex]?.iteration).MIGRATION;
+          // Migration completed → land on the final Execute step.
+          // CS source delta = 7 steps (MIGRATION=7); non-CS delta = 6 (MIGRATION=6).
+          const proj: any = ProjectModelLowdb.data.projects[projectIndex];
+          const isCsSource = proj?.legacy_cms?.cms === CMS.CONTENTSTACK;
+          proj.current_step = getStepperSteps(proj?.iteration, isCsSource).MIGRATION;
           ProjectModelLowdb.data.projects[projectIndex].status = 5;
           // Record every locale that just successfully migrated so the next delta restart can
           // tell which locales need a full pass vs delta. Set-union with prior value.
-          const proj: any = ProjectModelLowdb.data.projects[projectIndex];
           const ranLocales = Array.from(
             new Set([
               ...Object.keys(proj?.master_locale ?? {}),

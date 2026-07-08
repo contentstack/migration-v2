@@ -162,9 +162,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       
 
       ProjectModelLowdb.update((data: any) => {
-        // Delta migration: Testing is step 5 on iteration 2+ (4 on iteration 1).
+        const isCsSource = data.projects[index]?.legacy_cms?.cms === CMS.CONTENTSTACK;
         data.projects[index].current_step =
-          getStepperSteps(data.projects[index]?.iteration)['TESTING'];
+          getStepperSteps(data.projects[index]?.iteration, isCsSource)['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
         data.projects[index].test_stacks.push({
           stackUid: res?.data?.stack?.api_key,
@@ -1386,7 +1386,7 @@ const startMigration = async (req: Request): Promise<any> => {
           data.projects[index].isMigrationCompleted = true;
           data.projects[index].isMigrationStarted = false;
           data.projects[index].status = 5;
-          data.projects[index].current_step = getStepperSteps(data.projects[index]?.iteration).MIGRATION;
+          data.projects[index].current_step = getStepperSteps(data.projects[index]?.iteration, true).MIGRATION;
         }
       });
     }
@@ -1431,6 +1431,9 @@ const exportSourceStack = async (req: Request): Promise<any> => {
   await ProjectModelLowdb.update((data: any) => {
     const timestamp = new Date().toISOString();
     data.projects[projectIndex].extract_path = exportPath;
+    // Reset is_fileValid so a subsequent fetchProjectData does not restore a stale
+    // "already validated" state — the new export must be re-validated.
+    data.projects[projectIndex].legacy_cms.is_fileValid = false;
     data.projects[projectIndex].legacy_cms.source_details = {
       ...data?.projects?.[projectIndex]?.legacy_cms?.source_details,
       source_branch: sourceBranch || "main",
@@ -1577,6 +1580,35 @@ const validateSourceExport = async (req: Request): Promise<any> => {
       );
       // Don't fail validation if locale extraction fails
     }
+
+    // Delta iterations (2+) have no Audit Report step, so the ContentTypesMapper DB for the
+    // new iteration is never seeded. Seed it now from the fresh export so both Step 3 (new CTs)
+    // and Step 4 (old CTs + entries) can find data. replaceAll=true so re-validation starts
+    // from a clean slate (same behaviour as re-running the audit on iteration 1).
+    await ProjectModelLowdb.read();
+    const currentProject = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = currentProject?.iteration || 1;
+    if (iteration > 1) {
+      try {
+        const mapperPayload = await buildContentstackMapperPayload(result.resolvedRoot);
+        if (mapperPayload?.length > 0) {
+          const mapperReq = {
+            params: { projectId },
+            body: { contentTypes: mapperPayload, replaceAll: true },
+          } as unknown as Request;
+          await contentMapperService.putTestData(mapperReq);
+        }
+      } catch (mapperError) {
+        console.error(
+          "Error seeding content mapper during delta validation:",
+          mapperError,
+        );
+        // Don't fail validation if mapper seeding fails — the user can re-validate.
+      }
+    }
   }
 
   return {
@@ -1629,6 +1661,46 @@ const extractContentstackLocales = async (exportPath: string) => {
     console.error("Error extracting Contentstack locales:", error);
     return [];
   }
+};
+
+const readEntriesFromCsExport = (exportPath: string, contentTypeUid: string): any[] => {
+  const entriesDir = path.join(exportPath, 'entries', contentTypeUid);
+  if (!fs.existsSync(entriesDir)) return [];
+
+  const readJson = (p: string): any => {
+    try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; }
+  };
+  const isDir = (p: string): boolean => {
+    try { return fs.statSync(p).isDirectory(); } catch { return false; }
+  };
+
+  let localeDirs: string[] = [];
+  try {
+    localeDirs = fs.readdirSync(entriesDir).filter((d: string) => isDir(path.join(entriesDir, d)));
+  } catch { return []; }
+
+  const entries: any[] = [];
+  for (const locale of localeDirs) {
+    const localeDir = path.join(entriesDir, locale);
+    const idx = readJson(path.join(localeDir, 'index.json'));
+    if (!idx || typeof idx !== 'object' || Array.isArray(idx)) continue;
+
+    for (const file of Object.values(idx as Record<string, unknown>)) {
+      if (typeof file !== 'string' || !file.endsWith('.json')) continue;
+      const chunk = readJson(path.join(localeDir, path.basename(file as string)));
+      if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) continue;
+
+      for (const [uid, data] of Object.entries(chunk as Record<string, any>)) {
+        entries.push({
+          otherCmsEntryUid: uid,
+          entryName: (data as any)?.title || uid,
+          language: locale,
+          contentTypeUid,
+        });
+      }
+    }
+  }
+  return entries;
 };
 
 const buildContentstackMapperPayload = async (exportPath: string) => {
@@ -1707,7 +1779,7 @@ const buildContentstackMapperPayload = async (exportPath: string) => {
     fieldMapping: Array.isArray(contentType?.schema)
       ? contentType.schema.flatMap((field: any) => mapField(field))
       : [],
-    entryMapping: [],
+    entryMapping: readEntriesFromCsExport(safeExportPath, contentType?.uid),
   }));
 };
 
@@ -1721,6 +1793,8 @@ const runSourceAudit = async (req: Request): Promise<any> => {
   if (!project) {
     throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
+
+  const iteration = project?.iteration || 1;
 
   // Check multiple possible locations for export path
   const exportPath =
@@ -1804,7 +1878,7 @@ const runSourceAudit = async (req: Request): Promise<any> => {
   if (mapperPayload?.length > 0) {
     const mapperReq = {
       params: { projectId },
-      body: { contentTypes: mapperPayload },
+      body: { contentTypes: mapperPayload, replaceAll: true },
     } as unknown as Request;
     await contentMapperService.putTestData(mapperReq);
   }
@@ -2339,6 +2413,12 @@ const restartMigration = async (req: Request): Promise<any> => {
       data.projects[projectIndex].legacy_cms = {
         ...data.projects[projectIndex].legacy_cms,
         is_fileValid: false,
+        // Clear the audit cache so runSourceAudit regenerates the content/entry mapper
+        // for the new iteration instead of returning stale cached results.
+        audit: {
+          ...data.projects[projectIndex].legacy_cms?.audit,
+          is_mapper_generated: false,
+        },
       };
       data.projects[projectIndex].iteration = 1 + (data.projects[projectIndex].iteration || 0);
       data.projects[projectIndex].updated_at = new Date().toISOString();
