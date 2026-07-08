@@ -1,0 +1,239 @@
+# =============================================================================
+# SAP SmartEdit / SAP Commerce Cloud - Sample CMS ImpEx Export
+# =============================================================================
+# This is a representative sample of what a customer would export from SAP
+# Commerce Cloud SmartEdit to migrate content into Contentstack.
+#
+# Structure:
+#   1. Macro Definitions
+#   2. Media (Assets)
+#   3. Page Templates
+#   4. CMS Pages
+#   5. Content Slots
+#   6. ContentSlot-to-Page Mapping
+#   7. Components
+#      a. SimpleBannerComponent
+#      b. SimpleResponsiveBannerComponent
+#      c. CMSParagraphComponent (Rich Text)
+#      d. ProductCarouselComponent
+#      e. CMSLinkComponent
+#      f. NavigationComponent
+#      g. BreadcrumbComponent
+#   8. Navigation Nodes & Entries
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# 1. MACRO DEFINITIONS
+# These are variables used throughout the file. $contentCV is the catalog version.
+# -----------------------------------------------------------------------------
+$contentCatalog = electronics-contentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$contentCatalog]),CatalogVersion.version[default=Staged])[default=$contentCatalog:Staged]
+$lang = en
+$picture = media(code, $contentCV)
+$siteResource = jar:de.hybris.electronics.core.setup.ElectronicsSystemSetup&/electronicsstore/import/contentCatalogs/electronicsContentCatalog
+
+
+# -----------------------------------------------------------------------------
+# 2. MEDIA (ASSETS)
+# Images and files used by banner and paragraph components.
+# Fields: code, mime, realfilename, altText, description, URL
+# -----------------------------------------------------------------------------
+INSERT_UPDATE Media; code[unique=true]          ; $contentCV[unique=true]; mime      ; realfilename              ; altText                        ; description                           ; URL
+                   ; /images/homepage-hero.jpg  ;                        ; image/jpeg; homepage-hero.jpg         ; Homepage hero banner image     ; Full-width hero image for homepage     ; https://media.electronics.com/images/homepage-hero.jpg
+                   ; /images/sale-banner.jpg    ;                        ; image/jpeg; sale-banner.jpg           ; Summer sale banner             ; Promotional banner for summer sale     ; https://media.electronics.com/images/sale-banner.jpg
+                   ; /images/category-phones.jpg;                        ; image/jpeg; category-phones.jpg       ; Phones category image          ; Featured image for phones category     ; https://media.electronics.com/images/category-phones.jpg
+                   ; /images/category-tvs.jpg   ;                        ; image/jpeg; category-tvs.jpg          ; TVs category image             ; Featured image for televisions category; https://media.electronics.com/images/category-tvs.jpg
+                   ; /images/logo.png           ;                        ; image/png ; logo.png                  ; Electronics Store logo         ; Main site logo                         ; https://media.electronics.com/images/logo.png
+                   ; /images/footer-banner.jpg  ;                        ; image/jpeg; footer-banner.jpg         ; Footer promotional banner      ; Banner shown in footer region          ; https://media.electronics.com/images/footer-banner.jpg
+
+
+# -----------------------------------------------------------------------------
+# 3. PAGE TEMPLATES
+# Define the slot layout for each type of page.
+# Fields: uid, active, name, frontendTemplateName, restrictedPageTypes
+# -----------------------------------------------------------------------------
+INSERT_UPDATE PageTemplate; uid[unique=true]              ; $contentCV[unique=true]; active; name                           ; frontendTemplateName          ; restrictedPageTypes(code)
+                          ; HomepagePageTemplate          ;                        ; true  ; Homepage Page Template         ; layout/homepageLayout         ; ContentPage
+                          ; ContentPageTemplate           ;                        ; true  ; Generic Content Page Template  ; layout/contentPageLayout      ; ContentPage
+                          ; CategoryPageTemplate          ;                        ; true  ; Category Page Template         ; layout/categoryPageLayout     ; CategoryPage
+                          ; ProductDetailsPageTemplate    ;                        ; true  ; Product Details Page Template  ; layout/productDetailsLayout   ; ProductPage
+                          ; SearchResultsPageTemplate     ;                        ; true  ; Search Results Page Template   ; layout/searchResultsLayout    ; ContentPage
+                          ; ErrorPageTemplate             ;                        ; true  ; Error Page Template            ; layout/errorPageLayout        ; ContentPage
+
+
+# -----------------------------------------------------------------------------
+# 4. CMS PAGES
+# Actual pages on the site. Each page has a template, a type, and a label/URL.
+# Types: ContentPage, CategoryPage, ProductPage
+# Fields: uid, uuid, name, title, template, defaultPage, approvalStatus, label
+# -----------------------------------------------------------------------------
+
+# Content Pages
+INSERT_UPDATE ContentPage; uid[unique=true]   ; $contentCV[unique=true]; uuid                                ; name                  ; title                     ; template(uid,$contentCV)    ; defaultPage[default='false']; approvalStatus(code)[default='approved']; label
+                         ; homepage           ;                        ; a1b2c3d4-e5f6-7890-abcd-ef1234567890; Homepage               ; Electronics Store - Home  ; HomepagePageTemplate        ; true                       ; approved                               ; homepage
+                         ; about-us           ;                        ; b2c3d4e5-f6a7-8901-bcde-f12345678901; About Us               ; About Us                  ; ContentPageTemplate         ; false                      ; approved                               ; about-us
+                         ; contact-us         ;                        ; c3d4e5f6-a7b8-9012-cdef-123456789012; Contact Us             ; Contact Us                ; ContentPageTemplate         ; false                      ; approved                               ; contact-us
+                         ; faq                ;                        ; d4e5f6a7-b8c9-0123-defa-234567890123; FAQ                   ; Frequently Asked Questions; ContentPageTemplate         ; false                      ; approved                               ; faq
+                         ; search             ;                        ; e5f6a7b8-c9d0-1234-efab-345678901234; Search Results         ; Search Results            ; SearchResultsPageTemplate   ; true                       ; approved                               ; search
+                         ; 404                ;                        ; f6a7b8c9-d0e1-2345-fabc-456789012345; Page Not Found         ; Page Not Found            ; ErrorPageTemplate           ; true                       ; approved                               ; 404
+
+# Category Pages
+INSERT_UPDATE CategoryPage; uid[unique=true]       ; $contentCV[unique=true]; uuid                                ; name                  ; title                     ; template(uid,$contentCV)    ; defaultPage[default='false']; approvalStatus(code)[default='approved']
+                          ; phones-category-page   ;                        ; a7b8c9d0-e1f2-3456-abcd-567890123456; Phones Category Page  ; Phones & Smartphones      ; CategoryPageTemplate        ; true                       ; approved
+                          ; tvs-category-page      ;                        ; b8c9d0e1-f2a3-4567-bcde-678901234567; TVs Category Page     ; Televisions               ; CategoryPageTemplate        ; true                       ; approved
+                          ; laptops-category-page  ;                        ; c9d0e1f2-a3b4-5678-cdef-789012345678; Laptops Category Page ; Laptops & Computers       ; CategoryPageTemplate        ; true                       ; approved
+
+# Product Pages
+INSERT_UPDATE ProductPage; uid[unique=true]   ; $contentCV[unique=true]; uuid                                ; name                  ; title                     ; template(uid,$contentCV)    ; defaultPage[default='false']; approvalStatus(code)[default='approved']
+                         ; product-detail-page;                        ; d0e1f2a3-b4c5-6789-defa-890123456789; Product Details Page  ; Product Details           ; ProductDetailsPageTemplate  ; true                       ; approved
+
+
+# -----------------------------------------------------------------------------
+# 5. CONTENT SLOTS
+# Containers/sections within a page. Each slot holds one or more components.
+# Fields: uid, name, active, cmsComponents (references to components)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ContentSlot; uid[unique=true]           ; $contentCV[unique=true]; name                      ; active; cmsComponents(&componentRef)
+                         ; HomepageHeaderSlot          ;                        ; Homepage Header Slot      ; true  ; SiteLogoComponent,HomepageNavComponent
+                         ; HomepageHeroSlot            ;                        ; Homepage Hero Slot        ; true  ; HeroRotatingBannerComponent
+                         ; HomepagePromoSlot           ;                        ; Homepage Promo Slot       ; true  ; SummerSaleBannerComponent
+                         ; HomepageFeaturedSlot        ;                        ; Homepage Featured Slot    ; true  ; FeaturedProductCarouselComponent
+                         ; HomepageContentSlot         ;                        ; Homepage Content Slot     ; true  ; HomepageIntroTextComponent
+                         ; HomepageFooterSlot          ;                        ; Homepage Footer Slot      ; true  ; FooterBannerComponent,FooterNavComponent
+                         ; CategoryHeaderSlot          ;                        ; Category Header Slot      ; true  ; SiteLogoComponent,HomepageNavComponent
+                         ; CategoryHeroSlot            ;                        ; Category Hero Slot        ; true  ; CategoryHeroBannerComponent
+                         ; CategoryProductListSlot     ;                        ; Category Product List Slot; true  ; CategoryProductListComponent
+                         ; CategoryFooterSlot          ;                        ; Category Footer Slot      ; true  ; FooterBannerComponent,FooterNavComponent
+                         ; ProductDetailMainSlot       ;                        ; Product Detail Main Slot  ; true  ; ProductImagesComponent,ProductDetailsTabComponent
+                         ; ProductDetailRecoSlot       ;                        ; Product Reco Slot         ; true  ; RecommendedProductCarouselComponent
+                         ; ContentPageMainSlot         ;                        ; Content Page Main Slot    ; true  ; AboutUsTextComponent
+                         ; SiteHeaderSlot              ;                        ; Site Header Slot          ; true  ; SiteLogoComponent,HomepageNavComponent,MiniCartComponent
+                         ; SiteFooterSlot              ;                        ; Site Footer Slot          ; true  ; FooterBannerComponent,FooterNavComponent
+
+
+# -----------------------------------------------------------------------------
+# 6. CONTENT SLOT TO PAGE MAPPING
+# Links a content slot to a specific position on a specific page.
+# Fields: uid, position, page, contentSlot
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ContentSlotForPage; uid[unique=true]                    ; $contentCV[unique=true]; position   ; page(uid,$contentCV); contentSlot(uid,$contentCV)
+                                ; HomepageHeaderSlot-homepage          ;                        ; Section1   ; homepage            ; HomepageHeaderSlot
+                                ; HomepageHeroSlot-homepage            ;                        ; Section2   ; homepage            ; HomepageHeroSlot
+                                ; HomepagePromoSlot-homepage           ;                        ; Section3   ; homepage            ; HomepagePromoSlot
+                                ; HomepageFeaturedSlot-homepage        ;                        ; Section4   ; homepage            ; HomepageFeaturedSlot
+                                ; HomepageContentSlot-homepage         ;                        ; Section5   ; homepage            ; HomepageContentSlot
+                                ; HomepageFooterSlot-homepage          ;                        ; Section6   ; homepage            ; HomepageFooterSlot
+                                ; CategoryHeaderSlot-phones            ;                        ; Section1   ; phones-category-page; CategoryHeaderSlot
+                                ; CategoryHeroSlot-phones              ;                        ; Section2   ; phones-category-page; CategoryHeroSlot
+                                ; CategoryProductListSlot-phones       ;                        ; Section3   ; phones-category-page; CategoryProductListSlot
+                                ; CategoryFooterSlot-phones            ;                        ; Section4   ; phones-category-page; CategoryFooterSlot
+                                ; ProductDetailMainSlot-productdetail  ;                        ; Section1   ; product-detail-page ; ProductDetailMainSlot
+                                ; ProductDetailRecoSlot-productdetail  ;                        ; Section2   ; product-detail-page ; ProductDetailRecoSlot
+                                ; ContentPageMainSlot-aboutus          ;                        ; Section1   ; about-us            ; ContentPageMainSlot
+
+
+# -----------------------------------------------------------------------------
+# 7. COMPONENTS
+# The actual content blocks placed inside slots.
+# -----------------------------------------------------------------------------
+
+# 7a. SimpleBannerComponent
+# A basic banner with an image and a URL link.
+# Fields: uid, name, media (image), urlLink, external, target
+INSERT_UPDATE SimpleBannerComponent; &componentRef             ; uid[unique=true]          ; $contentCV[unique=true]; name                          ; $picture                    ; urlLink                              ; external[default='false']; target[default='_self']
+                                   ; SummerSaleBannerComponent ; SummerSaleBannerComponent ;                        ; Summer Sale Banner            ; /images/sale-banner.jpg     ; /c/sale                              ; false                    ; _self
+                                   ; FooterBannerComponent     ; FooterBannerComponent     ;                        ; Footer Promotional Banner     ; /images/footer-banner.jpg   ; /c/promotions                        ; false                    ; _self
+                                   ; CategoryHeroBannerComponent; CategoryHeroBannerComponent;                      ; Category Hero Banner          ; /images/category-phones.jpg ; /c/phones                            ; false                    ; _self
+
+
+# 7b. SimpleResponsiveBannerComponent
+# A responsive banner that can show different images at different breakpoints.
+# Fields: uid, name, media (desktop/mobile/tablet images), urlLink
+INSERT_UPDATE SimpleResponsiveBannerComponent; &componentRef                  ; uid[unique=true]               ; $contentCV[unique=true]; name                     ; media(code,$contentCV)      ; urlLink          ; external[default='false']
+                                             ; HeroRotatingBannerComponent    ; HeroRotatingBannerComponent    ;                        ; Hero Rotating Banner     ; /images/homepage-hero.jpg   ; /homepage        ; false
+
+
+# 7c. CMSParagraphComponent (Rich Text)
+# A rich text / HTML paragraph block.
+# Fields: uid, name, content (HTML body)
+INSERT_UPDATE CMSParagraphComponent; &componentRef              ; uid[unique=true]           ; $contentCV[unique=true]; name                         ; content
+                                   ; HomepageIntroTextComponent ; HomepageIntroTextComponent ;                        ; Homepage Introduction Text   ; "<p>Welcome to <strong>Electronics Store</strong> — your one-stop destination for the latest smartphones, TVs, laptops, and more. Explore our curated selection of top brands at unbeatable prices.</p>"
+                                   ; AboutUsTextComponent       ; AboutUsTextComponent       ;                        ; About Us Body Text           ; "<h2>Our Story</h2><p>Founded in 2005, Electronics Store has been helping customers find the right technology for their lives. We carry over 10,000 products from 200+ brands.</p><h2>Our Mission</h2><p>To make technology accessible and affordable for everyone.</p>"
+
+
+# 7d. ProductCarouselComponent
+# A carousel displaying a list of products.
+# Fields: uid, name, title, productCodes, scroll, popup
+INSERT_UPDATE ProductCarouselComponent; &componentRef                      ; uid[unique=true]                   ; $contentCV[unique=true]; name                             ; title                         ; scroll[default='ALLVISIBLE']; popup[default='false']
+                                      ; FeaturedProductCarouselComponent   ; FeaturedProductCarouselComponent   ;                        ; Featured Products Carousel       ; Featured Products             ; ALLVISIBLE                 ; false
+                                      ; RecommendedProductCarouselComponent; RecommendedProductCarouselComponent;                        ; Recommended Products Carousel    ; You May Also Like             ; ALLVISIBLE                 ; false
+
+
+# 7e. CMSLinkComponent
+# A standalone link (used inside navigation or as CTA buttons).
+# Fields: uid, name, linkName, url, external, target, styleClasses
+INSERT_UPDATE CMSLinkComponent; &componentRef       ; uid[unique=true]    ; $contentCV[unique=true]; name               ; linkName          ; url                      ; external[default='false']; target[default='_self']; styleClasses
+                               ; HomeLinkComponent   ; HomeLinkComponent   ;                        ; Home Link          ; Home              ; /                        ; false                   ; _self                 ; nav-link
+                               ; PhonesLinkComponent ; PhonesLinkComponent ;                        ; Phones Link        ; Phones            ; /c/phones                ; false                   ; _self                 ; nav-link
+                               ; TVsLinkComponent    ; TVsLinkComponent    ;                        ; TVs Link           ; TVs               ; /c/tvs                   ; false                   ; _self                 ; nav-link
+                               ; LaptopsLinkComponent; LaptopsLinkComponent;                        ; Laptops Link       ; Laptops           ; /c/laptops               ; false                   ; _self                 ; nav-link
+                               ; SaleLinkComponent   ; SaleLinkComponent   ;                        ; Sale Link          ; Sale              ; /c/sale                  ; false                   ; _self                 ; nav-link nav-highlight
+                               ; AboutUsLinkComponent; AboutUsLinkComponent;                        ; About Us Link      ; About Us          ; /about-us                ; false                   ; _self                 ; footer-link
+                               ; ContactLinkComponent; ContactLinkComponent;                        ; Contact Us Link    ; Contact Us        ; /contact-us              ; false                   ; _self                 ; footer-link
+                               ; FAQLinkComponent    ; FAQLinkComponent    ;                        ; FAQ Link           ; FAQ               ; /faq                     ; false                   ; _self                 ; footer-link
+
+
+# 7f. NavigationComponent
+# Renders a navigation menu. References a NavigationNode tree.
+# Fields: uid, name, navigationNode, styleClass, wrapAfter
+INSERT_UPDATE NavigationComponent; &componentRef         ; uid[unique=true]      ; $contentCV[unique=true]; name                 ; navigationNode(uid,$contentCV); styleClass        ; wrapAfter
+                                  ; HomepageNavComponent  ; HomepageNavComponent  ;                        ; Main Navigation      ; MainNavigationNode            ; nav nav--main     ; 4
+                                  ; FooterNavComponent    ; FooterNavComponent    ;                        ; Footer Navigation    ; FooterNavigationNode          ; nav nav--footer   ; 3
+
+
+# 7g. BreadcrumbComponent
+# Shows a breadcrumb trail on category/product pages.
+INSERT_UPDATE BreadcrumbComponent; &componentRef       ; uid[unique=true]    ; $contentCV[unique=true]; name
+                                  ; BreadcrumbComponent ; BreadcrumbComponent ;                        ; Breadcrumb
+
+
+# 7h. MiniCartComponent
+# Displays the cart icon and item count in the header.
+INSERT_UPDATE MiniCartComponent; &componentRef     ; uid[unique=true]  ; $contentCV[unique=true]; name            ; totalDisplay[default='TOTAL']; shownProductCount[default='3']
+                                ; MiniCartComponent ; MiniCartComponent ;                        ; Mini Cart       ; TOTAL                        ; 3
+
+
+# 7i. SiteLogoComponent
+# The site logo linked to the homepage.
+INSERT_UPDATE SimpleBannerComponent; &componentRef     ; uid[unique=true]  ; $contentCV[unique=true]; name           ; $picture              ; urlLink; external[default='false']
+                                   ; SiteLogoComponent ; SiteLogoComponent ;                        ; Site Logo      ; /images/logo.png      ; /      ; false
+
+
+# -----------------------------------------------------------------------------
+# 8. NAVIGATION NODES & ENTRIES
+# Tree structure for site navigation menus.
+# NavigationNode: the node itself (folder-like)
+# NavigationEntry: the actual link inside a node (leaf)
+# -----------------------------------------------------------------------------
+
+# Navigation Nodes (tree structure)
+INSERT_UPDATE NavigationNode; uid[unique=true]        ; $contentCV[unique=true]; name                  ; parent(uid,$contentCV); position
+                             ; MainNavigationNode      ;                        ; Main Navigation       ;                       ; 0
+                             ; PhonesNavNode           ;                        ; Phones Node           ; MainNavigationNode    ; 0
+                             ; TVsNavNode              ;                        ; TVs Node              ; MainNavigationNode    ; 1
+                             ; LaptopsNavNode          ;                        ; Laptops Node          ; MainNavigationNode    ; 2
+                             ; SaleNavNode             ;                        ; Sale Node             ; MainNavigationNode    ; 3
+                             ; FooterNavigationNode    ;                        ; Footer Navigation     ;                       ; 0
+                             ; FooterInfoNode          ;                        ; Footer Info Node      ; FooterNavigationNode  ; 0
+                             ; FooterSupportNode       ;                        ; Footer Support Node   ; FooterNavigationNode  ; 1
+
+# Navigation Entries (links within nodes)
+INSERT_UPDATE NavigationEntry; uid[unique=true]            ; $contentCV[unique=true]; name                    ; navigationNode(uid,$contentCV); item(uid,$contentCV)  ; position
+                              ; PhonesNavEntry              ;                        ; Phones Entry            ; PhonesNavNode                 ; PhonesLinkComponent   ; 0
+                              ; TVsNavEntry                 ;                        ; TVs Entry               ; TVsNavNode                    ; TVsLinkComponent      ; 0
+                              ; LaptopsNavEntry             ;                        ; Laptops Entry           ; LaptopsNavNode                ; LaptopsLinkComponent  ; 0
+                              ; SaleNavEntry                ;                        ; Sale Entry              ; SaleNavNode                   ; SaleLinkComponent     ; 0
+                              ; AboutUsFooterEntry          ;                        ; About Us Footer Entry   ; FooterInfoNode                ; AboutUsLinkComponent  ; 0
+                              ; ContactFooterEntry          ;                        ; Contact Footer Entry    ; FooterSupportNode             ; ContactLinkComponent  ; 0
+                              ; FAQFooterEntry              ;                        ; FAQ Footer Entry        ; FooterSupportNode             ; FAQLinkComponent      ; 1

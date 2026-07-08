@@ -493,16 +493,22 @@ router.get(
                 // Sanitize the filename before constructing path
                 const safeName = sanitizeFilename(name);
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                let filePath = path.join(baseDir, safeName);
                 if (data?.file !== undefined) {
+                  // Extracted/saved output (e.g. zip) lives under extracted_files/.
                   const safeFile = sanitizeFilename(data.file);
-                  filePath = path.join(baseDir, safeName, safeFile);
-                }
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
-                  createMapper(filePath, projectId, app_token, affix, config);
+                  const filePath = path.join(baseDir, safeName, safeFile);
+                  // Validate path is within expected directory
+                  if (isPathWithinBase(filePath, baseDir)) {
+                    createMapper(filePath, projectId, app_token, affix, config);
+                  } else {
+                    console.error('Path traversal attempt detected');
+                  }
                 } else {
-                  console.error('Path traversal attempt detected');
+                  // Single-file text uploads (e.g. SAP SmartEdit .impex) are not
+                  // copied into extracted_files; the original upload already
+                  // exists at localPath, so pass it directly — mirrors the
+                  // directory branch above.
+                  createMapper(localPath, projectId, app_token, affix, config);
                 }
               }
             } catch (error: any) {
