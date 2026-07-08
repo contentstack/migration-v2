@@ -1482,4 +1482,44 @@ describe('migration.service', () => {
       ).rejects.toThrow('Invalid module name');
     });
   });
+
+  describe('restartMigration', () => {
+    it('should throw BadRequestError when projectId is invalid', async () => {
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: '../evil' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow('Invalid projectId');
+    });
+
+    it('should throw BadRequestError when orgId is invalid', async () => {
+      const req = createMockReq({ params: { orgId: '../evil', projectId: 'proj-1' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow('Invalid orgId');
+    });
+
+    it('should throw NotFoundError when project is not found', async () => {
+      mockChainGet.mockReturnValue({
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      });
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: 'proj-1' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow('Sorry, the requested project does not exists.');
+    });
+
+    it('should increment iteration and reset migration state on success', async () => {
+      mockChainGet.mockReturnValue({
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: 'proj-1' } });
+      const result = await migrationService.restartMigration(req);
+      expect(result.status).toBe(200);
+      expect(result.message).toBe('Migration restarted successfully');
+      expect(mockProjectUpdate).toHaveBeenCalledOnce();
+    });
+
+    it('should throw ExceptionFunction when update fails', async () => {
+      mockChainGet.mockReturnValue({
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockProjectUpdate.mockRejectedValue(new Error('DB write failure'));
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: 'proj-1' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow();
+    });
+  });
 });

@@ -3,6 +3,7 @@ import getAssetMapperDb from "../models/assetMapper.js";
 import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG, DATABASE_FILES } from "../constants/index.js";
+import { sanitizeStackId, assertResolvedPathUnderBase } from "./sanitize-path.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -236,7 +237,7 @@ export const removeExistingAssets = async (
     .value();
 
   const iteration = projectData?.iteration || 1;
-  const stackId = projectData?.destination_stack_id;
+  const stackId = sanitizeStackId(projectData?.destination_stack_id);
 
   if (!stackId) {
     writeLogEntry(
@@ -247,12 +248,13 @@ export const removeExistingAssets = async (
     return [];
   }
 
+  const dataBase = path.resolve(process.cwd(), MIGRATION_DATA_CONFIG.DATA);
   const assetsDir = path.join(
-    process.cwd(),
-    MIGRATION_DATA_CONFIG.DATA,
+    dataBase,
     stackId,
     MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME,
   );
+  assertResolvedPathUnderBase(dataBase, assetsDir);
   const indexPath = path.join(
     assetsDir,
     MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE,
@@ -431,11 +433,11 @@ export const removeExistingAssets = async (
 
   // 1. Replace asset references in entry JSON files
   const entriesDir = path.join(
-    process.cwd(),
-    MIGRATION_DATA_CONFIG.DATA,
+    dataBase,
     stackId,
     MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME,
   );
+  assertResolvedPathUnderBase(dataBase, entriesDir);
 
   if (fs.existsSync(entriesDir)) {
     const contentTypeDirs = fs

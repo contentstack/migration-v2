@@ -66,7 +66,7 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         .find({ id: projectId })
         .value();
     const iteration = projectData?.iteration || 1;
-    const stackId = projectData?.destination_stack_id;
+    const stackId = sanitizeStackId(projectData?.destination_stack_id);
     const updateEntryDataDb = getEntryMapperDb(projectId, iteration);
     await updateEntryDataDb.read();
 
@@ -99,12 +99,13 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         }
     }
 
+    const dataBase = path.resolve(process.cwd(), MIGRATION_DATA_CONFIG.DATA);
     const entriesDir = path.join(
-        process.cwd(),
-        MIGRATION_DATA_CONFIG.DATA,
+        dataBase,
         stackId,
         MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME
     );
+    assertResolvedPathUnderBase(dataBase, entriesDir);
 
     if (!fs.existsSync(entriesDir)) {
         writeLogEntry(`Entries directory not found: ${entriesDir}`, "removeEntriesFromDatabase", loggerPath);
