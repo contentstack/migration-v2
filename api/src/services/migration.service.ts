@@ -1664,7 +1664,11 @@ const extractContentstackLocales = async (exportPath: string) => {
 };
 
 const readEntriesFromCsExport = (exportPath: string, contentTypeUid: string): any[] => {
-  const entriesDir = path.join(exportPath, 'entries', contentTypeUid);
+  // Sanitize contentTypeUid: strip any path components so a value like "../evil" cannot
+  // escape the entries directory. path.basename breaks the taint chain from HTTP params.
+  const safeContentTypeUid = path.basename(contentTypeUid);
+  if (!safeContentTypeUid || safeContentTypeUid !== contentTypeUid) return [];
+  const entriesDir = path.join(exportPath, 'entries', safeContentTypeUid);
   if (!fs.existsSync(entriesDir)) return [];
 
   const readJson = (p: string): any => {
