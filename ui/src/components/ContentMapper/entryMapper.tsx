@@ -670,12 +670,13 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                         className="saveButton"
                         onClick={handleSaveContentType}
                         version="v2"
-                        // Lock the Save button only while an actual migration is in flight, not
-                        // just because the user has already visited a later step once. Delta
-                        // iterations legitimately need to revisit Map Entry and re-save the
-                        // entry selection after progressing to Test Migration or Execute —
-                        // the previous `project_current_step > 4` gate blocked that entirely.
-                        disabled={!!newMigrationData?.migration_execution?.migrationStarted}
+                        // Lock the Save button only while a migration is actively in flight.
+                        // Using migrationStarted alone would permanently lock revisits on delta
+                        // iterations since migrationStarted stays true after completion.
+                        disabled={
+                          !!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted
+                        }
                         isLoading={isLoadingSaveButton}
                       >
                         Save

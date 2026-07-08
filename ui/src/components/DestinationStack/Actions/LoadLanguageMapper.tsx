@@ -414,12 +414,14 @@ const Mapper = ({
         updatedMappings[existingLabel?.value] = ''
       }
       else if (selectedLocaleKey) {
-        // 🔧 FIX: Use the actual Contentstack locale code, or source locale in lowercase as fallback
-        const mappingKey = existingLabel?.value || existingLabel?.label || selectedValue?.label?.toLowerCase();
-        
-        updatedMappings[mappingKey] = selectedValue?.label
-          ? selectedValue?.label
-          : '';
+        // Only persist if a CS locale has already been selected for this row.
+        // If the user picks source before CS, existingLabel is unset and writing
+        // to a fallback key (source locale lowercased) would inflate filledMappingCount
+        // and incorrectly re-enable Add Language for an incomplete row.
+        const mappingKey = existingLabel?.value || existingLabel?.label;
+        if (mappingKey) {
+          updatedMappings[mappingKey] = selectedValue?.label ? selectedValue?.label : '';
+        }
       }
 
       return updatedMappings;
