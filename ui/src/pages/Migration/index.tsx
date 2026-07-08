@@ -668,9 +668,10 @@ const Migration = () => {
         // and could skip users past locale mapping they hadn't completed yet.
         const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
         const sourceLocales: string[] = newMigrationData?.destination_stack?.sourceLocale ?? [];
+        const sourceLocaleSet = new Set(sourceLocales);
         const mappedSourceValues = new Set(
           Object.entries(savedMapping)
-            .filter(([k]) => k && k.trim() && k !== CS_ENTRIES.UNMAPPED_LOCALE_KEY)
+            .filter(([k]) => k && k.trim() && k !== CS_ENTRIES.UNMAPPED_LOCALE_KEY && !sourceLocaleSet.has(k))
             .map(([, v]) => v)
             .filter((v): v is string => typeof v === 'string' && v.length > 0)
         );
