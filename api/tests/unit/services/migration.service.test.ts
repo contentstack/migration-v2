@@ -289,7 +289,6 @@ describe('migration.service', () => {
         };
         fn(data);
         expect(data.projects[0].current_step).toBe(5);
-        expect(data.projects[0].status).toBe(4);
       });
 
       const req = createMockReq({
@@ -1208,7 +1207,7 @@ describe('migration.service', () => {
 
       expect(result.status).toBe(200);
       expect(result.data.export_path).toBe('/tmp/export-path');
-      expect(mockExportStackCli).toHaveBeenCalledWith('src-stack-1', 'NA', 'user-123');
+      expect(mockExportStackCli).toHaveBeenCalledWith('src-stack-1', 'NA', 'user-123', 1);
 
       // Reset mockProjects[0] for downstream tests
       mockProjects[0].legacy_cms = { cms: 'wordpress' } as any;

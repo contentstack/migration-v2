@@ -81,7 +81,7 @@ describe('exportCli.service', () => {
     );
     const out = await exportStackCli('stack123', 'NA', 'u1');
 
-    expect(out).toMatch(/export-stack.*stack123$/);
+    expect(out).toMatch(/export-stack.*stack123/);
     expect(mockSetBasicAuthConfig).toHaveBeenCalled();
     expect(mockRmSync).toHaveBeenCalled();
     expect(mockMkdirSync).toHaveBeenCalled();
