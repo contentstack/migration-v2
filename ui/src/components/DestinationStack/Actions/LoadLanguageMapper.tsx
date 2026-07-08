@@ -170,8 +170,6 @@ const Mapper = ({
       setselectedSourceOption([]);
     }
 
-    setexistingLocale(updatedExistingLocale);
-
     cmsLocaleOptions?.map((locale, index)=>{
       const existingLabel = existingMasterID;
       const expectedLabel = `${locale?.label}-master_locale`;
@@ -221,8 +219,8 @@ const Mapper = ({
     })
   
     setExistingField(updatedExistingField);
-  
-   
+    // Call AFTER the map loop so updatedExistingLocale includes the seeded master source value.
+    setexistingLocale(updatedExistingLocale);
    }, [cmsLocaleOptions]);
   
 
@@ -344,11 +342,11 @@ const Mapper = ({
         updatedMappings[existingLabel?.value] = ''
       }
       else if (selectedLocaleKey) {
-        // 🔧 FIX: Use the actual Contentstack locale code, or source locale in lowercase as fallback
         const mappingKey = existingLabel?.value || existingLabel?.label || selectedValue?.label?.toLowerCase();
-        
-        updatedMappings[mappingKey] = selectedValue?.label
-          ? selectedValue?.label
+        // Store the locale CODE (value), not the display label, so the backend's
+        // locale filter can match it against export directory names (e.g. "en-us").
+        updatedMappings[mappingKey] = selectedValue?.value
+          ? selectedValue?.value
           : '';
       }
 

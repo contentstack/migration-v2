@@ -41,12 +41,9 @@ export async function setLogFilePath(newPath: string) {
   try {
     // Ensure the new log file path is absolute and valid
     const absolutePath = getSafePath(path.resolve(newPath));
-    const previousResolved = config.LOG_FILE_PATH
-      ? path.resolve(config.LOG_FILE_PATH)
-      : '';
-    if (previousResolved && previousResolved !== absolutePath) {
-      logTailByteOffset = 0;
-    }
+    // Always reset the byte offset so iteration 2+ migrations (same file path, appended logs)
+    // start streaming from the right position and don't read past EOF on a recreated file.
+    logTailByteOffset = 0;
     // Check if the new log file exists
     // Stop watching the old log file
     if (config.LOG_FILE_PATH) {

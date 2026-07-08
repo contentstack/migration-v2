@@ -439,9 +439,12 @@ const AuditReport = () => {
     }
   }, [selectedItems, initializedDefaults, saveSelectionPreferences]);
 
+  // Include initializedDefaults so the table remounts after hydration (with correct selections).
+  // Without it: table mounts when tableData loads but selectedItems is still empty; hydration runs
+  // after mount so initialSelectedRowIds never gets applied on the first render.
   const tableRenderKey = useMemo(
-    () => `audit-table-${projectId}-${selectedType}-${tableData.length}`,
-    [projectId, selectedType, tableData.length]
+    () => `audit-table-${projectId}-${selectedType}-${tableData.length}-${initializedDefaults ? 'hydrated' : 'pending'}`,
+    [projectId, selectedType, tableData.length, initializedDefaults]
   );
 
   const fetchDetailedAuditData = async () => {
