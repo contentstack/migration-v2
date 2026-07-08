@@ -7,6 +7,8 @@ const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dir
 
 const EXCLUDED_POST_TYPES = new Set(['attachment', 'wp_global_styles', 'wp_navigation']);
 
+const ALLOWED_POST_STATUSES = new Set(['publish', 'inherit']);
+
 const normalizeArray = <T>(value: T | T[] | undefined): T[] => {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
@@ -59,12 +61,12 @@ const getSourceEntryUid = (item: any): string => {
 
   const authorId = item?.['wp:author_id'];
   if (authorId != null && String(authorId).trim() !== '') {
-    return idCorrector(`posts_${authorId}`);
+    return idCorrector(`authors_${authorId}`);
   }
 
   const termId = item?.['wp:term_id'];
   if (termId != null && String(termId).trim() !== '') {
-    return idCorrector(`posts_${termId}`);
+    return idCorrector(`terms_${termId}`);
   }
 
   const candidate =
@@ -102,6 +104,8 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     const groupedByType = items?.reduce((acc: Record<string, any[]>, item: any) => {
       const postType = item?.['wp:post_type'] || 'unknown';
       if (EXCLUDED_POST_TYPES.has(postType)) return acc;
+      const postStatus = String(item?.['wp:status'] || '').toLowerCase();
+      if (!ALLOWED_POST_STATUSES.has(postStatus)) return acc;
       if (!acc[postType]) acc[postType] = [];
       acc[postType].push(item);
       return acc;
@@ -112,7 +116,7 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     if (authorData) {
       const authorEntries = normalizeArray(authorData).map((author: any) => ({
         'wp:post_type': 'author',
-        'wp:post_id': author?.['wp:author_id'],
+        'wp:author_id': author?.['wp:author_id'],
         title: author?.['wp:author_display_name'] || author?.['wp:author_login'],
         'wp:author_login': author?.['wp:author_login'],
         'wp:author_email': author?.['wp:author_email'],

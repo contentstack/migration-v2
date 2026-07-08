@@ -50,6 +50,46 @@ export function clientIdForUid(clientId: string | undefined): string {
     const compact = clientId?.replace?.(/-/g, '')?.toLowerCase();
     return compact?.slice?.(0, 4) || '0';
 }
+
+/** Slugify an author-supplied identifier into a UID-safe token (lowercase, `_`-joined). */
+const slugifyIdentifier = (value: unknown): string => {
+    if (value == null) return '';
+    return String(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+};
+
+/** Cap for the identity suffix so UIDs stay short. */
+const MAX_SUFFIX_LEN = 40;
+
+/**
+ * Deterministic, iteration-stable suffix for a block's field UID.
+ *
+ * The UID used to embed `clientIdForUid(block.clientId)`, but Gutenberg's parse()
+ * mints a fresh random clientId on every parse — so the UID changed on each
+ * re-migration and Contentstack treated the field as brand new, never updating
+ * the existing content on a 2nd iteration.
+ *
+ * This keys off `attributes.metadata.name` — the explicit author "Rename block"
+ * label — which survives re-parse, content edits, and reordering. It is the ONLY
+ * attribute the block de-duplication (`resolveBlockName`) uses to decide whether
+ * two same-named blocks are separate fields, so it is the correct — and only
+ * meaningful — disambiguator.
+ *
+ * We deliberately do NOT use `anchor`/`id`: those don't affect field separation
+ * and are frequently auto-derived from the block's text, which would make UIDs
+ * long and couple them to content (an edit would change the UID). Anonymous
+ * blocks therefore get NO suffix — the block name alone is a stable, unique UID
+ * within its scope.
+ *
+ * Returns a leading-underscore token (e.g. "_hero") or "" when anonymous, so
+ * callers can append it directly after the block name.
+ */
+export function stableSuffix(key: any): string {
+    const identity = slugifyIdentifier(key?.attributes?.metadata?.name).slice(0, MAX_SUFFIX_LEN);
+    return identity ? `_${identity}` : '';
+}
   
 
 async function processInnerBlocks(key: WordPressBlock, parentUid: string | null = null, parentFieldName: string | null = null, affix: string | null = null): Promise<any[]> {
@@ -207,8 +247,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/verse':
         case 'core/code': {
             const rteUid = parentUid ?
-            `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
-            : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`
+            : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             return {
                 uid: rteUid,
                 otherCmsField: getFieldName(key?.name),
@@ -223,8 +263,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         }
         case 'core/missing':
             const rteUid = parentUid ?
-                `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
-                : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+                `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`
+                : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             if(key?.attributes?.originalName === 'jetpack/markdown'){
                 return {
                     uid: rteUid,
@@ -296,7 +336,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/audio':
         case 'core/video':
         case 'core/file': {
-            const fileUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const fileUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             
             return {
                 uid: fileUid,
@@ -314,7 +354,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/heading':
         case 'core/accordion-heading':
         case 'core/list-item': {
-            const textUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const textUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             return {
                 uid: textUid,
                 otherCmsField: getFieldName(key?.name),
@@ -331,7 +371,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/social-link':
         case 'core/navigation-link': {
            
-            const LinkUid = parentUid ? `${parentUid}.${getFieldUid(key?.name, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const LinkUid = parentUid ? `${parentUid}.${getFieldUid(key?.name, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             return {
                 uid: LinkUid,
                 otherCmsField: getFieldName(key?.name),
@@ -377,7 +417,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }
 
             const groupSchema: Field[] = [];
-            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
 
             const innerBlocks = await processInnerBlocks(
                 key,
@@ -423,7 +463,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/accordion-panel':
         case 'core/navigation': {
             const groupSchema: Field[] = [];
-            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
 
             const innerBlocks = await processInnerBlocks(
                 key, 
@@ -465,14 +505,14 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const coverSchema: Field[] = []
             if(key?.attributes?.url){
                 coverSchema.push({
-                uid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                uid: `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`,
                 otherCmsField: 'media',
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: 'media',
-                contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`,
                 contentstackFieldType: 'file',
                 backupFieldType: 'file',
-                backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`,
                 advanced: {}
                 });
             }
@@ -498,7 +538,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
           
         
         case 'core/search': {
-            const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             const searchEle = await processAttributes(key, searchEleUid,fieldName, affix);
             const groupSchema: Field[] = [];
             searchEle?.length > 0 && groupSchema?.push({
@@ -526,7 +566,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
            
         case 'core/button': {
             const fieldName = parentFieldName ? `${parentFieldName} > ${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` :  `${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` ;
-            const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
 
             return { 
                 uid: buttonUid,
@@ -544,7 +584,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         
         case 'core/buttons': { 
             const groupSchema: Field[] = [];
-            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
 
             const innerBlocks = await processInnerBlocks(
                 key, 
@@ -556,12 +596,12 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 const items = Array.isArray(innerBlocks[0]) ? innerBlocks[0] : [innerBlocks[0]];
                 items?.forEach((item: Field) => {
                     
-                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
+                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`;
                     item.otherCmsField = getFieldName(resolveBlockName(key));
                     item.otherCmsType = getFieldName(resolveBlockName(key));
                     item.contentstackField = `${parentFieldName} > ${getFieldName(resolveBlockName(key))}`;
-                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
-                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
+                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`;
+                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`;
                 });
                 return items;
             }
@@ -596,7 +636,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
 
         case 'core/media-text': {
             const mediaTextSchema: Field[] = [];
-            const mediaTextUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const mediaTextUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             const innerBlocks =
                 key?.innerBlocks && key?.innerBlocks?.length > 0
                     ? await processInnerBlocks(key, parentUid, parentFieldName, affix)
