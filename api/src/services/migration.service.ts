@@ -1668,10 +1668,17 @@ const readEntriesFromCsExport = (exportPath: string, contentTypeUid: string): an
   // escape the entries directory. path.basename breaks the taint chain from HTTP params.
   const safeContentTypeUid = path.basename(contentTypeUid);
   if (!safeContentTypeUid || safeContentTypeUid !== contentTypeUid) return [];
-  const entriesDir = path.join(exportPath, 'entries', safeContentTypeUid);
+  // Re-validate exportPath against the allowlist inside this function so Snyk can see
+  // the sanitization at the point of use (the caller already validates, but Snyk's
+  // inter-procedural taint tracing doesn't cross that boundary).
+  let safeExportPath: string;
+  try { safeExportPath = assertExportPathInAllowedRoot(exportPath); } catch { return []; }
+  const entriesDir = path.join(safeExportPath, 'entries', safeContentTypeUid);
   if (!fs.existsSync(entriesDir)) return [];
 
   const readJson = (p: string): any => {
+    // Confirm each file path stays within the entries directory before reading.
+    try { assertResolvedPathUnderBase(entriesDir, p); } catch { return null; }
     try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; }
   };
   const isDir = (p: string): boolean => {
