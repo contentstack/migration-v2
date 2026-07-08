@@ -907,9 +907,18 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               // Counting master as filled prevents that transient state from disabling the
               // button on the very first render after restart.
               const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
+              // Exclude keys that are source locale codes — handleSelectedSourceLocale
+              // previously wrote under a fallback key (source label lowercased) when the
+              // user picked source before CS, inflating the count and re-enabling Add Language
+              // for an incomplete row. Filter those out so only proper CS locale keys count.
+              const sourceLocaleLabels = new Set(
+                sourceLocales?.map((l: { label: string }) => l.label) ?? []
+              );
               const filledMappingCount = Object.entries(savedMapping).filter(([k, v]) => {
                 const isMasterKey = typeof k === 'string' && k.endsWith('-master_locale');
-                return isMasterKey || (typeof v === 'string' && v.length > 0);
+                if (isMasterKey) return true;
+                if (sourceLocaleLabels.has(k)) return false;
+                return typeof v === 'string' && v.length > 0;
               }).length;
               const hasIncompleteRow = (cmsLocaleOptions?.length ?? 0) > filledMappingCount;
               const mappedSources = new Set(
