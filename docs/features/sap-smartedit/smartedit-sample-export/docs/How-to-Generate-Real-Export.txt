@@ -1,0 +1,51 @@
+How to Generate a Real Data Export from SAP SmartEdit
+=======================================================
+
+Method 1: Export CMS Content (Pages, Slots, Components) - Recommended for full content dump
+--------------------------------------------------------------------------------------------
+1. Log into Backoffice with appropriate permissions.
+2. Navigate to: System → Tools → Script Generator
+3. Generate a new export script.
+4. Select the relevant item types:
+   - ContentPage, ContentSlot, ContentSlotForPage
+   - All *Component types you use (or start with AbstractCMSComponent and subclasses)
+   - Media, MediaContainer (if needed)
+   - Any custom page/component types
+5. Add a filter for your Staged catalog version, for example:
+   catalogVersion(version == 'Staged' AND catalog(id == 'yourContentCatalog'))
+6. Customize the columns/attributes you want to export.
+7. Save the script and run the export (via Backoffice or HAC ImpEx Export).
+8. Review the generated ImpEx and adjust as needed for import into another system.
+
+Method 2: Export SmartEdit Configuration (Official ZIP)
+-------------------------------------------------------
+1. Find the dedicated export feature (search SAP Help for "Exporting and Importing the Configuration of SmartEdit").
+2. Choose export options.
+3. Select "Export as zip".
+4. Start the export.
+5. Download the ZIP containing ImpEx + configuration CSV files.
+6. Use the generated files to import configuration into another environment.
+
+Method 3: Using HAC for Quick Exports
+-------------------------------------
+- HAC → ImpEx → Export
+- Use flexible search queries against the CMS types with catalog version filters.
+- Or paste a custom export header script.
+
+Tips for Successful Exports:
+- Always work with the **Staged** version.
+- Include all dependent items (media, restrictions, templates if custom).
+- Test imports in a non-production environment first.
+- For large catalogs, export page-by-page or type-by-type.
+- Keep master content in version-controlled ImpEx files where possible.
+- After import, sync catalog versions and verify in SmartEdit.
+
+If you encounter issues with missing attributes or relations, compare with the OOTB sample ImpEx files in your installation (e.g. apparelstore cms-responsive-content.impex).
+
+For help creating a tailored export script for your specific setup, share:
+- SAP Commerce version
+- Content Catalog ID
+- List of main component types used
+- Any custom extensions
+
+This sample ZIP was created to give you a starting point and visual example of the format.

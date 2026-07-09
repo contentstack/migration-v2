@@ -121,30 +121,59 @@ function parseImpex(filePath: string): Map<string, ImpexBlock> {
   return blocks;
 }
 
-/** Resolve the .impex source file from file_path (single-file) or packagePath. */
-function resolveImpexFile(file_path?: string, packagePath?: string): string {
-  const tryPath = (p?: string): string | null => {
-    if (!p || !fs.existsSync(p)) return null;
-    const stat = fs.statSync(p);
-    if (stat.isFile()) return p;
-    if (stat.isDirectory()) {
-      const queue = [p];
-      while (queue.length) {
-        const dir = queue.shift() as string;
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-          const full = path.join(dir, e.name);
-          if (e.isDirectory()) queue.push(full);
-          else if (e.name.toLowerCase().endsWith('.impex')) return full;
-        }
-      }
-    }
-    return null;
-  };
-  const found = tryPath(file_path) ?? tryPath(packagePath);
-  if (!found) {
-    throw new Error(`Could not locate a .impex export under file_path="${file_path}" or packagePath="${packagePath}"`);
+/** The input path handed at migration time — a single .impex file OR an export folder. */
+function resolveInputPath(file_path?: string, packagePath?: string): string {
+  for (const p of [file_path, packagePath]) {
+    if (p && fs.existsSync(p)) return p;
   }
-  return found;
+  throw new Error(`Could not locate the export under file_path="${file_path}" or packagePath="${packagePath}"`);
+}
+
+/** Breadth-first collect every *.impex file under a directory (sorted). */
+function findImpexFiles(dir: string): string[] {
+  const found: string[] = [];
+  const queue = [dir];
+  while (queue.length) {
+    const current = queue.shift() as string;
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      const full = path.join(current, e.name);
+      if (e.isDirectory()) queue.push(full);
+      else if (e.name.toLowerCase().endsWith('.impex')) found.push(full);
+    }
+  }
+  return found.sort();
+}
+
+/**
+ * Parse a single `.impex` file OR an export folder (merge every `.impex` under
+ * it) into one set of per-type blocks.
+ */
+function parseImpexAll(inputPath: string): Map<string, ImpexBlock> {
+  if (fs.statSync(inputPath).isFile()) return parseImpex(inputPath);
+
+  const files = findImpexFiles(inputPath);
+  if (!files.length) throw new Error(`No .impex files found under: ${inputPath}`);
+
+  const merged = new Map<string, ImpexBlock>();
+  for (const file of files) {
+    const blocks = parseImpex(file);
+    for (const [type, block] of blocks) {
+      let t = merged.get(type);
+      if (!t) {
+        t = { type, columns: [], rows: [] };
+        merged.set(type, t);
+      }
+      for (const c of block.columns) if (!t.columns.includes(c)) t.columns.push(c);
+      t.rows.push(...block.rows);
+    }
+  }
+  return merged;
 }
 
 interface DocRef { type: string; uid: string }
@@ -232,7 +261,7 @@ async function createEntry(
 ): Promise<void> {
   try {
     const locale = master_locale || 'en-us';
-    const blocks = parseImpex(resolveImpexFile(file_path, packagePath));
+    const blocks = parseImpexAll(resolveInputPath(file_path, packagePath));
 
     // asset lookup written by getAllAssets (re-read; {} if absent)
     let assetLookup: Record<string, any> = {};
@@ -330,7 +359,7 @@ async function getAllAssets(
     await fs.promises.writeFile(path.join(assetsSave, ASSETS_FILE_NAME), JSON.stringify({ '1': ASSETS_SCHEMA_FILE }, null, 4));
     await fs.promises.writeFile(path.join(assetsSave, ASSETS_FOLDER_FILE_NAME), '{}');
 
-    const blocks = parseImpex(resolveImpexFile(file_path, packagePath));
+    const blocks = parseImpexAll(resolveInputPath(file_path, packagePath));
     const media = blocks.get(ASSET_TYPE);
     const index: Record<string, any> = {};
     const failed: Record<string, string> = {};

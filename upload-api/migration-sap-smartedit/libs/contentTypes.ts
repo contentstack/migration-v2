@@ -3,7 +3,7 @@ import path from 'path';
 import config from '../config/index.json';
 import { CT, DataConfig, Field } from '../interface/interface';
 import mapField, { baseField } from './schemaMapper';
-import { ensureDir, writeJson, parseImpex, ImpexColumnDef } from '../utils/helper';
+import { ensureDir, writeJson, parseImpexPath, ImpexColumnDef } from '../utils/helper';
 
 const { contentTypes: contentTypesConfig } = config.modules;
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
@@ -29,6 +29,14 @@ const REF_TARGETS: Record<string, string[]> = {
 };
 
 const TITLE_CANDIDATES = ['title', 'name', 'label', 'heading'];
+
+/**
+ * Source columns dropped entirely — not emitted as content-type fields.
+ * `uid`/`uuid` are SAP's internal identifiers; the entry identity is derived
+ * from the source `uid` at transform time (and Contentstack gives every entry
+ * its own system `uid`), so they add no value as content fields.
+ */
+const DROP_COLUMNS = new Set(['uid', 'uuid']);
 
 /**
  * Contentstack content-type UIDs MUST be lowercase — the CMA normalizes them to
@@ -104,11 +112,15 @@ function classifyColumn(col: ImpexColumnDef, values: string[]): string {
  * repo's CT-update path marks every CT as a page (`is_page: true`,
  * `sub_title: ['url']`), so a `url` field is required too. Without these rows the
  * schemas import locally but the CMA rejects the CT update at migration time.
- * Re-point the source display field at uid `title` when present; otherwise
- * synthesize both rows.
+ *
+ * `title` is the primary MANDATORY field: re-point the source display field at
+ * uid `title` when one exists, otherwise synthesize it — and always mark it
+ * `mandatory: true`. `url` is also synthesized/kept (required by the page path).
  */
 function ensureMandatoryFields(fieldMapping: Field[]): void {
-  if (!fieldMapping.some((f) => f.contentstackFieldUid === 'title')) {
+  let titleField = fieldMapping.find((f) => f.contentstackFieldUid === 'title');
+
+  if (!titleField) {
     const candidate = fieldMapping.find(
       (f) =>
         TITLE_CANDIDATES.includes(f.otherCmsField.toLowerCase()) &&
@@ -117,13 +129,14 @@ function ensureMandatoryFields(fieldMapping: Field[]): void {
     if (candidate) {
       candidate.uid = candidate.contentstackFieldUid = candidate.backupFieldUid = 'title';
       candidate.contentstackField = 'title';
-      candidate.advanced = { ...candidate.advanced, mandatory: true };
+      titleField = candidate;
     } else {
-      const row = baseField('title', 'text', 'text');
-      row.advanced = { mandatory: true };
-      fieldMapping.unshift(row);
+      titleField = baseField('title', 'text', 'text');
+      fieldMapping.unshift(titleField);
     }
   }
+  // title is mandatory whether it came from a source column or was synthesized
+  titleField.advanced = { ...titleField.advanced, mandatory: true };
 
   if (!fieldMapping.some((f) => f.contentstackFieldUid === 'url')) {
     const row = baseField('url', 'text', 'url');
@@ -147,7 +160,7 @@ async function extractContentTypes(
   try {
     ensureDir(contentTypeFolderPath);
 
-    const { blocks } = parseImpex(filePath);
+    const { blocks } = parseImpexPath(filePath);
     const prefix = affix ? `${affix}_` : '';
 
     for (const [type, block] of blocks) {
@@ -158,6 +171,7 @@ async function extractContentTypes(
 
       const fieldMapping: Field[] = [];
       for (const [name, col] of block.columns) {
+        if (DROP_COLUMNS.has(name.toLowerCase())) continue; // uid/uuid: not content fields
         const values = block.rows.map((r) => r[name]).filter((v) => v !== undefined);
         const sourceType = classifyColumn(col, values);
         const field = mapField(name, sourceType);

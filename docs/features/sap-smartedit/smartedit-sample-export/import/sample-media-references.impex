@@ -1,0 +1,27 @@
+# ============================================================================
+# SAMPLE MEDIA REFERENCES ImpEx (for SmartEdit components)
+# ============================================================================
+# This file shows example media handling.
+# In real scenarios, media is often managed separately or via the media folder structure.
+# Customize paths, codes, and attributes for your system.
+
+$contentCatalog=yourContentCatalog
+$catalogVersion=catalogVersion(catalog(id[default=$contentCatalog]),version[default=Staged])[unique=true,default=$contentCatalog:Staged]
+
+# Example Media items referenced by banner components etc.
+INSERT_UPDATE Media;code[unique=true];$catalogVersion;mime;realfilename;description[lang=en];altText[lang=en];
+;hero-summer-sale;image/jpeg;summer-hero.jpg;Summer Sale Hero Banner;Summer Sale - Shop Now;
+;logo-main;image/png;logo.png;Main site logo;Our Logo;
+
+# MediaContainer example (used by some banner components)
+INSERT_UPDATE MediaContainer;code[unique=true];$catalogVersion;name[lang=en];
+;hero-banner-container;Hero Banner Media Container;
+
+# Note: For full media export/import, also consider:
+# - MediaFormat
+# - Conversion rules if using media conversion
+# - External storage configuration (if not storing binaries in DB)
+# - Actual image files must be placed in the appropriate hybris data/media directory
+
+# After importing media references, link them to components via additional ImpEx
+# or directly in SmartEdit.

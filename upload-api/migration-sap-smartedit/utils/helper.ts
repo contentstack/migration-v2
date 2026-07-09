@@ -182,3 +182,70 @@ export const parseImpex = (filePath: string): ImpexParseResult => {
 
   return { macros, blocks };
 };
+
+/** Breadth-first collect every *.impex file under a directory (sorted, deterministic). */
+export const findImpexFiles = (dir: string): string[] => {
+  const found: string[] = [];
+  const queue: string[] = [dir];
+  while (queue.length) {
+    const current = queue.shift() as string;
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) queue.push(full);
+      else if (entry.name.toLowerCase().endsWith('.impex')) found.push(full);
+    }
+  }
+  return found.sort();
+};
+
+/** Merge parsed blocks from one file into an accumulator (union columns, concat rows). */
+const mergeBlocks = (target: Map<string, ImpexTypeBlock>, src: Map<string, ImpexTypeBlock>): void => {
+  for (const [type, block] of src) {
+    let t = target.get(type);
+    if (!t) {
+      t = { type, columns: new Map(), rows: [] };
+      target.set(type, t);
+    }
+    for (const [name, col] of block.columns) if (!t.columns.has(name)) t.columns.set(name, col);
+    t.rows.push(...block.rows);
+  }
+};
+
+/**
+ * Parse an ImpEx source that may be a SINGLE `.impex` file OR an export FOLDER
+ * (a real SAP export unzips to a directory whose `import/` holds several `.impex`
+ * files). For a folder, every `.impex` under it is parsed and merged into one set
+ * of per-type blocks.
+ */
+export const parseImpexPath = (inputPath: string): ImpexParseResult => {
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    throw new Error(`ImpEx path not found: ${inputPath}`);
+  }
+  if (fs.statSync(inputPath).isFile()) return parseImpex(inputPath);
+
+  const files = findImpexFiles(inputPath);
+  if (!files.length) throw new Error(`No .impex files found under: ${inputPath}`);
+
+  const macros: Record<string, string> = {};
+  const blocks = new Map<string, ImpexTypeBlock>();
+  for (const file of files) {
+    const parsed = parseImpex(file);
+    Object.assign(macros, parsed.macros);
+    mergeBlocks(blocks, parsed.blocks);
+  }
+  return { macros, blocks };
+};
+
+/** Read `$macro` definitions from a file or the first `.impex` under a folder. */
+export const readMacrosFromPath = (inputPath: string): Record<string, string> => {
+  if (!inputPath || !fs.existsSync(inputPath)) return {};
+  const file = fs.statSync(inputPath).isFile() ? inputPath : findImpexFiles(inputPath)[0];
+  if (!file) return {};
+  return parseMacros(fs.readFileSync(file, 'utf8'));
+};

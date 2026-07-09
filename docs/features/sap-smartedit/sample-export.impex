@@ -68,7 +68,7 @@ INSERT_UPDATE PageTemplate; uid[unique=true]              ; $contentCV[unique=tr
 # Types: ContentPage, CategoryPage, ProductPage
 # Fields: uid, uuid, name, title, template, defaultPage, approvalStatus, label
 # -----------------------------------------------------------------------------
-
+/Users/ayush.sahu/Downloads/smartedit-5mb-export
 # Content Pages
 INSERT_UPDATE ContentPage; uid[unique=true]   ; $contentCV[unique=true]; uuid                                ; name                  ; title                     ; template(uid,$contentCV)    ; defaultPage[default='false']; approvalStatus(code)[default='approved']; label
                          ; homepage           ;                        ; a1b2c3d4-e5f6-7890-abcd-ef1234567890; Homepage               ; Electronics Store - Home  ; HomepagePageTemplate        ; true                       ; approved                               ; homepage

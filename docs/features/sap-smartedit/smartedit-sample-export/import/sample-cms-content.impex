@@ -1,0 +1,105 @@
+# ============================================================================
+# SAMPLE CMS CONTENT ImpEx for SAP SmartEdit / WCMS
+# ============================================================================
+# This is an ILLUSTRATIVE example only.
+# Adapt catalog names, UIDs, attributes, languages, and relations to your system.
+# Generated-style export similar to what Script Generator or apparelstore samples produce.
+#
+# Typical usage:
+# - Replace $contentCatalog with your actual Content Catalog ID (e.g. apparel-ukContentCatalog)
+# - Use your Staged catalog version
+# - Add/remove columns based on your itemtype definitions and extensions
+# - Import media references first if using external media files
+#
+# Order recommendation: Media → Components → Slots/Pages → Relations
+# ============================================================================
+
+# Define variables (customize these)
+$contentCatalog=yourContentCatalog
+$catalogVersion=catalogVersion(catalog(id[default=$contentCatalog]),version[default=Staged])[unique=true,default=$contentCatalog:Staged]
+$lang=en
+
+# ----------------------------------------------------------------------------
+# 1. EXAMPLE CONTENT PAGES
+# ----------------------------------------------------------------------------
+# Basic ContentPage example (homepage style)
+INSERT_UPDATE ContentPage; $catalogVersion; uid[unique=true]; name; title[$lang]; label; masterTemplate(uid,$catalogVersion); defaultPage; approvalStatus(code); 
+; ;homepage;Home Page;Welcome to Our Store;home;HomepageTemplate;true;approved;
+
+# Another example page
+INSERT_UPDATE ContentPage; $catalogVersion; uid[unique=true]; name; title[$lang]; label; masterTemplate(uid,$catalogVersion); defaultPage; 
+; ;about-us;About Us;About Our Company;about-us;ContentPageTemplate;false;
+
+# ----------------------------------------------------------------------------
+# 2. CONTENT SLOTS (containers for components)
+# ----------------------------------------------------------------------------
+INSERT_UPDATE ContentSlot; $catalogVersion; uid[unique=true]; name; active;
+; ;HeaderSlot;Header Slot;true;
+; ;MainContentSlot;Main Content Slot;true;
+; ;FooterSlot;Footer Slot;true;
+; ;HomepageHeroSlot;Homepage Hero Banner Slot;true;
+
+# ----------------------------------------------------------------------------
+# 3. PAGE ↔ SLOT RELATIONS (ContentSlotForPage)
+# ----------------------------------------------------------------------------
+INSERT_UPDATE ContentSlotForPage; $catalogVersion; uid[unique=true]; position; page(uid,$catalogVersion); contentSlot(uid,$catalogVersion);
+; ;homepage-header-relation;0;homepage;HeaderSlot;
+; ;homepage-hero-relation;1;homepage;HomepageHeroSlot;
+; ;homepage-main-relation;2;homepage;MainContentSlot;
+; ;about-us-main-relation;0;about-us;MainContentSlot;
+
+# ----------------------------------------------------------------------------
+# 4. EXAMPLE CMS COMPONENTS
+# ----------------------------------------------------------------------------
+# Paragraph Component
+INSERT_UPDATE ParagraphComponent; $catalogVersion; uid[unique=true]; name; content[$lang];
+; ;welcome-paragraph;Welcome Text;<p>Welcome to our online store! Discover amazing products.</p>;
+
+# Simple Banner / Responsive Banner example (common in SmartEdit)
+INSERT_UPDATE SimpleResponsiveBannerComponent; $catalogVersion; uid[unique=true]; name; headline[$lang]; subheadline[$lang]; urlLink; 
+; ;hero-banner;Hero Banner;Summer Sale is On!;Up to 50% off selected items;/sale;
+
+# Link Component example
+INSERT_UPDATE CMSLinkComponent; $catalogVersion; uid[unique=true]; name; linkName[$lang]; url;
+; ;shop-now-link;Shop Now;Shop Now;/c/all-products;
+
+# Another paragraph
+INSERT_UPDATE ParagraphComponent; $catalogVersion; uid[unique=true]; name; content[$lang];
+; ;about-intro;About Intro;<p>We are a leading retailer committed to quality and customer satisfaction.</p>;
+
+# ----------------------------------------------------------------------------
+# 5. COMPONENT ↔ SLOT ASSIGNMENTS (simplified - actual relation may vary by version)
+# In many setups, components are assigned to slots via position or specific relations.
+# For illustration, we show a common pattern. In real exports you may see 
+# ContentSlotForComponent or component positioning handled differently.
+# ----------------------------------------------------------------------------
+# Note: In practice, after creating components, you often assign them in SmartEdit 
+# or via additional ImpEx lines referencing the slot.
+
+# Example: Assign welcome paragraph to main slot (conceptual - adjust to your model)
+# INSERT_UPDATE ContentSlotForComponent; ... (use the exact relation in your system)
+
+# ----------------------------------------------------------------------------
+# 6. MEDIA REFERENCES (example - actual media export is more complex)
+# ----------------------------------------------------------------------------
+# Media items are often exported separately. Here is a placeholder reference.
+INSERT_UPDATE Media; code[unique=true]; $catalogVersion; mime; description[$lang]; 
+; ;hero-banner-image;image/jpeg;Hero banner background image;
+
+# In a real export you would also include:
+# - MediaContainer
+# - MediaFormat
+# - Actual file references or base64 if small (not recommended for large media)
+# - altText, etc.
+
+# ============================================================================
+# END OF SAMPLE
+# ============================================================================
+# Next steps after import:
+# 1. Sync Staged → Online catalog version (if needed)
+# 2. Verify in SmartEdit that pages and components appear correctly
+# 3. Add images/media via SmartEdit or additional ImpEx
+# 4. Test on the storefront
+#
+# For production use, generate your own export using Backoffice Script Generator
+# filtered to your specific Staged catalog version and required types.

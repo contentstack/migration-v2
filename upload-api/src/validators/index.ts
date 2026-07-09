@@ -38,7 +38,8 @@ const validator = ({
       return drupalValidator({ data, assetsConfig });
     }
 
-    case 'sap-smartedit-impex': {
+    case 'sap-smartedit-impex':
+    case 'sap-smartedit-folder': {
       return sapSmarteditValidator(data);
     }
 

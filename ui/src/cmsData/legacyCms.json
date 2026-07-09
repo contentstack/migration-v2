@@ -254,7 +254,7 @@
         }
       ]
     },
-    {
+    
     {
       "cms_id": "sap-smartedit",
       "title": "SAP SmartEdit",
@@ -267,6 +267,13 @@
       "parent": "sap-smartedit",
       "isactive": true,
       "allowed_file_formats": [
+        {
+          "fileformat_id": "directory",
+          "title": "Folder",
+          "description": "",
+          "group_name": "directory",
+          "isactive": true
+        },
         {
           "fileformat_id": "impex",
           "title": "ImpEx",
