@@ -1,13 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import config from '../config/index.json';
+import { EXCLUDED_POST_TYPES, ALLOWED_POST_STATUSES } from '../constants/index';
+
 
 const { contentTypes: contentTypesConfig } = config?.modules;
 const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
-
-const EXCLUDED_POST_TYPES = new Set(['attachment', 'wp_global_styles', 'wp_navigation']);
-
-const ALLOWED_POST_STATUSES = new Set(['publish', 'inherit']);
 
 const normalizeArray = <T>(value: T | T[] | undefined): T[] => {
   if (!value) return [];

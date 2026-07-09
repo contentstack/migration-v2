@@ -1,6 +1,7 @@
 import { Field, WordPressBlock } from '../interface/interface';
 import restrictedUid from '../utils/index';
 import GenerateSchema from 'generate-schema';
+import { MAX_SUFFIX_LEN } from '../constants/index';
 
 const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
@@ -60,8 +61,6 @@ const slugifyIdentifier = (value: unknown): string => {
         .replace(/^_+|_+$/g, '');
 };
 
-/** Cap for the identity suffix so UIDs stay short. */
-const MAX_SUFFIX_LEN = 40;
 
 /**
  * Deterministic, iteration-stable suffix for a block's field UID.
