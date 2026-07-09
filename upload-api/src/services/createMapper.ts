@@ -3,6 +3,7 @@ import path from 'path';
 import { createAemMapper } from '../controllers/aem';
 import createSitecoreMapper from '../controllers/sitecore';
 import createWordpressMapper from '../controllers/wordpress';
+import createSapSmarteditMapper from '../controllers/sap-smartedit';
 import { Config } from '../models/types';
 import createContentfulMapper from './contentful';
 import createDrupalMapper from './drupal';
@@ -112,6 +113,10 @@ const createMapper = async (
 
     case 'drupal': {
       return createDrupalMapper(config, projectId, app_token, affix);
+    }
+
+    case 'sap-smartedit': {
+      return createSapSmarteditMapper(filePath, projectId, app_token, affix, config);
     }
 
     default:

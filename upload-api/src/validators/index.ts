@@ -3,6 +3,7 @@ import contentfulValidator from './contentful';
 import wordpressValidator from './wordpress';
 import aemValidator from './aem';
 import drupalValidator from './drupal';
+import sapSmarteditValidator from './sap-smartedit';
 
 const validator = ({
   data,
@@ -35,6 +36,10 @@ const validator = ({
 
     case 'drupal-sql': {
       return drupalValidator({ data, assetsConfig });
+    }
+
+    case 'sap-smartedit-impex': {
+      return sapSmarteditValidator(data);
     }
 
     default:

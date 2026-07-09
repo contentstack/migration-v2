@@ -40,12 +40,12 @@ $siteResource = jar:de.hybris.electronics.core.setup.ElectronicsSystemSetup&/ele
 # Fields: code, mime, realfilename, altText, description, URL
 # -----------------------------------------------------------------------------
 INSERT_UPDATE Media; code[unique=true]          ; $contentCV[unique=true]; mime      ; realfilename              ; altText                        ; description                           ; URL
-                   ; /images/homepage-hero.jpg  ;                        ; image/jpeg; homepage-hero.jpg         ; Homepage hero banner image     ; Full-width hero image for homepage     ; https://media.electronics.com/images/homepage-hero.jpg
-                   ; /images/sale-banner.jpg    ;                        ; image/jpeg; sale-banner.jpg           ; Summer sale banner             ; Promotional banner for summer sale     ; https://media.electronics.com/images/sale-banner.jpg
-                   ; /images/category-phones.jpg;                        ; image/jpeg; category-phones.jpg       ; Phones category image          ; Featured image for phones category     ; https://media.electronics.com/images/category-phones.jpg
-                   ; /images/category-tvs.jpg   ;                        ; image/jpeg; category-tvs.jpg          ; TVs category image             ; Featured image for televisions category; https://media.electronics.com/images/category-tvs.jpg
-                   ; /images/logo.png           ;                        ; image/png ; logo.png                  ; Electronics Store logo         ; Main site logo                         ; https://media.electronics.com/images/logo.png
-                   ; /images/footer-banner.jpg  ;                        ; image/jpeg; footer-banner.jpg         ; Footer promotional banner      ; Banner shown in footer region          ; https://media.electronics.com/images/footer-banner.jpg
+                   ; /images/homepage-hero.jpg  ;                        ; image/jpeg; homepage-hero.jpg         ; Homepage hero banner image     ; Full-width hero image for homepage     ; https://placehold.co/1200x400.jpg
+                   ; /images/sale-banner.jpg    ;                        ; image/jpeg; sale-banner.jpg           ; Summer sale banner             ; Promotional banner for summer sale     ; https://placehold.co/800x300.jpg
+                   ; /images/category-phones.jpg;                        ; image/jpeg; category-phones.jpg       ; Phones category image          ; Featured image for phones category     ; https://placehold.co/600x400.jpg
+                   ; /images/category-tvs.jpg   ;                        ; image/jpeg; category-tvs.jpg          ; TVs category image             ; Featured image for televisions category; https://placehold.co/600x401.jpg
+                   ; /images/logo.png           ;                        ; image/png ; logo.png                  ; Electronics Store logo         ; Main site logo                         ; https://placehold.co/200x80.png
+                   ; /images/footer-banner.jpg  ;                        ; image/jpeg; footer-banner.jpg         ; Footer promotional banner      ; Banner shown in footer region          ; https://placehold.co/1000x200.jpg
 
 
 # -----------------------------------------------------------------------------

@@ -48,6 +48,7 @@ import {
   sanitizeStackId,
 } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { sapSmarteditService } from './sap-smartedit.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
 import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
@@ -572,6 +573,36 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
 
+      case CMS.SAP_SMARTEDIT: {
+        await sapSmarteditService?.getAllAssets(
+          file_path,
+          packagePath,
+          project?.current_test_stack_id,
+          projectId
+        );
+        await sapSmarteditService?.createLocale(
+          file_path,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+        await sapSmarteditService?.createEntry(
+          file_path,
+          packagePath,
+          project?.current_test_stack_id,
+          projectId,
+          contentTypes,
+          project?.mapperKeys,
+          project?.stackDetails?.master_locale,
+          project
+        );
+        await sapSmarteditService?.createVersionFile(
+          project?.current_test_stack_id,
+          projectId
+        );
+        break;
+      }
+
       case CMS.AEM: {
         await aemService.createAssets({
           projectId,
@@ -1012,6 +1043,35 @@ const startMigration = async (req: Request): Promise<any> => {
           project
         );
         await contentfulService?.createVersionFile(
+          project?.destination_stack_id,
+          projectId
+        );
+        break;
+      }
+      case CMS.SAP_SMARTEDIT: {
+        await sapSmarteditService?.getAllAssets(
+          file_path,
+          packagePath,
+          project?.destination_stack_id,
+          projectId
+        );
+        await sapSmarteditService?.createLocale(
+          file_path,
+          project?.destination_stack_id,
+          projectId,
+          project
+        );
+        await sapSmarteditService?.createEntry(
+          file_path,
+          packagePath,
+          project?.destination_stack_id,
+          projectId,
+          contentTypes,
+          project?.mapperKeys,
+          project?.stackDetails?.master_locale,
+          project
+        );
+        await sapSmarteditService?.createVersionFile(
           project?.destination_stack_id,
           projectId
         );

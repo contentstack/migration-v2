@@ -30,6 +30,38 @@ const REF_TARGETS: Record<string, string[]> = {
 
 const TITLE_CANDIDATES = ['title', 'name', 'label', 'heading'];
 
+/**
+ * Contentstack content-type UIDs MUST be lowercase — the CMA normalizes them to
+ * lowercase on creation, so a mixed-case uid (e.g. `cs_ContentPage`) is stored as
+ * `cs_contentpage` and every later update/entry lookup by the mixed-case uid then
+ * fails with "Content Type not found". Keep all CT uids (and reference targets)
+ * lowercase and sanitized.
+ */
+const toCtUid = (s: string): string =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+/**
+ * Field UIDs Contentstack reserves for system use — a custom field may NOT use
+ * them (the CMA rejects the content type with
+ * "schema.N.uid: has a restricted value '<uid>'"). `title` and `url` are the
+ * standard built-ins we intentionally add, so they are NOT restricted here.
+ * Any source column mapping to one of these is prefixed with `src_`.
+ */
+const RESERVED_FIELD_UIDS = new Set([
+  'uid', 'locale', 'tags', 'created_at', 'updated_at', 'created_by', 'updated_by',
+  '_version', '_metadata', 'acl', 'publish_details', '_in_progress', '_workflow',
+]);
+
+/** Rename a field whose uid collides with a Contentstack-reserved uid. */
+function guardReservedUid(field: Field): void {
+  if (RESERVED_FIELD_UIDS.has(field.contentstackFieldUid.toLowerCase())) {
+    const renamed = `src_${field.contentstackFieldUid}`;
+    field.uid = renamed;
+    field.contentstackFieldUid = renamed;
+    field.backupFieldUid = renamed;
+  }
+}
+
 function readJsonFilesFromFolder(folderPath: string): CT[] {
   const result: CT[] = [];
   if (!fs.existsSync(folderPath)) return result;
@@ -132,9 +164,10 @@ async function extractContentTypes(
 
         if (sourceType === 'reference' || sourceType === 'referenceMultiple') {
           const targets = REF_TARGETS[name.toLowerCase()];
-          if (targets) field.refrenceTo = targets.map((t) => `${prefix}${t}`);
+          if (targets) field.refrenceTo = targets.map((t) => toCtUid(`${prefix}${t}`));
         }
 
+        guardReservedUid(field);
         fieldMapping.push(field);
       }
 
@@ -142,9 +175,9 @@ async function extractContentTypes(
 
       const contentType = {
         otherCmsTitle: type,
-        otherCmsUid: `${prefix}${type}`,
+        otherCmsUid: toCtUid(`${prefix}${type}`),
         contentstackTitle: type,
-        contentstackUid: `${prefix}${type}`,
+        contentstackUid: toCtUid(`${prefix}${type}`),
         type: 'content_type',
         fieldMapping,
       };

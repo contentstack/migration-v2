@@ -68,6 +68,7 @@
     "migration-aem": "file:migration-aem",
     "migration-contentful": "file:migration-contentful",
     "migration-drupal": "file:migration-drupal",
+    "migration-sap-smartedit": "file:migration-sap-smartedit",
     "migration-sitecore": "file:migration-sitecore",
     "migration-wordpress": "file:migration-wordpress",
     "mkdirp": "^1.0.4",

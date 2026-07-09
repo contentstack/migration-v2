@@ -45,6 +45,7 @@ export const CMS = {
   WORDPRESS: 'wordpress',
   DRUPAL: 'drupal',
   AEM: 'aem',
+  SAP_SMARTEDIT: 'sap-smartedit',
 };
 export const MODULES = [
   'Project',

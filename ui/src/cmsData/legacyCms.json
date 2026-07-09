@@ -253,6 +253,28 @@
           "isactive": true
         }
       ]
+    },
+    {
+    {
+      "cms_id": "sap-smartedit",
+      "title": "SAP SmartEdit",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://help.sap.com/docs/SAP_COMMERCE",
+        "href": "https://help.sap.com/docs/SAP_COMMERCE"
+      },
+      "parent": "sap-smartedit",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "impex",
+          "title": "ImpEx",
+          "description": "",
+          "group_name": "impex",
+          "isactive": true
+        }
+      ]
     }
   ],
   "tags": [],
