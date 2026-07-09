@@ -372,3 +372,4 @@ app.json
 
 # Test coverage (global)
 coverage/
+export-stack/

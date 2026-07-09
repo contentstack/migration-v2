@@ -127,23 +127,48 @@ const Mapper = ({
   useEffect(() => {
     const formattedoptions = options?.filter(
       (item: { label: string; value: string }) =>
-        !selectedCsOptions?.some((selected: string) => selected === item?.value) && !cmsLocaleOptions?.some((locale: {label: string, value: string}) => locale?.label === item?.value)
+        !selectedCsOptions?.some((selected: string) => selected === item?.value) &&
+        !cmsLocaleOptions?.some(
+          (locale: { label: string; value: string }) => locale?.label === item?.value
+        )
     );
 
+    // Also exclude source locales already consumed by a saved mapping (delta-restart case):
+    // selectedSourceOption only tracks in-session picks, so on restart the previous run's
+    // source values (e.g. the master row's "en") don't appear there and would otherwise show
+    // up again as selectable in a newly-added row's source dropdown.
+    const mappedSourceValues = new Set(
+      Object.values(selectedMappings || {}).filter(
+        (v): v is string => typeof v === 'string' && v.length > 0
+      )
+    );
     const adjustedOptions = sourceOptions?.filter(
       (item: { label: string; value: string }) =>
-        !selectedSourceOption?.some((selected: string) => selected === item?.label)
+        !selectedSourceOption?.some((selected: string) => selected === item?.label) &&
+        !mappedSourceValues.has(item?.label)
     );
     setcsOptions(formattedoptions);
     setsourceoptions(adjustedOptions);
     // sourceOptions must be in deps: on restart iteration the parent's sourceLocales arrives
     // asynchronously from Redux *after* mount. Without this, sourceoptions stays stale ([]) and
     // the Select language dropdown renders empty until Add Language forces unrelated re-renders.
-  }, [selectedCsOptions, selectedSourceOption, options, sourceOptions]);
+    // cmsLocaleOptions must be in deps too: on restart iteration it's rehydrated with the
+    // previous run's saved mappings *after* mount, so without it this filter never re-runs and
+    // already-mapped languages keep showing up as selectable options in a newly-added row.
+    // selectedMappings must be in deps so a source locale saved in Redux gets excluded from
+    // the source dropdown on restart (in-session picks alone can miss the rehydrated master row).
+  }, [
+    selectedCsOptions,
+    selectedSourceOption,
+    options,
+    sourceOptions,
+    cmsLocaleOptions,
+    selectedMappings
+  ]);
 
   useEffect(() => {
-    const updatedExistingField = {...existingField};
-    const updatedExistingLocale = {...existingLocale};
+    const updatedExistingField = { ...existingField };
+    const updatedExistingLocale = { ...existingLocale };
 
     // const validLabels = cmsLocaleOptions?.map((item)=> item?.label);
 
@@ -151,37 +176,39 @@ const Mapper = ({
       key?.includes('-master_locale')
     );
 
-    const recentMsterLocale = cmsLocaleOptions?.find((item) => item?.value === 'master_locale')?.label;
-    const presentLocale = `${recentMsterLocale}-master_locale`;
+    const recentMasterLocale = cmsLocaleOptions?.find(
+      (item) => item?.value === 'master_locale'
+    )?.label;
+    const presentLocale = `${recentMasterLocale}-master_locale`;
 
     Object.keys(updatedExistingField || {})?.forEach((key) => {
-      if ((existingMasterID !== presentLocale) || isStackChanged) {
+      if (existingMasterID !== presentLocale || isStackChanged) {
         delete updatedExistingField[key];
       }
     });
 
     Object.keys(updatedExistingLocale || {})?.forEach((key) => {
-      if ((existingMasterID !== presentLocale) || isStackChanged) {
+      if (existingMasterID !== presentLocale || isStackChanged) {
         delete updatedExistingLocale[key];
       }
     });
-    if ( (existingMasterID !== presentLocale) || isStackChanged) {
+    if (existingMasterID !== presentLocale || isStackChanged) {
       setselectedCsOption([]);
       setselectedSourceOption([]);
     }
 
     setexistingLocale(updatedExistingLocale);
 
-    cmsLocaleOptions?.map((locale, index)=>{
+    cmsLocaleOptions?.map((locale, index) => {
       const existingLabel = existingMasterID;
       const expectedLabel = `${locale?.label}-master_locale`;
 
       const isLabelMismatch = existingLabel && existingLabel?.localeCompare(expectedLabel) !== 0;
-      if(locale?.value === 'master_locale'){
+      if (locale?.value === 'master_locale') {
         if (!updatedExistingField?.[index]) {
           updatedExistingField[index] = {
             label: `${locale?.label}`,
-            value: `${locale?.label}-master_locale`,
+            value: `${locale?.label}-master_locale`
           };
         }
         // Reflect the saved master source locale in the row UI (the master row reads its
@@ -191,11 +218,10 @@ const Mapper = ({
         if (savedMasterSource && !updatedExistingLocale?.[locale?.label]) {
           updatedExistingLocale[locale?.label] = {
             label: savedMasterSource,
-            value: savedMasterSource,
+            value: savedMasterSource
           };
         }
 
-  
         if (isLabelMismatch || isStackChanged) {
           setselectedCsOption([]);
           setselectedSourceOption([]);
@@ -203,28 +229,56 @@ const Mapper = ({
           setExistingField({});
 
           // 🔧 FIX: Merge with existing mappings instead of replacing
-          setSelectedMappings(prev => ({
+          setSelectedMappings((prev) => ({
             ...prev,
-            [`${locale?.label}-master_locale`]: '',
+            [`${locale?.label}-master_locale`]: ''
           }));
-          
-        }
-        else if ( !isLabelMismatch && !isStackChanged ) {
-          const key = `${locale?.label}-master_locale`
+        } else if (!isLabelMismatch && !isStackChanged) {
+          const key = `${locale?.label}-master_locale`;
           // 🔧 FIX: Merge with existing mappings instead of replacing
-          setSelectedMappings(prev => ({
+          setSelectedMappings((prev) => ({
             ...prev,
-            [key]: prev?.[key] ? prev?.[key] : '',
+            [key]: prev?.[key] ? prev?.[key] : ''
           }));
         }
-      }        
-    })
-  
+      }
+    });
+
     setExistingField(updatedExistingField);
-  
-   
-   }, [cmsLocaleOptions]);
-  
+  }, [cmsLocaleOptions]);
+
+  // On a delta-migration restart, `selectedMappings` can hydrate from Redux *after* the
+  // effect above has already run (which is what reflects the saved master-locale source into
+  // existingLocale). That effect only depends on cmsLocaleOptions, so it won't re-run when
+  // selectedMappings arrives later, leaving the master row's source dropdown blank on first
+  // load. Re-sync it here instead of adding selectedMappings to the effect above, since that
+  // effect also writes to selectedMappings and would loop.
+  //
+  // We also fall back to reading the saved master source directly from Redux's localeMapping
+  // when selectedMappings is empty for the master key. During the mount race on restart, the
+  // effect above can dispatch an empty master mapping to Redux (via its else-if branch when
+  // `prev[key]` is undefined at effect time) before the sync-from-Redux effect at the top of
+  // the component has caught up. Reading Redux directly here keeps the master source visible
+  // in that transient state.
+  const reduxLocaleMapping = newMigrationData?.destination_stack?.localeMapping;
+  useEffect(() => {
+    const masterLocale = cmsLocaleOptions?.find((item) => item?.value === 'master_locale');
+    if (!masterLocale) return;
+
+    const key = `${masterLocale.label}-master_locale`;
+    const savedMasterSource =
+      selectedMappings?.[key] || reduxLocaleMapping?.[key];
+    if (!savedMasterSource) return;
+
+    setexistingLocale((prev) => {
+      if (prev?.[masterLocale.label]?.label === savedMasterSource) return prev;
+      return {
+        ...prev,
+        [masterLocale.label]: { label: savedMasterSource, value: savedMasterSource }
+      };
+    });
+  }, [selectedMappings, cmsLocaleOptions, reduxLocaleMapping]);
+
 
   // function for change select value
   const handleSelectedCsLocale = (
@@ -276,18 +330,34 @@ const Mapper = ({
         //updatedMappings[""] = valueToKeep;
       }
       else if (type === 'csLocale' && selectedLocaleKey) {
-    
+
         if(updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY] === existingLocale?.[index]?.label){
           updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label;
-          delete updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY];  
-        }else{
-           const oldlabel = Object?.keys?.(updatedMappings)?.[index - 1];
-           
-           // Delete old key and assign to new key
-          delete updatedMappings?.[oldlabel];
-          updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label
-            ? existingLocale?.[index]?.label
-            : '';
+          delete updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY];
+        } else {
+          // Look up the row's PRIOR CS destination via existingField (captured into
+          // `existingLabel` above), not by position. The previous logic used
+          // `Object.keys(mappings)[index - 1]`, which for index=1 grabbed the MASTER row's
+          // key and deleted it — corrupting localeMapping to a state with no `-master_locale`
+          // entry. That in turn crashed the CLI audit ("Master locale undefined ...") and
+          // wedged the Execute step in a "started, never completed" state on delta iterations.
+          const oldKey = existingLabel?.value;
+          // Never delete the master row's key from this handler: the master Select is
+          // disabled in the UI, but a defensive guard keeps a future refactor from re-opening
+          // the corruption path.
+          const isMasterKey =
+            typeof oldKey === 'string' && oldKey.endsWith('-master_locale');
+          // Preserve any source already mapped to this row's previous destination so the
+          // user doesn't lose their pick when they change the CS destination.
+          const preservedSource =
+            oldKey && !isMasterKey ? updatedMappings?.[oldKey] : undefined;
+          if (oldKey && !isMasterKey && oldKey !== selectedLocaleKey) {
+            delete updatedMappings?.[oldKey];
+          }
+          updatedMappings[selectedLocaleKey] =
+            (preservedSource && preservedSource.length > 0
+              ? preservedSource
+              : existingLocale?.[index]?.label) || '';
         }
       }
 
@@ -344,12 +414,14 @@ const Mapper = ({
         updatedMappings[existingLabel?.value] = ''
       }
       else if (selectedLocaleKey) {
-        // 🔧 FIX: Use the actual Contentstack locale code, or source locale in lowercase as fallback
-        const mappingKey = existingLabel?.value || existingLabel?.label || selectedValue?.label?.toLowerCase();
-        
-        updatedMappings[mappingKey] = selectedValue?.label
-          ? selectedValue?.label
-          : '';
+        // Only persist if a CS locale has already been selected for this row.
+        // If the user picks source before CS, existingLabel is unset and writing
+        // to a fallback key (source locale lowercased) would inflate filledMappingCount
+        // and incorrectly re-enable Add Language for an incomplete row.
+        const mappingKey = existingLabel?.value || existingLabel?.label;
+        if (mappingKey) {
+          updatedMappings[mappingKey] = selectedValue?.label ? selectedValue?.label : '';
+        }
       }
 
       return updatedMappings;
@@ -431,11 +503,25 @@ const Mapper = ({
   return (
     <>
       {cmsLocaleOptions?.length > 0  ? (
-        cmsLocaleOptions?.map((locale: {label:string, value: string}, index: number) => (
-          
+        cmsLocaleOptions?.map((locale: {label:string, value: string}, index: number) => {
+          // Identify master rows defensively: usually the `value` marker is `'master_locale'`,
+          // but some rehydration paths in this file historically wrote the raw source string
+          // (e.g. `'en'`) into `value` for master keys, which dropped the row into the
+          // editable non-master render branch. Falling back to a label match against the
+          // stack's master locale keeps the master row locked even if that ever regresses.
+          const isMasterRow =
+            locale?.value === 'master_locale' ||
+            (stack?.master_locale != null &&
+              locale?.label === stack?.master_locale);
+          // Lock rows only when the parent flag is set (step > 2 or iteration > 1) AND
+          // the row has a rebuilt value from a prior iteration. Rebuilt rows always have
+          // locale.value set; newly-added rows keep value='' so they stay editable until
+          // the user advances, letting them correct a wrong selection before saving.
+          const isRowLocked = isDisabled && !!locale?.value;
+          return (
           <div key={locale.label} className="lang-container">
-         
-            {locale?.value === 'master_locale' ? (
+
+            {isMasterRow ? (
               <Tooltip
                 content="This is the default locale of above selected stacks and cannot be changed. Please select a corresponding language to map."
                 position="top"
@@ -479,10 +565,10 @@ const Mapper = ({
                 version="v2"
                 hideSelectedOptions={true}
                 isClearable={true}
-                // Existing rows (have a `value` from the prior mapping) stay locked when the
-                // parent says disabled (e.g. restart iteration). Newly-added rows have an empty
-                // value and must remain editable so the user can pick their locales.
-                isDisabled={isDisabled && !!locale?.value}
+                // Row lock: rebuilt rows (have a `value` from the prior mapping) or rows whose
+                // mapping is already saved to Redux stay locked. Newly-added rows have an empty
+                // value and no Redux entry, so they remain editable for the user to fill in.
+                isDisabled={isRowLocked}
                 //className="select-container"
                 menuPlacement="auto"
               />
@@ -531,16 +617,16 @@ const Mapper = ({
                 version="v2"
                 hideSelectedOptions={true}
                 isClearable={true}
-                // Existing rows (have a `value` from the prior mapping) stay locked when the
-                // parent says disabled (e.g. restart iteration). Newly-added rows have an empty
-                // value and must remain editable so the user can pick their locales.
-                isDisabled={isDisabled && !!locale?.value}
+                // Row lock: rebuilt rows (have a `value` from the prior mapping) or rows whose
+                // mapping is already saved to Redux stay locked. Newly-added rows have an empty
+                // value and no Redux entry, so they remain editable for the user to fill in.
+                isDisabled={isRowLocked}
                 //className="select-container"
                 menuPlacement="auto"
               />
             }
             <div className={'delete-icon'}>
-              {locale?.value !== 'master_locale' && (!isDisabled || !locale?.value) && (
+              {!isMasterRow && !isRowLocked && (
                 <Tooltip content={'Delete'} position="top" showArrow={false}>
                   <Icon
                     icon="Trash"
@@ -558,7 +644,8 @@ const Mapper = ({
               )}
             </div>
           </div>
-        ))
+          );
+        })
       ) : (
         <Info
           className="info-tag"
@@ -695,6 +782,14 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
             Object?.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
               ([key, value]) => {
                 setcmsLocaleOptions((prevList) => {
+                  // Master-key entries (`<code>-master_locale`) must rebuild with
+                  // value='master_locale' — the marker string the render layer keys off to
+                  // hardcode the CS Select as disabled and mark this row as master. Using
+                  // the raw source value here (e.g. 'en') would drop the master row into the
+                  // normal-row render branch, which is editable when the parent isDisabled
+                  // prop isn't set (a race window during the Step 1 → Step 2 navigation on
+                  // an iteration-1 revisit). Keep master rows locked by preserving the marker.
+                  const isMasterKey = typeof key === 'string' && key.endsWith('-master_locale');
                   const labelKey = key?.replace(/-master_locale$/, '');
                   const exists = prevList?.some((item) => item?.label === labelKey);
                   if (!exists) {
@@ -702,7 +797,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                       ...prevList,
                       {
                         label: labelKey,
-                        value: String(value)
+                        value: isMasterKey ? 'master_locale' : String(value)
                       }
                     ];
                   }
@@ -794,13 +889,40 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               }
               // Restart iteration: button must remain available so users can add a new
               // destination locale before the delta run. Block when (a) there's already an
-              // empty in-progress row waiting to be filled (avoid stacking empties) OR (b)
-              // every available source locale is already mapped — otherwise clicking Add
-              // Language would surface a row whose source dropdown has no unmapped option
+              // in-progress row not yet backed by a completed mapping (avoid stacking empties)
+              // OR (b) every available source locale is already mapped — otherwise clicking
+              // Add Language would surface a row whose source dropdown has no unmapped option
               // to pick (e.g. a single-locale source where `en` is already in use).
-              const hasEmptyRow = cmsLocaleOptions?.some((o) => !o?.value);
+              //
+              // Row-completeness derives from Redux (`localeMapping`) rather than
+              // `cmsLocaleOptions[i].value`, because the row-object's `value` field is only
+              // populated on rebuild — the per-row handlers (handleSelectedCsLocale /
+              // handleSelectedSourceLocale) update `selectedMappings` → Redux but never write
+              // back into `cmsLocaleOptions`, so a freshly-filled row would otherwise still
+              // read as "empty" here and lock Add Language forever after one add.
+              //
+              // Treat the master row as always-filled: its value is auto-managed by the
+              // parent (stack master locale), and on a delta-restart race the source can be
+              // momentarily blank in Redux before the sync-from-Redux effect merges it back.
+              // Counting master as filled prevents that transient state from disabling the
+              // button on the very first render after restart.
+              const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
+              // Exclude keys that are source locale codes — handleSelectedSourceLocale
+              // previously wrote under a fallback key (source label lowercased) when the
+              // user picked source before CS, inflating the count and re-enabling Add Language
+              // for an incomplete row. Filter those out so only proper CS locale keys count.
+              const sourceLocaleLabels = new Set(
+                sourceLocales?.map((l: { label: string }) => l.label) ?? []
+              );
+              const filledMappingCount = Object.entries(savedMapping).filter(([k, v]) => {
+                const isMasterKey = typeof k === 'string' && k.endsWith('-master_locale');
+                if (isMasterKey) return true;
+                if (sourceLocaleLabels.has(k)) return false;
+                return typeof v === 'string' && v.length > 0;
+              }).length;
+              const hasIncompleteRow = (cmsLocaleOptions?.length ?? 0) > filledMappingCount;
               const mappedSources = new Set(
-                Object.values(newMigrationData?.destination_stack?.localeMapping || {}).filter(
+                Object.values(savedMapping).filter(
                   (v): v is string => typeof v === 'string' && v?.length > 0
                 )
               );
@@ -811,7 +933,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               const totalSources = sourceLocales?.length ?? 0;
               const sourcesNotReady = totalSources === 0;
               const allSourcesMapped = totalSources > 0 && mappedSources.size >= totalSources;
-              return hasEmptyRow || sourcesNotReady || allSourcesMapped;
+              return hasIncompleteRow || sourcesNotReady || allSourcesMapped;
             })()}
           >
             Add Language
