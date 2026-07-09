@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import config from '../config/index.json';
+import { EXCLUDED_POST_TYPES, ALLOWED_POST_STATUSES } from '../constants/index';
+
 
 const { contentTypes: contentTypesConfig } = config?.modules;
 const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
-
-const EXCLUDED_POST_TYPES = new Set(['attachment', 'wp_global_styles', 'wp_navigation']);
 
 const normalizeArray = <T>(value: T | T[] | undefined): T[] => {
   if (!value) return [];
@@ -47,10 +47,7 @@ const getEntryName = (item: any): string => {
   return 'Untitled Entry';
 };
 
-/**
- * All WordPress source entry keys use `posts_${...}` (any content type) so they align with
- * wordpress.service export JSON and CLI uid-mapping.
- */
+
 const getSourceEntryUid = (item: any): string => {
   const postId = item?.['wp:post_id'];
   if (postId != null && String(postId).trim() !== '') {
@@ -59,12 +56,12 @@ const getSourceEntryUid = (item: any): string => {
 
   const authorId = item?.['wp:author_id'];
   if (authorId != null && String(authorId).trim() !== '') {
-    return idCorrector(`posts_${authorId}`);
+    return idCorrector(`authors_${authorId}`);
   }
 
   const termId = item?.['wp:term_id'];
   if (termId != null && String(termId).trim() !== '') {
-    return idCorrector(`posts_${termId}`);
+    return idCorrector(`terms_${termId}`);
   }
 
   const candidate =
@@ -102,6 +99,8 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     const groupedByType = items?.reduce((acc: Record<string, any[]>, item: any) => {
       const postType = item?.['wp:post_type'] || 'unknown';
       if (EXCLUDED_POST_TYPES.has(postType)) return acc;
+      const postStatus = String(item?.['wp:status'] || '').toLowerCase();
+      if (!ALLOWED_POST_STATUSES.has(postStatus)) return acc;
       if (!acc[postType]) acc[postType] = [];
       acc[postType].push(item);
       return acc;
@@ -112,7 +111,7 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     if (authorData) {
       const authorEntries = normalizeArray(authorData).map((author: any) => ({
         'wp:post_type': 'author',
-        'wp:post_id': author?.['wp:author_id'],
+        'wp:author_id': author?.['wp:author_id'],
         title: author?.['wp:author_display_name'] || author?.['wp:author_login'],
         'wp:author_login': author?.['wp:author_login'],
         'wp:author_email': author?.['wp:author_email'],
@@ -130,7 +129,6 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     if (termData) {
       const termEntries = normalizeArray(termData).map((term: any) => ({
         'wp:post_type': 'terms',
-        'wp:post_id': term?.['wp:term_id'],
         title: term?.['wp:term_name'] || term?.['wp:term_slug'],
         'wp:term_id': term?.['wp:term_id'],
         'wp:term_taxonomy': term?.['wp:term_taxonomy'],
