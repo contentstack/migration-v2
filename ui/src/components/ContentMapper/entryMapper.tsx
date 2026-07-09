@@ -661,7 +661,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                       plural: `${totalCounts === 0 ? 'Count' : ''}`
                     }}
                   />
-                  {totalCounts > 0 && (
+                  {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
                     <div className="mapper-footer">
                       <div>
                         {/* Total Entries: <strong>{totalCounts}</strong> */}
@@ -670,7 +670,13 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                         className="saveButton"
                         onClick={handleSaveContentType}
                         version="v2"
-                        disabled={newMigrationData?.project_current_step > 4}
+                        // Lock the Save button only while a migration is actively in flight.
+                        // Using migrationStarted alone would permanently lock revisits on delta
+                        // iterations since migrationStarted stays true after completion.
+                        disabled={
+                          !!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted
+                        }
                         isLoading={isLoadingSaveButton}
                       >
                         Save
