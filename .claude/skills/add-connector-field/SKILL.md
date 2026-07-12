@@ -12,6 +12,8 @@ A field flows through two mapping points. To support a new source field type (or
 > Tone: same meme rules as `add-cms-connector` — real-time, chat-narration only,
 > one per message max; never in code, tables, or option labels.
 
+⚠️ **Wrong skill for complex fields.** If the field's sample value is a structured object or array — rich text, DAST, portable text, modular blocks, page sections, nested objects — this skill is NOT the right tool. Use `resolve-complex-field` instead. It performs structural analysis, identifies the node format, generates a converter function, and runs a smoke test. This skill only handles simple 1:1 type remappings (e.g. changing a `string` from `single_line_text` to `multi_line_text`, or mapping a previously-dropped `date` field to `isodate`).
+
 ## Inputs you need from the user
 1. **Which connector** — `wordpress` | `contentful` | `drupal` | `aem` | `sitecore` | `sanity`.
 2. **A sample of the field's value** from a real export (so you can see the source type id and the value shape).

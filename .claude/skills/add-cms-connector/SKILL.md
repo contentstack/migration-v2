@@ -134,6 +134,20 @@ Before inspecting the sample, fetch the CMS's official docs:
   | url / link | `link` or `url` |
   | taxonomy / category / tag | `taxonomy` |
 
+⚠️ **Complex field gate — run before generating any code:**
+After building the mapping table, scan every row whose sample value is a structured object or array (not a string, number, boolean, or `null`). These are **complex fields**. For each one, **stop and invoke `resolve-complex-field`** before proceeding. Pass: the CMS name, the source field type name, the raw sample value, and the connector file paths (to be created in Steps 2–4). Resume building the connector only after every complex field has been resolved and its converter/schema fix confirmed.
+
+Fields that ALWAYS require `resolve-complex-field`:
+- Rich text / structured text (any RTE format)
+- Portable text / DAST / Slate / block content
+- Modular blocks / page builder sections
+- Nested objects or arrays that map to `group` or `modular_blocks`
+- Anything in the mapping table row for `json` unless you are certain the value is already a CS RTE doc
+
+Fields that do NOT require it (primitive or handled by existing infrastructure):
+- `single_line_text`, `multi_line_text`, `number`, `boolean`, `isodate` — no converter needed
+- `file` / `reference` — handled by `getAllAssets` + reference resolution in `reference/entry-creation.md`
+
 ### Step 2 — Scaffold Layer A: the parser package `upload-api/migration-<cms>/`
 Create the package from `templates/upload-api-package/`. Copy each template file, replacing `<cms>`/`<Cms>`/`<CMS>` placeholders:
 - `package.json`, `tsconfig.json`, `config/index.json`
