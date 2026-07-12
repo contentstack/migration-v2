@@ -45,6 +45,7 @@ export const CMS = {
   WORDPRESS: 'wordpress',
   DRUPAL: 'drupal',
   AEM: 'aem',
+  DATOCMS: 'datocms',
 };
 export const MODULES = [
   'Project',
@@ -215,6 +216,9 @@ export const LOCALE_MAPPER: any = {
 export const CHUNK_SIZE = 1048576;
 
 export const LIST_EXTENSION_UID = 'bltc44e51cc9f4b0d80';
+export const COLOR_PICKER_EXTENSION_UID = 'blt0f8fe46c565f0a62';
+export const STAR_RATING_EXTENSION_UID  = 'blt461413a59933e13a';
+export const JSON_EDITOR_EXTENSION_UID  = 'bltd54177d2353a7558';
 
 export const KEYTOREMOVE = [
   'update',

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createAemMapper } from '../controllers/aem';
+import createDatocmsMapper from '../controllers/datocms';
 import createSitecoreMapper from '../controllers/sitecore';
 import createWordpressMapper from '../controllers/wordpress';
 import { Config } from '../models/types';
@@ -112,6 +113,10 @@ const createMapper = async (
 
     case 'drupal': {
       return createDrupalMapper(config, projectId, app_token, affix);
+    }
+
+    case 'datocms': {
+      return createDatocmsMapper(filePath, projectId, app_token, affix, config);
     }
 
     default:

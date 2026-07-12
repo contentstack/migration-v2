@@ -3,6 +3,7 @@ import contentfulValidator from './contentful';
 import wordpressValidator from './wordpress';
 import aemValidator from './aem';
 import drupalValidator from './drupal';
+import datocmsValidator from './datocms';
 
 const validator = ({
   data,
@@ -35,6 +36,10 @@ const validator = ({
 
     case 'drupal-sql': {
       return drupalValidator({ data, assetsConfig });
+    }
+
+    case 'datocms-folder': {
+      return datocmsValidator({ data });
     }
 
     default:

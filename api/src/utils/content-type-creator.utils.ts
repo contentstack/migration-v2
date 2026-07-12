@@ -6,7 +6,13 @@ import path from 'path';
 import _, { includes } from 'lodash';
 import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
-import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import {
+  LIST_EXTENSION_UID,
+  COLOR_PICKER_EXTENSION_UID,
+  STAR_RATING_EXTENSION_UID,
+  JSON_EDITOR_EXTENSION_UID,
+  MIGRATION_DATA_CONFIG,
+} from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
 import appMeta from '../constants/app/index.json';
 
@@ -1025,9 +1031,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
           "display_name": field?.title,
           "uid": cleanedUid,
           "extension_uid": extensionUid,
-          "field_metadata": {
-            "extension": true
-          },
+          "field_metadata": { "extension": true },
           "config": {},
           "multiple": field?.advanced?.multiple ?? false,
           "mandatory": field?.advanced?.mandatory ?? false,
@@ -1036,6 +1040,34 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
           "data_type": "json",
         }
       }
+
+      // DatoCMS extension-backed fields
+      const datoExtMap: Record<string, string> = {
+        dato_color:       COLOR_PICKER_EXTENSION_UID,
+        dato_star_rating: STAR_RATING_EXTENSION_UID,
+        dato_json:        JSON_EDITOR_EXTENSION_UID,
+      };
+      const datoExtUid = datoExtMap[field?.otherCmsType];
+      if (datoExtUid) {
+        saveAppMapper({
+          marketPlacePath,
+          data: { extensionUid: datoExtUid },
+          fileName: CUSTOM_MAPPER_FILE_NAME,
+        });
+        return {
+          "data_type": "json",
+          "display_name": field?.title ?? cleanedUid,
+          "uid": cleanedUid,
+          "extension_uid": datoExtUid,
+          "field_metadata": { "extension": true },
+          "config": {},
+          "multiple": field?.advanced?.multiple ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+        };
+      }
+
       break;
     }
 
@@ -1441,8 +1473,8 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   const srcFunc = 'contenTypeMaker';
 
   let ct: ContentType = {
-    title: contentType?.contentstackTitle,
-    uid: contentType?.contentstackUid,
+    title: contentType?.contentstackTitle ?? contentType?.title,
+    uid: contentType?.contentstackUid ?? contentType?.uid,
     schema: []
   };
 

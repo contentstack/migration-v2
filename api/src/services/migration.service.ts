@@ -40,6 +40,7 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { datocmsService } from './datocms.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 
 /**
@@ -487,6 +488,15 @@ const startTestMigration = async (req: Request): Promise<any> => {
         }
         break;
       }
+      case CMS.DATOCMS: {
+        if (packagePath) {
+          await datocmsService?.createAssets(file_path, packagePath, project?.current_test_stack_id, projectId, true);
+          await datocmsService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await datocmsService?.createLocale(req, project?.current_test_stack_id, projectId, project);
+          await datocmsService?.createVersionFile(project?.current_test_stack_id, projectId);
+        }
+        break;
+      }
       case CMS.CONTENTFUL: {
         const cleanLocalPath = file_path?.replace?.(/\/$/, '');
         await contentfulService?.createLocale(
@@ -900,6 +910,15 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.destination_stack_id,
             projectId
           );
+        }
+        break;
+      }
+      case CMS.DATOCMS: {
+        if (packagePath) {
+          await datocmsService?.createLocale(req, project?.destination_stack_id, projectId, project);
+          await datocmsService?.createAssets(file_path, packagePath, project?.destination_stack_id, projectId, false);
+          await datocmsService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await datocmsService?.createVersionFile(project?.destination_stack_id, projectId);
         }
         break;
       }

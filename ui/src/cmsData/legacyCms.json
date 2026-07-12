@@ -253,6 +253,27 @@
           "isactive": true
         }
       ]
+    },
+    {
+      "cms_id": "datocms",
+      "title": "DatoCMS",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.datocms.com/",
+        "href": "https://www.datocms.com/"
+      },
+      "parent": "DatoCMS",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "directory",
+          "title": "Folder",
+          "description": "",
+          "group_name": "directory",
+          "isactive": true
+        }
+      ]
     }
   ],
   "tags": [],
