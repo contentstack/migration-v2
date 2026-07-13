@@ -163,14 +163,6 @@ export const mapField = (
 ): Field[] => {
   const editor = field.appearance?.editor;
 
-  // Contentstack forbids blocks inside blocks — anything under a modular_blocks
-  // ancestor that would itself need a block/global-field container falls back
-  // to a raw json leaf instead (no data dropped, just not resolved as blocks).
-  if (ctx.parent?.inBlocks && (field.field_type === 'rich_text' || field.field_type === 'single_block')) {
-    console.warn(`"${field.api_key}" (${field.field_type}) is nested inside a block — Contentstack forbids blocks inside blocks; falling back to json`);
-    return [baseField(field.api_key, field.field_type, 'json', ctx.parent, field.localized)];
-  }
-
   switch (field.field_type) {
     case 'string':
     case 'slug':

@@ -16,7 +16,7 @@ const {
 
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
-  fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+  await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
 }
 
 async function writeFiles(entryPath: string, fileMeta: any, entryLocale: any, locale: string) {
