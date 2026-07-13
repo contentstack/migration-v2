@@ -17,12 +17,10 @@ else
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 fi
 
-# Ensure Node.js 22 is installed and used
-NODE_VERSION=$(node -v 2>/dev/null)
-if [[ "$NODE_VERSION" != v22.* ]]; then
-  echo "Installing and using Node.js 22..."
-  nvm install 22
-fi
+# Ensure Node.js 22 is installed and used (nvm install is idempotent, so
+# checking `node -v` here is unreliable if a non-nvm Node is on PATH)
+echo "Ensuring Node.js 22 is installed via nvm..."
+nvm install 22
 nvm use 22
 
 # Return to script root
