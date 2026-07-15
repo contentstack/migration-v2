@@ -41,7 +41,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, CONTENT_MAPPER_EMPTY_STATE } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, CONTENT_MAPPER_EMPTY_STATE, MAPPER_SEARCH_EMPTY_STATE } from '../../utilities/constants';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
 
@@ -3289,7 +3289,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       </div>
       :
       <div className="step-container">
-        {(contentTypes?.length > 0 || tableData?.length > 0) ?
+        {(contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
           <div className="d-flex flex-wrap table-container">
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
@@ -3405,7 +3405,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
-                  <div>
+                  <div className="field-mapper-container">
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
@@ -3465,10 +3465,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   }}
                   getSelectedRow={handleSelectedEntries}
                   rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+                  v2Features={{ isNewEmptyState: true }}
                   name={{
                     singular: '',
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
+                  customEmptyState={
+                    <EmptyState
+                      forPage="list"
+                      heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
+                      description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
+                      moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
+                      type="secondary"
+                      className="custom-empty-state"
+                    />
+                  }
                 />
                 {totalCounts > 0 && (
                   <div className="mapper-footer">

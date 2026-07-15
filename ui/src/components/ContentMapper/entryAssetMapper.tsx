@@ -22,9 +22,6 @@ interface entryAssetMapperProps {
 const EntryAssetMapper = ({ handleStepChange }: entryAssetMapperProps) => {
   const [mapperView, setMapperView] = useState<'entries' | 'assets'>('entries');
 
-  const calcHeight = () => window.innerHeight - 361;
-  const tableHeight = calcHeight();
-
   return (
     // Plain flex-column wrapper — NOT .step-container. Both child mappers render their own
     // .step-container (height: 100%), so reusing it here would nest two full-height flex
@@ -51,7 +48,7 @@ const EntryAssetMapper = ({ handleStepChange }: entryAssetMapperProps) => {
       </div>
 
       {mapperView === 'assets' ? (
-        <AssetMapper tableHeight={tableHeight} />
+        <AssetMapper />
       ) : (
         <EntryMapper handleStepChange={handleStepChange} />
       )}
