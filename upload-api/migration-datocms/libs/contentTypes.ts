@@ -65,6 +65,43 @@ function ensureMandatoryFields(fieldMapping: Field[]): void {
 }
 
 /**
+ * DatoCMS records sometimes contain enum values not listed in the field's
+ * appearance.parameters (e.g. a radio option removed after data was entered).
+ * Scan the actual record values and merge any extra strings into the field's
+ * advanced.options so the CS schema accepts them at import time.
+ */
+function enrichDropdownChoices(fieldMapping: Field[], records: any[]): void {
+  for (const field of fieldMapping) {
+    if (field.contentstackFieldType !== 'dropdown') continue;
+    const options: Array<{ key: string; value: string }> = field.advanced?.options ?? [];
+    const known = new Set(options.map((o: any) => String(o.value)));
+
+    for (const record of records) {
+      const raw = record[field.otherCmsField];
+      if (raw == null) continue;
+      const values: string[] = [];
+      if (typeof raw === 'string') {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) values.push(...parsed.filter((v: any) => typeof v === 'string'));
+          else values.push(raw);
+        } catch { values.push(raw); }
+      } else if (Array.isArray(raw)) {
+        values.push(...raw.filter((v: any) => typeof v === 'string'));
+      }
+      for (const v of values) {
+        if (v && !known.has(v)) {
+          known.add(v);
+          options.push({ key: v, value: v });
+        }
+      }
+    }
+
+    if (options.length) field.advanced = { ...field.advanced, options };
+  }
+}
+
+/**
  * Parse the DatoCMS export into Contentstack content-type / global-field
  * schemas. Unlike the generic schema-less template, DatoCMS ships an EXPLICIT
  * schema (`content_types.json` + `fields.json`) separate from the data
@@ -86,6 +123,20 @@ async function extractContentTypes(
     const root = resolveExportRoot(filePath);
     const contentTypes: DatoContentType[] = readJson(path.join(root, 'content_types.json'));
     const fieldsByTypeId: Record<string, DatoFieldsEntry> = readJson(path.join(root, 'fields.json'));
+
+    // Build type-id → records[] index for dropdown choice enrichment. Missing
+    // records.json is non-fatal (schema-only runs have no records file).
+    const recordsByTypeId = new Map<string, any[]>();
+    const recordsPath = path.join(root, 'records.json');
+    if (fs.existsSync(recordsPath)) {
+      const allRecords: any[] = readJson(recordsPath);
+      allRecords.forEach((r) => {
+        const tid = r.__itemTypeId;
+        if (!tid) return;
+        if (!recordsByTypeId.has(tid)) recordsByTypeId.set(tid, []);
+        recordsByTypeId.get(tid)!.push(r);
+      });
+    }
 
     // Build the global id -> {apiKey, contentstackUid, isBlock} lookup ONCE,
     // covering both entry-level types and block types — link/links/single_block/
@@ -113,6 +164,7 @@ async function extractContentTypes(
         fieldMapping.push(...mapField(field, ctx, blockFieldsById));
       });
 
+      enrichDropdownChoices(fieldMapping, recordsByTypeId.get(ct.id) ?? []);
       ensureMandatoryFields(fieldMapping);
 
       const contentstackUid = blocksById.get(ct.id)!.contentstackUid;

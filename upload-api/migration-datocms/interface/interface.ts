@@ -76,7 +76,7 @@ export interface DatoField {
   api_key: string;
   localized: boolean;
   validators: DatoFieldValidators;
-  appearance?: { editor?: string; parameters?: Record<string, any> };
+  appearance?: { editor?: string; parameters?: Record<string, any>; field_extension?: string };
   item_type: { id: string; type: 'item_type' };
 }
 

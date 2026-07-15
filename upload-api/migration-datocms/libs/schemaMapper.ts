@@ -165,8 +165,16 @@ export const mapField = (
 
   switch (field.field_type) {
     case 'string':
-    case 'slug':
+    case 'slug': {
+      if (editor === 'string_radio_group' || editor === 'string_select') {
+        const row = baseField(field.api_key, field.field_type, 'dropdown', ctx.parent, field.localized);
+        const paramKey = editor === 'string_radio_group' ? 'radios' : 'options';
+        const items: any[] = field.appearance?.parameters?.[paramKey] ?? [];
+        row.advanced = { ...row.advanced, options: items.map((o: any) => ({ key: o.label, value: o.value })) };
+        return [row];
+      }
       return [baseField(field.api_key, field.field_type, 'single_line_text', ctx.parent, field.localized)];
+    }
 
     case 'text':
       if (editor === 'markdown') return [baseField(field.api_key, field.field_type, 'markdown', ctx.parent, field.localized)];
@@ -178,7 +186,7 @@ export const mapField = (
 
     case 'integer':
     case 'float':
-      if (editor === 'star_rating') {
+      if (editor === 'star_rating' || field.appearance?.field_extension === 'starRating') {
         return [baseField(field.api_key, 'dato_star_rating', 'extension', ctx.parent, field.localized)];
       }
       return [baseField(field.api_key, field.field_type, 'number', ctx.parent, field.localized)];
@@ -193,13 +201,20 @@ export const mapField = (
     case 'video': // external-provider metadata; mapped to link using url + title
       return [baseField(field.api_key, field.field_type, 'link', ctx.parent, field.localized)];
 
-    case 'json':
+    case 'json': {
+      if (editor === 'string_checkbox_group' || editor === 'string_multi_select') {
+        const row = baseField(field.api_key, field.field_type, 'dropdown', ctx.parent, field.localized);
+        const items: any[] = field.appearance?.parameters?.options ?? [];
+        row.advanced = { ...row.advanced, options: items.map((o: any) => ({ key: o.label, value: o.value })), multiple: true };
+        return [row];
+      }
       return [baseField(field.api_key, 'dato_json', 'extension', ctx.parent, field.localized)];
+    }
 
     case 'lat_lon':
       return groupField(field.api_key, field.field_type, [
-        { name: 'lat', csType: 'number' },
-        { name: 'lon', csType: 'number' },
+        { name: 'latitude', csType: 'number' },
+        { name: 'longitude', csType: 'number' },
       ], ctx.parent, field.localized);
 
     case 'seo':

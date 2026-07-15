@@ -292,6 +292,17 @@ function transformField(
       return Object.keys(out).length ? out : undefined;
     }
 
+    case 'dropdown': {
+      // DatoCMS stores json field values (checkbox_group, multi_select) as
+      // JSON-encoded strings in the export. Parse them to get the actual array.
+      let dropdownVal = value;
+      if (typeof dropdownVal === 'string') {
+        try { dropdownVal = JSON.parse(dropdownVal); } catch {}
+      }
+      if (Array.isArray(dropdownVal)) return dropdownVal.length ? dropdownVal : undefined;
+      return dropdownVal ?? undefined;
+    }
+
     default:
       return typeof value === 'object' ? undefined : value;
   }
