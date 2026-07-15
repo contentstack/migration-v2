@@ -30,7 +30,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE, MAPPER_SEARCH_EMPTY_STATE } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
 
 // Interface
@@ -232,7 +232,9 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setContentTypes(next);
       setFilteredContentTypes(next);
       setCount(next?.length ?? 0);
-      if (!next?.length) clearEntryTableState();
+      // When the search matches no content types, keep the currently-selected content
+      // type and its entries on the right — only the left list shows "No Content Types
+      // Found." Clearing the table here would strand the user on "No Records Found".
     } catch (error) {
       console.error(error);
       return error;
@@ -504,7 +506,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       </div>
       :
       <div className="step-container">
-        {(contentTypes?.length > 0 || tableData?.length > 0) ?
+        {(contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
           <div className="d-flex flex-wrap table-container">
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
@@ -660,6 +662,16 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                       singular: '',
                       plural: `${totalCounts === 0 ? 'Count' : ''}`
                     }}
+                    customEmptyState={
+                      <EmptyState
+                        forPage="list"
+                        heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
+                        description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
+                        moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
+                        type="secondary"
+                        className="custom-empty-state"
+                      />
+                    }
                   />
                   {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
                     <div className="mapper-footer">
