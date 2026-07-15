@@ -440,6 +440,57 @@ div .table-row {
   line-height: 1.2 !important;
 }
 
+// Center the search-empty state vertically. With v2Features.isNewEmptyState on, Venus
+// wraps customEmptyState in `.Table__centerWrapper` inside the table body. The wrapper
+// collapses to content height, so make the body a flex column and let the wrapper grow
+// to fill it, then center its own content.
+.entry-mapper-container .Table:has(.Table__centerWrapper) .Table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-mapper-container .Table__centerWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  // Nudge the empty state slightly above dead-center so it reads a touch higher.
+  padding-bottom: 6rem;
+}
+
+// Field mapping table (Map Content Fields step): center the search-empty state. Anchor on
+// the venus .Table and take .Table__centerWrapper out of flow (position: absolute) so it
+// overlays the full table area and centers, instead of stacking under the header rows.
+.field-mapper-container .Table:has(.Table__centerWrapper) {
+  position: relative;
+  // Absolute-positioned .Table__centerWrapper adds no height, so give the table an
+  // explicit tall area to center the empty state within.
+  height: calc(100vh - 300px);
+
+  .Table__centerWrapper {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Asset mapper table: venus's .Table sets min-height: 31.25rem, forcing the table
+// tall and pushing the pagination bar down with a dead gap. Pin an explicit height
+// so the table + pagination end where we want and the Save button can sit below.
+.entry-asset-mapper .step-container .Table {
+  height: 400px !important;
+  min-height: 0px !important;
+}
+
 .custom-empty-state {
   .Icon--original {
     width: 207px !important;
@@ -572,7 +623,7 @@ div .table-row {
 .entry-mapper-container {
   // Empty state: venus renders "No Records Found" (.EmptyState) with no scroll body, so
   // the table collapses. Give .Table an explicit height so it fills like ExecutionLogs.
-  .Table:has(.EmptyState) {
+  &:not(.asset-mapper-container) .Table:has(.EmptyState) {
     height: calc(100vh - 22rem) !important;
   }
 
@@ -580,8 +631,10 @@ div .table-row {
   // prop: this keeps the venus pagination bar (a sibling below the body) visible while
   // the body scrolls internally. Height fits a full page and reserves room for the
   // search row, pagination bar and Save footer.
-  .Table__body,
-  .Table.TableWithPaginated .Table__body {
+  // Entry mapper only — the asset mapper lets venus size the body from its measured
+  // tableHeight prop, and this !important would override those inline styles.
+  &:not(.asset-mapper-container) .Table__body,
+  &:not(.asset-mapper-container) .Table.TableWithPaginated .Table__body {
     height: calc(100vh - 520px) !important;
     max-height: calc(100vh - 520px) !important;
   }

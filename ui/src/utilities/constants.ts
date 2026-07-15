@@ -215,6 +215,14 @@ export const ENTRY_MAPPER_EMPTY_STATE = {
     'There are no entries available to map for the already-migrated content types. You can still continue.'
 }
 
+// Shared "search returned nothing" empty state for the mapper tables — mirrors the
+// ExecutionLogs NO_MATCH state so a zero-result search reads consistently across the app.
+export const MAPPER_SEARCH_EMPTY_STATE = {
+  NO_MATCH_HEADING: 'No matching result found',
+  NO_MATCH_DESCRIPTION: 'Try changing the search query to find what you are looking for.',
+  NO_MATCH_ICON: 'NoSearchResult'
+}
+
 // Asset Mapper (Map Entry step → Assets tab) empty-state text.
 export const ASSET_MAPPER_EMPTY_STATE = {
   NO_ASSETS_HEADING: 'No assets available for mapping',
