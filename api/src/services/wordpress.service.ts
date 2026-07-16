@@ -323,6 +323,22 @@ function unwrapSingleChildGroup(block: any): any {
 }
 
 /**
+ * Convert a WordPress date ("2026-05-07 19:40:17", usually GMT from *_gmt fields) to an ISO8601
+ * string for Contentstack `isodate` fields. Returns undefined for missing/invalid values so the
+ * caller can skip the field rather than write garbage.
+ */
+function toIsoDate(value: any): string | undefined {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw.startsWith('0000-00-00')) return undefined;
+  // WP exports "YYYY-MM-DD HH:mm:ss"; normalize the space to 'T' and treat as UTC.
+  const normalized = /\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}/.test(raw)
+    ? `${raw.replace(' ', 'T')}Z`
+    : raw;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
+/**
  * core/columns and core/column are pure layout wrappers — the schema (upload-api schemaMapper)
  * flattens them away and bubbles their descendant content up. The entry walker must mirror that,
  * otherwise content buried under columns/column (e.g. headings, lists, paragraphs) is never matched
@@ -421,6 +437,66 @@ function attachCoverBackgroundMediaToChildren(
   
 );
   if (asset != null && asset !== '') out[key] = asset;
+}
+
+/** Populate one core/block's attrs.content labels into the modular child's matching fields. */
+function populateCoreBlockContent(
+  coreBlock: any,
+  modularChild: any,
+  fields: any[],
+  assetData: any,
+  out: Record<string, any>,
+): void {
+  const content = coreBlock?.attrs?.content;
+  if (!content || typeof content !== 'object' || Array.isArray(content)) return;
+
+  for (const [label, rawVal] of Object.entries(content)) {
+    const field = fields?.find(
+      (f: any) =>
+        fieldMappedUnderModularChild(modularChild, f) && f?.otherCmsField === label,
+    );
+    if (!field) continue;
+    const key = getLastUid(field?.contentstackFieldUid);
+    if (out[key] != null && out[key] !== '') continue;
+
+    const v: any = rawVal;
+    const isObj = v && typeof v === 'object';
+    const html = isObj ? (v.content ?? '') : String(v ?? '');
+    const synthetic =
+      field?.contentstackFieldType === 'link'
+        ? { blockName: 'core/button', attrs: isObj ? v : {}, innerHTML: '', innerBlocks: [] }
+        : { blockName: 'core/paragraph', attrs: {}, innerHTML: String(html), innerBlocks: [] };
+
+    const value = formatChildByType(synthetic, field, assetData, fields, html);
+    if (value != null && value !== '') out[key] = value;
+  }
+}
+
+/**
+ * core/block (reusable/synced block) has no innerBlocks — its content lives in attrs.content as
+ * { "<label>": { content: "<html>" } | { url: "..." } }. schemaMapper emits one field per label
+ * (matched by the raw label in otherCmsField). A core/block can sit at ANY depth under the matched
+ * modular child (e.g. cover > columns > column > core/block), so walk the whole subtree and populate
+ * every core/block found — keeping this generic across content shapes and files.
+ */
+function attachCoreBlockContentToChildren(
+  blockNode: any,
+  modularChild: any,
+  fields: any[],
+  assetData: any,
+  out: Record<string, any>,
+): void {
+  if (!blockNode || typeof blockNode !== 'object' || !modularChild) return;
+  const visit = (node: any): void => {
+    if (!node || typeof node !== 'object') return;
+    if (node.blockName === 'core/block') {
+      populateCoreBlockContent(node, modularChild, fields, assetData, out);
+    }
+    if (Array.isArray(node.innerBlocks)) {
+      for (const child of node.innerBlocks) visit(child);
+    }
+  };
+  visit(blockNode);
 }
 
 function firstImgSrcFromInnerHtml(innerHtml?: string): string {
@@ -565,7 +641,45 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
             const blockForProcessing = unwrapSingleChildGroup(block);
             const blockName = getFieldName(resolvedBlockName(blockForProcessing));
             const blockNameLc = normalizedWpSlug(blockName);
-            
+
+            // A bare core/column reaching this point is the multi-child remainder of a nested-column
+            // layout — flattenTopLevelLayout peels single-child columns/column away, so a standalone
+            // core/column only survives when it holds an entire block of content (WP commonly buries a
+            // whole article body under columns → column → columns → column). It matches no modular
+            // child ("column" has no field; the schema only exposes "columns"), so today all of that
+            // content is silently dropped. Convert the whole column's inner HTML into a single JSON RTE
+            // value on the `columns` block's paragraph field: zero content loss and correct document
+            // order. Real multi-column `core/columns` layouts still flow through the structured descent.
+            if (blockForProcessing?.blockName === 'core/column') {
+              const columnsChild = modularBlockChildren.find(
+                (c: any) => normalizedWpSlug(c?.otherCmsField) === 'columns',
+              );
+              const rteField = columnsChild
+                ? fields.find(
+                    (f: any) =>
+                      fieldMappedUnderModularChild(columnsChild, f) &&
+                      f?.contentstackFieldType === 'json' &&
+                      normalizedWpSlug(f?.otherCmsField) === 'paragraph',
+                  )
+                : undefined;
+              if (columnsChild && rteField) {
+                const columnHtml = collectHtmlFromInnerBlocks(blockForProcessing);
+                if (hasMeaningfulHtmlContent(columnHtml)) {
+                  const columnRte = RteJsonConverter(columnHtml);
+                  if (columnRte) {
+                    const mk = getLastUid(columnsChild.contentstackFieldUid);
+                    const fk = getLastUid(rteField.contentstackFieldUid);
+                    modularBlocksArray.push({
+                      [mk]: {
+                        [fk]: fieldIsMultipleInContentstack(rteField) ? [columnRte] : columnRte,
+                      },
+                    });
+                  }
+                }
+                continue;
+              }
+            }
+
             // Find which modular block child this block matches
             let matchingChildField = fields.find((childField: any) => {
               const fieldName = childField?.otherCmsField?.toLowerCase();
@@ -636,6 +750,13 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                   childrenObject,
                 );
                 attachMediaTextFieldsToChildren(
+                  blockForProcessing,
+                  matchingModularBlockChild,
+                  fields,
+                  assetData,
+                  childrenObject,
+                );
+                attachCoreBlockContentToChildren(
                   blockForProcessing,
                   matchingModularBlockChild,
                   fields,
@@ -1443,9 +1564,20 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         const tags: any = [];
         const item = entry[i];
         const terms: any = [];
-        if(item?.['category']?.length > 0){
-          const category = item?.['category']?.filter((category: any) => category?.attributes?.domain === 'category');
-          tags.push(...item?.['category']?.filter((category: any) => category?.attributes?.domain === 'post_tag') || []);
+
+        // Tags live inline on each <item> as <category domain="post_tag" ...> and do NOT depend on
+        // channel-level <wp:category> definitions. Extract them unconditionally so tag data survives
+        // even when the WXR export omits channel taxonomies. Category/term taxonomies still require
+        // channel-level defs and remain in the guarded block below.
+        const itemCategories = Array.isArray(item?.['category'])
+          ? item['category']
+          : (item?.['category'] ? [item['category']] : []);
+        tags.push(
+          ...itemCategories.filter((category: any) => category?.attributes?.domain === 'post_tag'),
+        );
+
+        if(itemCategories.length > 0 && categories?.length > 0){
+          const category = itemCategories.filter((category: any) => category?.attributes?.domain === 'category');
 
           for(const cat of category){
             const parentCategoryUid = categories?.find((category: any) => category?.["wp:category_nicename"] === cat?.attributes?.nicename)?.["wp:category_parent"];
@@ -1463,7 +1595,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             });
           } 
 
-          const termCategory = item?.['category']?.filter((category: any) => category?.attributes?.domain !== 'category');
+          const termCategory = itemCategories.filter((category: any) => category?.attributes?.domain !== 'category');
           const seenTermUids = new Set<string>();
           for (const term of termCategory) {
             const uid = allTerms?.find((t: any) => term?.attributes?.nicename === t?.["wp:term_slug"])?.["wp:term_id"];
@@ -1499,7 +1631,10 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         // })
         // .first();
         //console.info("matching xml item 1 --> ", matchingXmlItem);
-        let wpPost: any;
+          let wpPost: any;
+        if(! project?.acfExportDir && project?.acfExportDir === ''){
+          
+
         try {
           const postType = item?.['wp:post_type'];
           if (postType && postType !== cachedPostType) {
@@ -1516,6 +1651,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         } catch (acfFetchErr) {
           console.warn(`ACF REST fetch failed for entry ${uid}:`, acfFetchErr);
         }
+      }
 
         const attachEntryMeta = (entryUid: string) => {
           const categoryReference = extractCategoryReference(item?.['category']);
@@ -1570,16 +1706,50 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           entryData[uid]['author'] = authorData;
           entryData[uid]['locale'] = locale;
           entryData[uid]['publish_details'] = [];
+
+          // Editorial summary
+          const excerptHtml = String(item?.['excerpt:encoded'] ?? '').trim();
+          if (excerptHtml) {
+            entryData[uid]['excerpt'] = stripHtmlTags(excerptHtml);
+          }
+          // Lifecycle: status + created/updated dates (ISO for the isodate fields)
+          if (item?.['wp:status']) {
+            entryData[uid]['status'] = String(item['wp:status']);
+          }
+          const createdIso = toIsoDate(item?.['wp:post_date_gmt'] ?? item?.['wp:post_date']);
+          if (createdIso) entryData[uid]['cs_created_at'] = createdIso;
+          const updatedIso = toIsoDate(item?.['wp:post_modified_gmt'] ?? item?.['wp:post_modified']);
+          if (updatedIso) entryData[uid]['cs_updated_at'] = updatedIso;
+
           if(item?.['wp:postmeta']?.length > 0){
             const postmeta = item?.['wp:postmeta'];
+            const seo: Record<string, any> = {};
+            let thumbnailId: string | undefined;
             for(const meta of postmeta){
               const metaKey = meta?.['wp:meta_key'];
               const metaValue = meta?.['wp:meta_value'];
               if(metaKey === '_yoast_wpseo_title'){
-                entryData[uid]['yoast_wpseo_title'] = metaValue;
+                seo.title = metaValue;
               }
               if(metaKey === '_yoast_wpseo_metadesc'){
-                entryData[uid]['yoast_wpseo_metadesc'] = metaValue;
+                seo.description = metaValue;
+              }
+              if(metaKey === '_thumbnail_id' && metaValue){
+                thumbnailId = String(metaValue);
+              }
+            }
+            if (Object.keys(seo).length > 0) {
+              entryData[uid]['seo'] = seo;
+            }
+            // Featured image: attach the post thumbnail (_thumbnail_id → attachment) as a Contentstack
+            // asset reference on the `featured_image` file field. Only when the referenced asset was
+            // successfully downloaded/registered (present in assetData); failed downloads leave it unset.
+            if (thumbnailId) {
+              const featuredAsset = assetData?.[`assets_${thumbnailId}`];
+              console.info(`Looking for featured image for entry ${uid} with thumbnail ID ${thumbnailId}`);
+              if (featuredAsset) {
+                console.info(`Attaching featured image for entry ${uid} from thumbnail ID ${thumbnailId}`);
+                entryData[uid]['featured_image'] = featuredAsset;
               }
             }
           }
@@ -2142,6 +2312,29 @@ function isAssetUrlDownloaded(url: string, baseSiteUrl: string): boolean {
   );
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Max download attempts (initial + retries) per asset before giving up. */
+const MAX_ASSET_ATTEMPTS = 4;
+
+/**
+ * Whether a failed asset download is worth retrying. The source host (Vercel-fronted) returns 403
+ * under burst load (rate-limiting) — those recover on a spaced retry. 429 and 5xx are transient too,
+ * as are network errors/timeouts (no response). A 404 is permanent (file deleted), so don't retry it.
+ */
+function isRetryableAssetError(err: any): boolean {
+  const status = err?.response?.status ?? err?.status;
+  if (status === 404) return false;
+  if (status === 403 || status === 429) return true;
+  if (typeof status === 'number' && status >= 500) return true;
+  return !err?.response; // network error / timeout
+}
+
+/** Exponential backoff with jitter: 1s, 2s, 4s … capped at 8s, + up to 250ms jitter to de-sync bursts. */
+function assetRetryBackoffMs(attempt: number): number {
+  return Math.min(1000 * 2 ** attempt, 8000) + Math.floor(Math.random() * 250);
+}
+
 async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const srcFunc = 'saveAsset';
   const url = encodeURI(toCheckUrl(assets["wp:attachment_url"],baseSiteUrl));
@@ -2149,7 +2342,18 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   const fileExtension = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')) : '';
   const nameWithoutExt = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
 
+  // WordPress alt text lives on the attachment as the `_wp_attachment_image_alt` postmeta. It is the
+  // canonical accessibility/SEO text for the image, so carry it onto the Contentstack asset's
+  // description (preferred over the usually-empty content/excerpt fallbacks).
+  const attachmentMeta = Array.isArray(assets["wp:postmeta"])
+    ? assets["wp:postmeta"]
+    : (assets["wp:postmeta"] ? [assets["wp:postmeta"]] : []);
+  const altText = attachmentMeta.find(
+    (m: any) => m?.["wp:meta_key"] === "_wp_attachment_image_alt" && m?.["wp:meta_value"],
+  )?.["wp:meta_value"] || "";
+
   let description =
+    altText ||
     assets["description"] ||
     assets["content:encoded"] ||
     assets["excerpt:encoded"] ||
@@ -2219,9 +2423,12 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       description,
     };
 
-    if (failedJSON[customId]) {
-      // delete the assest entry from wp_failed log
-      delete failedJSON[customId];
+    // Clear any prior failed-download record for this asset now that it succeeded (e.g. on a backoff
+    // retry). The failed entry is keyed by wp:post_id (no `assets_` prefix), so delete by that key —
+    // the old code used customId and never actually removed recovered assets from cs_failed.
+    const failedKey = assets["wp:post_id"];
+    if (failedJSON[failedKey]) {
+      delete failedJSON[failedKey];
       await writeFileAsync(failedJSONFilePath, failedJSON, 4);
     }
     assetData[key] = acc[key];
@@ -2261,12 +2468,15 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     );
    await writeFileAsync(failedJSONFilePath, failedJSON, 4);
 
-    if (retryCount === 0) {
-      return await saveAsset(assets, 1, affix, destinationStackId, projectId, baseSiteUrl);
+    // Retry transient failures (403 rate-limit, 429, 5xx, network/timeout) with exponential backoff.
+    // The previous immediate single retry didn't help rate-limiting — spacing the retry is what recovers it.
+    if (retryCount + 1 < MAX_ASSET_ATTEMPTS && isRetryableAssetError(err)) {
+      await sleep(assetRetryBackoffMs(retryCount));
+      return await saveAsset(assets, retryCount + 1, affix, destinationStackId, projectId, baseSiteUrl);
     } else {
       const message = getLogMessage(
         srcFunc,
-        `Failed to download asset with id ${assets["wp:post_id"]}`,
+        `Failed to download asset with id ${assets["wp:post_id"]} after ${retryCount + 1} attempt(s)`,
         {},
         err
       )
@@ -2565,12 +2775,15 @@ async function saveAssetFromUrl(
     );
     await writeFileAsync(failedJSONFilePath, failedJSON, 4);
     
-    if (retryCount === 0) {
-      return await saveAssetFromUrl(url, affix, destinationStackId, projectId, baseSiteUrl, 1);
+    // Retry transient failures (403 rate-limit, 429, 5xx, network/timeout) with exponential backoff,
+    // mirroring saveAsset — a spaced retry recovers rate-limited downloads that an immediate one can't.
+    if (retryCount + 1 < MAX_ASSET_ATTEMPTS && isRetryableAssetError(err)) {
+      await sleep(assetRetryBackoffMs(retryCount));
+      return await saveAssetFromUrl(url, affix, destinationStackId, projectId, baseSiteUrl, retryCount + 1);
     } else {
       const message = getLogMessage(
         srcFunc,
-        `Failed to download asset from URL: ${encodedUrl}`,
+        `Failed to download asset from URL: ${encodedUrl} after ${retryCount + 1} attempt(s)`,
         {},
         err
       );
@@ -2582,17 +2795,23 @@ async function saveAssetFromUrl(
 
 async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const BATCH_SIZE = 5; // 5 promises at a time
+  const BATCH_DELAY_MS = 400; // pause between batches so we don't trip the source host's rate limiter
   const results = [];
-  
+
   for (let i = 0; i < attachments?.length; i += BATCH_SIZE) {
     const batch = attachments?.slice(i, i + BATCH_SIZE);
-    
+
     const batchResults = await Promise.allSettled(
       batch?.map(async (data) => {
         await saveAsset(data, 0, affix, destinationStackId, projectId, baseSiteUrl)
       })
     );
     results?.push(...batchResults);
+
+    // Throttle between batches (skip the wait after the final batch).
+    if (i + BATCH_SIZE < attachments?.length) {
+      await sleep(BATCH_DELAY_MS);
+    }
   }
   await fs.promises.writeFile(
     path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
@@ -2642,7 +2861,7 @@ async function getAllAssets(
     // Process all items to extract image URLs from content:encoded
     for (const item of assets) {
       const contentEncoded = item["content:encoded"];
-      if (contentEncoded && typeof contentEncoded === 'string') {
+      if (contentEncoded && typeof contentEncoded === 'string' && item?.['wp:status'] !== 'draft') {
         const imageUrls = extractImageUrlsFromContent(contentEncoded, baseSiteUrl);
         imageUrls.forEach((url) => {
           if (!isAssetUrlDownloaded(url, baseSiteUrl)) {

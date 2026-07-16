@@ -11,6 +11,7 @@ import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
 import { DataConfig, Field, CT } from '../interface/interface';
 import { handleAcfData, acfMpapperGenerator, acfMapperFromExportFiles } from './extractAcfData';
+import { attachSeoGlobalField, contentTypeReferencesSeo, buildSeoGlobalFieldDefinition, SEO_GLOBAL_FIELD_UID } from './globalFields';
 
 const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
@@ -54,6 +55,7 @@ const { contentTypes: contentTypesConfig } = config?.modules;
 
 const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
 const blocksJsonOutputDir = path.resolve(config?.data, 'wordpress_blocks');
+const globalFieldsOutputDir = path.resolve(config?.data, 'global_fields');
 
 function sanitizeBlocksJsonFileName(title: string, maxLen = 80): string {
   return String(title || 'untitled')
@@ -394,6 +396,78 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
           "mandatory": true
         }
       })
+      // Editorial summary — added only when at least one item carries an excerpt.
+      if (item?.some?.((d: any) => String(d?.['excerpt:encoded'] ?? '')?.trim())) {
+        CT?.push({
+          "isDeleted": false,
+          "uid": "excerpt",
+          "backupFieldUid": "excerpt",
+          "otherCmsField": "excerpt",
+          "otherCmsType": "text",
+          "contentstackField": "Excerpt",
+          "contentstackFieldUid": "excerpt",
+          "contentstackFieldType": "multi_line_text",
+          "backupFieldType": "multi_line_text",
+          "advanced": {}
+        });
+      }
+      // Featured image — WordPress stores the post thumbnail as the `_thumbnail_id` postmeta pointing
+      // at an attachment. Add a single file field so the entry walker can attach it as a Contentstack
+      // asset reference. Added only when at least one item declares a featured image.
+      if (item?.some?.((d: any) => {
+        const pm = Array.isArray(d?.['wp:postmeta']) ? d['wp:postmeta'] : (d?.['wp:postmeta'] ? [d['wp:postmeta']] : []);
+        return pm.some((m: any) => m?.['wp:meta_key'] === '_thumbnail_id' && m?.['wp:meta_value']);
+      })) {
+        CT?.push({
+          "isDeleted": false,
+          "uid": "featured_image",
+          "backupFieldUid": "featured_image",
+          "otherCmsField": "_thumbnail_id",
+          "otherCmsType": "file",
+          "contentstackField": "Featured Image",
+          "contentstackFieldUid": "featured_image",
+          "contentstackFieldType": "file",
+          "backupFieldType": "file",
+          "advanced": {}
+        });
+      }
+      // Lifecycle fields — status + created/updated dates (useful for filtering/search).
+      CT?.push({
+        "isDeleted": false,
+        "uid": "status",
+        "backupFieldUid": "status",
+        "otherCmsField": "status",
+        "otherCmsType": "text",
+        "contentstackField": "Status",
+        "contentstackFieldUid": "status",
+        "contentstackFieldType": "single_line_text",
+        "backupFieldType": "single_line_text",
+        "advanced": {}
+      },
+      {
+        "isDeleted": false,
+        "uid": "created_at",
+        "backupFieldUid": "created_at",
+        "otherCmsField": "post_date",
+        "otherCmsType": "date",
+        "contentstackField": "Created At",
+        "contentstackFieldUid": "cs_created_at",
+        "contentstackFieldType": "isodate",
+        "backupFieldType": "isodate",
+        "advanced": {}
+      },
+      {
+        "isDeleted": false,
+        "uid": "updated_at",
+        "backupFieldUid": "updated_at",
+        "otherCmsField": "post_modified",
+        "otherCmsType": "date",
+        "contentstackField": "Updated At",
+        "contentstackFieldUid": "cs_updated_at",
+        "contentstackFieldType": "isodate",
+        "backupFieldType": "isodate",
+        "advanced": {}
+      })
       if(!isAllContentEmpty){
       CT?.push({
         "isDeleted": false,
@@ -719,34 +793,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         const postmetaData = Array?.isArray(data?.['wp:postmeta']) ? data?.['wp:postmeta'] : [data?.['wp:postmeta']];
         for(const postmeta of postmetaData){
           const metaKey = postmeta?.['wp:meta_key'];
-          if(metaKey === '_yoast_wpseo_title' && ! CT?.find((item: Field) => item?.uid === 'yoast_wpseo_title')){
-              CT?.push({
-                "uid": 'yoast_wpseo_title',
-                "contentstackFieldUid": 'yoast_wpseo_title',
-                "contentstackField": 'Yoast SEO Title',
-                "contentstackFieldType": 'single_line_text',
-                "backupFieldType": 'single_line_text',
-                "otherCmsField": 'Yoast SEO Title',
-                "otherCmsType": 'text',
-                "backupFieldUid": 'yoast_wpseo_title',
-                "advanced": {
-                  "mandatory": false}
-              });
-          }
-          if(metaKey === '_yoast_wpseo_metadesc' && ! CT?.find((item: Field) => item?.uid === 'yoast_wpseo_metadesc')){
-              CT?.push({
-                "uid": 'yoast_wpseo_metadesc',
-                "contentstackFieldUid": 'yoast_wpseo_metadesc',
-                "contentstackField": 'Yoast SEO Description',
-                "contentstackFieldType": 'multi_line_text',
-                "backupFieldType": 'multi_line_text',
-                "otherCmsField": 'Yoast SEO Description',
-                "otherCmsType": 'text',
-                "backupFieldUid": 'yoast_wpseo_metadesc',
-                "advanced": {
-                  "mandatory": false}
-              });
-          }
+          // Yoast SEO → reusable "SEO" global field reference (see libs/globalFields).
+          attachSeoGlobalField(CT, metaKey);
         }
       }
     }
@@ -776,6 +824,32 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         console.log(`Successfully created unified content type: ${type}.json`);
         } catch (error : any) {
         console.error(`Error writing unified content type file ${filePath}:`, error?.message);
+    }
+
+    // Write the reusable "SEO" global field referenced by this content type — same way the content
+    // type is written above (its own JSON file under cmsMigrationData/global_fields). Merged/deduped
+    // by uid so repeated content types accumulate into one globalfields.json.
+    if (contentTypeReferencesSeo(CT)) {
+      try {
+        await mkdirp(globalFieldsOutputDir);
+        const globalFieldsPath = path.join(globalFieldsOutputDir, 'globalfields.json');
+        let globalFields: any[] = [];
+        if (fs.existsSync(globalFieldsPath)) {
+          try {
+            globalFields = JSON.parse(await fs.promises.readFile(globalFieldsPath, 'utf8'));
+          } catch {
+            globalFields = [];
+          }
+        }
+        if (!Array.isArray(globalFields)) globalFields = [];
+        if (!globalFields.some((gf: any) => gf?.uid === SEO_GLOBAL_FIELD_UID)) {
+          globalFields.push(buildSeoGlobalFieldDefinition());
+          await helper.writeFileAsync(globalFieldsPath, globalFields, 4);
+          console.log('Successfully wrote SEO global field: globalfields.json');
+        }
+      } catch (error: any) {
+        console.error('Error writing SEO global field file:', error?.message);
+      }
     }
 }
 

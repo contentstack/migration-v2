@@ -361,6 +361,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const rteUid = parentUid ?
             `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`
             : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
+            
             return {
                 uid: rteUid,
                 otherCmsField: getFieldName(key?.name),
@@ -396,6 +397,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const rteUid = parentUid ?
                 `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`
                 : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
+              
             if(key?.attributes?.originalName === 'jetpack/markdown'){
                 return {
                     uid: rteUid,
@@ -463,6 +465,15 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 return groupSchema;
             }
             else{
+                // Custom/unknown blocks (parsed as core/missing — e.g. salsa-blocks/marketo-form,
+                // salsa-blocks/vidyard-embed, yoast-seo/breadcrumbs) with no inner blocks and no
+                // rendered content carry nothing to migrate. Skip them instead of creating an empty
+                // json field. Custom containers (innerBlocks present) still flow through.
+                const hasInnerBlocks = Array.isArray(key?.innerBlocks) && key.innerBlocks.length > 0;
+                const hasRenderedText = String(key?.innerHTML ?? '').replace(/<[^>]*>/g, '').trim().length > 0;
+                if (!hasInnerBlocks && !hasRenderedText) {
+                    return [];
+                }
                 return {
                     uid: rteUid,
                     otherCmsField: getFieldName(resolveBlockName(key)),
@@ -577,6 +588,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
 
             const groupSchema: Field[] = [];
             const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
+            
 
             const innerBlocks = await processInnerBlocks(
                 key,
@@ -619,36 +631,33 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             
          
         case 'core/list': {
-            // Handle list blocks by extracting list item content
+            // A list maps to a SINGLE repeatable "Item" field (multiple: true), not one field per
+            // list-item — every <li> populates the same field as an array at entry time.
             if (key?.innerBlocks && key.innerBlocks.length > 0) {
-                const listItems: Field[] = [];
-                for (const item of key.innerBlocks) {
-                    if (item.name === 'core/list-item' && item.attributes?.content) {
-                        const itemUid = parentUid
-                            ? `${parentUid}.${getFieldUid(`list_item_${clientIdForUid(item.clientId)}`, affix)}`
-                            : getFieldUid(`list_item_${clientIdForUid(item.clientId)}`, affix);
-
-                        listItems.push({
-                            uid: itemUid,
-                            otherCmsField: 'list_item',
-                            otherCmsType: 'text',
-                            contentstackField: `${fieldName} > Item`,
-                            contentstackFieldUid: itemUid,
-                            contentstackFieldType: 'single_line_text',
-                            backupFieldType: 'single_line_text',
-                            backupFieldUid: itemUid,
-                            advanced: {}
-                        });
-                    }
-                }
-                if (listItems.length > 0) {
-                    return listItems;
+                const hasItems = key.innerBlocks.some(
+                    (item: any) => item?.name === 'core/list-item' && item?.attributes?.content
+                );
+                if (hasItems) {
+                    const itemUid = parentUid
+                        ? `${parentUid}.${getFieldUid(`list_item${stableSuffix(key)}`, affix)}`
+                        : getFieldUid(`list_item${stableSuffix(key)}`, affix);
+                    return {
+                        uid: itemUid,
+                        otherCmsField: 'list_item',
+                        otherCmsType: 'text',
+                        contentstackField: `${fieldName} > Item`,
+                        contentstackFieldUid: itemUid,
+                        contentstackFieldType: 'single_line_text',
+                        backupFieldType: 'single_line_text',
+                        backupFieldUid: itemUid,
+                        advanced: { multiple: true }
+                    };
                 }
             }
             // If no inner blocks or empty, treat as paragraph
             const listUid = parentUid ?
-                `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
-                : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+                `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`
+                : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
             return {
                 uid: listUid,
                 otherCmsField: getFieldName(key?.name),
@@ -669,7 +678,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/navigation': {
             const groupSchema: Field[] = [];
             const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
-
+           
             const innerBlocks = await processInnerBlocks(
                 key,
                 groupUid ,
@@ -715,10 +724,12 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             if(key?.attributes?.url){
                 coverSchema.push({
                 uid: `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`,
+             
                 otherCmsField: 'media',
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: 'media',
                 contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`,
+                
                 contentstackFieldType: 'file',
                 backupFieldType: 'file',
                 backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}`,
@@ -748,6 +759,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         
         case 'core/search': {
             const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
+           
             const searchEle = await processAttributes(key, searchEleUid,fieldName, affix);
             const groupSchema: Field[] = [];
             searchEle?.length > 0 && groupSchema?.push({
@@ -780,6 +792,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/button': {
             const fieldName = parentFieldName ? `${parentFieldName} > ${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` :  `${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` ;
             const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
+         
 
             return { 
                 uid: buttonUid,
@@ -801,8 +814,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/buttons': { 
             const groupSchema: Field[] = [];
             const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
-
-            const innerBlocks = await processInnerBlocks(
+              const innerBlocks = await processInnerBlocks(
                 key, 
                 groupUid ,
                 fieldName,
@@ -857,7 +869,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/media-text': {
             const mediaTextSchema: Field[] = [];
             const mediaTextUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
-            const innerBlocks =
+                 const innerBlocks =
                 key?.innerBlocks && key?.innerBlocks?.length > 0
                     ? await processInnerBlocks(key, parentUid, parentFieldName, affix)
                     : [];
@@ -917,81 +929,38 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
 
         case 'core/block': {
             const blockSchema: Field[] = [];
-            const blockUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const blockUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}${stableSuffix(key)}`, affix)}` : getFieldUid(`${key?.name}${stableSuffix(key)}`, affix);
 
-            const contentFields = await processBlockAttributes(key?.attributes?.content, blockUid, fieldName, affix);
-
-            if (contentFields?.length > 0) {
-                blockSchema.push(
-                {
-                    uid: `${parentUid}.heading`,
-                    otherCmsField: 'heading',
-                    otherCmsType: 'heading',
-                    contentstackField: `${parentFieldName} > heading`,
-                    contentstackFieldUid: `${parentUid}.heading`,
-                    contentstackFieldType: 'html',
-                    backupFieldType: 'html',
-                    backupFieldUid: `${parentUid}.heading`,
-                    advanced: {},
-                    css: {
-                        classNames: key?.attributes?.className,
-                        id: key?.attributes?.anchor,
-                    },
-                },{
-                    uid: `${parentUid}.description`,
-                    otherCmsField: 'description',
-                    otherCmsType: 'description',
-                    contentstackField: `${parentFieldName} > description`,
-                    contentstackFieldUid: `${parentUid}.description`,
-                    contentstackFieldType: 'html',
-                    backupFieldType: 'html',
-                    backupFieldUid: `${parentUid}.description`,
-                    advanced: {},
-                    css: {
-                        classNames: key?.attributes?.className,
-                        id: key?.attributes?.anchor,
-                    },
-                },{
-                    uid: `${parentUid}.paragraph`,
-                    otherCmsField: 'paragraph',
-                    otherCmsType: 'paragraph',
-                    contentstackField: `${parentFieldName} > paragraph`,
-                    contentstackFieldUid: `${parentUid}.paragraph`,
-                    contentstackFieldType: 'json',
-                    backupFieldType: 'json',
-                    backupFieldUid: `${parentUid}.paragraph`,
-                    advanced: {},
-                    css: {
-                        classNames: key?.attributes?.className,
-                        id: key?.attributes?.anchor,
-                    },
-                },{
-                    uid: `${parentUid}.image`,
-                    otherCmsField: 'badge',
-                    otherCmsType: 'badge',
-                    contentstackField: `${parentFieldName} > badge`,
-                    contentstackFieldUid: `${parentUid}.badge`,
-                    contentstackFieldType: 'file',
-                    backupFieldType: 'file',
-                    backupFieldUid: `${parentUid}.badge`,
-                    advanced: {},
-                    css: {
-                        classNames: key?.attributes?.className,
-                        id: key?.attributes?.anchor,
-                    },
-                });
-                // contentFields.forEach((schemaObj) => {
-                //     if (schemaObj) {
-                //         if (Array.isArray(schemaObj)) {
-                //             blockSchema.push(...schemaObj);
-                //         } else {
-                //             blockSchema.push(schemaObj);
-                //         }
-                //     }
-                // });
-                return blockSchema;
+            // core/block is a reusable/synced block: its real content lives in attrs.content as
+            // { "<label>": { content: "<html>" } | { url: "..." } }. Emit one field per content key
+            // (link when the value carries a url, otherwise single_line_text). otherCmsField keeps the
+            // raw label so the entry walker can match it exactly when reading attrs.content.
+            const blockContent = key?.attributes?.content;
+            if (blockContent && typeof blockContent === 'object' && !Array.isArray(blockContent)) {
+                for (const [contentKey, contentVal] of Object.entries(blockContent)) {
+                    const slug = String(contentKey).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'field';
+                    const cfUid = `${blockUid}.${slug}`;
+                    const v: any = contentVal;
+                    const isLink = !!(v && typeof v === 'object' && (v.url || v.href));
+                    const cfType = isLink ? 'link' : 'single_line_text';
+                    blockSchema.push({
+                        uid: cfUid,
+                        otherCmsField: contentKey,
+                        otherCmsType: 'block-content',
+                        contentstackField: `${fieldName} > ${contentKey}`,
+                        contentstackFieldUid: cfUid,
+                        contentstackFieldType: cfType,
+                        backupFieldType: cfType,
+                        backupFieldUid: cfUid,
+                        advanced: {},
+                        css: {
+                            classNames: key?.attributes?.className,
+                            id: key?.attributes?.anchor,
+                        },
+                    });
+                }
             }
-            return [];
+            return blockSchema;
         }
     }
     return [];
