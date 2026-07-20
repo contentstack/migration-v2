@@ -10,7 +10,6 @@ export interface Counters {
   assetsSkipped: number;
   groupsSkipped: number;
   blocksSkipped: number;
-  globalFieldsSkipped: number;
   structuredTextNodesSkipped: number;
 }
 
@@ -18,7 +17,6 @@ export const newCounters = (): Counters => ({
   assetsSkipped: 0,
   groupsSkipped: 0,
   blocksSkipped: 0,
-  globalFieldsSkipped: 0,
   structuredTextNodesSkipped: 0,
 });
 

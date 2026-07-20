@@ -177,7 +177,7 @@ async function extractContentTypes(
         otherCmsUid: ct.api_key,
         contentstackTitle: ct.name,
         contentstackUid,
-        type: ct.modular_block ? 'global_field' : 'content_type',
+        type: 'content_type',
         fieldMapping,
       };
 

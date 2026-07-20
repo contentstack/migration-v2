@@ -145,13 +145,12 @@ const richTextField = (
  */
 const singleBlockField = (field: DatoField, ctx: MapperCtx): Field => {
   const itemTypes = field.validators?.single_block_blocks?.item_types ?? [];
-  const targetId = itemTypes[0];
-  const info = targetId ? ctx.blocksById.get(targetId) : undefined;
-  const row = baseField(field.api_key, 'single_block', 'global_field', ctx.parent, field.localized);
-  if (info) {
-    row.refrenceTo = [info.contentstackUid];
+  const row = baseField(field.api_key, 'single_block', 'reference', ctx.parent, field.localized);
+  const ctUids = itemTypes.map((id) => ctx.blocksById.get(id)?.contentstackUid).filter(Boolean) as string[];
+  if (ctUids.length) {
+    row.refrenceTo = ctUids;
   } else {
-    console.warn(`single_block "${field.api_key}": no resolvable single_block_blocks item_type`);
+    console.warn(`single_block "${field.api_key}": no resolvable single_block_blocks item_types`);
   }
   return row;
 };
@@ -258,11 +257,24 @@ export const mapField = (
     case 'rich_text':
       return richTextField(field, ctx, blockFieldsById);
 
-    case 'structured_text':
-      // DAST-tree block/inline-item/link extraction deferred — see TRD open
-      // questions. Preserve the raw structured-text value losslessly as JSON
-      // rather than guessing at the conversion.
-      return [baseField(field.api_key, field.field_type, 'json', ctx.parent, field.localized)];
+    case 'structured_text': {
+      const row = baseField(field.api_key, field.field_type, 'json', ctx.parent, field.localized);
+      // Collect all item_type IDs that can appear inside this structured text field
+      // (embedded blocks, inline records, and linked records) and map them to their
+      // CS content type UIDs so the CT builder sets embed_entry: true + reference_to.
+      const allowedIds = [
+        ...(field.validators?.structured_text_blocks?.item_types ?? []),
+        ...(field.validators?.structured_text_inline_blocks?.item_types ?? []),
+        ...(field.validators?.structured_text_links?.item_types ?? []),
+      ];
+      const embedObjects = [...new Set(allowedIds)]
+        .map((id) => ctx.blocksById.get(id)?.contentstackUid)
+        .filter(Boolean) as string[];
+      if (embedObjects.length) {
+        row.advanced = { ...row.advanced, embedObjects };
+      }
+      return [row];
+    }
 
     // --- fallback: keep raw structure as JSON rather than dropping data ---
     default:

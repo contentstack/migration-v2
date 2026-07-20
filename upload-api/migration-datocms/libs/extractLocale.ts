@@ -24,7 +24,13 @@ const extractLocale = async (filePath: string): Promise<string[]> => {
     if (fs.existsSync(assetsPath)) {
       const assets: any[] = readJson(assetsPath);
       assets.forEach((asset) => {
-        Object.keys(asset?.default_field_metadata ?? {}).forEach((loc) => locales.add(loc));
+        // default_field_metadata is keyed by field name (alt, title, custom_data, …),
+        // with locale codes one level deeper: { alt: { en: null, de: null }, … }
+        Object.values(asset?.default_field_metadata ?? {}).forEach((fieldMeta) => {
+          if (fieldMeta && typeof fieldMeta === 'object' && !Array.isArray(fieldMeta)) {
+            Object.keys(fieldMeta).filter((k) => LOCALE_KEY.test(k)).forEach((k) => locales.add(k));
+          }
+        });
       });
     }
 

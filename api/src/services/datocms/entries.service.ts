@@ -46,37 +46,71 @@ function dastSpanToCsText(node: any): any {
   return out;
 }
 
-function dastNodeToCs(node: any, counters: Counters): any | null {
+interface DastCtx {
+  counters: Counters;
+  docIndex: Record<string, DocRef>;
+  ctUidByApiKey: Record<string, string>;
+  locale: string;
+}
+
+function dastNodeToCs(node: any, ctx: DastCtx): any | null {
   const type = node?.type;
+
   if (type === 'paragraph' || type === 'heading') {
     const tag = type === 'heading' ? `h${node?.level ?? 1}` : 'p';
     const children = (node?.children ?? [])
-      .map((c: any) => (c?.type === 'span' ? dastSpanToCsText(c) : null))
+      .map((c: any) => c?.type === 'span' ? dastSpanToCsText(c) : dastNodeToCs(c, ctx))
       .filter(Boolean);
     if (!children.length) return null;
     return { type: tag, uid: newUid(), attrs: {}, children };
   }
+
   if (type === 'list') {
     const tag = node?.style === 'numbered' ? 'ol' : 'ul';
     const children = (node?.children ?? [])
       .map((li: any) => {
-        const liChildren = (li?.children ?? []).map((c: any) => dastNodeToCs(c, counters)).filter(Boolean);
+        const liChildren = (li?.children ?? []).map((c: any) => dastNodeToCs(c, ctx)).filter(Boolean);
         return liChildren.length ? { type: 'li', uid: newUid(), attrs: {}, children: liChildren } : null;
       })
       .filter(Boolean);
     if (!children.length) return null;
     return { type: tag, uid: newUid(), attrs: {}, children };
   }
-  // block / inlineItem / itemLink / thematicBreak / unknown — deferred, see header comment.
-  counters.structuredTextNodesSkipped += 1;
+
+  if (type === 'block' || type === 'inlineItem') {
+    const itemId = node?.item;
+    const ref = itemId ? ctx.docIndex[itemId] : undefined;
+    const ctUid = ref ? ctx.ctUidByApiKey[ref.apiKey] : undefined;
+    if (!ref || !ctUid) {
+      ctx.counters.structuredTextNodesSkipped += 1;
+      return null;
+    }
+    const isInline = type === 'inlineItem';
+    return {
+      type: 'reference',
+      uid: newUid(),
+      attrs: {
+        'display-type': isInline ? 'inline' : 'block',
+        'entry-uid': ref.uid,
+        'content-type-uid': ctUid,
+        locale: ctx.locale,
+        type: 'entry',
+        'class-name': isInline ? 'embedded-entry-inline' : 'embedded-entry-block',
+      },
+      children: [{ text: '' }],
+    };
+  }
+
+  // itemLink / thematicBreak / unknown
+  ctx.counters.structuredTextNodesSkipped += 1;
   return null;
 }
 
-function convertDastToCsRte(value: any, counters: Counters): any {
+function convertDastToCsRte(value: any, ctx: DastCtx): any {
   const emptyDoc = { type: 'doc', uid: newUid(), attrs: {}, children: [{ type: 'p', uid: newUid(), attrs: {}, children: [{ text: '' }] }] };
   const rootChildren = value?.document?.children;
   if (!Array.isArray(rootChildren)) return emptyDoc;
-  const children = rootChildren.map((n: any) => dastNodeToCs(n, counters)).filter(Boolean);
+  const children = rootChildren.map((n: any) => dastNodeToCs(n, ctx)).filter(Boolean);
   return children.length ? { type: 'doc', uid: newUid(), attrs: {}, children } : emptyDoc;
 }
 
@@ -92,6 +126,7 @@ function transformField(
   field: any,
   record: any,
   locale: string,
+  destLocale: string,
   docIndex: Record<string, DocRef>,
   ctUidByApiKey: Record<string, string>,
   assetLookup: Record<string, any>,
@@ -152,7 +187,7 @@ function transformField(
     }
 
     case 'json': {
-      if (field?.otherCmsType === 'structured_text') return convertDastToCsRte(value, counters);
+      if (field?.otherCmsType === 'structured_text') return convertDastToCsRte(value, { counters, docIndex, ctUidByApiKey, locale: destLocale });
       return value === undefined ? undefined : value;
     }
 
@@ -211,7 +246,7 @@ function transformField(
           const raw = el[child?.otherCmsField];
           if (raw === undefined) continue;
           const v = transformField(
-            raw, child, record, locale, docIndex, ctUidByApiKey, assetLookup, allContentTypes, recordsById, counters, allFields, depth + 1,
+            raw, child, record, locale, destLocale, docIndex, ctUidByApiKey, assetLookup, allContentTypes, recordsById, counters, allFields, depth + 1,
           );
           if (v !== undefined) out[getLastUid(child.contentstackFieldUid)] = v;
         }
@@ -256,40 +291,13 @@ function transformField(
           const raw = readRaw(blockRecord, child, locale);
           if (raw === undefined) continue;
           const v = transformField(
-            raw, child, blockRecord, locale, docIndex, ctUidByApiKey, assetLookup, allContentTypes, recordsById, counters, allFields, depth + 1,
+            raw, child, blockRecord, locale, destLocale, docIndex, ctUidByApiKey, assetLookup, allContentTypes, recordsById, counters, allFields, depth + 1,
           );
           if (v !== undefined) inner[getLastUid(child.contentstackFieldUid)] = v;
         }
         if (Object.keys(inner).length) out.push({ [getLastUid(blockRow.contentstackFieldUid)]: inner });
       }
       return out.length ? out : undefined;
-    }
-
-    case 'global_field': {
-      // single_block: value = id of a SEPARATE block-instance record. Resolve the
-      // target global field's OWN fieldMapping from the full contentTypes list
-      // (not allFields — that's the CURRENT ct's fields) via `refrenceTo`.
-      if (depth >= MAX_GROUP_DEPTH || !value) {
-        if (value) counters.globalFieldsSkipped += 1;
-        return undefined;
-      }
-      const targetUid = field?.refrenceTo?.[0];
-      const targetCt = allContentTypes.find((ct: any) => ct?.contentstackUid === targetUid && ct?.type === 'global_field');
-      const blockRecord = recordsById[value];
-      if (!targetCt || !blockRecord) {
-        counters.globalFieldsSkipped += 1;
-        return undefined;
-      }
-      const out: Record<string, any> = {};
-      for (const child of (targetCt.fieldMapping ?? []).filter((f: any) => !f?.isDeleted && !f?.contentstackFieldUid?.includes('.'))) {
-        const raw = readRaw(blockRecord, child, locale);
-        if (raw === undefined) continue;
-        const v = transformField(
-          raw, child, blockRecord, locale, docIndex, ctUidByApiKey, assetLookup, allContentTypes, recordsById, counters, targetCt.fieldMapping ?? [], depth + 1,
-        );
-        if (v !== undefined) out[child.contentstackFieldUid] = v;
-      }
-      return Object.keys(out).length ? out : undefined;
     }
 
     case 'dropdown': {
@@ -380,8 +388,82 @@ export async function createEntry(
     const entryLevelCts = contentTypes.filter((ct: any) => ct?.type !== 'global_field');
     const counters = newCounters();
 
+    // DatoCMS block models (modular_block: true) are imported as CS content types but their
+    // records are locale-specific: each locale of a parent references DIFFERENT block record IDs.
+    // We must only write a block record for the locale(s) that actually reference it — otherwise
+    // German block records end up in en-us, etc.
+    const datoCtMeta: any[] = readJson(path.join(root, 'content_types.json'));
+    const blockCtApiKeys = new Set<string>(
+      datoCtMeta.filter((ct: any) => ct.modular_block).map((ct: any) => ct.api_key),
+    );
+    // Reverse map: srcLocale → destLocale (e.g. 'en' → 'en-us')
+    const srcToDestLocale: Record<string, string> = {};
+    for (const [dest, src] of Object.entries(localeMap)) srcToDestLocale[src as string] = dest;
+    // blockRecordLocales: block record id → set of destLocales that reference it
+    const blockRecordLocales = new Map<string, Set<string>>();
+    // blockRecordAlias: non-canonical id → canonical id
+    // DatoCMS block fields store DIFFERENT record IDs per locale (e.g. mb_single_block:
+    // {en: 'Hj2WXt', de: 'CBIuQ2', fr: 'U64k5C'}).  All three are the same logical
+    // entry; they must share one CS UID so language-switching works in the CS UI.
+    const blockRecordAlias = new Map<string, string>();
+    const collectDastIds = (node: any, out: string[]): void => {
+      if (!node) return;
+      if ((node.type === 'block' || node.type === 'inlineItem') && node.item) out.push(node.item);
+      if (Array.isArray(node.children)) node.children.forEach((c: any) => collectDastIds(c, out));
+    };
+    for (const r of records) {
+      const rApiKey = apiKeyByItemTypeId[r?.__itemTypeId];
+      if (!rApiKey || blockCtApiKeys.has(rApiKey)) continue;
+      for (const [fieldKey, rawValue] of Object.entries(r as Record<string, any>)) {
+        if (!rawValue || typeof rawValue !== 'object' || Array.isArray(rawValue)) continue;
+        if (['__itemTypeId', 'id', 'type', 'item_type', 'meta', 'creator', 'fieldset'].includes(fieldKey)) continue;
+        const srcLocaleKeys = Object.keys(rawValue);
+        if (!srcLocaleKeys.length || !srcLocaleKeys.every((k) => k in srcToDestLocale)) continue;
+
+        // Collect block IDs per destLocale for this field, preserving array position
+        const localeBlockIds: Array<{ destLocale: string; ids: string[] }> = [];
+        for (const srcLocale of srcLocaleKeys) {
+          const destLocale = srcToDestLocale[srcLocale];
+          if (!destLocale) continue;
+          const localeValue = (rawValue as any)[srcLocale];
+          const raw: string[] = Array.isArray(localeValue)
+            ? localeValue.filter((v: any): v is string => typeof v === 'string')
+            : typeof localeValue === 'string' ? [localeValue] : [];
+          if (localeValue && typeof localeValue === 'object' && !Array.isArray(localeValue) && localeValue.schema === 'dast') {
+            collectDastIds(localeValue.document, raw);
+          }
+          const blockIds = raw.filter((id) => { const ref = docIndex[id]; return ref && blockCtApiKeys.has(ref.apiKey); });
+          if (blockIds.length) localeBlockIds.push({ destLocale, ids: blockIds });
+        }
+
+        for (const { destLocale, ids } of localeBlockIds) {
+          for (const id of ids) {
+            if (!blockRecordLocales.has(id)) blockRecordLocales.set(id, new Set());
+            blockRecordLocales.get(id)!.add(destLocale);
+          }
+        }
+
+        // Positional alias: primary locale's IDs are canonical; all other locales alias to them
+        if (localeBlockIds.length > 1) {
+          const primary = localeBlockIds.find(({ destLocale }) => destLocale === destLocales[0]) ?? localeBlockIds[0];
+          for (const { ids } of localeBlockIds) {
+            ids.forEach((id, i) => {
+              const canonicalId = primary.ids[i];
+              if (canonicalId && id !== canonicalId) blockRecordAlias.set(id, canonicalId);
+            });
+          }
+        }
+      }
+    }
+    // Patch docIndex so DAST embedded-entry lookups and reference fields on parent
+    // entries both resolve non-canonical block IDs to the shared canonical UID.
+    for (const [nonCanId, canId] of blockRecordAlias) {
+      if (docIndex[nonCanId]) docIndex[nonCanId] = { ...docIndex[nonCanId], uid: toEntryUid(canId) };
+    }
+
     for (const ct of entryLevelCts) {
       const apiKey = ct?.otherCmsUid;
+      const isBlockCt = blockCtApiKeys.has(apiKey);
       const folderName = mapperKeys?.[ct?.contentstackUid] ?? ct?.contentstackUid;
       const docs = records.filter((r: any) => apiKeyByItemTypeId[r?.__itemTypeId] === apiKey);
       const topFields = (ct?.fieldMapping ?? []).filter((f: any) => !f?.isDeleted && !f?.contentstackFieldUid?.includes('.'));
@@ -393,7 +475,9 @@ export async function createEntry(
         const entryData: Record<string, any> = {};
 
         for (const doc of docs) {
-          const uid = toEntryUid(doc.id);
+          // Block CT records are locale-specific: skip records not referenced in this locale
+          if (isBlockCt && !blockRecordLocales.get(doc.id)?.has(destLocale)) continue;
+          const uid = toEntryUid(blockRecordAlias.get(doc.id) ?? doc.id);
           const rawTitle = titleField ? readRaw(doc, titleField, srcLocale) : undefined;
           const entry: any = {
             uid,
@@ -406,7 +490,7 @@ export async function createEntry(
             const raw = readRaw(doc, field, srcLocale);
             if (raw === undefined) continue;
             const val = transformField(
-              raw, field, doc, srcLocale, docIndex, ctUidByApiKey, assetLookup, contentTypes, recordsById, counters, ct?.fieldMapping ?? [],
+              raw, field, doc, srcLocale, destLocale, docIndex, ctUidByApiKey, assetLookup, contentTypes, recordsById, counters, ct?.fieldMapping ?? [],
             );
             if (val !== undefined) entry[field.contentstackFieldUid] = val;
           }
@@ -424,8 +508,7 @@ export async function createEntry(
 
     console.info(
       `[datocms] skipped — file/assets: ${counters.assetsSkipped}, groups: ${counters.groupsSkipped}, ` +
-      `block elements: ${counters.blocksSkipped}, global fields: ${counters.globalFieldsSkipped}, ` +
-      `structured-text nodes: ${counters.structuredTextNodesSkipped}`,
+      `block elements: ${counters.blocksSkipped}, structured-text nodes: ${counters.structuredTextNodesSkipped}`,
     );
   } catch (err: any) {
     console.error(`[datocms] createEntry failed for project ${projectId}:`, err?.message ?? err);
