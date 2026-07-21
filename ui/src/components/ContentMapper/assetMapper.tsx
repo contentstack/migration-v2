@@ -68,6 +68,41 @@ const AssetMapper = ({
     fetchAssets('', { seedSelection: true });
   }, []);
 
+  // react-window sizes its virtual scroll viewport from this JS number, not CSS. The layout
+  // caps the mapper to the available step-content area, so we measure the bounded outer box
+  // (.entry-asset-mapper) minus the fixed chrome (toggle, search/panel row, pagination bar,
+  // Save footer) and feed that back — otherwise the table renders a fixed-height viewport
+  // that overruns the viewport on zoom and pushes pagination + Save off-screen.
+  const [tableHeight, setTableHeight] = useState<number>(() => window.innerHeight - 520);
+  useEffect(() => {
+    const measure = () => {
+      // Anchor on the OUTER bounded box, NOT on .Table/.Table__body — those are sized BY
+      // react-window from this number, so reading them creates a runaway feedback loop.
+      const box = document.querySelector('.entry-asset-mapper') as HTMLElement | null;
+      const toggle = document.querySelector('.mapper-view-toggle') as HTMLElement | null;
+      const panel = document.querySelector('.asset-mapper-table .TablePanel') as HTMLElement | null;
+      const footer = document.querySelector('.asset-mapper-table .mapper-footer') as HTMLElement | null;
+      const boxH = box?.clientHeight ?? window.innerHeight - 246;
+      const RESERVE =
+        (toggle?.offsetHeight ?? 0) +
+        (panel?.offsetHeight ?? 64) +
+        (footer?.offsetHeight ?? 65) +
+        56; // pagination bar (fixed) + small buffer
+      const avail = boxH - RESERVE;
+      if (avail > 80) setTableHeight(Math.floor(avail));
+    };
+    measure();
+    const box = document.querySelector('.entry-asset-mapper') as HTMLElement | null;
+    const ro = new ResizeObserver(measure);
+    if (box) ro.observe(box);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableData?.length]);
+
   // Single server-paginated fetch (same pattern as entryMapper's fetchEntries). The
   // Venus table drives paging by calling fetchData with { skip, limit, searchText };
   // we ask the API for just that page and use the returned `count` as the grand total.
@@ -277,10 +312,9 @@ const AssetMapper = ({
           version="v2"
           testId="no-results-found-page"
         /> :
-        <div>
+        <div className="asset-mapper-table">
           <InfiniteScrollTable
             key={'asset-mapper-table'}
-            className={'asset-mapper-table'}
             loading={loading}
             canSearch={true}
             totalCounts={Math.max(0, totalCounts)}
@@ -290,7 +324,7 @@ const AssetMapper = ({
             isRowSelect={true}
             fullRowSelect={true}
             fetchTableData={fetchData}
-            tableHeight={400}
+            tableHeight={tableHeight}
             equalWidthColumns={false}
             columnSelector={false}
             v2Features={{ pagination: true, isNewEmptyState: true }}
