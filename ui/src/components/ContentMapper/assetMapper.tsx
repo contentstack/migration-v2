@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import {
@@ -37,6 +37,9 @@ import {
   computeChangedUids,
 } from './assetMapper.utils';
 
+// Hooks
+import { useMeasuredTableHeight } from './useMeasuredTableHeight';
+
 // Styles and Assets
 import './index.scss';
 
@@ -64,9 +67,17 @@ const AssetMapper = ({
   // stranded on the full-page empty state with no way to clear the search.
   const [searchText, setSearchText] = useState<string>('');
 
+  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     fetchAssets('', { seedSelection: true });
   }, []);
+
+  // Responsive table height for the asset mapper — see useMeasuredTableHeight for the why.
+  const tableHeight = useMeasuredTableHeight(tableWrapperRef, [tableData?.length], {
+    panelSelector: '.TablePanel',
+    footerSelector: '.mapper-footer',
+  });
 
   // Single server-paginated fetch (same pattern as entryMapper's fetchEntries). The
   // Venus table drives paging by calling fetchData with { skip, limit, searchText };
@@ -277,10 +288,9 @@ const AssetMapper = ({
           version="v2"
           testId="no-results-found-page"
         /> :
-        <div>
+        <div className="asset-mapper-table" ref={tableWrapperRef}>
           <InfiniteScrollTable
             key={'asset-mapper-table'}
-            className={'asset-mapper-table'}
             loading={loading}
             canSearch={true}
             totalCounts={Math.max(0, totalCounts)}
@@ -290,7 +300,7 @@ const AssetMapper = ({
             isRowSelect={true}
             fullRowSelect={true}
             fetchTableData={fetchData}
-            tableHeight={400}
+            tableHeight={tableHeight}
             equalWidthColumns={false}
             columnSelector={false}
             v2Features={{ pagination: true, isNewEmptyState: true }}
