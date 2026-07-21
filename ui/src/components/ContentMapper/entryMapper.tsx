@@ -57,6 +57,7 @@ import {
   applyContentTypeStatus,
 } from './entryMapper.utils';
 import { toSelectedMap, computeChangedUids } from './assetMapper.utils';
+import { useMeasuredTableHeight } from './useMeasuredTableHeight';
 
 // Styles and Assets
 import './index.scss';
@@ -494,41 +495,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   ];
 
-  // react-window sizes its virtual scroll viewport from this JS number, not CSS. The layout
-  // flexes the table body to fill the available space (responsive on zoom), so we measure
-  // that rendered body height and feed it back here — otherwise react-window renders a
-  // fixed-height viewport that doesn't match the flexed body and scrolling breaks.
-  const [tableHeight, setTableHeight] = useState<number>(() => window.innerHeight - 520);
-  useEffect(() => {
-    const measure = () => {
-      // Anchor on the OUTER bounded box (.entry-asset-mapper is capped at calc(100vh-246px)),
-      // NOT on .Table/.Table__body — those are sized BY react-window from this very number, so
-      // reading them creates a runaway feedback loop. Subtract only the fixed chrome that sits
-      // inside the box: the toggle row, the search/panel row, pagination bar and Save footer.
-      const box = document.querySelector('.entry-asset-mapper') as HTMLElement | null;
-      const toggle = document.querySelector('.mapper-view-toggle') as HTMLElement | null;
-      const panel = document.querySelector('.entry-mapper-container .TablePanel') as HTMLElement | null;
-      const footer = document.querySelector('.entry-mapper-table .mapper-footer') as HTMLElement | null;
-      const boxH = box?.clientHeight ?? window.innerHeight - 246;
-      const RESERVE =
-        (toggle?.offsetHeight ?? 0) +
-        (panel?.offsetHeight ?? 64) +
-        (footer?.offsetHeight ?? 65) +
-        56; // pagination bar (fixed) + small buffer
-      const avail = boxH - RESERVE;
-      if (avail > 80) setTableHeight(Math.floor(avail));
-    };
-    measure();
-    const box = document.querySelector('.entry-asset-mapper') as HTMLElement | null;
-    const ro = new ResizeObserver(measure);
-    if (box) ro.observe(box);
-    window.addEventListener('resize', measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', measure);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentTypeUid, tableData?.length]);
+  // Responsive table height for the entry mapper — see useMeasuredTableHeight for the why.
+  const tableHeight = useMeasuredTableHeight(tableWrapperRef, [contentTypeUid, tableData?.length], {
+    panelSelector: '.TablePanel',
+    footerSelector: '.mapper-footer',
+  });
 
   return (
     isLoading || newMigrationData?.isprojectMapped
