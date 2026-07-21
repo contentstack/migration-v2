@@ -123,20 +123,21 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
         for (const localeDir of localeDirs) {
             const localeCode = localeDir.name;
-            // Skip delta cleanup only when this is a restart AND the locale was never migrated
-            // before — newly-added locales have no prior state to diff against, so the regular
-            // full-import pipeline should pick them up untouched. On iteration 1 we always
-            // process (the function may be a no-op then, but tests/legacy code can still call it).
-            if (
+            // True when this locale is brand-new in this delta run (wasn't migrated before).
+            // We still need to process its entry files: source entries that already exist in
+            // Contentstack (migrated in a prior iteration with a different locale mapping) must
+            // be LOCALIZED on their existing CS UID rather than imported as duplicate new entries.
+            // Entries with no prior CS UID are left in the import data to be created fresh.
+            const isNewLocaleInDelta =
                 (projectData?.iteration ?? 1) > 1 &&
-                isFullMigrationForLocale(projectData ?? {}, localeCode)
-            ) {
+                isFullMigrationForLocale(projectData ?? {}, localeCode);
+
+            if (isNewLocaleInDelta) {
                 writeLogEntry(
-                    `Skipping delta cleanup for new locale "${localeCode}" — full import.`,
+                    `New locale "${localeCode}" in delta run — routing existing entries through localize path instead of re-creating.`,
                     "removeEntriesFromDatabase",
                     loggerPath,
                 );
-                continue;
             }
             // entry_mapper rows are tagged with the SOURCE locale code (e.g. "en-IN");
             // directories on disk use the DESTINATION code (e.g. "en-in"). Translate.
@@ -196,7 +197,10 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                         const row =
                             (sourceLocale && rowByUidAndLang.get(`${key}::${sourceLocale}`)) ||
                             rowByUid.get(key);
-                        if (row?.isUpdate) {
+                        // For a new locale in a delta run, ALL entries with an existing CS UID
+                        // must be localized (not re-created). For existing locales the user must
+                        // explicitly mark entries with isUpdate to include them in the update pass.
+                        if (row?.isUpdate || isNewLocaleInDelta) {
                             const entryData = { ...data[key], __locale: localeCode, __csUid: csEntryUid };
                             delete entryData?.uid;
 
@@ -204,8 +208,8 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                                 entriesToUpdate[contentTypeName] = {};
                             }
                             entriesToUpdate[contentTypeName][`${csEntryUid}::${localeCode}`] = entryData;
-                            writeLogEntry(`Collected update entry "${csEntryUid}" (locale "${localeCode}") for content type "${contentTypeName}"`, "removeEntriesFromDatabase", loggerPath);
-                            writeLogEntry(`Entry "${key}" has been prepared for update in Contentstack as "${csEntryUid}" (locale "${localeCode}")`, "removeEntriesFromDatabase", loggerPath);
+                            writeLogEntry(`Collected ${isNewLocaleInDelta ? 'localize' : 'update'} entry "${csEntryUid}" (locale "${localeCode}") for content type "${contentTypeName}"`, "removeEntriesFromDatabase", loggerPath);
+                            writeLogEntry(`Entry "${key}" has been prepared for ${isNewLocaleInDelta ? 'localization' : 'update'} in Contentstack as "${csEntryUid}" (locale "${localeCode}")`, "removeEntriesFromDatabase", loggerPath);
                         }
 
                         // Existing entry → remove from import data so it is NOT re-created.

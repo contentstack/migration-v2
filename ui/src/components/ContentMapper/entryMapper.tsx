@@ -30,7 +30,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE, MAPPER_SEARCH_EMPTY_STATE } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
 
 // Interface
@@ -233,7 +233,9 @@ const EntryMapper = ({ handleStepChange, extraHeightOffset = 0 }: entryMapperPro
       setContentTypes(next);
       setFilteredContentTypes(next);
       setCount(next?.length ?? 0);
-      if (!next?.length) clearEntryTableState();
+      // When the search matches no content types, keep the currently-selected content
+      // type and its entries on the right — only the left list shows "No Content Types
+      // Found." Clearing the table here would strand the user on "No Records Found".
     } catch (error) {
       console.error(error);
       return error;
@@ -507,7 +509,7 @@ const EntryMapper = ({ handleStepChange, extraHeightOffset = 0 }: entryMapperPro
       </div>
       :
       <div className="step-container">
-        {(contentTypes?.length > 0 || tableData?.length > 0) ?
+        {(contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
           <div className="d-flex flex-wrap table-container">
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
@@ -663,8 +665,18 @@ const EntryMapper = ({ handleStepChange, extraHeightOffset = 0 }: entryMapperPro
                       singular: '',
                       plural: `${totalCounts === 0 ? 'Count' : ''}`
                     }}
+                    customEmptyState={
+                      <EmptyState
+                        forPage="list"
+                        heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
+                        description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
+                        moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
+                        type="secondary"
+                        className="custom-empty-state"
+                      />
+                    }
                   />
-                  {totalCounts > 0 && (
+                  {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
                     <div className="mapper-footer">
                       <div>
                         {/* Total Entries: <strong>{totalCounts}</strong> */}
@@ -673,9 +685,13 @@ const EntryMapper = ({ handleStepChange, extraHeightOffset = 0 }: entryMapperPro
                         className="saveButton"
                         onClick={handleSaveContentType}
                         version="v2"
-                        disabled={newMigrationData?.project_current_step > (
-                          (newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack' && (newMigrationData?.iteration ?? 1) > 1) ? 5 : 4
-                        )}
+                        // Lock the Save button only while a migration is actively in flight.
+                        // Using migrationStarted alone would permanently lock revisits on delta
+                        // iterations since migrationStarted stays true after completion.
+                        disabled={
+                          !!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted
+                        }
                         isLoading={isLoadingSaveButton}
                       >
                         Save

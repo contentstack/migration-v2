@@ -21,7 +21,7 @@ import {
   InstructionText,
   CircularLoader,
   EmptyState,
-  OutlineTag
+  OutlineTag,
 } from '@contentstack/venus-components';
 
 // Services
@@ -33,7 +33,8 @@ import {
   resetToInitialMapping,
   getExistingContentTypes,
   getExistingGlobalFields,
-  updateContentMapper
+  updateContentMapper,
+  fetchSourceContentTypes
 } from '../../services/api/migration.service';
 
 // Redux
@@ -41,7 +42,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, CONTENT_MAPPER_EMPTY_STATE } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, CONTENT_MAPPER_EMPTY_STATE, MAPPER_SEARCH_EMPTY_STATE } from '../../utilities/constants';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
 
@@ -74,6 +75,7 @@ import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interfac
 import SchemaModal from '../SchemaModal';
 import AdvanceSettings from '../AdvancePropertise';
 import SaveChangesModal from '../Common/SaveChangesModal';
+import ContentTypeSelector from './ContentTypeSelector';
 
 // Utilities
 import {
@@ -538,6 +540,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const [active, setActive] = useState<number | null>(0);
   const [searchContentType, setSearchContentType] = useState('');
+  const [activeTab, setActiveTab] = useState<'fieldMapping' | 'contentTypes'>('fieldMapping');
+  const [savedCTCount, setSavedCTCount] = useState<number>(0);
+  const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
   const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[] | undefined>([]);
@@ -594,6 +599,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       });
 
     fetchContentTypes(searchText || '');
+  }, []);
+
+  // If the user previously saved a CT selection, land on the Content Types tab so they
+  // immediately see what was configured rather than the Field Mapping tab.
+  useEffect(() => {
+    if (!isContentstackSource || !projectId) return;
+    fetchSourceContentTypes(projectId)
+      .then((resp) => {
+        const saved: string[] = resp?.data?.savedSelection ?? [];
+        if (saved.length > 0) {
+          setActiveTab('contentTypes');
+          setSavedCTCount(saved.length);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -3298,7 +3318,32 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       </div>
       :
       <div className="step-container">
-        {(contentTypes?.length > 0 || tableData?.length > 0) ?
+        {isContentstackSource && (
+          <div className="ct-tab-switcher">
+            <button
+              className={`ct-tab-btn${activeTab === 'contentTypes' ? ' ct-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('contentTypes')}
+            >
+              Content types
+              {savedCTCount > 0 && (
+                <span className="ct-tab-badge">{savedCTCount}</span>
+              )}
+            </button>
+            <button
+              className={`ct-tab-btn${activeTab === 'fieldMapping' ? ' ct-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('fieldMapping')}
+            >
+              Field mapping
+            </button>
+          </div>
+        )}
+
+        {isContentstackSource && activeTab === 'contentTypes' ? (
+          <ContentTypeSelector
+            projectId={projectId}
+            onSavedCountChange={(n) => setSavedCTCount(n)}
+          />
+        ) : (contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
           <div className="d-flex flex-wrap table-container">
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
@@ -3414,7 +3459,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
-                  <div>
+                  <div className="field-mapper-container">
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
@@ -3474,10 +3519,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   }}
                   getSelectedRow={handleSelectedEntries}
                   rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+                  v2Features={{ isNewEmptyState: true }}
                   name={{
                     singular: '',
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
+                  customEmptyState={
+                    <EmptyState
+                      forPage="list"
+                      heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
+                      description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
+                      moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
+                      type="secondary"
+                      className="custom-empty-state"
+                    />
+                  }
                 />
                 {totalCounts > 0 && (
                   <div className="mapper-footer">

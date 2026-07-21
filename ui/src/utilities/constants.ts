@@ -116,13 +116,11 @@ export const STATUS_ICON_Mapping: { [key: string]: string } = {
 };
 
 export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
-  sitecore:
-    'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt287e42b58e38e2b6/67ee3fb57c35f2e42c997000/sitecore.pdf',
-  contentful:
-    'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/bltb14c2df7c5e202ba/67ee3fcdb509b76f5f308ac4/contentful.pdf',
-  wordpress: '',
-  drupal: 'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt1baa953e3e9496ea/6996abbaab60c900082f2477/Drupal.pdf',
-  aem: 'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt3df735914488e75d/AEM%20Data%20Requirements.pdf'
+  sitecore: 'https://assets.contentstack.io/v3/assets/blt2dcc0c8ab6561828/blt6e43a345b3534a56/6a2fd47d19783a6acde0c5a3/Sitecore_Data_Requirements_Documentation.pdf',
+  contentful: 'https://assets.contentstack.io/v3/assets/blt2dcc0c8ab6561828/blt761d4a5006b06da4/6a2fd47e8597ceecdc382158/Contentful_Data_Requirements_Documentation.pdf',
+  wordpress: 'https://assets.contentstack.io/v3/assets/blt2dcc0c8ab6561828/blt60f1fa9c83fef6dc/6a2fd67cdb6e4a59628c8b1c/Wordpress_Data_Requirements_Documentation.pdf',
+  drupal: 'https://assets.contentstack.io/v3/assets/blt2dcc0c8ab6561828/blt78752669cf639062/6a2fd6741c149abcb8a462b4/Drupal_Data_Requirements_Documentation.pdf',
+  aem: 'https://assets.contentstack.io/v3/assets/blte253f53eb72b3dfe/blt4bb5754f90c64170/6a54c7b2b3e39982cfe675fa/AEM_Data_Requirements_Documentation.pdf'
 };
 
 
@@ -217,6 +215,14 @@ export const ENTRY_MAPPER_EMPTY_STATE = {
   NO_ENTRIES_HEADING: 'No entries available for mapping',
   NO_ENTRIES_DESCRIPTION:
     'There are no entries available to map for the already-migrated content types. You can still continue.'
+}
+
+// Shared "search returned nothing" empty state for the mapper tables — mirrors the
+// ExecutionLogs NO_MATCH state so a zero-result search reads consistently across the app.
+export const MAPPER_SEARCH_EMPTY_STATE = {
+  NO_MATCH_HEADING: 'No matching result found',
+  NO_MATCH_DESCRIPTION: 'Try changing the search query to find what you are looking for.',
+  NO_MATCH_ICON: 'NoSearchResult'
 }
 
 // Asset Mapper (Map Entry step → Assets tab) empty-state text.

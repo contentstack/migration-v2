@@ -1,4 +1,4 @@
-{
+export const blocks = {
     "core/paragraph": "text",
     "core/image": "image",
     "core/heading": "heading",
@@ -40,5 +40,10 @@
     "core/post-author": "post_author",
     "core/comments-template": "comments_template",
     "core/comments-count": "comments_count",
-    "core/comment-author-name": "comment_author_name"                                                                                                                                                                                                                        
-}
+    "core/comment-author-name": "comment_author_name"
+}    
+export const EXCLUDED_POST_TYPES = new Set(['attachment', 'wp_global_styles', 'wp_navigation']);
+
+export const ALLOWED_POST_STATUSES = new Set(['publish', 'inherit']);
+
+export const MAX_SUFFIX_LEN = 40;

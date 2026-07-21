@@ -1,6 +1,282 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
+// ─── Stack-to-stack tab switcher ─────────────────────────────────────────────
+.ct-tab-switcher {
+  display: flex;
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  margin-bottom: 0;
+  padding: 0 $space-12;
+
+  .ct-tab-btn {
+    align-items: center;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: $color-font-base;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: $size-font-large;
+    font-weight: $font-weight-regular;
+    gap: $px-6;
+    margin-right: $space-20;
+    padding: $px-12 $px-8;
+    transition: border-color 0.15s, color 0.15s;
+
+    &--active {
+      border-bottom-color: $color-brand-primary-base;
+      color: $color-brand-primary-base;
+      font-weight: $font-weight-semi-bold;
+    }
+
+    &:hover:not(.ct-tab-btn--active) {
+      color: $color-brand-primary-base;
+    }
+  }
+}
+
+.ct-tab-badge {
+  background-color: $color-brand-primary-base;
+  border-radius: 10px;
+  color: $color-font-white;
+  font-size: $size-font-small;
+  font-weight: $font-weight-semi-bold;
+  line-height: 1;
+  min-width: 18px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+// ─── Content-type selector panel ─────────────────────────────────────────────
+.ct-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  .ct-selector-toolbar {
+    align-items: center;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    justify-content: space-between;
+    padding: $px-12 $space-12;
+
+    .ct-selector-description {
+      color: $color-font-gray;
+      font-size: $size-font-large; // 14px
+      margin: 0;
+      max-width: 640px;
+    }
+  }
+
+  .ct-selector-search-bar {
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    padding: $px-8 $px-12;
+
+    .Search__v2 {
+      background-color: $color-brand-white-base;
+      height: 2.5rem;
+      width: 100% !important;
+
+      .Search-input-show {
+        width: 100% !important;
+      }
+    }
+  }
+
+  .ct-selector-list-header {
+    align-items: center;
+    background-color: $color-base-white-10;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    justify-content: space-between;
+    padding: $px-8 $space-12;
+
+    .ct-selector-col-header {
+      color: $color-font-gray;
+      font-size: $size-font-small;
+      font-weight: $font-weight-semi-bold;
+      letter-spacing: 0.04em;
+      margin-right: $px-12;
+      text-transform: uppercase;
+    }
+
+    .Checkbox {
+      margin-bottom: 0;
+    }
+  }
+
+  .ct-selector-scrollable {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .ct-selector-item {
+      align-items: center;
+      border-bottom: 1px solid $color-brand-secondary-lightest;
+      display: flex;
+      justify-content: space-between;
+      min-height: 48px;
+      padding: $px-8 $px-12;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: $color-base-white-10;
+      }
+
+      .Checkbox {
+        margin-bottom: 0;
+      }
+
+      &__left {
+        align-items: center;
+        display: flex;
+        gap: $px-10;
+        flex: 1;
+        min-width: 0;
+      }
+
+      &__info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      &__title {
+        color: $color-font-base;
+        font-size: $size-font-large;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &__right {
+        align-items: center;
+        display: flex;
+        flex-shrink: 0;
+        gap: $px-12;
+        margin-left: $px-16;
+      }
+    }
+
+    .ct-selector-uid {
+      color: $color-font-gray;
+      font-size: $size-font-small;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  // Entry count badge
+  .ct-entry-badge {
+    border-radius: $px-10;
+    font-size: $size-font-small;
+    font-weight: $font-weight-medium;
+    padding: 2px $px-8;
+    white-space: nowrap;
+
+    &--blue {
+      background-color: $color-brand-draft-light;
+      color: $color-brand-draft-base;
+    }
+
+    &--green {
+      background-color: $color-brand-success-light;
+      color: $color-brand-success-base;
+    }
+
+    &--none {
+      display: none;
+    }
+  }
+
+  .ct-select-entries-link {
+    background: none;
+    border: none;
+    color: $color-brand-primary-base;
+    cursor: pointer;
+    font-size: $size-font-large;
+    padding: 0;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .ct-not-included {
+    color: $color-font-gray;
+    font-size: $size-font-large;
+  }
+
+  .ct-selector-empty {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: $space-12;
+    margin-top: $space-20;
+    padding: $space-20;
+    text-align: center;
+  }
+
+  .ct-selector-result {
+    border-top: 1px solid $color-brand-secondary-lightest;
+    padding: $space-12;
+
+    .ct-selector-result-info {
+      align-items: center;
+      color: $color-font-gray;
+      display: flex;
+      font-size: $size-font-large; // 14px
+      gap: 4px;
+      margin-bottom: $px-8;
+    }
+
+    .ct-selector-result-failed {
+      color: $color-brand-fail-base;
+      font-size: $size-font-large; // 14px
+
+      ul {
+        list-style: disc;
+        padding-left: $space-20;
+      }
+    }
+  }
+
+  .ct-selector-saved-badge {
+    align-items: center;
+    background-color: $color-brand-success-light;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    color: $color-brand-success-base;
+    display: flex;
+    font-size: $size-font-large;
+    gap: $px-6;
+    padding: $px-8 $px-12;
+  }
+
+  .ct-selector-error {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: $space-12;
+    margin-top: $space-20;
+    padding: $space-20;
+    text-align: center;
+  }
+}
+
 .content-types-list-wrapper {
   border-right: 1px solid $color-brand-secondary-lightest;
   display: flex;
@@ -440,6 +716,57 @@ div .table-row {
   line-height: 1.2 !important;
 }
 
+// Center the search-empty state vertically. With v2Features.isNewEmptyState on, Venus
+// wraps customEmptyState in `.Table__centerWrapper` inside the table body. The wrapper
+// collapses to content height, so make the body a flex column and let the wrapper grow
+// to fill it, then center its own content.
+.entry-mapper-container .Table:has(.Table__centerWrapper) .Table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-mapper-container .Table__centerWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  // Nudge the empty state slightly above dead-center so it reads a touch higher.
+  padding-bottom: 6rem;
+}
+
+// Field mapping table (Map Content Fields step): center the search-empty state. Anchor on
+// the venus .Table and take .Table__centerWrapper out of flow (position: absolute) so it
+// overlays the full table area and centers, instead of stacking under the header rows.
+.field-mapper-container .Table:has(.Table__centerWrapper) {
+  position: relative;
+  // Absolute-positioned .Table__centerWrapper adds no height, so give the table an
+  // explicit tall area to center the empty state within.
+  height: calc(100vh - 300px);
+
+  .Table__centerWrapper {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Asset mapper table: venus's .Table sets min-height: 31.25rem, forcing the table
+// tall and pushing the pagination bar down with a dead gap. Pin an explicit height
+// so the table + pagination end where we want and the Save button can sit below.
+.entry-asset-mapper .step-container .Table {
+  height: 400px !important;
+  min-height: 0px !important;
+}
+
 .custom-empty-state {
   .Icon--original {
     width: 207px !important;
@@ -557,8 +884,10 @@ div .table-row {
     padding-right: 272px;
   }
 
-  // Pagination bar is inside InfiniteScrollTable's fixed-height box, so sticky footer
-  // sits naturally below it — no collision. Keep sticky so the button is always visible.
+  // With pagination on, the venus pagination bar renders at the bottom of the table.
+  // Pin the Total/Save footer to the viewport bottom so it stays reachable when the
+  // table + pagination combined exceed the available viewport height. Without this the
+  // Save button gets clipped off-screen on small windows (Map Entry step 4).
   .mapper-footer {
     position: sticky;
     bottom: 0;
@@ -568,7 +897,7 @@ div .table-row {
 .entry-mapper-container {
   // Empty state: venus renders "No Records Found" (.EmptyState) with no scroll body, so
   // the table collapses. Give .Table an explicit height so it fills like ExecutionLogs.
-  .Table:has(.EmptyState) {
+  &:not(.asset-mapper-container) .Table:has(.EmptyState) {
     height: calc(100vh - 22rem) !important;
   }
 
@@ -576,8 +905,10 @@ div .table-row {
   // prop: this keeps the venus pagination bar (a sibling below the body) visible while
   // the body scrolls internally. Height fits a full page and reserves room for the
   // search row, pagination bar and Save footer.
-  .Table__body,
-  .Table.TableWithPaginated .Table__body {
+  // Entry mapper only — the asset mapper lets venus size the body from its measured
+  // tableHeight prop, and this !important would override those inline styles.
+  &:not(.asset-mapper-container) .Table__body,
+  &:not(.asset-mapper-container) .Table.TableWithPaginated .Table__body {
     height: calc(100vh - 520px) !important;
     max-height: calc(100vh - 520px) !important;
   }
@@ -647,5 +978,228 @@ div .table-row {
     .Table__body__column:last-child {
       border-right: none !important;
     }
+  }
+}
+
+// ─── Entry Selector modal ─────────────────────────────────────────────────────
+.entry-selector {
+  display: flex;
+  flex-direction: column;
+  height: 68vh;
+  min-height: 380px;
+  min-width: 640px;
+
+  &__header {
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    padding: $px-16 $px-20;
+  }
+
+  &__title {
+    color: $color-font-black;
+    font-size: $size-font-xl;
+    font-weight: $font-weight-semi-bold;
+    margin: 0;
+  }
+
+  &__toolbar {
+    align-items: center;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    gap: $px-12;
+    padding: $px-12 $px-20;
+
+    .Search__v2 {
+      flex: 1;
+      height: 2.25rem;
+    }
+  }
+
+  &__status-filters {
+    display: flex;
+    gap: $px-6;
+  }
+
+  &__status-btn {
+    background: none;
+    border: 1px solid $color-brand-secondary-lightest;
+    border-radius: $px-4;
+    color: $color-font-base;
+    cursor: pointer;
+    font-size: $size-font-large;
+    padding: $px-4 $px-10;
+    transition: background-color 0.15s, color 0.15s;
+
+    &.active {
+      background-color: $color-brand-primary-base;
+      border-color: $color-brand-primary-base;
+      color: $color-font-white;
+    }
+
+    &:hover:not(.active) {
+      background-color: $color-base-white-10;
+    }
+  }
+
+  &__loader {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    padding: $px-32;
+  }
+
+  &__empty {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: $px-12;
+    justify-content: center;
+    padding: $px-32;
+    text-align: center;
+  }
+
+  &__error-text {
+    color: $color-brand-fail-base;
+  }
+
+  &__table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  &__table {
+    border-collapse: collapse;
+    width: 100%;
+
+    th,
+    td {
+      border-bottom: 1px solid $color-brand-secondary-lightest;
+      padding: $px-10 $px-12;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    thead th {
+      background-color: $color-base-white-10;
+      color: $color-font-gray;
+      font-size: $size-font-small;
+      font-weight: $font-weight-semi-bold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .Checkbox {
+      margin-bottom: 0;
+    }
+  }
+
+  &__col--check {
+    padding: $px-10 $px-8 $px-10 $px-16 !important;
+    width: 1%;
+    white-space: nowrap;
+
+    .Checkbox {
+      display: flex;
+      margin: 0;
+
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+
+      // hide the empty label span so it doesn't add width
+      .Checkbox__label {
+        display: none;
+      }
+    }
+  }
+
+  &__col--entry {
+    width: 45%;
+  }
+
+  &__col--status {
+    width: 15%;
+  }
+
+  &__row {
+    cursor: pointer;
+
+    &:hover {
+      background-color: $color-base-white-10;
+    }
+
+    &--selected {
+      background-color: rgba(108, 92, 231, 0.04);
+    }
+  }
+
+  &__no-data {
+    padding: $px-32 !important;
+    text-align: center !important;
+  }
+
+  &__entry-title {
+    color: $color-font-base;
+    display: block;
+    font-size: $size-font-large;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__entry-meta {
+    color: $color-font-gray;
+    display: block;
+    font-size: $size-font-small;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__badge {
+    border-radius: $px-4;
+    font-size: $size-font-small;
+    padding: 2px $px-8;
+    text-transform: capitalize;
+
+    &--published {
+      background-color: $color-brand-success-light;
+      color: $color-brand-success-base;
+    }
+
+    &--draft {
+      background-color: $color-brand-draft-light;
+      color: $color-brand-draft-base;
+    }
+  }
+
+  &__load-more {
+    display: flex;
+    justify-content: center;
+    padding: $px-12;
+  }
+
+  &__footer {
+    align-items: center;
+    border-top: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    justify-content: space-between;
+    padding: $px-12 $px-20;
+  }
+
+  &__count {
+    color: $color-font-gray;
+    font-size: $size-font-large;
+  }
+
+  &__footer-actions {
+    display: flex;
+    gap: $px-10;
   }
 }
