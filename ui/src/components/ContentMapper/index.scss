@@ -706,12 +706,13 @@ div .table-row {
     }
 
     // Target actual column containers. Honour the per-column `width` venus applies inline
-    // from the `columns` config (flex-basis: auto reads that width) instead of forcing every
-    // column to an equal `flex: 1 1 0`. Columns with an explicit width hold it; the last
-    // column (no width in config) grows to fill the remaining space.
+    // from the `columns` config (flex-basis: auto reads that width) as the STARTING size,
+    // instead of forcing every column to an equal `flex: 1 1 0`. flex-shrink:1 (+ min-width:0)
+    // lets the fixed-width columns give way on narrow viewports so the row never exceeds the
+    // available width and forces a horizontal scrollbar; they hold their width when there's room.
     .Table__head__column,
     .Table__body__column {
-      flex: 0 0 auto;
+      flex: 0 1 auto;
       min-width: 0 !important;
       display: flex !important;
       align-items: center;

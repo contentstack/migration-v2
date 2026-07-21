@@ -33,6 +33,9 @@ const MIN_USABLE_HEIGHT = 80; // floor for the table body so it never collapses/
 // Fallback for the bounded box height (matches .entry-asset-mapper's calc(100vh - 246px) cap),
 // used only when the box isn't mounted/measured yet.
 const BOX_HEIGHT_FALLBACK = 246;
+// Reserve when no chrome is measured yet (toggle defaults to 0). Same terms as measure()'s
+// `reserve` so the pre-measure guess uses the hook's own box model, not a stray constant.
+const RESERVE_FALLBACK = PANEL_FALLBACK + FOOTER_FALLBACK + PAGINATION_AND_BUFFER;
 const BOX_SELECTOR = '.entry-asset-mapper';
 const TOGGLE_SELECTOR = '.mapper-view-toggle';
 
@@ -41,7 +44,11 @@ export function useMeasuredTableHeight(
   deps: unknown[],
   { panelSelector, footerSelector }: MeasuredTableHeightOptions,
 ): number {
-  const [tableHeight, setTableHeight] = useState<number>(() => window.innerHeight - 520);
+  // Pre-measure guess: same model as measure() (box fallback − reserve), clamped to the floor
+  // so the one frame react-window renders before the effect runs never gets a negative height.
+  const [tableHeight, setTableHeight] = useState<number>(() =>
+    Math.max(MIN_USABLE_HEIGHT, window.innerHeight - BOX_HEIGHT_FALLBACK - RESERVE_FALLBACK),
+  );
 
   useEffect(() => {
     const measure = () => {
