@@ -8,6 +8,26 @@ import { migrationController } from "../controllers/migration.controller.js";
  */
 const router = express.Router({ mergeParams: true });
 
+router.post(
+  "/source/export/:orgId/:projectId",
+  asyncRouter(migrationController.exportSourceStack)
+);
+
+router.post(
+  "/source/validate/:orgId/:projectId",
+  asyncRouter(migrationController.validateSourceExport)
+);
+
+router.post(
+  "/audit/run/:orgId/:projectId",
+  asyncRouter(migrationController.runSourceAudit)
+);
+
+router.get(
+  "/audit/:projectId/:moduleName",
+  asyncRouter(migrationController.getSourceAuditSummary)
+);
+
 /**
  * Route for test migration .
  * @route POST /test-stack/:orgId/:projectId

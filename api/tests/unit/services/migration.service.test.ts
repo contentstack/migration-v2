@@ -18,6 +18,13 @@ const {
   mockFsMkdirSync,
   mockFsWriteFileSync,
   mockFsAppendFileSync,
+  mockExportStackCli,
+  mockValidateExportStructure,
+  mockResolveContentstackExportRoot,
+  mockGenerateAuditData,
+  mockAuditGetByProjectId,
+  mockAuditGetDataByType,
+  mockContentMapperPutTestData,
 } = vi.hoisted(() => {
   const projects = [
     {
@@ -47,6 +54,13 @@ const {
     mockFsMkdirSync: vi.fn(),
     mockFsWriteFileSync: vi.fn(),
     mockFsAppendFileSync: vi.fn(),
+    mockExportStackCli: vi.fn(),
+    mockValidateExportStructure: vi.fn(),
+    mockResolveContentstackExportRoot: vi.fn(),
+    mockGenerateAuditData: vi.fn(),
+    mockAuditGetByProjectId: vi.fn(),
+    mockAuditGetDataByType: vi.fn(),
+    mockContentMapperPutTestData: vi.fn(),
   };
 });
 
@@ -175,6 +189,28 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
+vi.mock('../../../src/services/exportCli.service.js', () => ({
+  exportStackCli: mockExportStackCli,
+}));
+vi.mock('../../../src/services/validation.service.js', () => ({
+  validateExportStructure: mockValidateExportStructure,
+  resolveContentstackExportRoot: mockResolveContentstackExportRoot,
+}));
+vi.mock('../../../src/services/audit.service.js', () => ({
+  generateAuditData: mockGenerateAuditData,
+}));
+vi.mock('../../../src/models/audit-lowdb.js', () => ({
+  default: {
+    getAuditByProjectId: mockAuditGetByProjectId,
+    getDataByType: mockAuditGetDataByType,
+  },
+}));
+vi.mock('../../../src/services/contentMapper.service.js', () => ({
+  contentMapperService: {
+    putTestData: mockContentMapperPutTestData,
+  },
+}));
+
 vi.mock('../../../src/utils/sanitize-path.utils.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/utils/sanitize-path.utils.js')>();
   return {
@@ -184,6 +220,10 @@ vi.mock('../../../src/utils/sanitize-path.utils.js', async (importOriginal) => {
 });
 
 import { migrationService } from '../../../src/services/migration.service.js';
+
+// Paths inside the allowlist used by assertExportPathInAllowedRoot.
+const SAFE_EXPORT_PATH = path.join(process.cwd(), 'export-stack', 'test-export');
+const SAFE_EXPORT_ROOT = path.join(SAFE_EXPORT_PATH, 'main');
 
 const createMockReq = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -228,6 +268,37 @@ describe('migration.service', () => {
       expect(result.data.data.stack.api_key).toBe('test-stack-1');
       expect(result.data.url).toContain('test-stack-1');
       expect(mockProjectUpdate).toHaveBeenCalled();
+    });
+
+    it('should set status to 4 when moving project to TESTING step (matches updateCurrentStep)', async () => {
+      mockHttps.mockResolvedValue({
+        status: 201,
+        data: { stack: { api_key: 'test-stack-status', name: 'T' } },
+      });
+
+      mockProjectUpdate.mockImplementationOnce((fn: (data: any) => void) => {
+        const data = {
+          projects: [
+            {
+              ...mockProjects[0],
+              status: 3,
+              current_step: 4,
+              test_stacks: [] as any[],
+            },
+          ],
+        };
+        fn(data);
+        expect(data.projects[0].current_step).toBe(5);
+      });
+
+      const req = createMockReq({
+        body: {
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
+          name: 'MyStack',
+        },
+      });
+
+      await migrationService.createTestStack(req);
     });
 
     it('should return error when create stack API fails', async () => {
@@ -1108,6 +1179,346 @@ describe('migration.service', () => {
 
       expect(result.status).toBe(200);
       expect(result.data).toBeDefined();
+    });
+  });
+
+  describe('exportSourceStack', () => {
+    it('should export source stack and update project', async () => {
+      // exportSourceStack reads ProjectModelLowdb.data.projects[index]
+      mockProjects[0].legacy_cms = {
+        cms: 'contentstack',
+        source_details: {
+          source_stack_id: 'src-stack-1',
+          source_region_id: 'NA',
+          source_branch: 'main',
+        },
+      } as any;
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(mockProjects[0]) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockProjectUpdate.mockImplementation((fn: (d: any) => void) => {
+        fn({ projects: [{ ...mockProjects[0], legacy_cms: { source_details: {} } }] });
+      });
+      mockExportStackCli.mockResolvedValue('/tmp/export-path');
+
+      const req = createMockReq();
+      const result = await migrationService.exportSourceStack(req);
+
+      expect(result.status).toBe(200);
+      expect(result.data.export_path).toBe('/tmp/export-path');
+      expect(mockExportStackCli).toHaveBeenCalledWith('src-stack-1', 'NA', 'user-123', 1);
+
+      // Reset mockProjects[0] for downstream tests
+      mockProjects[0].legacy_cms = { cms: 'wordpress' } as any;
+    });
+
+    it('should throw NotFoundError when project not found', async () => {
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      });
+
+      await expect(
+        migrationService.exportSourceStack(createMockReq())
+      ).rejects.toThrow();
+    });
+
+    it('should throw BadRequestError when source_stack_id is missing', async () => {
+      mockProjects[0].legacy_cms = {
+        cms: 'contentstack',
+        source_details: {},
+      } as any;
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(mockProjects[0]) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      await expect(
+        migrationService.exportSourceStack(createMockReq())
+      ).rejects.toThrow('Source stack is required');
+
+      mockProjects[0].legacy_cms = { cms: 'wordpress' } as any;
+    });
+  });
+
+  describe('validateSourceExport', () => {
+    it('should validate export and update project on success', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: {
+          cms: 'contentstack',
+          source_details: { export_path: SAFE_EXPORT_PATH },
+        },
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockValidateExportStructure.mockResolvedValue({
+        isValid: true,
+        resolvedRoot: SAFE_EXPORT_ROOT,
+      });
+      mockProjectUpdate.mockImplementation((fn: (d: any) => void) => {
+        fn({
+          projects: [
+            {
+              id: 'proj-1',
+              legacy_cms: { source_details: {} },
+            },
+          ],
+        });
+      });
+      mockFsPromisesReadFile
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            'en-us': { name: 'English', code: 'en-us', uid: 'u1' },
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({ fr: { name: 'French', code: 'fr', uid: 'u2' } })
+        );
+
+      const result = await migrationService.validateSourceExport(createMockReq());
+      expect(result.status).toBe(200);
+      expect(result.data.isValid).toBe(true);
+    });
+
+    it('should return UNPROCESSABLE_CONTENT when isValid is false', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: { source_details: { export_path: SAFE_EXPORT_PATH } },
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockValidateExportStructure.mockResolvedValue({
+        isValid: false,
+        resolvedRoot: null,
+        errors: ['missing'],
+      });
+      mockProjectUpdate.mockImplementation((fn: (d: any) => void) => {
+        fn({ projects: [{ id: 'proj-1', legacy_cms: {} }] });
+      });
+
+      const result = await migrationService.validateSourceExport(createMockReq());
+      expect(result.status).toBe(422);
+      expect(result.data.isValid).toBe(false);
+    });
+
+    it('should throw NotFoundError when project not found', async () => {
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      });
+
+      await expect(
+        migrationService.validateSourceExport(createMockReq())
+      ).rejects.toThrow();
+    });
+
+    it('should throw BadRequestError when no export path available', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: {},
+        extract_path: undefined,
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      await expect(
+        migrationService.validateSourceExport(createMockReq())
+      ).rejects.toThrow('No export path available');
+    });
+
+    it('should resolve zip export path candidates', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: {
+          source_details: { export_path: '/tmp/something.zip' },
+        },
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockResolveContentstackExportRoot.mockReturnValue('/resolved/path');
+      mockValidateExportStructure.mockResolvedValue({
+        isValid: false,
+        resolvedRoot: null,
+      });
+      mockProjectUpdate.mockImplementation((fn: (d: any) => void) => {
+        fn({ projects: [{ id: 'proj-1', legacy_cms: {} }] });
+      });
+
+      const result = await migrationService.validateSourceExport(createMockReq());
+      expect(mockResolveContentstackExportRoot).toHaveBeenCalled();
+      expect(result.status).toBe(422);
+    });
+  });
+
+  describe('runSourceAudit', () => {
+    it('should return cached audit when mapper already generated', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: {
+          source_details: { export_path: SAFE_EXPORT_PATH },
+          audit: {
+            summary: { total: 5 },
+            is_mapper_generated: true,
+          },
+        },
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      const result = await migrationService.runSourceAudit(createMockReq());
+      expect(result.status).toBe(200);
+      expect(result.data.summary).toEqual({ total: 5 });
+      expect(result.data.message).toMatch(/cache/i);
+    });
+
+    it('should generate audit and mapper when not cached', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: {
+          source_details: {
+            export_path: SAFE_EXPORT_PATH,
+            source_stack_id: 'src-1',
+            source_region_id: 'NA',
+          },
+        },
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockGenerateAuditData.mockResolvedValue({
+        summary: { totalItems: 10 },
+      });
+      mockFsPromisesReadFile.mockResolvedValue(
+        JSON.stringify([{ uid: 'ct1', title: 'CT 1', schema: [] }])
+      );
+      mockContentMapperPutTestData.mockResolvedValue({ status: 200 });
+      mockProjectUpdate.mockImplementation((fn: (d: any) => void) => {
+        fn({ projects: [{ id: 'proj-1', legacy_cms: {} }] });
+      });
+
+      const result = await migrationService.runSourceAudit(createMockReq());
+      expect(result.status).toBe(200);
+      expect(result.data.summary).toEqual({ totalItems: 10 });
+      expect(mockGenerateAuditData).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundError when project not found', async () => {
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      });
+
+      await expect(
+        migrationService.runSourceAudit(createMockReq())
+      ).rejects.toThrow();
+    });
+
+    it('should throw BadRequestError when export path is missing', async () => {
+      const project = {
+        ...mockProjects[0],
+        legacy_cms: {},
+        extract_path: undefined,
+        file_path: undefined,
+      };
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(project) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      await expect(
+        migrationService.runSourceAudit(createMockReq())
+      ).rejects.toThrow('Export path is required');
+    });
+  });
+
+  describe('getSourceAuditSummary', () => {
+    it('should return full audit when moduleName is all', async () => {
+      mockAuditGetByProjectId.mockResolvedValue({ assets: [], entries: [] });
+      const req = createMockReq({
+        params: { projectId: 'proj-1', moduleName: 'all' },
+      });
+      const result = await migrationService.getSourceAuditSummary(req);
+      expect(result.status).toBe(200);
+      expect(mockAuditGetByProjectId).toHaveBeenCalledWith('proj-1');
+    });
+
+    it('should return module data when moduleName is valid', async () => {
+      mockAuditGetDataByType.mockResolvedValue([{ uid: 'a1' }]);
+      const req = createMockReq({
+        params: { projectId: 'proj-1', moduleName: 'assets' },
+      });
+      const result = await migrationService.getSourceAuditSummary(req);
+      expect(result.status).toBe(200);
+      expect(mockAuditGetDataByType).toHaveBeenCalledWith('proj-1', 'assets');
+    });
+
+    it('should throw BadRequestError when projectId is missing', async () => {
+      const req = createMockReq({ params: { moduleName: 'all' } });
+      await expect(
+        migrationService.getSourceAuditSummary(req)
+      ).rejects.toThrow('Project ID is required');
+    });
+
+    it('should throw BadRequestError on invalid module name', async () => {
+      const req = createMockReq({
+        params: { projectId: 'proj-1', moduleName: 'nope' },
+      });
+      await expect(
+        migrationService.getSourceAuditSummary(req)
+      ).rejects.toThrow('Invalid module name');
+    });
+  });
+
+  describe('restartMigration', () => {
+    it('should throw BadRequestError when projectId is invalid', async () => {
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: '../evil' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow('Invalid projectId');
+    });
+
+    it('should throw BadRequestError when orgId is invalid', async () => {
+      const req = createMockReq({ params: { orgId: '../evil', projectId: 'proj-1' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow('Invalid orgId');
+    });
+
+    it('should throw NotFoundError when project is not found', async () => {
+      mockChainGet.mockReturnValue({
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      });
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: 'proj-1' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow('Sorry, the requested project does not exists.');
+    });
+
+    it('should increment iteration and reset migration state on success', async () => {
+      mockChainGet.mockReturnValue({
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: 'proj-1' } });
+      const result = await migrationService.restartMigration(req);
+      expect(result.status).toBe(200);
+      expect(result.message).toBe('Migration restarted successfully');
+      expect(mockProjectUpdate).toHaveBeenCalledOnce();
+    });
+
+    it('should throw ExceptionFunction when update fails', async () => {
+      mockChainGet.mockReturnValue({
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockProjectUpdate.mockRejectedValue(new Error('DB write failure'));
+      const req = createMockReq({ params: { orgId: 'org-123', projectId: 'proj-1' } });
+      await expect(migrationService.restartMigration(req)).rejects.toThrow();
     });
   });
 });

@@ -511,7 +511,7 @@ describe('contentMapper.service', () => {
     it('should return 400 when contentTypeData is empty', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
       ProjectModelLowdb.data.projects = [
-        { status: 1, current_step: 3 },
+        { status: 1, current_step: 4 },
       ];
 
       const req = {
@@ -530,7 +530,7 @@ describe('contentMapper.service', () => {
 
     it('should return 400 when field has invalid contentstackFieldType', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
-      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 3 }];
+      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 4 }];
       mockContentTypesDb.data.ContentTypesMappers = [{ id: 'ct-1', status: 1 }];
 
       (mockContentTypesDb.chain.get as ReturnType<typeof vi.fn>)
@@ -555,7 +555,7 @@ describe('contentMapper.service', () => {
 
     it('should update content type successfully', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
-      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 3 }];
+      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 4 }];
       mockContentTypesDb.data.ContentTypesMappers = [{ id: 'ct-1', projectId: 'proj-1', status: 1 }];
       mockFieldDb.data.field_mapper = [
         { id: 'f1', contentTypeId: 'ct-1', contentstackFieldType: 'text', contentstackFieldUid: 'f1' },
@@ -606,7 +606,7 @@ describe('contentMapper.service', () => {
 
     it('should reset successfully', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
-      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 3 }];
+      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 4 }];
       const contentTypeData = {
         id: 'ct-1',
         projectId: 'proj-1',

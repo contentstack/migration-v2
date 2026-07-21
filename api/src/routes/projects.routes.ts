@@ -81,6 +81,11 @@ router.put(
   asyncRouter(projectController.updateFileFormat)
 );
 
+router.put(
+  "/:projectId/source-config",
+  asyncRouter(projectController.updateSourceConfig)
+);
+
 // Update project's fileformat confirmation
 router.put(
   "/:projectId/fileformat_confirmation",
@@ -112,6 +117,9 @@ router.patch("/:projectId/stack-details", asyncRouter(projectController.updateSt
 
 //update migration execution key 
 router.put("/:projectId/migration-excution",asyncRouter(projectController.updateMigrationExecution));
+
+// Update audit report selections
+router.put("/:projectId/audit-selections", asyncRouter(projectController.updateAuditSelections));
 
 router.get("/:projectId/get-migrated-stacks", asyncRouter(projectController.getMigratedStacks))
 

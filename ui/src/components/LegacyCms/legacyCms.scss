@@ -208,3 +208,88 @@
 .doc-link {
   margin-left: 5px;
 }
+
+.contentstack-source-panel {
+  margin-top: $space-16;
+  margin-left: 10px;
+  width: 560px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 16px 16px 20px;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 6px;
+  margin-bottom: $space-16;
+  background-color: $color-brand-white-base;
+  overflow: visible;
+
+  &__title {
+    margin: 0 0 12px;
+    font-weight: $font-weight-semi-bold;
+    font-size: $size-font-large;
+    line-height: 1.4;
+    color: $color-font-base;
+  }
+
+  &__field {
+    margin-bottom: 12px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__input-wrap {
+    width: 400px;
+    max-width: 100%;
+    margin-top: 4px;
+
+    .TextInput {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+
+  &__radio-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  &__radio-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  &__imported-section {
+    margin-top: 12px;
+    padding-top: 4px;
+  }
+
+  &__file-validation {
+    .validation-container,
+    .error-container {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .bar-container {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .validation-cta {
+      margin-left: 0;
+      margin-top: $space-12;
+    }
+  }
+
+  &__actions {
+    margin-top: 16px;
+  }
+}

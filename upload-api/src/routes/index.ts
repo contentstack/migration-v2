@@ -22,6 +22,14 @@ const router: Router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+type FileProcessingResponse = {
+  status: number;
+  message: string;
+  file_details: any;
+  file?: string;
+  extractedPath?: string;
+};
+
 // Copy a file or directory from the host into the container's shared extracted_files volume.
 // Host filesystem is mounted at /host (read-only) via docker-compose.
 // Accepts: { localPath: string } — the path the user typed in the UI.
@@ -428,15 +436,16 @@ router.get(
                 res.status(data?.status || 200).json(data);
               }
               if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeName = sanitizeFilename(name);
+                // Use the absolute path saveJson actually wrote to. This
+                // avoids reconstructing it from sanitized names, which
+                // diverged from the on-disk layout for filenames containing
+                // characters stripped by sanitizeFilename (e.g. parentheses).
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                const filePath = path.join(baseDir, `${safeName}.json`);
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
+                const filePath = data?.extractedPath;
+                if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
-                  console.error('Path traversal attempt detected');
+                  console.error('Path traversal attempt detected or extractedPath missing');
                 }
               }
             } catch (error: any) {
@@ -484,25 +493,29 @@ router.get(
                 return;
               }
 
-              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
+              const data = (await handleFileProcessing(
+                fileExt,
+                zipBuffer,
+                cmsType,
+                name
+              )) as FileProcessingResponse;
 
               if (!res.headersSent) {
                 res.status(data?.status || 200).json(data);
               }
               if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeName = sanitizeFilename(name);
+                // Use the absolute path saveZip actually wrote to (set inside
+                // helper/saveZip and propagated through handleFileProcessing).
+                // Reconstructing it here with sanitizeFilename caused a path
+                // mismatch for zip names with characters that the sanitizer
+                // strips (e.g. parentheses) — silently losing locales and
+                // schema for those projects.
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                let filePath = path.join(baseDir, safeName);
-                if (data?.file !== undefined) {
-                  const safeFile = sanitizeFilename(data.file);
-                  filePath = path.join(baseDir, safeName, safeFile);
-                }
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
+                const filePath = data?.extractedPath;
+                if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
-                  console.error('Path traversal attempt detected');
+                  console.error('Path traversal attempt detected or extractedPath missing');
                 }
               }
             } catch (error: any) {
@@ -549,34 +562,31 @@ router.get(
             }
           });
 
-          //buffer fully stremd
+          //buffer fully streamed
           bodyStream.on('end', async () => {
             try {
               if (!zipBuffer) {
                 throw new Error('No data collected from the stream.');
               }
 
-              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
+              const data = (await handleFileProcessing(
+                fileExt,
+                zipBuffer,
+                cmsType,
+                fileName
+              )) as FileProcessingResponse;
 
               res.status(data?.status || 200).json(data);
 
               if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeFileName = sanitizeFilename(fileName);
+                // Use the absolute path saveZip actually wrote to (see note
+                // on the matching site above). Same fix for the S3 path.
                 const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                let filePath = path.join(baseDir, safeFileName);
-
-                // If the processor returned a specific file/folder, update the path
-                if (data?.file) {
-                  const safeDataFile = sanitizeFilename(data.file);
-                  filePath = path.join(baseDir, safeFileName, safeDataFile);
-                }
-
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
+                const filePath = data?.extractedPath;
+                if (filePath && isPathWithinBase(filePath, baseDir)) {
                   createMapper(filePath, projectId, app_token, affix, config);
                 } else {
-                  console.error('Path traversal attempt detected');
+                  console.error('Path traversal attempt detected or extractedPath missing');
                 }
               }
             } catch (error: any) {

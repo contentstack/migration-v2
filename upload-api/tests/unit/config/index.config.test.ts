@@ -27,6 +27,7 @@ describe('config/index', () => {
     expect(config.isLocalPath).toBe(true);
   });
 
+
   it('should have default AWS data', async () => {
     const config = (await import('../../../src/config/index.json')).default;
     expect(config.awsData).toEqual({

@@ -1,6 +1,282 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
+// ─── Stack-to-stack tab switcher ─────────────────────────────────────────────
+.ct-tab-switcher {
+  display: flex;
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  margin-bottom: 0;
+  padding: 0 $space-12;
+
+  .ct-tab-btn {
+    align-items: center;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: $color-font-base;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: $size-font-large;
+    font-weight: $font-weight-regular;
+    gap: $px-6;
+    margin-right: $space-20;
+    padding: $px-12 $px-8;
+    transition: border-color 0.15s, color 0.15s;
+
+    &--active {
+      border-bottom-color: $color-brand-primary-base;
+      color: $color-brand-primary-base;
+      font-weight: $font-weight-semi-bold;
+    }
+
+    &:hover:not(.ct-tab-btn--active) {
+      color: $color-brand-primary-base;
+    }
+  }
+}
+
+.ct-tab-badge {
+  background-color: $color-brand-primary-base;
+  border-radius: 10px;
+  color: $color-font-white;
+  font-size: $size-font-small;
+  font-weight: $font-weight-semi-bold;
+  line-height: 1;
+  min-width: 18px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+// ─── Content-type selector panel ─────────────────────────────────────────────
+.ct-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  .ct-selector-toolbar {
+    align-items: center;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    justify-content: space-between;
+    padding: $px-12 $space-12;
+
+    .ct-selector-description {
+      color: $color-font-gray;
+      font-size: $size-font-large; // 14px
+      margin: 0;
+      max-width: 640px;
+    }
+  }
+
+  .ct-selector-search-bar {
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    padding: $px-8 $px-12;
+
+    .Search__v2 {
+      background-color: $color-brand-white-base;
+      height: 2.5rem;
+      width: 100% !important;
+
+      .Search-input-show {
+        width: 100% !important;
+      }
+    }
+  }
+
+  .ct-selector-list-header {
+    align-items: center;
+    background-color: $color-base-white-10;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    justify-content: space-between;
+    padding: $px-8 $space-12;
+
+    .ct-selector-col-header {
+      color: $color-font-gray;
+      font-size: $size-font-small;
+      font-weight: $font-weight-semi-bold;
+      letter-spacing: 0.04em;
+      margin-right: $px-12;
+      text-transform: uppercase;
+    }
+
+    .Checkbox {
+      margin-bottom: 0;
+    }
+  }
+
+  .ct-selector-scrollable {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .ct-selector-item {
+      align-items: center;
+      border-bottom: 1px solid $color-brand-secondary-lightest;
+      display: flex;
+      justify-content: space-between;
+      min-height: 48px;
+      padding: $px-8 $px-12;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: $color-base-white-10;
+      }
+
+      .Checkbox {
+        margin-bottom: 0;
+      }
+
+      &__left {
+        align-items: center;
+        display: flex;
+        gap: $px-10;
+        flex: 1;
+        min-width: 0;
+      }
+
+      &__info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      &__title {
+        color: $color-font-base;
+        font-size: $size-font-large;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &__right {
+        align-items: center;
+        display: flex;
+        flex-shrink: 0;
+        gap: $px-12;
+        margin-left: $px-16;
+      }
+    }
+
+    .ct-selector-uid {
+      color: $color-font-gray;
+      font-size: $size-font-small;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  // Entry count badge
+  .ct-entry-badge {
+    border-radius: $px-10;
+    font-size: $size-font-small;
+    font-weight: $font-weight-medium;
+    padding: 2px $px-8;
+    white-space: nowrap;
+
+    &--blue {
+      background-color: $color-brand-draft-light;
+      color: $color-brand-draft-base;
+    }
+
+    &--green {
+      background-color: $color-brand-success-light;
+      color: $color-brand-success-base;
+    }
+
+    &--none {
+      display: none;
+    }
+  }
+
+  .ct-select-entries-link {
+    background: none;
+    border: none;
+    color: $color-brand-primary-base;
+    cursor: pointer;
+    font-size: $size-font-large;
+    padding: 0;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .ct-not-included {
+    color: $color-font-gray;
+    font-size: $size-font-large;
+  }
+
+  .ct-selector-empty {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: $space-12;
+    margin-top: $space-20;
+    padding: $space-20;
+    text-align: center;
+  }
+
+  .ct-selector-result {
+    border-top: 1px solid $color-brand-secondary-lightest;
+    padding: $space-12;
+
+    .ct-selector-result-info {
+      align-items: center;
+      color: $color-font-gray;
+      display: flex;
+      font-size: $size-font-large; // 14px
+      gap: 4px;
+      margin-bottom: $px-8;
+    }
+
+    .ct-selector-result-failed {
+      color: $color-brand-fail-base;
+      font-size: $size-font-large; // 14px
+
+      ul {
+        list-style: disc;
+        padding-left: $space-20;
+      }
+    }
+  }
+
+  .ct-selector-saved-badge {
+    align-items: center;
+    background-color: $color-brand-success-light;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    color: $color-brand-success-base;
+    display: flex;
+    font-size: $size-font-large;
+    gap: $px-6;
+    padding: $px-8 $px-12;
+  }
+
+  .ct-selector-error {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: $space-12;
+    margin-top: $space-20;
+    padding: $space-20;
+    text-align: center;
+  }
+}
+
 .content-types-list-wrapper {
   border-right: 1px solid $color-brand-secondary-lightest;
   display: flex;
@@ -520,10 +796,8 @@ div .table-row {
   display: inline-block;
 }
 
-// Make sure table and save button stay fully visible
 .table-wrapper {
   position: relative;
-  padding-bottom: 70px;
 }
 
 // Step 4 wrapper: toggle stacked above the active mapper. Fills its parent and lets the
@@ -704,5 +978,228 @@ div .table-row {
     .Table__body__column:last-child {
       border-right: none !important;
     }
+  }
+}
+
+// ─── Entry Selector modal ─────────────────────────────────────────────────────
+.entry-selector {
+  display: flex;
+  flex-direction: column;
+  height: 68vh;
+  min-height: 380px;
+  min-width: 640px;
+
+  &__header {
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    padding: $px-16 $px-20;
+  }
+
+  &__title {
+    color: $color-font-black;
+    font-size: $size-font-xl;
+    font-weight: $font-weight-semi-bold;
+    margin: 0;
+  }
+
+  &__toolbar {
+    align-items: center;
+    border-bottom: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    gap: $px-12;
+    padding: $px-12 $px-20;
+
+    .Search__v2 {
+      flex: 1;
+      height: 2.25rem;
+    }
+  }
+
+  &__status-filters {
+    display: flex;
+    gap: $px-6;
+  }
+
+  &__status-btn {
+    background: none;
+    border: 1px solid $color-brand-secondary-lightest;
+    border-radius: $px-4;
+    color: $color-font-base;
+    cursor: pointer;
+    font-size: $size-font-large;
+    padding: $px-4 $px-10;
+    transition: background-color 0.15s, color 0.15s;
+
+    &.active {
+      background-color: $color-brand-primary-base;
+      border-color: $color-brand-primary-base;
+      color: $color-font-white;
+    }
+
+    &:hover:not(.active) {
+      background-color: $color-base-white-10;
+    }
+  }
+
+  &__loader {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    padding: $px-32;
+  }
+
+  &__empty {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: $px-12;
+    justify-content: center;
+    padding: $px-32;
+    text-align: center;
+  }
+
+  &__error-text {
+    color: $color-brand-fail-base;
+  }
+
+  &__table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  &__table {
+    border-collapse: collapse;
+    width: 100%;
+
+    th,
+    td {
+      border-bottom: 1px solid $color-brand-secondary-lightest;
+      padding: $px-10 $px-12;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    thead th {
+      background-color: $color-base-white-10;
+      color: $color-font-gray;
+      font-size: $size-font-small;
+      font-weight: $font-weight-semi-bold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .Checkbox {
+      margin-bottom: 0;
+    }
+  }
+
+  &__col--check {
+    padding: $px-10 $px-8 $px-10 $px-16 !important;
+    width: 1%;
+    white-space: nowrap;
+
+    .Checkbox {
+      display: flex;
+      margin: 0;
+
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+
+      // hide the empty label span so it doesn't add width
+      .Checkbox__label {
+        display: none;
+      }
+    }
+  }
+
+  &__col--entry {
+    width: 45%;
+  }
+
+  &__col--status {
+    width: 15%;
+  }
+
+  &__row {
+    cursor: pointer;
+
+    &:hover {
+      background-color: $color-base-white-10;
+    }
+
+    &--selected {
+      background-color: rgba(108, 92, 231, 0.04);
+    }
+  }
+
+  &__no-data {
+    padding: $px-32 !important;
+    text-align: center !important;
+  }
+
+  &__entry-title {
+    color: $color-font-base;
+    display: block;
+    font-size: $size-font-large;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__entry-meta {
+    color: $color-font-gray;
+    display: block;
+    font-size: $size-font-small;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__badge {
+    border-radius: $px-4;
+    font-size: $size-font-small;
+    padding: 2px $px-8;
+    text-transform: capitalize;
+
+    &--published {
+      background-color: $color-brand-success-light;
+      color: $color-brand-success-base;
+    }
+
+    &--draft {
+      background-color: $color-brand-draft-light;
+      color: $color-brand-draft-base;
+    }
+  }
+
+  &__load-more {
+    display: flex;
+    justify-content: center;
+    padding: $px-12;
+  }
+
+  &__footer {
+    align-items: center;
+    border-top: 1px solid $color-brand-secondary-lightest;
+    display: flex;
+    justify-content: space-between;
+    padding: $px-12 $px-20;
+  }
+
+  &__count {
+    color: $color-font-gray;
+    font-size: $size-font-large;
+  }
+
+  &__footer-actions {
+    display: flex;
+    gap: $px-10;
   }
 }

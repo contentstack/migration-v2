@@ -80,25 +80,27 @@ describe('migration.controller', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  describe('fire-and-forget methods', () => {
-    it('startTestMigration should return 200 immediately and call service', async () => {
-      const migrationPromise = Promise.resolve({ ok: true });
-      mockMigrationService.startTestMigration.mockReturnValue(migrationPromise);
+  describe('long-running migration handlers', () => {
+    it('startTestMigration should await service and send its status/body', async () => {
+      const payload = { status: 200, data: { message: 'Test migration completed successfully' } };
+      mockMigrationService.startTestMigration.mockResolvedValue(payload);
 
       await migrationController.startTestMigration(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(200);
       expect(mockMigrationService.startTestMigration).toHaveBeenCalledWith(req);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(payload);
     });
 
-    it('startMigration should return 200 immediately and call service', async () => {
-      const migrationPromise = Promise.resolve({ ok: true });
-      mockMigrationService.startMigration.mockReturnValue(migrationPromise);
+    it('startMigration should await service and send its status/body', async () => {
+      const payload = { status: 200, data: { message: 'ok' } };
+      mockMigrationService.startMigration.mockResolvedValue(payload);
 
       await migrationController.startMigration(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(200);
       expect(mockMigrationService.startMigration).toHaveBeenCalledWith(req);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(payload);
     });
   });
 });

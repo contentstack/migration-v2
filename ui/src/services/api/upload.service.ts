@@ -10,7 +10,12 @@ export const getCall = async (url: string, options?: any) => {
     const response = await axios.get(url, { ...options });
     return response;
   } catch (err: any) {
-    return err.response;
+    return (
+      err?.response || {
+        status: 0,
+        data: null
+      }
+    );
   }
 };
 

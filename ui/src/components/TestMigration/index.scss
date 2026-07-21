@@ -5,4 +5,25 @@
   max-height: 70vh;
   overflow-y: auto;
   overflow-x: hidden;
+
+  > .content-block:first-child {
+    margin-bottom: $space-12;
+
+    .content-body {
+      padding-bottom: $space-12;
+    }
+
+    .Field {
+      margin-bottom: 0 !important;
+    }
+  }
+
+  > .content-block + .content-block {
+    margin-top: 0;
+  }
+
+  .test-stack-field {
+    margin-top: $space-16;
+    margin-bottom: 0 !important;
+  }
 }

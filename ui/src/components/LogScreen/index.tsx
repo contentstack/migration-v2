@@ -27,6 +27,14 @@ const logStyles: { [key: string]: React.CSSProperties } = {
   success: { backgroundColor: '#d4edda', color: '#155724' }
 };
 
+const inferLogLevel = (message: string): string => {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('error') || normalized.includes('failed')) return 'error';
+  if (normalized.includes('warn')) return 'warn';
+  if (normalized.includes('success') || normalized.includes('completed')) return 'success';
+  return 'info';
+};
+
 // Define the props for the component
 type LogsType = {
   serverPath: string;
@@ -42,6 +50,7 @@ type LogsType = {
  */
 const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: LogsType) => {
   const [isLogsLoading, setisLogsLoading] = useState<boolean>(false);
+  const pendingLogChunkRef = useRef('');
   const [logs, setLogs] = useState<LogEntry[]>([
     {
       message: !isLogsLoading ? 'Migration logs will appear here once the process begins.' : '',
@@ -85,9 +94,13 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
     socket.on('logUpdate', (newLogs: string) => {
       setisLogsLoading(true);
       const parsedLogsArray: LogEntry[] = [];
-      const logArray = newLogs?.split('\n');
+      const bufferedLogs = `${pendingLogChunkRef.current}${newLogs || ''}`;
+      const logArray = bufferedLogs.split('\n');
+      pendingLogChunkRef.current = logArray.pop() || '';
 
-      logArray?.forEach((logLine) => {
+      logArray?.forEach((rawLine) => {
+        const logLine = rawLine?.trim();
+        if (!logLine) return;
         try {
           // parse each log entry as a JSON object
           const parsedLog = JSON.parse(logLine);
@@ -98,8 +111,23 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
             timestamp: parsedLog.timestamp || null
           };
           parsedLogsArray.push(plogs);
-        } catch (error) {
-          console.error('error in parsing logs : ', error);
+        } catch {
+          const structuredMatch = logLine.match(
+            /^\[([^\]]+)\]\s*(INFO|WARN|ERROR)\s*:\s*(.*)$/i
+          );
+          if (structuredMatch) {
+            parsedLogsArray.push({
+              timestamp: structuredMatch[1],
+              level: structuredMatch[2].toLowerCase(),
+              message: structuredMatch[3] || 'Unknown message'
+            });
+            return;
+          }
+          parsedLogsArray.push({
+            level: inferLogLevel(logLine),
+            message: logLine,
+            timestamp: null
+          });
         }
       });
       setLogs((prevLogs) => [
@@ -110,6 +138,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
       ]);
     });
     return () => {
+      pendingLogChunkRef.current = '';
       socket.disconnect(); // Cleanup on component unmount
     };
   }, []);
@@ -163,78 +192,110 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
   };
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  /** One toast + one Redux update per test run; `logs` changes often via socket. */
+  const testMigrationCompletionHandledRef = useRef(false);
+  const prevTestMigrationStartedRef = useRef<boolean | undefined>(undefined);
+  const newMigrationDataRef = useRef(newMigrationData);
+  newMigrationDataRef.current = newMigrationData;
+
+  useEffect(() => {
+    const started = newMigrationData?.test_migration?.isMigrationStarted === true;
+    const prev = prevTestMigrationStartedRef.current;
+    prevTestMigrationStartedRef.current = started;
+
+    if (started && prev === false) {
+      testMigrationCompletionHandledRef.current = false;
+      setLogs([{ message: 'Migration logs will appear here once the process begins.', level: '' }]);
+      setisLogsLoading(true);
+    }
+  }, [newMigrationData?.test_migration?.isMigrationStarted]);
 
   useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
-
-    logs?.forEach((log: LogEntry) => {
-      try {
-        //const logObject = JSON.parse(log);
-        const message = log?.message;
-
-        if (message === 'Test Migration Process Completed') {
-          setisLogsLoading(false);
-
-          // Save test migration state to local storage
-          saveStateToLocalStorage(`testmigration_${projectId}`, {
-            isTestMigrationCompleted: true,
-            isTestMigrationStarted: false
-          });
-
-          Notification({
-            notificationContent: { text: message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
-          sendDataToParent?.(false);
-          const stacks =
-            newMigrationData?.testStacks?.length > 0
-              ? newMigrationData?.testStacks?.map((stack) =>
-                  stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
-                    ? {
-                        ...stack,
-                        stackName: newMigrationData?.test_migration?.stack_name,
-                        isMigrated: true
-                      }
-                    : stack
-                )
-              : [
-                  {
-                    stackUid: newMigrationData?.test_migration?.stack_api_key,
-                    stackName: newMigrationData?.test_migration?.stack_name,
-                    isMigrated: true
-                  }
-                ];
-
-          // Update testStacks data in Redux
-          const newMigrationObj: INewMigration = {
-            ...newMigrationData,
-            testStacks: stacks,
-            test_migration: {
-              ...newMigrationData?.test_migration,
-              isMigrationComplete: true,
-              isMigrationStarted: false
-            }
-          };
-
-          dispatch(updateNewMigrationData(newMigrationObj));
-        }
-      } catch (error) {
-        console.error('Invalid JSON string', error);
-      }
-    });
   }, [logs]);
 
   useEffect(() => {
-    if (!isLogsLoading && !migratedStack?.isMigrated) {
+    if (testMigrationCompletionHandledRef.current) {
+      return;
+    }
+    if (newMigrationDataRef.current?.test_migration?.isMigrationComplete) {
+      testMigrationCompletionHandledRef.current = true;
+      return;
+    }
+    const hasCompletion = logs?.some(
+      (log) =>
+        typeof log.message === 'string' &&
+        log.message.includes('Test Migration Process Completed')
+    );
+    if (!hasCompletion) {
+      return;
+    }
+
+    testMigrationCompletionHandledRef.current = true;
+    setisLogsLoading(false);
+
+    saveStateToLocalStorage(`testmigration_${projectId}`, {
+      isTestMigrationCompleted: true,
+      isTestMigrationStarted: false
+    });
+
+    Notification({
+      notificationContent: { text: 'Test Migration Process Completed' },
+      notificationProps: {
+        position: 'bottom-center',
+        hideProgressBar: true
+      },
+      type: 'success'
+    });
+    sendDataToParent?.(false);
+
+    const nm = newMigrationDataRef.current;
+    const stacks =
+      nm?.testStacks?.length > 0
+        ? nm.testStacks.map((stack) =>
+            stack?.stackUid === nm?.test_migration?.stack_api_key
+              ? {
+                  ...stack,
+                  stackName: nm?.test_migration?.stack_name,
+                  isMigrated: true
+                }
+              : stack
+          )
+        : [
+            {
+              stackUid: nm?.test_migration?.stack_api_key,
+              stackName: nm?.test_migration?.stack_name,
+              isMigrated: true
+            }
+          ];
+
+    dispatch(
+      updateNewMigrationData({
+        ...nm,
+        testStacks: stacks,
+        test_migration: {
+          ...nm?.test_migration,
+          isMigrationComplete: true,
+          isMigrationStarted: false
+        }
+      })
+    );
+  }, [logs, dispatch, projectId, sendDataToParent]);
+
+  useEffect(() => {
+    const migrated = newMigrationData?.testStacks?.find(
+      (test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key
+    )?.isMigrated;
+    if (!isLogsLoading && !migrated) {
       setLogs([{ message: 'Migration logs will appear here once the process begins.', level: '' }]);
     }
-  }, [isLogsLoading, migratedStack?.isMigrated]);
+  }, [
+    isLogsLoading,
+    newMigrationData?.testStacks,
+    newMigrationData?.test_migration?.stack_api_key
+  ]);
 
   const navigate = useNavigate(); 
 

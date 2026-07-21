@@ -4,12 +4,25 @@ import JSZip from 'jszip';
 import validator from '../validators';
 import logger from '../utils/logger.js';
 
+/**
+ * Shared return shape for handleFileProcessing. Declared explicitly so every
+ * branch contributes the same fields (extractedPath optional) and callers can
+ * read `data.extractedPath` without `as any` casts.
+ */
+export type FileProcessingResult = {
+  status: number;
+  message: any;
+  file_details: any;
+  file?: string;
+  extractedPath?: string;
+};
+
 const handleFileProcessing = async (
   fileExt: string,
   zipBuffer: any,
   cmsType: string,
   name: string
-) => {
+): Promise<FileProcessingResult | undefined> => {
   const config = await updateConfigFile();
   if (!config) {
     logger.error('Failed to load application config');
@@ -33,7 +46,11 @@ const handleFileProcessing = async (
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
           file_details: config,
-          file: isSaved?.filePath
+          file: isSaved?.filePath,
+          // Absolute path of the directory the zip was extracted into;
+          // the route uses this directly so filenames with special chars
+          // (spaces, parentheses, etc.) don't break the path lookup.
+          extractedPath: isSaved?.extractedPath
         };
       }
     } else {
@@ -54,7 +71,7 @@ const handleFileProcessing = async (
       const parsedJson = await parseXmlToJson(xmlString);
 
       const isSaved = await saveJson(parsedJson, `${name}.json`);
-      if (isSaved) {
+      if (isSaved?.isSaved) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
@@ -62,7 +79,10 @@ const handleFileProcessing = async (
         return {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
-          file_details: config
+          file_details: config,
+          // Absolute path of the JSON file written by saveJson — used by the
+          // route so it doesn't reconstruct the path with sanitized names.
+          extractedPath: isSaved?.savedPath
         };
       } else {
         logger.warn('Validation error:', {

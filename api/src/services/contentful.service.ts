@@ -1133,13 +1133,32 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         for (const localeKey of Object.keys(valuesByCfLocale)) {
           const localeValues = valuesByCfLocale[localeKey];
           if (!localeValues) continue;
+          // Resolve to the destination locale. Previously passed isNull:true,
+          // which silently dropped every entry whose source locale wasn't in
+          // the user's locale mapping (e.g. Contentful 'en-US' when only
+          // 'en-IN' was mapped). Use the default fallback instead so
+          // unmapped source locales pass through as the lowercased source
+          // code — the CLI import will then surface any dest-side mismatch
+          // visibly instead of silently producing zero entries.
           const localeCode = mapLocales({
             masterLocale: master_locale,
             locale: localeKey,
             locales: LocaleMapper,
-            isNull: true,
           });
           if (!localeCode) continue;
+          const isMapped =
+            LocaleMapper?.masterLocale?.[master_locale ?? ''] === localeKey ||
+            Object.entries(LocaleMapper || {}).some(
+              ([, v]) => typeof v !== 'object' && v === localeKey,
+            );
+          if (!isMapped) {
+            const message = getLogMessage(
+              srcFunc,
+              `Source locale "${localeKey}" is not mapped — falling back to destination locale "${localeCode}". If the destination stack doesn't have this locale, those entries will fail to import.`,
+              {},
+            );
+            await customLogger(projectId, destination_stack_id, 'warn', message);
+          }
           mergedByDestinationLocale[localeCode] ??= {};
           for (const [uid, entry] of Object.entries(localeValues)) {
             mergedByDestinationLocale[localeCode][uid] = {

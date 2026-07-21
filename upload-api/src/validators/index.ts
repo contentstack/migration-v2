@@ -3,6 +3,7 @@ import contentfulValidator from './contentful';
 import wordpressValidator from './wordpress';
 import aemValidator from './aem';
 import drupalValidator from './drupal';
+import contentstackValidator from './contentstack';
 
 const validator = ({
   data,
@@ -35,6 +36,11 @@ const validator = ({
 
     case 'drupal-sql': {
       return drupalValidator({ data, assetsConfig });
+    }
+
+    case 'contentstack-zip':
+    case 'contentstack-json': {
+      return contentstackValidator({ data, extension });
     }
 
     default:

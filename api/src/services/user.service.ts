@@ -11,6 +11,7 @@ import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
 import { getAppOrganization } from "../utils/auth.utils.js";
+import { mapOrganizationsForMigration } from "../utils/contentstack-user-orgs.utils.js";
 import { requestWithSsoTokenRefresh } from "../utils/sso-request.utils.js";
 
 /**
@@ -80,6 +81,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
             email: res?.data?.user?.email,
             first_name: res?.data?.user?.first_name,
             last_name: res?.data?.user?.last_name,
+            region: appTokenPayload?.region,
             orgs: [
               {
                 org_id: org_uid,
@@ -121,21 +123,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       };
     }
 
-    const adminOrgs = res?.data?.user?.organizations
-        ?.filter((org: any) =>
-          org?.org_roles?.some((r: any) => r?.admin)
-        )
-        ?.map(({ uid, name }: any) => ({
-          org_id: uid,
-          org_name: name,
-        })) || [];
-
-    const ownerOrgs = res?.data?.user?.organizations
-        ?.filter((org: any) => org?.is_owner)
-        ?.map(({ uid, name }: any) => ({
-          org_id: uid,
-          org_name: name,
-        })) || [];
+    const orgs = mapOrganizationsForMigration(res?.data?.user?.organizations);
 
     return {
       data: {
@@ -143,7 +131,8 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
           email: res?.data?.user?.email,
           first_name: res?.data?.user?.first_name,
           last_name: res?.data?.user?.last_name,
-          orgs: [...adminOrgs, ...ownerOrgs],
+          region: appTokenPayload?.region,
+          orgs,
         },
       },
       status: res?.status,
@@ -157,6 +146,75 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Locate the authentication record for the currently-authenticated user.
+ * Returns the index in AuthenticationModel.data.users or -1.
+ */
+const findUserIndex = (appTokenPayload: AppTokenPayload): number => {
+  return AuthenticationModel.chain
+    .get("users")
+    .findIndex({
+      user_id: appTokenPayload?.user_id,
+      region: appTokenPayload?.region,
+      is_sso: appTokenPayload?.is_sso,
+    })
+    .value();
+};
+
+/**
+ * Returns the persisted regional source-login session for the current user,
+ * or null when none is stored. Used in place of the prior sessionStorage
+ * lookup so the source app token never lives in the browser.
+ */
+const getSourceSession = async (req: Request): Promise<LoginServiceType> => {
+  const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
+  await AuthenticationModel.read();
+  const idx = findUserIndex(appTokenPayload);
+  if (idx < 0) {
+    return { data: { source_session: null }, status: HTTP_CODES.OK };
+  }
+  const rec = AuthenticationModel.data?.users?.[idx]?.source_session ?? null;
+  return { data: { source_session: rec }, status: HTTP_CODES.OK };
+};
+
+/**
+ * Upserts the regional source-login session on the current user's record.
+ * Body: { region: string, appToken: string }.
+ */
+const setSourceSession = async (req: Request): Promise<LoginServiceType> => {
+  const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
+  const region = typeof req?.body?.region === "string" ? req.body.region.trim() : "";
+  const appToken = typeof req?.body?.appToken === "string" ? req.body.appToken : "";
+  if (!region || !appToken) {
+    throw new BadRequestError("region and appToken are required");
+  }
+  await AuthenticationModel.read();
+  const idx = findUserIndex(appTokenPayload);
+  if (idx < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
+  AuthenticationModel.data.users[idx].source_session = { region, appToken };
+  AuthenticationModel.data.users[idx].updated_at = new Date().toISOString();
+  await AuthenticationModel.write();
+  return { data: { source_session: { region, appToken } }, status: HTTP_CODES.OK };
+};
+
+/**
+ * Clears any persisted regional source-login session for the current user.
+ */
+const clearSourceSession = async (req: Request): Promise<LoginServiceType> => {
+  const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
+  await AuthenticationModel.read();
+  const idx = findUserIndex(appTokenPayload);
+  if (idx >= 0 && AuthenticationModel.data?.users?.[idx]?.source_session) {
+    delete AuthenticationModel.data.users[idx].source_session;
+    AuthenticationModel.data.users[idx].updated_at = new Date().toISOString();
+    await AuthenticationModel.write();
+  }
+  return { data: { source_session: null }, status: HTTP_CODES.OK };
+};
+
 export const userService = {
   getUserProfile,
+  getSourceSession,
+  setSourceSession,
+  clearSourceSession,
 };

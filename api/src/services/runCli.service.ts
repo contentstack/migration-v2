@@ -5,11 +5,14 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { v4 } from 'uuid';
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, getStepperSteps } from '../constants/index.js';
+import { CMS, CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, STEPPER_STEPS, getStepperSteps } from '../constants/index.js';
+import { resolveContentstackExportRoot } from './validation.service.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
 // import watchLogs from '../utils/watch.utils.js';
 import { setLogFilePath } from '../server.js';
+import { normalizeLinkFieldsInExport } from '../utils/normalize-entry-links.utils.js';
+import { assertExportPathInAllowedRoot } from '../utils/sanitize-path.utils.js';
 
 /**
  * Represents a test stack with migration status
@@ -54,6 +57,78 @@ const stripAnsiCodes = (text: string): string => {
   return text.replace(/\u001b\[\d+m/g, '');
 };
 
+const IMPORTABLE_MODULES = new Set([
+  'assets',
+  'content-types',
+  'entries',
+  'environments',
+  'extensions',
+  'marketplace-apps',
+  'global-fields',
+  'labels',
+  'locales',
+  'webhooks',
+  'workflows',
+  'custom-roles',
+  'taxonomies',
+  'stack',
+  'personalize-projects',
+  'personalize'
+]);
+
+const readImportModulesFromExport = (sourcePath: string): string[] => {
+  try {
+    const dirs = fs
+      .readdirSync(sourcePath, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry?.name);
+
+    // `composable-studio` causes MODULE_NOT_FOUND on some CLI versions; skip it.
+    return dirs.filter(
+      (moduleName) =>
+        moduleName !== 'composable-studio' && IMPORTABLE_MODULES.has(moduleName)
+    );
+  } catch {
+    return [];
+  }
+};
+
+const resolveSourcePathForImport = (project: any, stackUid: string): string => {
+  const defaultPath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, stackUid);
+  if (!project?.legacy_cms) {
+    return defaultPath;
+  }
+
+  // For Contentstack-to-Contentstack, prefer the actual export path regardless of source_mode.
+  // These fields are user-controlled via source-config updates, so the resolved path is
+  // constrained to the allowlisted migration roots before being handed to the CLI.
+  if (project?.legacy_cms?.cms === CMS.CONTENTSTACK) {
+    const sourcePath =
+      project?.legacy_cms?.source_details?.export_path ||
+      project?.legacy_cms?.source_details?.imported_data_path ||
+      project?.extract_path;
+    if (!sourcePath) return defaultPath;
+    try {
+      const resolved = assertExportPathInAllowedRoot(sourcePath);
+      // Back-compat: old exports landed at export-stack/{stackId}/ (flat).
+      // New exports land at export-stack/{stackId}/{iteration}/.
+      // If the stored path doesn't exist on disk but its iteration subfolder does, use that.
+      if (!fs.existsSync(resolved)) {
+        const iteration = project?.iteration || 1;
+        const iterationPath = path.join(resolved, String(iteration));
+        if (fs.existsSync(iterationPath)) {
+          return assertExportPathInAllowedRoot(iterationPath);
+        }
+      }
+      return resolved;
+    } catch {
+      return defaultPath;
+    }
+  }
+
+  return defaultPath;
+};
+
 /**
  * Executes CLI commands and provides real-time output
  * Uses Node's spawn to run commands asynchronously
@@ -65,11 +140,13 @@ const runCommand = (
 ): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
     const cmdProcess = spawn(command, args, { shell: true });
+    let commandOutput = '';
 
     // For stdout handler
     cmdProcess.stdout.on('data', (data) => {
       const output = data.toString();
       process.stdout.write(output); // Keep colors in console
+      commandOutput += stripAnsiCodes(output);
 
       if (logFilePath) {
         try {
@@ -92,6 +169,7 @@ const runCommand = (
     cmdProcess.stderr.on('data', (data) => {
       const output = data.toString();
       process.stderr.write(output); // Keep colors in console
+      commandOutput += stripAnsiCodes(output);
 
       if (logFilePath) {
         try {
@@ -110,14 +188,27 @@ const runCommand = (
     });
 
     cmdProcess.on('close', (code) => {
-      if (code === 0) resolve();
-      else {
+      const normalizedOutput = commandOutput.toLowerCase();
+      // Do not treat generic `error:` as fatal: Contentstack cm:stacks:import logs
+      // `[timestamp] ERROR: ...` for per-asset / per-taxonomy failures while still exiting 0.
+      const hasFatalCliMessage =
+        normalizedOutput.includes("we can't find that stack") ||
+        normalizedOutput.includes('stack api key: is not valid') ||
+        normalizedOutput.includes('module_not_found') ||
+        normalizedOutput.includes('command failed');
+
+      if (code === 0 && !hasFatalCliMessage) {
+        resolve();
+      } else {
         // Log the error to the log file
         if (logFilePath) {
           try {
             const logEntry = {
               level: 'error',
-              message: `Command failed with exit code ${code}`,
+              message:
+                code === 0 && hasFatalCliMessage
+                  ? 'CLI reported a fatal error despite exit code 0'
+                  : `Command failed with exit code ${code}`,
               timestamp: new Date().toISOString(),
             };
             fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
@@ -125,7 +216,14 @@ const runCommand = (
             console.error('Error writing close event to log file:', err);
           }
         }
-        reject(new Error(`Command failed with exit code ${code}`));
+        const summarizedOutput = commandOutput.trim().slice(-3000);
+        reject(
+          new Error(
+            `Command failed with exit code ${code}${
+              summarizedOutput ? `\n${summarizedOutput}` : ''
+            }`
+          )
+        );
       }
     });
   });
@@ -175,7 +273,7 @@ export const runCli = async (
     }
 
 
-    if (userData?.authtoken && stack_uid || userData?.access_token && stack_uid) {
+    if ((userData?.authtoken && stack_uid) || (userData?.access_token && stack_uid)) {
       // Set up paths for backup and source data
       const {
         BACKUP_DATA,
@@ -184,164 +282,209 @@ export const runCli = async (
         BACKUP_FILE_NAME,
       } = MIGRATION_DATA_CONFIG;
 
-      // Create source and backup paths
-      const sourcePath = path.join(
-        process.cwd(),
-        MIGRATION_DATA_CONFIG.DATA,
-        stack_uid
-      );
+      await ProjectModelLowdb.read();
+      const project = ProjectModelLowdb.chain
+        .get('projects')
+        .find({ id: projectId })
+        .value();
+
+      // Create source and backup paths. runCli owns the backup lifecycle —
+      // it creates the folder here and deletes it after a successful import.
+      const sourcePath = resolveSourcePathForImport(project, stack_uid);
       const backupPath = path.join(
         process.cwd(),
         BACKUP_DATA,
         `${stack_uid}_${v4().slice(0, 4)}`
       );
 
-      // Create backup of source data
-      await copyDirectory(sourcePath, backupPath);
+      if (!sourcePath || !fs.existsSync(sourcePath)) {
+        throw new Error(`Source import path does not exist: ${sourcePath}`);
+      }
 
-      // Set up logging
-      const loggerPath = path.join(
-        backupPath,
-        BACKUP_LOG_DIR,
-        BACKUP_FOLDER_NAME,
-        BACKUP_FILE_NAME
-      );
-      await createDirectoryAndFile(loggerPath, transformePath);
+      let importDataPath = sourcePath;
 
-      // Debug which log path is being used
+      if (isTest && project?.legacy_cms?.cms === CMS.CONTENTSTACK) {
+        const resolvedExportRoot = resolveContentstackExportRoot(sourcePath);
+        if (!resolvedExportRoot) {
+          throw new Error(
+            'Could not resolve Contentstack export root for test migration. Re-validate the export in Step 1.'
+          );
+        }
+        // For stack-to-stack, the data is already in Contentstack format — import the full export.
+        importDataPath = resolvedExportRoot;
+      }
 
-      // Make sure to set the global.currentLogFile to the project log file
-      // This is the key part - setting the log file path to the migration service log file
-      await setLogFilePath(transformePath);
-      // Comment out the watchLogs call to see if that's causing the issue
-      // await watchLogs(loggerPath, transformePath);
+      try {
+        // Create backup of the data actually imported (full export for final; pruned tree for CS test)
+        await copyDirectory(importDataPath, backupPath);
 
-      // Execute the stack import command
-      await runCommand(
-        'npx',
-        [
+        const loggerPath = path.join(
+          backupPath,
+          BACKUP_LOG_DIR,
+          BACKUP_FOLDER_NAME,
+          BACKUP_FILE_NAME
+        );
+        await createDirectoryAndFile(loggerPath, transformePath);
+        await setLogFilePath(transformePath);
+
+        normalizeLinkFieldsInExport(importDataPath);
+
+        const sourceDirArg =
+          importDataPath.includes(' ') ? `"${importDataPath}"` : importDataPath;
+        const backupDirArg = backupPath.includes(' ') ? `"${backupPath}"` : backupPath;
+        const baseImportArgs = [
           '@contentstack/cli',
           'cm:stacks:import',
           '-k',
           stack_uid,
           '-d',
-          sourcePath.includes(' ') ? `"${sourcePath}"` : sourcePath,
+          sourceDirArg,
           '--backup-dir',
-          backupPath.includes(' ') ? `"${backupPath}"` : backupPath,
+          backupDirArg,
           '--yes',
-        ],
-        transformePath
-      ); // Pass the log file path here
+        ];
 
-      // After the import command completes
+        try {
+          await runCommand('npx', baseImportArgs, transformePath);
+        } catch (importError: any) {
+          const errorText = `${importError?.message || importError}`.toLowerCase();
+          const shouldRetryWithoutComposableStudio =
+            errorText.includes('module_not_found') ||
+            errorText.includes('composable-studio');
 
-      // Write the completion message ONCE in the format the UI expects
-      if (isTest) {
-        const directLogEntry = {
-          level: 'info',
-          message: 'Test Migration Process Completed',
-          timestamp: new Date().toISOString(),
-        };
-
-        // Write to the transform path (main log file) - ONLY ONCE
-        fs.appendFileSync(
-          transformePath,
-          JSON.stringify(directLogEntry) + '\n'
-        );
-
-        // Also write to backup log path if different
-        if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
-        }
-      } else {
-        const directLogEntry = {
-          level: 'info',
-          message: 'Migration Process Completed',
-          timestamp: new Date().toISOString(),
-        };
-
-        // Write to the transform path (main log file) - ONLY ONCE
-        fs.appendFileSync(
-          transformePath,
-          JSON.stringify(directLogEntry) + '\n'
-        );
-
-        // Also write to backup log path if different
-        if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
-        }
-        await ProjectModelLowdb.read();
-        const projectData = ProjectModelLowdb.chain
-          .get("projects")
-          .find({ id: projectId })
-          .value();
-        const iteration = projectData?.iteration || 1;
-        await writeUidMapping(backupPath, projectId, iteration);
-        await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
-      }
-
-      // Keep the project status update code:
-      // ... rest of the code ...
-
-      // Add debug logs to track project index and test flag
-
-      // Make sure we have the latest data
-      await ProjectModelLowdb.read();
-      const projectIndex = ProjectModelLowdb.chain
-        .get('projects')
-        .findIndex({ id: projectId })
-        .value();
-
-      // Handle test migration updates
-      if (projectIndex > -1 && isTest) {
-        const project = ProjectModelLowdb.data.projects[projectIndex];
-
-        // Initialize test_stacks if needed
-        if (!project.test_stacks) {
-          project.test_stacks = [];
-        }
-
-        // Update migration status for the specific stack
-        project.test_stacks.forEach((item: TestStack) => {
-          if (item.stackUid === stack_uid) {
-            item.isMigrated = true;
+          if (!shouldRetryWithoutComposableStudio) {
+            throw importError;
           }
-        });
 
-        await ProjectModelLowdb.write();
-      }
+          const fallbackModules = readImportModulesFromExport(importDataPath);
+          if (!fallbackModules?.length) {
+            throw importError;
+          }
 
-      // Update project status for non-test migrations
-      if (projectIndex > -1 && !isTest) {
-        // Direct modification might be more reliable
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
-          true;
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
-          false;
-        // Migration completed → land on the final Execute step (6 on delta iterations, 5 otherwise).
-        ProjectModelLowdb.data.projects[projectIndex].current_step =
-          getStepperSteps(ProjectModelLowdb.data.projects[projectIndex]?.iteration).MIGRATION;
-        ProjectModelLowdb.data.projects[projectIndex].status = 5;
-        // Record every locale that just successfully migrated so the next delta restart can
-        // tell which locales need a full pass vs delta. Set-union with prior value.
-        const proj: any = ProjectModelLowdb.data.projects[projectIndex];
-        const ranLocales = Array.from(
-          new Set([
-            ...Object.keys(proj?.master_locale ?? {}),
-            ...Object.keys(proj?.locales ?? {}),
-          ]),
-        );
-        const existing: string[] = Array.isArray(proj?.migrated_locales)
-          ? proj.migrated_locales
-          : [];
-        proj.migrated_locales = Array.from(new Set([...existing, ...ranLocales]));
-        await ProjectModelLowdb.write();
+          if (transformePath) {
+            fs.appendFileSync(
+              transformePath,
+              JSON.stringify({
+                level: 'warn',
+                message:
+                  'Import failed on a CLI module (likely composable-studio). Retrying with supported modules only.',
+                timestamp: new Date().toISOString(),
+              }) + '\n'
+            );
+          }
+
+          for (const moduleName of fallbackModules) {
+            await runCommand(
+              'npx',
+              [...baseImportArgs, '-m', moduleName, '--skip-existing'],
+              transformePath
+            );
+          }
+        }
+
+        if (isTest) {
+          const directLogEntry = {
+            level: 'info',
+            message: 'Test Migration Process Completed',
+            timestamp: new Date().toISOString(),
+          };
+          fs.appendFileSync(
+            transformePath,
+            JSON.stringify(directLogEntry) + '\n'
+          );
+          if (loggerPath && loggerPath !== transformePath) {
+            fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+          }
+        } else {
+          const directLogEntry = {
+            level: 'info',
+            message: 'Migration Process Completed',
+            timestamp: new Date().toISOString(),
+          };
+          fs.appendFileSync(
+            transformePath,
+            JSON.stringify(directLogEntry) + '\n'
+          );
+          if (loggerPath && loggerPath !== transformePath) {
+            fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+          }
+          // Delta migration: persist UID mapping for the current iteration so
+          // a subsequent delta run can skip already-migrated entities.
+          await ProjectModelLowdb.read();
+          const projectData = ProjectModelLowdb.chain
+            .get('projects')
+            .find({ id: projectId })
+            .value();
+          const iteration = projectData?.iteration || 1;
+          await writeUidMapping(backupPath, projectId, iteration);
+          await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
+        }
+
+        await ProjectModelLowdb.read();
+        const projectIndex = ProjectModelLowdb.chain
+          .get('projects')
+          .findIndex({ id: projectId })
+          .value();
+
+        if (projectIndex > -1 && isTest) {
+          const proj = ProjectModelLowdb.data.projects[projectIndex];
+          if (!proj.test_stacks) {
+            proj.test_stacks = [];
+          }
+          proj.test_stacks.forEach((item: TestStack) => {
+            if (item.stackUid === stack_uid) {
+              item.isMigrated = true;
+            }
+          });
+          await ProjectModelLowdb.write();
+        }
+
+        if (projectIndex > -1 && !isTest) {
+          ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
+          ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+          // Migration completed → land on the final Execute step.
+          // CS source delta = 7 steps (MIGRATION=7); non-CS delta = 6 (MIGRATION=6).
+          const proj: any = ProjectModelLowdb.data.projects[projectIndex];
+          const isCsSource = proj?.legacy_cms?.cms === CMS.CONTENTSTACK;
+          proj.current_step = getStepperSteps(proj?.iteration, isCsSource).MIGRATION;
+          ProjectModelLowdb.data.projects[projectIndex].status = 5;
+          // Record every locale that just successfully migrated so the next delta restart can
+          // tell which locales need a full pass vs delta. Set-union with prior value.
+          const ranLocales = Array.from(
+            new Set([
+              ...Object.keys(proj?.master_locale ?? {}),
+              ...Object.keys(proj?.locales ?? {}),
+            ]),
+          );
+          const existing: string[] = Array.isArray(proj?.migrated_locales)
+            ? proj.migrated_locales
+            : [];
+          proj.migrated_locales = Array.from(new Set([...existing, ...ranLocales]));
+          await ProjectModelLowdb.write();
+        }
+
+        // Successful import — remove our backup folder. On failure the catch
+        // branch above re-throws, so we intentionally leave the backup on disk
+        // for post-mortem inspection.
+        try {
+          if (fs.existsSync(backupPath)) {
+            await fs.promises.rm(backupPath, { recursive: true, force: true });
+          }
+        } catch (cleanupErr) {
+          console.warn(
+            `[runCli] Could not remove backup folder ${backupPath}:`,
+            cleanupErr
+          );
+        }
+      } finally {
+        // no pruned export cleanup needed
       }
     } else {
       console.info('User not found.');
     }
   } catch (error) {
     console.error('🚀 ~ runCli ~ error:', error);
+    throw error;
   }
 };
 

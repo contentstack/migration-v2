@@ -19,6 +19,7 @@ import { getAppOrganization, getAppOrganizationUID } from "../utils/auth.utils.j
 import { getAppJsonPath } from "../utils/app-config-path.utils.js";
 import { decryptAppConfig } from "../utils/crypto.utils.js";
 import { normalizeContentstackAuthorizeUrl } from "../utils/contentstack-oauth-url.utils.js";
+import { mapOrganizationsForMigration } from "../utils/contentstack-user-orgs.utils.js";
 
 /**
  * Logs in a user with the provided request data. (No changes needed here)
@@ -62,17 +63,12 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         data: res?.data,
         status: res?.status,
       };
-    } else {
-      const orgs = (res?.data?.user?.organizations || [])
-        ?.filter((org: any) => org?.org_roles?.some((item: any) => item?.admin))
-        ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
-
-      const ownerOrgs = (res?.data?.user?.organizations || [])?.filter((org:any)=> org?.is_owner)
-      ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
-
-      if (!orgs?.length && ! ownerOrgs?.length) {
-        throw new BadRequestError(HTTP_TEXTS.ADMIN_LOGIN_ERROR);
-      }
+    }
+    const migrationOrgs = mapOrganizationsForMigration(
+      res?.data?.user?.organizations,
+    );
+    if (!migrationOrgs.length) {
+      throw new BadRequestError(HTTP_TEXTS.ADMIN_LOGIN_ERROR);
     }
 
     if (res?.status === HTTP_CODES.SUPPORT_DOC)

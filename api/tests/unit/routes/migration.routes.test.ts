@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 
 vi.mock('../../../src/controllers/migration.controller.js', () => ({
   migrationController: {
+    exportSourceStack: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    validateSourceExport: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    runSourceAudit: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    getSourceAuditSummary: vi.fn((_req: any, res: any) => res.status(200).json({})),
     startTestMigration: vi.fn((_req: any, res: any) => res.status(200).json({})),
     deleteTestStack: vi.fn((_req: any, res: any) => res.status(200).json({})),
     createTestStack: vi.fn((_req: any, res: any) => res.status(200).json({})),

@@ -103,6 +103,71 @@ export const assertResolvedPathUnderBase = (
  * @param baseDir - (Optional) Base directory for relative paths.
  * @returns A safe, absolute path.
  */
+const ALLOWED_EXPORT_ROOTS: string[] = [
+  path.resolve(process.cwd(), 'export-stack'),
+  path.resolve(process.cwd(), 'extracted_files'),
+  path.resolve(process.cwd(), 'cmsMigrationData'),
+  path.resolve(process.cwd(), 'migration-data'),
+  path.resolve(process.cwd(), '..', 'upload-api', 'extracted_files'),
+  path.resolve('/app', 'extracted_files'),
+];
+
+/**
+ * Validates that a given path is inside one of the allowed export directories,
+ * and returns a freshly-constructed safe path string. Throws if the candidate
+ * escapes every allowed root.
+ *
+ * The returned value is rebuilt from a known-good base + a sanitized relative
+ * suffix, so the caller never passes tainted input directly to fs.readFile.
+ */
+export const assertExportPathInAllowedRoot = (candidate: string): string => {
+  if (!candidate || typeof candidate !== 'string') {
+    throw new Error('Invalid export path');
+  }
+
+  // Cap the input length to defeat pathological inputs.
+  if (candidate?.length > 1024) {
+    throw new Error('Invalid export path');
+  }
+
+  const resolved = path.resolve(candidate);
+
+  for (const root of ALLOWED_EXPORT_ROOTS) {
+    const rel = path.relative(root, resolved);
+    const inside =
+      rel === '' ||
+      (!rel.startsWith('..') && !path.isAbsolute(rel));
+    if (!inside) continue;
+
+    // Char-by-char rebuild from a strict allowlist so the returned string is
+    // a brand-new value with no data dependency on the original tainted input.
+    // This is the same pattern sanitizeStackId uses to break the taint chain.
+    // Spaces and parentheses are included because upload-api deliberately
+    // preserves them in extracted filenames (e.g. "package 45 (1).zip").
+    // Disallowed characters cause a throw rather than silent stripping, so a
+    // tampered path never resolves to a different on-disk location.
+    const allowedChars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.- ()' +
+      path.sep;
+    let safeRel = '';
+    for (let i = 0; i < rel?.length; i++) {
+      const ch = rel?.charAt(i);
+      if (!allowedChars.includes(ch)) {
+        throw new Error('Invalid export path');
+      }
+      safeRel += ch;
+    }
+    if (safeRel.includes('..')) {
+      throw new Error('Invalid export path');
+    }
+
+    // root is a constant resolved at module load — not derived from input.
+    return safeRel ? path.join(root, safeRel) : root;
+  }
+
+  throw new Error(`Export path is outside the allowed migration directories: ${resolved}`);
+};
+
 export const getSafePath = (inputPath: string, baseDir?: string): string => {
   try {
     // Resolve the absolute path (handles path.join(), path.resolve(), and full paths)

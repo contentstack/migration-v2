@@ -15,7 +15,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 
 // Redux files
-import { RootState } from '../../store';
+import { RootState, store } from '../../store';
 import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
@@ -97,41 +97,44 @@ const TestMigration = () => {
    * to disable Create Test Stack and Start Test Migration buttons as per isMigrated state
    */
   useEffect(() => {
-    // Check if the stack_api_key exists and evaluate the logic
-    const shouldDisable =
-      newMigrationData?.test_migration?.stack_api_key &&
-      !newMigrationData?.migration_execution?.migrationCompleted
-        ? !newMigrationData?.testStacks?.some(
-            (stack) =>
-              stack?.stackUid === newMigrationData?.test_migration?.stack_api_key &&
-              stack?.isMigrated
-          ) || newMigrationData?.test_migration?.isMigrationStarted
-        : newMigrationData?.migration_execution?.migrationCompleted ||
-          newMigrationData?.migration_execution?.migrationStarted ||
-          false;
+    const hasTestStackKey = Boolean(newMigrationData?.test_migration?.stack_api_key);
+    const matchedTestStack = newMigrationData?.testStacks?.find(
+      (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
+    );
+    const isCurrentTestStackMigrated = matchedTestStack?.isMigrated === true;
+
+    // When no test stack is selected, allow creating a new one.
+    const shouldDisable = hasTestStackKey
+      ? (!isCurrentTestStackMigrated || newMigrationData?.test_migration?.isMigrationStarted)
+      : newMigrationData?.migration_execution?.migrationCompleted ||
+        newMigrationData?.migration_execution?.migrationStarted ||
+        false;
 
     setDisableCreateStack(shouldDisable);
 
-    if (
-      newMigrationData?.testStacks?.find(
-        (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
-      )?.isMigrated === true
-    ) {
-      setDisableTestMigration(true);
-    }
+    // Start button should be enabled only when a valid non-migrated stack exists and run is not in progress.
+    setDisableTestMigration(
+      !hasTestStackKey ||
+      isCurrentTestStackMigrated ||
+      Boolean(newMigrationData?.test_migration?.isMigrationStarted)
+    );
     setisProjectMapped(newMigrationData?.isprojectMapped)
   }, [newMigrationData]);
 
   useEffect(() => {
     // Retrieve and apply saved state from sessionStorage
     const savedState = getStateFromLocalStorage(`testmigration_${projectId}`);
-    if (savedState && newMigrationData?.testStacks?.find(
+    const hasTestStackKey = Boolean(newMigrationData?.test_migration?.stack_api_key);
+    if (savedState && hasTestStackKey && newMigrationData?.test_migration?.isMigrationStarted && newMigrationData?.testStacks?.find(
       (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
     )?.isMigrated !== true) {
       setDisableTestMigration(savedState?.isTestMigrationStarted);
       setDisableCreateStack(savedState?.isTestMigrationStarted);
+    } else if (!hasTestStackKey) {
+      setDisableCreateStack(false);
+      setDisableTestMigration(true);
     }
-  }, []);
+  }, [projectId, newMigrationData?.test_migration?.stack_api_key, newMigrationData?.testStacks]);
 
   /**
    * Handles create test stack function
@@ -253,9 +256,33 @@ const TestMigration = () => {
   }
 
   /**
-   * Start the test migration
+   * Start the test migration (server runs import to completion before HTTP responds).
    */
   const handleTestMigration = async () => {
+    const startedPayload: INewMigration = {
+      ...newMigrationData,
+      test_migration: {
+        ...newMigrationData?.test_migration,
+        isMigrationStarted: true,
+        isMigrationComplete: false
+      }
+    };
+    dispatch(updateNewMigrationData(startedPayload));
+    saveStateToLocalStorage(`testmigration_${projectId}`, {
+      isTestMigrationCompleted: false,
+      isTestMigrationStarted: true
+    });
+    handleMigrationState(true);
+    setDisableTestMigration(true);
+    Notification({
+      notificationContent: { text: 'Test Migration started' },
+      notificationProps: {
+        position: 'bottom-center',
+        hideProgressBar: true
+      },
+      type: 'message'
+    });
+
     try {
       const testRes = await createTestMigration(
         newMigrationData?.destination_stack?.selectedOrg?.value,
@@ -263,38 +290,108 @@ const TestMigration = () => {
       );
 
       if (testRes?.status === 200) {
-        setDisableTestMigration(true);
-
-        //dispatch test migration started flag in redux
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          test_migration: {
-            ...newMigrationData?.test_migration,
-            isMigrationStarted: true,
-            isMigrationComplete: false
-          }
-        };
-        dispatch(updateNewMigrationData(newMigrationDataObj));
-
-        //update test migration started flag in localstorage
+        const nm = store.getState()?.migration?.newMigrationData;
+        if (nm?.test_migration?.isMigrationComplete) {
+          saveStateToLocalStorage(`testmigration_${projectId}`, {
+            isTestMigrationCompleted: true,
+            isTestMigrationStarted: false
+          });
+          handleMigrationState(false);
+          return;
+        }
+        const stacks =
+          nm?.testStacks?.length > 0
+            ? nm.testStacks.map((stack) =>
+                stack?.stackUid === nm?.test_migration?.stack_api_key
+                  ? {
+                      ...stack,
+                      stackName: nm?.test_migration?.stack_name || stack.stackName,
+                      isMigrated: true
+                    }
+                  : stack
+              )
+            : [
+                {
+                  stackUid: nm?.test_migration?.stack_api_key,
+                  stackName: nm?.test_migration?.stack_name,
+                  isMigrated: true
+                }
+              ];
+        dispatch(
+          updateNewMigrationData({
+            ...nm,
+            testStacks: stacks,
+            test_migration: {
+              ...nm?.test_migration,
+              isMigrationComplete: true,
+              isMigrationStarted: false
+            }
+          })
+        );
         saveStateToLocalStorage(`testmigration_${projectId}`, {
-          isTestMigrationCompleted: false,
-          isTestMigrationStarted: true
+          isTestMigrationCompleted: true,
+          isTestMigrationStarted: false
         });
-
-        handleMigrationState(true);
-
+        handleMigrationState(false);
         Notification({
-          notificationContent: { text: 'Test Migration started' },
+          notificationContent: { text: 'Test Migration completed successfully' },
           notificationProps: {
             position: 'bottom-center',
             hideProgressBar: true
           },
-          type: 'message'
+          type: 'success'
         });
+        return;
       }
+
+      const errNm = store.getState()?.migration?.newMigrationData;
+      if (errNm) {
+        dispatch(
+          updateNewMigrationData({
+            ...errNm,
+            test_migration: {
+              ...errNm.test_migration,
+              isMigrationStarted: false
+            }
+          })
+        );
+      }
+      setDisableTestMigration(false);
+      Notification({
+        notificationContent: {
+          text:
+            (testRes as { data?: { message?: string } })?.data?.message ||
+            'Test migration failed. Check execution logs and try again.'
+        },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'error'
+      });
     } catch (error) {
       console.error(error);
+      const errNm = store.getState()?.migration?.newMigrationData;
+      if (errNm) {
+        dispatch(
+          updateNewMigrationData({
+            ...errNm,
+            test_migration: {
+              ...errNm.test_migration,
+              isMigrationStarted: false
+            }
+          })
+        );
+      }
+      setDisableTestMigration(false);
+      Notification({
+        notificationContent: { text: 'Test migration failed. Please try again.' },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'error'
+      });
     }
   };
 
@@ -336,7 +433,7 @@ const TestMigration = () => {
           </Tooltip>
 
           {newMigrationData?.test_migration?.stack_api_key && (
-            <Field id="stack" name="stack" className="pt-4">
+            <Field id="stack" name="stack" className="test-stack-field">
               <FieldLabel htmlFor="stackKey" version="v2" requiredText="(read only)">
                 Test Stack
               </FieldLabel>

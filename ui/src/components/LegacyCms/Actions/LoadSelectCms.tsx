@@ -61,7 +61,19 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         ...newMigrationData.legacy_cms,
         selectedCms: { ...data },
         // Update selectedFileFormat from the clicked CMS's allowed_file_formats (data-driven via legacyCms.json)
-        selectedFileFormat: data?.allowed_file_formats?.[0] ?? newMigrationData?.legacy_cms?.selectedFileFormat
+        selectedFileFormat: data?.allowed_file_formats?.[0] ?? newMigrationData?.legacy_cms?.selectedFileFormat,
+        source_details: {
+          ...(newMigrationData?.legacy_cms?.source_details || {
+            source_mode: 'imported_export',
+            source_region_id: '',
+            source_org_id: '',
+            source_stack_id: '',
+            source_branch: '',
+            imported_data_path: ''
+          }),
+          source_mode:
+            data?.cms_id === 'contentstack' ? 'credentials' : 'imported_export'
+        }
       }
     };
     dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -152,6 +164,20 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           selectedFileFormat: existingStillValid
             ? newMigrationData?.legacy_cms?.selectedFileFormat
             : finalSelectedCard?.allowed_file_formats?.[0],
+          source_details: {
+            ...(newMigrationData?.legacy_cms?.source_details || {
+              source_mode: 'imported_export',
+              source_region_id: '',
+              source_org_id: '',
+              source_stack_id: '',
+              source_branch: '',
+              imported_data_path: ''
+            }),
+            source_mode:
+              finalSelectedCard?.cms_id === 'contentstack'
+                ? 'credentials'
+                : 'imported_export'
+          },
           affix: newMigrationData?.legacy_cms?.affix || 'cs', // Preserve or set default affix
           uploadedFile: {
             ...newMigrationData?.legacy_cms?.uploadedFile,

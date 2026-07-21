@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import fs from "node:fs";
 import { ZipArchive } from "archiver";
 import { projectService } from "../services/projects.service.js";
+import { HTTP_TEXTS } from "../constants/index.js";
 
 /**
  * Retrieves all projects.
@@ -158,6 +159,11 @@ const updateFileFormat = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+const updateSourceConfig = async (req: Request, res: Response) => {
+  const resp = await projectService.updateSourceConfig(req);
+  res.status(resp?.status).json(resp?.data);
+};
+
 /**
  * Handles the file format confirmation request.
  *
@@ -238,6 +244,14 @@ const getMigratedStacks = async (req: Request, res: Response): Promise<void> => 
   res.status(project.status).json(project);
 }
 
+/**
+ * Updates audit report selections for a project
+ */
+const updateAuditSelections = async (req: Request, res: Response): Promise<void> => {
+  const project = await projectService.updateAuditSelections(req);
+  res.status(200).json({ data: project, message: HTTP_TEXTS.AUDIT_SELECTIONS_UPDATED });
+};
+
 export const projectController = {
   getAllProjects,
   getProject,
@@ -249,6 +263,7 @@ export const projectController = {
   updateAffix,
   affixConfirmation,
   updateFileFormat,
+  updateSourceConfig,
   fileformatConfirmation,
   updateDestinationStack,
   updateCurrentStep,
@@ -257,4 +272,5 @@ export const projectController = {
   updateStackDetails,
   updateMigrationExecution,
   getMigratedStacks,
+  updateAuditSelections,
 };

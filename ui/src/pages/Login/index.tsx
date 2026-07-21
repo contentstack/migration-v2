@@ -20,11 +20,13 @@ import { toast as toastify } from 'react-toastify';
 // Utilities
 import {
   LOGIN_SUCCESSFUL_MESSAGE,
+  REGION_LOGIN_POPUP_POSTMESSAGE_SOURCE,
   TFA_MESSAGE,
   TFA_VIA_SMS_MESSAGE,
   CS_ENTRIES
 } from '../../utilities/constants';
 import { clearLocalStorage, failureNotification, setDataInLocalStorage } from '../../utilities/functions';
+import { setMigrationSourceSession } from '../../utilities/migrationSourceSession';
 
 // API Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -42,6 +44,22 @@ import { RootState } from '../../store';
 
 /** Delay before redirect to /projects after SSO token is stored and user is hydrated */
 const SSO_SUCCESS_REDIRECT_MS = 2800;
+
+const POST_REGION_LOGIN_RETURN_KEY = 'postRegionLoginReturn';
+
+const consumePostRegionLoginReturn = (): string | null => {
+  try {
+    const path = sessionStorage.getItem(POST_REGION_LOGIN_RETURN_KEY);
+    if (path && path.startsWith('/') && !path.startsWith('//')) {
+      sessionStorage.removeItem(POST_REGION_LOGIN_RETURN_KEY);
+      return path;
+    }
+    sessionStorage.removeItem(POST_REGION_LOGIN_RETURN_KEY);
+  } catch {
+    /* ignore */
+  }
+  return null;
+};
 
 /** Must match oauth-callback-html `OAUTH_CALLBACK_POSTMESSAGE_SOURCE` in the API. */
 const SSO_OAUTH_POSTMESSAGE_SOURCE = 'cs-migration-oauth-callback';
@@ -155,6 +173,22 @@ const Login: FC<IProps> = () => {
   // Get the region
   const urlParams = new URLSearchParams(location?.search);
   const region = urlParams?.get?.('region');
+  const isLoginPopup = urlParams?.get?.('loginWindow') === '1';
+
+  const notifyRegionLoginPopupSuccess = () => {
+    if (!isLoginPopup) return false;
+    if (!window.opener || window.opener.closed) return false;
+    try {
+      window.opener.postMessage(
+        { source: REGION_LOGIN_POPUP_POSTMESSAGE_SOURCE, ok: true },
+        window.location.origin
+      );
+    } catch {
+      /* ignore */
+    }
+    window.close();
+    return true;
+  };
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -229,16 +263,44 @@ const Login: FC<IProps> = () => {
     if ((response?.status === 294 || response?.data?.error_code === 294) && response?.data?.error_message === TFA_MESSAGE) {
       setIsLoading(false);
       setLoginStates((prev) => ({ ...prev, tfa: true }));
+      return;
     }
 
-    if (response?.status === 104 || response?.status === 400 || response?.status === 422) {
+    const errorTextRaw =
+      response?.data?.error_message ||
+      response?.data?.error?.message ||
+      response?.data?.message ||
+      (typeof response?.data?.error === 'string' ? response.data.error : undefined);
+    const errorText = typeof errorTextRaw === 'string' ? errorTextRaw.trim() : '';
+
+    if (
+      response?.status === 104 ||
+      response?.status === 400 ||
+      response?.status === 401 ||
+      response?.status === 422
+    ) {
       setIsLoading(false);
-      failureNotification(response?.data?.error_message || response?.data?.error?.message || response?.data?.message);
+      failureNotification(
+        response?.data?.error_message || response?.data?.error?.message || response?.data?.message
+      );
     }
-    dispatch(clearAuthToken());
-    localStorage?.removeItem('app_token');
+
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
       setIsLoading(false);
+      if (isLoginPopup) {
+        const appToken = response?.data?.app_token;
+        if (appToken && region) {
+          await setMigrationSourceSession(region, appToken);
+          notifyRegionLoginPopupSuccess();
+          return;
+        }
+        failureNotification(
+          'Regional sign-in did not return a token. Close this window and try selecting the region again.'
+        );
+        return;
+      }
+      dispatch(clearAuthToken());
+      localStorage?.removeItem('app_token');
       setDataInLocalStorage('app_token', response?.data?.app_token);
       
       // Clear any previous organization data to ensure fresh organization selection for new user
@@ -258,10 +320,21 @@ const Login: FC<IProps> = () => {
 
       setLoginStates((prev) => ({ ...prev, submitted: true }));
 
-      dispatch(getUserDetails());
+      try {
+        await dispatch(getUserDetails() as any).unwrap();
+      } catch {
+        /* profile fetch failed; token still saved */
+      }
 
-      navigate(`/projects`, { replace: true });
+      const returnTo = consumePostRegionLoginReturn();
+      navigate(returnTo || `/projects`, { replace: true });
+      return;
     }
+
+    setIsLoading(false);
+    failureNotification(
+      errorText || 'Login failed. Unexpected response from server. Please try again.'
+    );
   };
 
   //functions for email and password validation
@@ -509,6 +582,18 @@ const Login: FC<IProps> = () => {
       if (!authData?.app_token) {
         throw new Error("Missing app token");
       }
+
+      if (isLoginPopup) {
+        if (region) {
+          await setMigrationSourceSession(region, authData.app_token);
+          notifyRegionLoginPopupSuccess();
+          return;
+        }
+        failureNotification(
+          'Regional sign-in did not include a region. Close this window and open sign-in from the migration step again.'
+        );
+        return;
+      }
   
       // Store token FIRST
       setDataInLocalStorage('app_token', authData?.app_token);
@@ -529,9 +614,13 @@ const Login: FC<IProps> = () => {
       }));
   
       // WAIT for user hydration
-      await dispatch(getUserDetails())?.unwrap();
-  
-      setLoginStates(prev => ({ ...prev, submitted: true, isLoginViaSSO: true }));
+      try {
+        await dispatch(getUserDetails() as any).unwrap();
+      } catch {
+        /* profile fetch failed */
+      }
+
+      setLoginStates((prev) => ({ ...prev, submitted: true, isLoginViaSSO: true }));
       setShowSSOSuccessScreen(true);
 
       if (ssoSuccessRedirectTimerRef.current) {
@@ -539,7 +628,8 @@ const Login: FC<IProps> = () => {
       }
       ssoSuccessRedirectTimerRef.current = setTimeout(() => {
         ssoSuccessRedirectTimerRef.current = null;
-        navigate('/projects', { replace: true });
+        const returnTo = consumePostRegionLoginReturn();
+        navigate(returnTo || '/projects', { replace: true });
       }, SSO_SUCCESS_REDIRECT_MS);
   
     } catch (error) {
@@ -566,7 +656,9 @@ const Login: FC<IProps> = () => {
   // },[isBlock]);
 
   useEffect(() => {
-    const redirectUrl = loginStates?.tfa && region ? `/login?region=${region}` : '/region-login';
+    const loginWindowParam = isLoginPopup ? '&loginWindow=1' : '';
+    const redirectUrl =
+      loginStates?.tfa && region ? `/login?region=${region}${loginWindowParam}` : '/region-login';
 
     const handleBackButton = () => {
       // Redirect to an internal route
@@ -584,7 +676,7 @@ const Login: FC<IProps> = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [navigate, loginStates]);
+  }, [navigate, loginStates, region, isLoginPopup]);
 
   return (
     <AccountPage data={accountData}>
@@ -704,8 +796,7 @@ const Login: FC<IProps> = () => {
                                     className="mb-2"
                                     required={true}
                                     version="v2"
-                                    htmlFor={login?.email}
-                                  >
+                                    htmlFor={login?.email}>
                                     {login?.email}
                                   </FieldLabel>
                                 )}
@@ -729,8 +820,7 @@ const Login: FC<IProps> = () => {
                                   <ValidationMessage
                                     testId="cs-login-email-error"
                                     className="mt-2"
-                                    version="v2"
-                                  >
+                                    version="v2">
                                     {meta?.error}
                                   </ValidationMessage>
                                 )}
@@ -751,8 +841,7 @@ const Login: FC<IProps> = () => {
                                     className="mb-2"
                                     required={true}
                                     version="v2"
-                                    htmlFor="password"
-                                  >
+                                    htmlFor="password">
                                     {login?.password}
                                   </FieldLabel>
                                 )}
@@ -776,8 +865,7 @@ const Login: FC<IProps> = () => {
                                   <ValidationMessage
                                     testId="cs-login-password-error"
                                     className="mt-2"
-                                    version="v2"
-                                  >
+                                    version="v2">
                                     {meta?.error}
                                   </ValidationMessage>
                                 )}
@@ -786,7 +874,7 @@ const Login: FC<IProps> = () => {
                           }}
                         </FinalField>
                       </Field>
-  
+
                       <div className="AccountForm__actions">
                         <div className="mb-16">
                           <Button
@@ -797,9 +885,8 @@ const Login: FC<IProps> = () => {
                             buttonType="primary"
                             type="submit"
                             icon="v2-Login"
-                            tabindex={0}
-                            isLoading={isLoading}
-                          >
+                            tabIndex={0}
+                            isLoading={isLoading}>
                             {login?.cta?.title}
                           </Button>
                         </div>
@@ -814,8 +901,7 @@ const Login: FC<IProps> = () => {
                             icon="v2-CloudArrowUp"
                             tabIndex={0}
                             isLoading={isLoading}
-                            onClick={handleSSOLogin}
-                          >
+                            onClick={handleSSOLogin}>
                             Log in via SSO
                           </Button>
                         </div>

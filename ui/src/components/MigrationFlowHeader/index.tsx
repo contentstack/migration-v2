@@ -5,13 +5,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 
 import { RootState } from '../../store';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Interfaces
 import { MigrationResponse } from '../../services/api/service.interface';
 
 // CSS
 import './index.scss';
-import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 type MigrationFlowHeaderProps = {
   handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;
@@ -46,20 +46,23 @@ const MigrationFlowHeader = ({
   );
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const dispatch = useDispatch();
+  const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
 
-  // Delta migration: the "Map Entry" step only exists from iteration 2 onwards, which shifts the
-  // step numbers for Test Migration and Execute Migration. Resolve the semantic step ids by
-  // iteration so all stepId checks stay correct for both the 5-step (iter 1) and 6-step flows.
   const iteration = newMigrationData?.iteration ?? 1;
   const isDeltaIteration = iteration > 1;
-  const TEST_MIGRATION_STEP = isDeltaIteration ? '5' : '4';
-  const EXECUTE_MIGRATION_STEP = isDeltaIteration ? '6' : '5';
-  // Mapping steps that show a plain "Continue" CTA: Map Content Fields (3) always, plus
-  // Map Entry (4) and Test Migration on delta iterations.
+  // CS source delta has 7 steps (Audit Report + Map Entry both present).
+  const isCsDelta = isContentstackSource && isDeltaIteration;
+  // Semantic step IDs for the CTA label logic.
+  const TEST_MIGRATION_STEP  = isCsDelta ? '6' : (isDeltaIteration || isContentstackSource) ? '5' : '4';
+  const EXECUTE_MIGRATION_STEP = isCsDelta ? '7' : (isDeltaIteration || isContentstackSource) ? '6' : '5';
+  // Map Content Fields step: CS=4, non-CS=3. Map Entry step: CS-delta=5, plain-delta=4.
+  // Both show a plain "Continue" CTA.
+  const CONTENT_MAPPING_STEP_ID = isContentstackSource ? '4' : '3';
+  const MAP_ENTRY_STEP_ID = isCsDelta ? '5' : '4';
   const isMappingContinueStep =
-    params?.stepId === '3' ||
-    (isDeltaIteration && (params?.stepId === '4' || params?.stepId === '5')) ||
-    (!isDeltaIteration && params?.stepId === '4');
+    params?.stepId === CONTENT_MAPPING_STEP_ID ||
+    (isDeltaIteration && params?.stepId === MAP_ENTRY_STEP_ID) ||
+    (isDeltaIteration && params?.stepId === TEST_MIGRATION_STEP);
 
   useEffect(() => {
     fetchProject();
@@ -78,9 +81,11 @@ const MigrationFlowHeader = ({
     navigate(url, { replace: true });
   };
 
+  // CTA label: Contentstack uses step 6 for final migration; other CMS use step 5.
+  // Delta migration: after completion, label becomes "Restart Migration".
   useEffect(() => {
     let newStepValue;
-    
+
     // Check conditions in priority order.
     // "Restart Migration" only applies on the final Execute step once a migration has completed —
     // not while navigating back through earlier (completed) steps in a delta iteration.
@@ -97,12 +102,20 @@ const MigrationFlowHeader = ({
     } else {
       newStepValue = 'Save and Continue';
     }
-    
-    // Only update if the value has changed
+
     if (newStepValue !== newMigrationData?.stepValue) {
       dispatch(updateNewMigrationData({ stepValue: newStepValue }));
     }
-  }, [params?.stepId, newMigrationData?.legacy_cms?.projectStatus, newMigrationData?.migration_execution?.migrationCompleted, newMigrationData?.stepValue, dispatch]);
+  }, [
+    params?.stepId,
+    newMigrationData?.stepValue,
+    newMigrationData?.legacy_cms?.projectStatus,
+    newMigrationData?.migration_execution?.migrationCompleted,
+    isContentstackSource,
+    dispatch,
+  ]);
+
+  const stepValue = newMigrationData?.stepValue ?? 'Save and Continue';
 
   const isStep4AndNotMigrated =
     params?.stepId === TEST_MIGRATION_STEP &&
@@ -111,17 +124,22 @@ const MigrationFlowHeader = ({
         stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
     );
 
-  const isStepOneandNotMapped = params?.stepId === '1' && newMigrationData?.isContentMapperGenerated && newMigrationData?.legacy_cms?.projectStatus === 3 && newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
+  const isStepOneandNotMapped =
+    params?.stepId === '1' &&
+    newMigrationData?.isContentMapperGenerated &&
+    newMigrationData?.legacy_cms?.projectStatus === 3 &&
+    newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
 
   const isProjectStatusOne = newMigrationData?.legacy_cms?.projectStatus === 1;
-  const isPreviousStepDisabled = params?.stepId &&
+  const isPreviousStepDisabled =
+    params?.stepId &&
     parseInt(params?.stepId) < newMigrationData?.project_current_step &&
     !isProjectStatusOne;
 
   const isProjectStatusThreeAndMapperNotGenerated =
     params?.stepId === '1' &&
     newMigrationData?.legacy_cms?.projectStatus === 3 &&
-    newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked 
+    newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked;
 
   // A freshly restarted project is a draft (projectStatus === 0) sitting on step 1. Right after
   // restart, project_current_step can still hold the old (execute-step) value for a beat — the
@@ -151,6 +169,7 @@ const MigrationFlowHeader = ({
     !!finalExecutionStarted &&
     newMigrationData?.stepValue !== 'Restart Migration';
 
+  // Only applies on the real "Start/Restart migration" step for this CMS (was hardcoded as 6, so non-CS never hit it).
   const destinationStackMigrated =
     params?.stepId === EXECUTE_MIGRATION_STEP &&
     newMigrationData?.destination_stack?.migratedStacks?.includes(
@@ -158,14 +177,14 @@ const MigrationFlowHeader = ({
     );
   const isFileValidated = newMigrationData?.isContentMapperGenerated ? true : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
 
-  // Map Content Fields (step 3) empty-state handling:
+  // Map Content Fields empty-state handling:
   // - Iteration 1 with no content types = genuine error → keep Continue disabled.
   // - Iteration 2+ with no NEW content types = valid (nothing new to map) → Continue stays enabled.
   // ContentMapper reports emptiness via hasNoContentTypes (its local fetch result), which is more
   // accurate than isContentMapperGenerated (the project's mapper-id array can be non-empty while the
   // resolved content-type list is empty).
   const isContentMapperEmptyOnFirstIteration =
-    params?.stepId === '3' &&
+    params?.stepId === CONTENT_MAPPING_STEP_ID &&
     !isDeltaIteration &&
     newMigrationData?.hasNoContentTypes === true;
 

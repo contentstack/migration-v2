@@ -4,7 +4,7 @@
       "optionLimit": 100
     }
   },
-  "cmsType": "cmsType",
+  "cmsType": "sitecore",
   "isLocalPath": true,
   "awsData": {
     "awsRegion": "us-east-2",
@@ -25,5 +25,5 @@
     "base_url": "drupal_assets_base_url",
     "public_path": "drupal_assets_public_path"
   },
-  "localPath": "your_local_cms_data_path"
+  "localPath": "/Users/yash.shinde/Documents/Migration/Expample-Data/Sitecore/delta/airports_only_add_v1.zip"
 }

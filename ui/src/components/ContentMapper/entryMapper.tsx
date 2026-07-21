@@ -64,6 +64,7 @@ import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 
 interface entryMapperProps {
   handleStepChange: (currentStep: number) => void;
+  extraHeightOffset?: number;
 }
 
 /**
@@ -72,7 +73,7 @@ interface entryMapperProps {
  * filter='old') + right entry-mapping table. Maps source entries to destination Contentstack
  * entries for content types that were migrated in a previous iteration.
  */
-const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
+const EntryMapper = ({ handleStepChange, extraHeightOffset = 0 }: entryMapperProps) => {
   /** ALL CONTEXT HERE */
   const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
@@ -496,7 +497,9 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   // Must match the .Table__body height in index.scss so the react-window list is exactly
   // as tall as the scroll body. Leave ~140px below for the search row, pagination bar and
   // Save footer; the body scrolls internally so all rows of a page stay reachable.
-  const calcHeight = () => window.innerHeight - 520;
+  // extraHeightOffset accounts for any wrapper chrome above EntryMapper (e.g. the toggle bar
+  // in EntryAssetMapper) that isn't part of the 520px baseline.
+  const calcHeight = () => window.innerHeight - 520 - extraHeightOffset;
   const tableHeight = calcHeight();
 
   return (

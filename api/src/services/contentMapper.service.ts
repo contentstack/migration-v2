@@ -58,6 +58,10 @@ const idCorrector = ({ id }: { id: string }) => {
 const putTestData = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const contentTypes = req?.body?.contentTypes;
+  // When called from runSourceAudit (replaceAll=true) we do a full replace so a
+  // re-audit always starts from a clean slate. When called from the Step-3 user
+  // save we merge instead so old-delta content types are preserved for Step 4.
+  const replaceAll: boolean = req?.body?.replaceAll === true;
 
   try {
     // Get project data to extract iteration
@@ -256,9 +260,19 @@ const putTestData = async (req: Request) => {
       }
     }
 
-    // Single update with all entries
+    const incomingCtIds = new Set(contentType.map((ct: any) => ct.id));
     await EntryMapperModel.update((data: any) => {
-      data.entry_mapper = allEntries;
+      if (replaceAll) {
+        data.entry_mapper = allEntries;
+        return;
+      }
+      // Merge: keep entries that belong to old delta CTs (not in this save batch) so Map Entry
+      // (Step 4) can still see them after Step 3 saves only new CTs.
+      const existingEntries: any[] = data.entry_mapper ?? [];
+      const survivingEntries = existingEntries.filter(
+        (e: any) => e && !incomingCtIds.has(e.contentTypeId),
+      );
+      data.entry_mapper = [...survivingEntries, ...allEntries];
     });
 
     // Store asset mapping rows when the connector provides them (connectors
@@ -304,8 +318,16 @@ const putTestData = async (req: Request) => {
     }
 
     await ContentTypesMapperModelLowdb.update((data: any) => {
-      // Simple approach: just replace with new content types
-      data.ContentTypesMappers = contentType;
+      if (replaceAll) {
+        data.ContentTypesMappers = contentType;
+        return;
+      }
+      // Merge: keep content types that are NOT in this batch (old delta CTs) so that
+      // Map Entry (Step 4) can still see them after Step 3 saves only new CTs.
+      const existingCts: any[] = data.ContentTypesMappers ?? [];
+      const incomingIds = new Set(contentType.map((ct: any) => ct.id));
+      const survivingCts = existingCts.filter((ct: any) => !incomingIds.has(ct.id));
+      data.ContentTypesMappers = [...survivingCts, ...contentType];
     });
 
     await ProjectModelLowdb.read();
@@ -314,7 +336,18 @@ const putTestData = async (req: Request) => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1 && contentIds?.length) {
-      ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
+      // Mirror the merge: keep old CT IDs alongside the new ones in project.content_mapper
+      // so getContentTypes(filter='old') can still find them after Step 3 saves.
+      // replaceAll=true (audit call) always does a full replace for a clean slate.
+      const existingMapper: string[] = ProjectModelLowdb.data.projects[index].content_mapper ?? [];
+      const incomingSet = new Set(contentIds);
+      const mergedMapper = replaceAll
+        ? contentIds
+        : [
+            ...existingMapper.filter((id: string) => !incomingSet.has(id)),
+            ...contentIds,
+          ];
+      ProjectModelLowdb.data.projects[index].content_mapper = mergedMapper;
       ProjectModelLowdb.data.projects[index].extract_path =
         req?.body?.extractPath;
 
@@ -437,7 +470,7 @@ const getContentTypes = async (req: Request) => {
       throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
     }
     const contentMapperId = projectDetails?.content_mapper;
-    const iteration = projectDetails?.iteration || 0;
+    const iteration = projectDetails?.iteration || 1;
     const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
@@ -569,7 +602,7 @@ const getFieldMapping = async (req: Request) => {
       .get('projects')
       .find({ id: projectId })
       .value();
-    const iteration = project?.iteration || 0;
+    const iteration = project?.iteration || 1;
     const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
@@ -902,7 +935,7 @@ const updateContentType = async (req: Request) => {
   }
 
   try {
-    const iteration = project?.iteration || 0;
+    const iteration = project?.iteration || 1;
     const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
@@ -1082,7 +1115,7 @@ const resetToInitialMapping = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CANNOT_RESET_CONTENT_MAPPING);
   }
 
-  const iteration = project?.iteration || 0;
+  const iteration = project?.iteration || 1;
   const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
   const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
@@ -1205,7 +1238,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
-  const iteration = projectDetails?.iteration || 0;
+  const iteration = projectDetails?.iteration || 1;
   const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
   const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
@@ -1299,7 +1332,7 @@ const removeMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
-  const iteration = projectDetails?.iteration || 0;
+  const iteration = projectDetails?.iteration || 1;
   const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
   const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
@@ -1489,7 +1522,7 @@ const removeContentMapper = async (req: Request) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
-  const iteration = projectDetails?.iteration || 0;
+  const iteration = projectDetails?.iteration || 1;
   const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
   const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();

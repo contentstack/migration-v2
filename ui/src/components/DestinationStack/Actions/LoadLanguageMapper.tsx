@@ -279,7 +279,6 @@ const Mapper = ({
     });
   }, [selectedMappings, cmsLocaleOptions, reduxLocaleMapping]);
 
-
   // function for change select value
   const handleSelectedCsLocale = (
     selectedValue: { label: string; value: string },
@@ -418,9 +417,10 @@ const Mapper = ({
         // If the user picks source before CS, existingLabel is unset and writing
         // to a fallback key (source locale lowercased) would inflate filledMappingCount
         // and incorrectly re-enable Add Language for an incomplete row.
+        // Store the locale CODE (value) so the backend can match export directory names.
         const mappingKey = existingLabel?.value || existingLabel?.label;
         if (mappingKey) {
-          updatedMappings[mappingKey] = selectedValue?.label ? selectedValue?.label : '';
+          updatedMappings[mappingKey] = selectedValue?.value ? selectedValue?.value : '';
         }
       }
 
@@ -689,10 +689,27 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   useEffect(() => {
     
     if (reduxSourceLocale && Array.isArray(reduxSourceLocale) && reduxSourceLocale.length > 0) {
-      const mappedLocales = reduxSourceLocale.map((item: string) => ({
-        label: item,
-        value: item
-      }));
+      const mappedLocales = reduxSourceLocale.map((item: any) => {
+        // Handle both string format (legacy) and object format (Contentstack)
+        if (typeof item === 'string') {
+          return {
+            label: item,
+            value: item
+          };
+        } else if (typeof item === 'object' && item.label && item.value) {
+          // For Contentstack format: {label, value, uid, code, name}
+          return {
+            label: item.label,
+            value: item.value
+          };
+        } else {
+          // Fallback
+          return {
+            label: String(item),
+            value: String(item)
+          };
+        }
+      });
       setsourceLocales(mappedLocales);
     }
   }, [reduxSourceLocale]);
@@ -708,17 +725,24 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           label: key,
           value: key
         }));
-        const sourceLocale = newMigrationData?.destination_stack?.sourceLocale?.map((item: string) => ({
-          label: item,
-          value: item
-        }));
+        // Enhanced source locale handling for both string and object formats (needed for CS source).
+        const rawSource = newMigrationData?.destination_stack?.sourceLocale;
+        const mappedSource = Array.isArray(rawSource)
+          ? rawSource.map((item: any) => {
+              if (typeof item === 'string') {
+                return { label: item, value: item };
+              } else if (typeof item === 'object' && item?.label && item?.value) {
+                return { label: item.label, value: item.value };
+              } else {
+                return { label: String(item), value: String(item) };
+              }
+            })
+          : null;
 
-        // Guard against clobbering a populated sourceLocales with `undefined` when fetchData
-        // runs before Redux's sourceLocale has hydrated on a restarted iteration. A legitimately
-        // empty array IS a valid state (e.g. a source with no locales yet), so only skip when
-        // the value isn't an array at all.
-        if (Array.isArray(sourceLocale)) {
-          setsourceLocales(sourceLocale);
+        // Guard against clobbering a populated sourceLocales with null when fetchData
+        // runs before Redux's sourceLocale has hydrated on a restarted iteration.
+        if (mappedSource) {
+          setsourceLocales(mappedSource);
         }
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);

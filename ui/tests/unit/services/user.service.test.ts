@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockGetCall } = vi.hoisted(() => ({
-  mockGetCall: vi.fn()
+const { mockGetCall, mockPutCall, mockDeleteCall } = vi.hoisted(() => ({
+  mockGetCall: vi.fn(),
+  mockPutCall: vi.fn(),
+  mockDeleteCall: vi.fn()
 }));
 
 vi.mock('../../../src/services/api/service', () => ({
-  getCall: mockGetCall
+  getCall: mockGetCall,
+  putCall: mockPutCall,
+  deleteCall: mockDeleteCall
 }));
 
 vi.mock('../../../src/utilities/constants', () => ({
@@ -20,7 +24,13 @@ vi.mock('../../../src/utilities/functions', () => ({
   getDataFromLocalStorage: vi.fn(() => 'mock-app-token')
 }));
 
-import { getUser, getAllLocales } from '../../../src/services/api/user.service';
+import {
+  getUser,
+  getAllLocales,
+  fetchSourceSession,
+  saveSourceSession,
+  removeSourceSession
+} from '../../../src/services/api/user.service';
 
 describe('services/api/user.service', () => {
   beforeEach(() => {
@@ -85,6 +95,65 @@ describe('services/api/user.service', () => {
     it('should throw generic message when getCall throws a non-Error', async () => {
       mockGetCall.mockImplementation(() => { throw undefined; });
       await expect(getUser()).rejects.toThrow('Unknown error in userSession');
+    });
+  });
+
+  describe('source-session API', () => {
+    describe('fetchSourceSession', () => {
+      it('returns the source_session from the response payload', async () => {
+        mockGetCall.mockResolvedValue({
+          data: { source_session: { region: 'EU', appToken: 'tok' } }
+        });
+        const result = await fetchSourceSession();
+        expect(mockGetCall).toHaveBeenCalledWith(
+          'v2/user/source-session',
+          expect.objectContaining({ headers: { app_token: 'mock-app-token' } })
+        );
+        expect(result).toEqual({ region: 'EU', appToken: 'tok' });
+      });
+
+      it('returns null when payload lacks source_session', async () => {
+        mockGetCall.mockResolvedValue({ data: {} });
+        expect(await fetchSourceSession()).toBeNull();
+      });
+
+      it('returns null on thrown error', async () => {
+        mockGetCall.mockImplementation(() => { throw new Error('boom'); });
+        expect(await fetchSourceSession()).toBeNull();
+      });
+    });
+
+    describe('saveSourceSession', () => {
+      it('PUTs region + appToken to the endpoint', async () => {
+        mockPutCall.mockResolvedValue({ status: 200 });
+        await saveSourceSession('EU', 'tok');
+        expect(mockPutCall).toHaveBeenCalledWith(
+          'v2/user/source-session',
+          { region: 'EU', appToken: 'tok' },
+          expect.objectContaining({ headers: { app_token: 'mock-app-token' } })
+        );
+      });
+
+      it('swallows errors so callers stay best-effort', async () => {
+        mockPutCall.mockImplementation(() => { throw new Error('boom'); });
+        await expect(saveSourceSession('EU', 'tok')).resolves.toBeUndefined();
+      });
+    });
+
+    describe('removeSourceSession', () => {
+      it('DELETEs the endpoint', async () => {
+        mockDeleteCall.mockResolvedValue({ status: 200 });
+        await removeSourceSession();
+        expect(mockDeleteCall).toHaveBeenCalledWith(
+          'v2/user/source-session',
+          expect.objectContaining({ headers: { app_token: 'mock-app-token' } })
+        );
+      });
+
+      it('swallows errors', async () => {
+        mockDeleteCall.mockImplementation(() => { throw new Error('boom'); });
+        await expect(removeSourceSession()).resolves.toBeUndefined();
+      });
     });
   });
 });

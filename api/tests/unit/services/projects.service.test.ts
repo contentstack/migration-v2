@@ -671,7 +671,7 @@ describe('projects.service', () => {
       expect(result).toBeDefined();
     });
 
-    it('should advance from DESTINATION_STACK to CONTENT_MAPPING', async () => {
+    it('should advance from DESTINATION_STACK to AUDIT_REPORT', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 0,
@@ -689,11 +689,35 @@ describe('projects.service', () => {
       expect(result).toBeDefined();
     });
 
-    it('should advance from CONTENT_MAPPING to TESTING', async () => {
+    it('should advance from AUDIT_REPORT to CONTENT_MAPPING', async () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 3,
         current_step: 3,
+        legacy_cms: {
+          cms: 'wordpress',
+          file_format: 'json',
+          audit: { summary: { unused_assets: 0 } },
+        },
+        destination_stack_id: 'stack-1',
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+      expect(result.current_step).toBe(4);
+      expect(result.status).toBe(3);
+    });
+
+    it('should advance from CONTENT_MAPPING to TESTING', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 3,
+        current_step: 4,
         legacy_cms: { cms: 'wordpress', file_format: 'json' },
         destination_stack_id: 'stack-1',
         content_mapper: ['ct-1'],
@@ -712,7 +736,7 @@ describe('projects.service', () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 4,
-        current_step: 4,
+        current_step: 5,
         legacy_cms: { cms: 'wordpress', file_format: 'json' },
         destination_stack_id: 'stack-1',
         content_mapper: ['ct-1'],
@@ -733,7 +757,7 @@ describe('projects.service', () => {
       mockGetProjectUtil.mockResolvedValue(0);
       const project = createMockProject({
         status: 4,
-        current_step: 5,
+        current_step: 6,
         legacy_cms: { cms: 'wordpress', file_format: 'json' },
         destination_stack_id: 'stack-1',
         content_mapper: ['ct-1'],
@@ -879,20 +903,57 @@ describe('projects.service', () => {
   });
 
   describe('getMigratedStacks', () => {
-    it('should return destination stacks of completed projects', async () => {
+    it('should return destination stacks of other completed projects (not current project)', async () => {
       const mockModel = await import('../../../src/models/project-lowdb.js');
       (mockModel.default as any).data = {
         projects: [
-          { status: 5, current_step: 5, destination_stack_id: 'stack-1' },
+          {
+            id: 'proj-self',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-a',
+          },
+          {
+            id: 'proj-other',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-b',
+          },
+          {
+            id: 'proj-deleted',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-c',
+            isDeleted: true,
+          },
           { status: 0, current_step: 1, destination_stack_id: '' },
         ],
       };
 
       const result = await projectService.getMigratedStacks(
-        makeReq({}, { token_payload: tokenPayload })
+        makeReq({ projectId: 'proj-self' }, { token_payload: tokenPayload })
       );
       expect(result.status).toBe(200);
-      expect(result.destinationStacks).toEqual(['stack-1']);
+      expect(result.destinationStacks).toEqual(['stack-b']);
+    });
+
+    it('should return empty when only the current project is completed for its stack', async () => {
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = {
+        projects: [
+          {
+            id: 'proj-self',
+            status: 5,
+            current_step: 6,
+            destination_stack_id: 'stack-a',
+          },
+        ],
+      };
+
+      const result = await projectService.getMigratedStacks(
+        makeReq({ projectId: 'proj-self' }, { token_payload: tokenPayload })
+      );
+      expect(result.destinationStacks).toEqual([]);
     });
 
     it('should return empty array when no completed projects', async () => {
@@ -900,15 +961,209 @@ describe('projects.service', () => {
       (mockModel.default as any).data = { projects: [] };
 
       const result = await projectService.getMigratedStacks(
-        makeReq({}, { token_payload: tokenPayload })
+        makeReq({ projectId: 'any' }, { token_payload: tokenPayload })
       );
       expect(result.destinationStacks).toEqual([]);
     });
 
     it('should throw BadRequestError when token_payload missing', async () => {
       await expect(
-        projectService.getMigratedStacks(makeReq({}, {}))
+        projectService.getMigratedStacks(makeReq({ projectId: 'p1' }, {}))
       ).rejects.toThrow('Token payload is required');
+    });
+  });
+
+  describe('updateSourceConfig', () => {
+    it('should update source details successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [{ id: 'proj-1', legacy_cms: {} }] };
+        fn(data);
+        return data;
+      });
+
+      const result = await projectService.updateSourceConfig(
+        makeReq(
+          { orgId: 'org-123', projectId: 'proj-1' },
+          {
+            token_payload: tokenPayload,
+            source_details: {
+              source_mode: 'credentials',
+              source_region_id: 'NA',
+              source_org_id: 'org-1',
+              source_stack_id: 'stack-1',
+              source_branch: 'main',
+            },
+          }
+        )
+      );
+
+      expect(result.status).toBe(200);
+      expect(result.data.message).toMatch(/updated/i);
+      expect(mockProjectUpdate).toHaveBeenCalled();
+    });
+
+    it('should accept imported_export as source_mode', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [{ id: 'proj-1', legacy_cms: {} }] };
+        fn(data);
+        return data;
+      });
+
+      const result = await projectService.updateSourceConfig(
+        makeReq(
+          { orgId: 'org-123', projectId: 'proj-1' },
+          {
+            token_payload: tokenPayload,
+            source_details: {
+              source_mode: 'imported_export',
+              imported_data_path: '/some/path',
+            },
+          }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw when params missing', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq({}, { token_payload: tokenPayload, source_details: {} })
+        )
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+
+    it('should throw when token_payload missing', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq({ orgId: 'org-123', projectId: 'proj-1' }, { source_details: {} })
+        )
+      ).rejects.toThrow('Token payload is required');
+    });
+
+    it('should throw when source_details missing', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            { token_payload: tokenPayload }
+          )
+        )
+      ).rejects.toThrow('source_details is required');
+    });
+
+    it('should throw when source_mode is invalid', async () => {
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            {
+              token_payload: tokenPayload,
+              source_details: { source_mode: 'bogus' },
+            }
+          )
+        )
+      ).rejects.toThrow(/source_mode/);
+    });
+
+    it('should throw NotFoundError when project index invalid during update', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [] };
+        fn(data);
+      });
+
+      await expect(
+        projectService.updateSourceConfig(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            {
+              token_payload: tokenPayload,
+              source_details: { source_mode: 'credentials' },
+            }
+          )
+        )
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('updateAuditSelections', () => {
+    it('should update audit selections successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = {
+        projects: [
+          {
+            id: 'proj-1',
+            legacy_cms: { audit: {} },
+          },
+        ],
+      };
+      mockProjectWrite.mockResolvedValue(undefined);
+
+      const result = await projectService.updateAuditSelections(
+        makeReq(
+          { orgId: 'org-123', projectId: 'proj-1' },
+          {
+            token_payload: tokenPayload,
+            excludedItems: [{ uid: 'x1' }],
+            selectionStats: { total: 5 },
+          }
+        )
+      );
+
+      expect(result).toBeDefined();
+      expect(result.legacy_cms.audit.excludedItems).toEqual([{ uid: 'x1' }]);
+      expect(mockProjectWrite).toHaveBeenCalled();
+    });
+
+    it('should throw when params missing', async () => {
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq({}, { token_payload: tokenPayload, excludedItems: [] })
+        )
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+
+    it('should throw when token_payload missing', async () => {
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            { excludedItems: [] }
+          )
+        )
+      ).rejects.toThrow('Token payload is required');
+    });
+
+    it('should throw when excludedItems is not array', async () => {
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            { token_payload: tokenPayload, excludedItems: 'not array' }
+          )
+        )
+      ).rejects.toThrow('excludedItems must be an array');
+    });
+
+    it('should throw NotFoundError when project not found', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [] };
+
+      await expect(
+        projectService.updateAuditSelections(
+          makeReq(
+            { orgId: 'org-123', projectId: 'proj-1' },
+            {
+              token_payload: tokenPayload,
+              excludedItems: [],
+            }
+          )
+        )
+      ).rejects.toThrow();
     });
   });
 });

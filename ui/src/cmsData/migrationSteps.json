@@ -222,9 +222,17 @@
       "group_name": "Stacks"
     },
     {
+      "flow_id": "auditReport",
+      "_metadata": { "uid": "csauditstep0001" },
+      "name": 3,
+      "title": "Audit Report",
+      "description": "Review source stack audit before mapping and migration",
+      "group_name": "Audit"
+    },
+    {
       "flow_id": "contentMapping",
       "_metadata": { "uid": "cs82c582021cc46a87" },
-      "name": 3,
+      "name": 4,
       "title": "Content Mapping",
       "description": "Review of content mapping on the target stack",
       "group_name": "Layout"

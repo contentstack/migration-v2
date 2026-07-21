@@ -37,14 +37,26 @@ export const regionalApiHosts = {
   AU: 'au-api.contentstack.com',
   GCP_EU: 'gcp-eu-api.contentstack.com',
 };
+
+/** Web-app base URLs per region (used for building Contentstack management URLs). */
+export const regionalAppHosts: Record<string, string> = {
+  NA: 'https://app.contentstack.com',
+  EU: 'https://eu-app.contentstack.com',
+  AZURE_NA: 'https://azure-na-app.contentstack.com',
+  AZURE_EU: 'https://azure-eu-app.contentstack.com',
+  GCP_NA: 'https://gcp-na-app.contentstack.com',
+  GCP_EU: 'https://gcp-eu-app.contentstack.com',
+  AU: 'https://au-app.contentstack.com',
+};
 export const CMS = {
-  CONTENTFUL: 'contentful',
-  SITECORE_V8: 'sitecore v8',
-  SITECORE_V9: 'sitecore v9',
-  SITECORE_V10: 'sitecore v10',
-  WORDPRESS: 'wordpress',
-  DRUPAL: 'drupal',
-  AEM: 'aem',
+  CONTENTSTACK: "contentstack",
+  CONTENTFUL: "contentful",
+  SITECORE_V8: "sitecore v8",
+  SITECORE_V9: "sitecore v9",
+  SITECORE_V10: "sitecore v10",
+  WORDPRESS: "wordpress",
+  DRUPAL: "drupal",
+  AEM: "aem",
 };
 export const MODULES = [
   'Project',
@@ -95,6 +107,9 @@ export const HTTP_TEXTS = {
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
+  AUDIT_SELECTIONS_UPDATED: 'Audit selections updated successfully',
+  CS_SOURCE_EXPORT_PATH_REQUIRED:
+    'Source export path is required for Contentstack stack migration',
   DESTINATION_STACK_NOT_FOUND: 'Destination stack does not exist',
   DESTINATION_STACK_ERROR: 'Error occurred during verifying destination stack',
   INVALID_ID: 'Provided $ ID is invalid.',
@@ -127,7 +142,7 @@ export const HTTP_TEXTS = {
   CONTENTMAPPER_NOT_FOUND:
     'Sorry, the requested content mapper id does not exists.',
   ADMIN_LOGIN_ERROR:
-    "Sorry, You Don't have admin access in any of the Organisation",
+    'You are not a member of any Contentstack organization in this region (or organization list is empty).',
   PROJECT_DELETE: 'Project Deleted Successfully',
   PROJECT_REVERT: 'Project Reverted Successfully',
   LOGS_NOT_FOUND: 'Sorry, no logs found for requested stack migration.',
@@ -175,13 +190,13 @@ export const PROJECT_STATUS = {
 export const STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
-  CONTENT_MAPPING: 3,
-  TESTING: 4,
-  MIGRATION: 5,
+  AUDIT_REPORT: 3,
+  CONTENT_MAPPING: 4,
+  TESTING: 5,
+  MIGRATION: 6,
 };
 
-// Delta migration (iteration > 1) inserts a "Map Entry" step after Content Mapping, shifting
-// Testing and Migration down by one. Iteration 1 keeps the original 5-step numbering.
+// Delta migration (iteration > 1), non-CS source: inserts Map Entry after Content Mapping.
 export const DELTA_STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
@@ -191,12 +206,29 @@ export const DELTA_STEPPER_STEPS: any = {
   MIGRATION: 6,
 };
 
+// CS source delta: Audit Report AND Map Entry are both extra steps → 7 total.
+export const CS_DELTA_STEPPER_STEPS: any = {
+  LEGACY_CMS: 1,
+  DESTINATION_STACK: 2,
+  AUDIT_REPORT: 3,
+  CONTENT_MAPPING: 4,
+  MAP_ENTRY: 5,
+  TESTING: 6,
+  MIGRATION: 7,
+};
+
 /**
- * Returns the step-number map for a given iteration: the 6-step delta layout (with Map Entry)
- * from iteration 2 onwards, or the original 5-step layout for iteration 1.
+ * Returns the step-number map for a given iteration and CMS type.
+ * - CS source, iteration 1: 6 steps (STEPPER_STEPS, includes Audit Report)
+ * - Non-CS, iteration 2+:   6 steps (DELTA_STEPPER_STEPS, includes Map Entry)
+ * - CS source, iteration 2+: 7 steps (CS_DELTA_STEPPER_STEPS, includes both)
  */
-export const getStepperSteps = (iteration?: number) =>
-  (iteration ?? 1) > 1 ? DELTA_STEPPER_STEPS : STEPPER_STEPS;
+export const getStepperSteps = (iteration?: number, isCsSource?: boolean) => {
+  const isDelta = (iteration ?? 1) > 1;
+  if (isDelta && isCsSource) return CS_DELTA_STEPPER_STEPS;
+  if (isDelta) return DELTA_STEPPER_STEPS;
+  return STEPPER_STEPS;
+};
 export const PREDEFINED_STATUS = [
   'Draft',
   'Ready',
@@ -204,7 +236,7 @@ export const PREDEFINED_STATUS = [
   'Failed',
   'Success',
 ];
-export const PREDEFINED_STEPS = [1, 2, 3, 4, 5];
+export const PREDEFINED_STEPS = [1, 2, 3, 4, 5, 6];
 
 export const NEW_PROJECT_STATUS = {
   0: 0, //DRAFT
@@ -353,6 +385,11 @@ export const DATABASE_FILES = {
   ASSET_METADATA: 'asset-metadata.json',
 };
 
+
+export const DB_CONFIG = {
+  AUDIT_THRESHOLD: 250,
+  AUDIT_DIR: "database/audit",
+};
 export const GET_AUDIT_DATA = {
   MIGRATION: 'migration-v2',
   API_DIR: 'api',

@@ -21,7 +21,7 @@ import {
   InstructionText,
   CircularLoader,
   EmptyState,
-  OutlineTag
+  OutlineTag,
 } from '@contentstack/venus-components';
 
 // Services
@@ -33,7 +33,8 @@ import {
   resetToInitialMapping,
   getExistingContentTypes,
   getExistingGlobalFields,
-  updateContentMapper
+  updateContentMapper,
+  fetchSourceContentTypes
 } from '../../services/api/migration.service';
 
 // Redux
@@ -74,6 +75,7 @@ import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interfac
 import SchemaModal from '../SchemaModal';
 import AdvanceSettings from '../AdvancePropertise';
 import SaveChangesModal from '../Common/SaveChangesModal';
+import ContentTypeSelector from './ContentTypeSelector';
 
 // Utilities
 import {
@@ -538,6 +540,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const [active, setActive] = useState<number | null>(0);
   const [searchContentType, setSearchContentType] = useState('');
+  const [activeTab, setActiveTab] = useState<'fieldMapping' | 'contentTypes'>('fieldMapping');
+  const [savedCTCount, setSavedCTCount] = useState<number>(0);
+  const isContentstackSource = newMigrationData?.legacy_cms?.selectedCms?.cms_id === 'contentstack';
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
   const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[] | undefined>([]);
@@ -596,6 +601,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     fetchContentTypes(searchText || '');
   }, []);
 
+  // If the user previously saved a CT selection, land on the Content Types tab so they
+  // immediately see what was configured rather than the Field Mapping tab.
+  useEffect(() => {
+    if (!isContentstackSource || !projectId) return;
+    fetchSourceContentTypes(projectId)
+      .then((resp) => {
+        const saved: string[] = resp?.data?.savedSelection ?? [];
+        if (saved.length > 0) {
+          setActiveTab('contentTypes');
+          setSavedCTCount(saved.length);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const currentIteration = newMigrationData?.iteration || 1;
     if (currentIteration !== iterationCount) {
@@ -603,6 +623,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       fetchContentTypes(searchText || '');
     }
   }, [newMigrationData?.iteration, iterationCount, searchText]);
+
+  // For CS source: audit generation seeds the content mapper after this component has already
+  // mounted and fetched (getting an empty result). Re-fetch once when isContentMapperGenerated
+  // becomes true so the mapper list populates correctly.
+  useEffect(() => {
+    if (newMigrationData?.isContentMapperGenerated) {
+      fetchContentTypes(searchText || '');
+    }
+  }, [newMigrationData?.isContentMapperGenerated]);
 
   // Make title and url field non editable
   useEffect(() => {
@@ -1668,7 +1697,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 3
+              newMigrationData?.project_current_step > 4
             }
           />
         </div>
@@ -1687,12 +1716,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               disabled={
                 data?.otherCmsField === 'title' ||
                 data?.otherCmsField === 'url' ||
-                newMigrationData?.project_current_step > 3
+                newMigrationData?.project_current_step > 4
               }
             >
               <Button
                 buttonType="light"
-                disabled={newMigrationData?.project_current_step > 3}
+                disabled={newMigrationData?.project_current_step > 4}
                 onClick={() =>
                   handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
                 }
@@ -1701,7 +1730,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   version="v2"
                   icon="Sliders"
                   size="small"
-                  disabled={newMigrationData?.project_current_step > 3}
+                  disabled={newMigrationData?.project_current_step > 4}
                 />
 
               </Button>
@@ -2579,7 +2608,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               maxWidth="290px"
               isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
               options={adjustedOptions}
-              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 3}
+              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
             />
           </Tooltip>
         </div>
@@ -2600,7 +2629,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               >
                 <Button
                   buttonType="light"
-                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 3}
+                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
                   onClick={() => {
                     handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
                   }}
@@ -3289,7 +3318,32 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       </div>
       :
       <div className="step-container">
-        {(contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
+        {isContentstackSource && (
+          <div className="ct-tab-switcher">
+            <button
+              className={`ct-tab-btn${activeTab === 'contentTypes' ? ' ct-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('contentTypes')}
+            >
+              Content types
+              {savedCTCount > 0 && (
+                <span className="ct-tab-badge">{savedCTCount}</span>
+              )}
+            </button>
+            <button
+              className={`ct-tab-btn${activeTab === 'fieldMapping' ? ' ct-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('fieldMapping')}
+            >
+              Field mapping
+            </button>
+          </div>
+        )}
+
+        {isContentstackSource && activeTab === 'contentTypes' ? (
+          <ContentTypeSelector
+            projectId={projectId}
+            onSavedCountChange={(n) => setSavedCTCount(n)}
+          />
+        ) : (contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
           <div className="d-flex flex-wrap table-container">
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
@@ -3441,7 +3495,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                                 placeholder={otherContentType?.label}
                                 isSearchable
                                 version="v2"
-                                isDisabled={newMigrationData?.project_current_step > 3}
+                                isDisabled={newMigrationData?.project_current_step > 4}
                               />
                             </div>
 
@@ -3488,7 +3542,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                       className="saveButton"
                       onClick={handleSaveContentType}
                       version="v2"
-                      disabled={newMigrationData?.project_current_step > 3}
+                      disabled={newMigrationData?.project_current_step > 4}
                       isLoading={isLoadingSaveButton}
                     >
                       Save
