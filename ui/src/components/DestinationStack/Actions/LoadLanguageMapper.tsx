@@ -887,20 +887,40 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                   newMigrationData?.project_current_step > 2
                 );
               }
-              // Restart iteration: keep Add Language enabled as long as there is still an
-              // un-mapped source locale, regardless of whether prior rows are fully filled.
-              // Users can add multiple empty rows and fill them in any order.
+              // Restart iteration: button must remain available so users can add a new
+              // destination locale before the delta run. Block when (a) there's already an
+              // in-progress row not yet backed by a completed mapping (avoid stacking empties)
+              // OR (b) every available source locale is already mapped — otherwise clicking
+              // Add Language would surface a row whose source dropdown has no unmapped option
+              // to pick (e.g. a single-locale source where `en` is already in use).
               //
-              // Block when:
-              //   (a) `sourceLocales` hasn't hydrated from Redux yet — new rows would have
-              //       nothing to pick in the source dropdown,
-              //   (b) every available source is already mapped — same reason,
-              //   (c) the number of rows on screen already equals the number of source
-              //       locales — otherwise a user hammering Add would spawn empty rows that
-              //       can never be filled (only N sources exist for N rows). The row cap
-              //       kicks in even before any mapping happens (e.g. 3 sources → max 3 rows,
-              //       whether they're mapped yet or not).
+              // Row-completeness derives from Redux (`localeMapping`) rather than
+              // `cmsLocaleOptions[i].value`, because the row-object's `value` field is only
+              // populated on rebuild — the per-row handlers (handleSelectedCsLocale /
+              // handleSelectedSourceLocale) update `selectedMappings` → Redux but never write
+              // back into `cmsLocaleOptions`, so a freshly-filled row would otherwise still
+              // read as "empty" here and lock Add Language forever after one add.
+              //
+              // Treat the master row as always-filled: its value is auto-managed by the
+              // parent (stack master locale), and on a delta-restart race the source can be
+              // momentarily blank in Redux before the sync-from-Redux effect merges it back.
+              // Counting master as filled prevents that transient state from disabling the
+              // button on the very first render after restart.
               const savedMapping = newMigrationData?.destination_stack?.localeMapping || {};
+              // Exclude keys that are source locale codes — handleSelectedSourceLocale
+              // previously wrote under a fallback key (source label lowercased) when the
+              // user picked source before CS, inflating the count and re-enabling Add Language
+              // for an incomplete row. Filter those out so only proper CS locale keys count.
+              const sourceLocaleLabels = new Set(
+                sourceLocales?.map((l: { label: string }) => l.label) ?? []
+              );
+              const filledMappingCount = Object.entries(savedMapping).filter(([k, v]) => {
+                const isMasterKey = typeof k === 'string' && k.endsWith('-master_locale');
+                if (isMasterKey) return true;
+                if (sourceLocaleLabels.has(k)) return false;
+                return typeof v === 'string' && v.length > 0;
+              }).length;
+              const hasIncompleteRow = (cmsLocaleOptions?.length ?? 0) > filledMappingCount;
               const mappedSources = new Set(
                 Object.values(savedMapping).filter(
                   (v): v is string => typeof v === 'string' && v?.length > 0
@@ -913,9 +933,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               const totalSources = sourceLocales?.length ?? 0;
               const sourcesNotReady = totalSources === 0;
               const allSourcesMapped = totalSources > 0 && mappedSources.size >= totalSources;
-              const rowCapReached =
-                totalSources > 0 && (cmsLocaleOptions?.length ?? 0) >= totalSources;
-              return sourcesNotReady || allSourcesMapped || rowCapReached;
+              return hasIncompleteRow || sourcesNotReady || allSourcesMapped;
             })()}
           >
             Add Language
