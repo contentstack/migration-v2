@@ -6,7 +6,7 @@ import { shouldSkipContentTypeCreation } from "./content-type-checker.utils.js";
 import { sanitizeProjectId, sanitizeStackId } from "./sanitize-path.utils.js";
 import customLogger from "./custom-logger.utils.js";
 
-export const fieldAttacher = async ({ projectId, orgId, destinationStackId, region, user_id, is_sso }: any) => {
+export const fieldAttacher = async ({ projectId, orgId, destinationStackId, region, user_id, is_sso, isTest = false}: any) => {
   const safeProjectId = sanitizeProjectId(projectId);
   if (!safeProjectId) {
     throw new Error("Invalid project identifier");
@@ -45,9 +45,13 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
         })
       }
 
-      if (iteration === 1) {
+      // Test migration: always create the content type into the test stack,
+      // regardless of whether it already exists. The iteration-based skip logic
+      if (isTest) {
         await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
-
+      }
+      else if (iteration === 1) {
+        await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
       }
       else {
         const shouldSkip = await shouldSkipContentTypeCreation(safeProjectId, contentType?.otherCmsUid, iteration);

@@ -690,9 +690,12 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                       // Lock the Save button only while a migration is actively in flight.
                       // Using migrationStarted alone would permanently lock revisits on delta
                       // iterations since migrationStarted stays true after completion.
+                      // Also lock when this content type has no selectable entry (no row is
+                      // mapped to a Contentstack uid), since there's nothing to save.
                       disabled={
-                        !!newMigrationData?.migration_execution?.migrationStarted &&
-                        !newMigrationData?.migration_execution?.migrationCompleted
+                        (!!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted) ||
+                        !tableData?.some((row) => row?._canSelect)
                       }
                       isLoading={isLoadingSaveButton}
                     >
