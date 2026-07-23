@@ -690,9 +690,16 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                       // Lock the Save button only while a migration is actively in flight.
                       // Using migrationStarted alone would permanently lock revisits on delta
                       // iterations since migrationStarted stays true after completion.
+                      // Also lock when there's nothing to save: no pending selection AND the
+                      // current page has no mappable row. tableData is only the current
+                      // server-paginated page, so we must fall back to rowIds (persisted +
+                      // pending selection) — otherwise a content type whose mappable rows sit
+                      // on page 2+ would wrongly disable Save.
                       disabled={
-                        !!newMigrationData?.migration_execution?.migrationStarted &&
-                        !newMigrationData?.migration_execution?.migrationCompleted
+                        (!!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted) ||
+                        (Object.keys(rowIds ?? {}).length === 0 &&
+                          !tableData?.some((row) => row?._canSelect))
                       }
                       isLoading={isLoadingSaveButton}
                     >
