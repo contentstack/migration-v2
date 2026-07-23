@@ -1089,8 +1089,19 @@ const saveContent = async (ct: any, contentSave: string) => {
         throw readError; // rethrow if it's not a "file not found" error
       }
     }
-    // Append new content to schemaData
-    schemaData.push(ct);
+    // Upsert by uid: replace an existing entry for this content type instead of
+    // blindly appending. schema.json is not cleared between runs (clearStaleEntries
+    // only wipes the entries/ subtree), so re-running against the same stack — e.g.
+    // a re-run test migration or a delta iteration — would otherwise accumulate
+    // duplicate content-type entries.
+    const existingIndex = Array.isArray(schemaData)
+      ? schemaData.findIndex((existing: any) => existing?.uid === ct?.uid)
+      : -1;
+    if (existingIndex > -1) {
+      schemaData[existingIndex] = ct;
+    } else {
+      schemaData.push(ct);
+    }
     // Write the updated schemaData back to schema.json
     await fs.promises.writeFile(schemaFilePath, JSON.stringify(schemaData, null, 2));
 

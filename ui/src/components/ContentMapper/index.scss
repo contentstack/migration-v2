@@ -128,6 +128,16 @@
   max-width: 75%;
   width: 100%;
   padding: 0;
+  min-height: 0;
+
+  // The table wrapper fills the fields column so its child .entry-mapper-table
+  // has a bounded height to flex into (keeps pagination + Save footer in view on zoom).
+  .entry-table-wrapper.entry-mapper-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
 .cta-wrapper {
   border-top: 1px solid $color-base-gray-40;
@@ -138,7 +148,13 @@
   position: relative;
 }
 .table-container {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  // Panels sit side by side and must stretch to the container's full height so the
+  // fields column (and its internally-scrolling table) is height-bounded, not
+  // content-sized. align-content:stretch keeps a single flex line filling the height.
+  align-items: stretch;
+  align-content: stretch;
 }
 .table-wrapper {
   flex: 1;
@@ -486,10 +502,7 @@ div .table-row {
 // Asset mapper table: venus's .Table sets min-height: 31.25rem, forcing the table
 // tall and pushing the pagination bar down with a dead gap. Pin an explicit height
 // so the table + pagination end where we want and the Save button can sit below.
-.entry-asset-mapper .step-container .Table {
-  height: 400px !important;
-  min-height: 0px !important;
-}
+
 
 .custom-empty-state {
   .Icon--original {
@@ -531,8 +544,17 @@ div .table-row {
 .entry-asset-mapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  // Match the usable step-content area: .stepContent is height:calc(100vh - 56px) with a
+  // 190px top padding for the fixed stepper header, so the real space below it is
+  // calc(100vh - 246px). Pinning to that makes this subtree self-bounding (the stepper
+  // tree above isn't flex, so height:100% grew to content height on zoom and pushed the
+  // Save footer off with no scroll). Inner flex distributes the rest; the body scrolls
+  // and pagination + Save stay pinned.
+  height: calc(100vh - 246px);
+  max-height: calc(100vh - 246px);
   width: 100%;
+  overflow: hidden;
+  min-height: 0;
 
   // The active child mapper (its own .step-container) fills the space left by the toggle.
   > .step-container {
@@ -633,10 +655,19 @@ div .table-row {
   // search row, pagination bar and Save footer.
   // Entry mapper only — the asset mapper lets venus size the body from its measured
   // tableHeight prop, and this !important would override those inline styles.
+  // Let the scroll body flex to fill the space .entry-mapper-table hands it, rather
+  // than a fixed calc(100vh - …). 100vh doesn't shrink on zoom, so a fixed height keeps
+  // the body full-size and shoves the pagination bar under/past the Save footer. Flexing
+  // makes the body shrink with the available height so pagination + footer stay in view.
+  // The body height is driven by react-window via the measured `tableHeight` prop (see
+  // entryMapper.tsx) so its native scroll works. Don't override height here — just make it
+  // the flex item that takes the leftover space and never forces the .Table taller than its
+  // container (which would push pagination/footer off-screen).
   &:not(.asset-mapper-container) .Table__body,
   &:not(.asset-mapper-container) .Table.TableWithPaginated .Table__body {
-    height: calc(100vh - 520px) !important;
-    max-height: calc(100vh - 520px) !important;
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
   }
 
   // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
@@ -674,14 +705,25 @@ div .table-row {
       }
     }
 
-    // Target actual column containers
+    // Target actual column containers. Honour the per-column `width` venus applies inline
+    // from the `columns` config (flex-basis: auto reads that width) as the STARTING size,
+    // instead of forcing every column to an equal `flex: 1 1 0`. flex-shrink:1 (+ min-width:0)
+    // lets the fixed-width columns give way on narrow viewports so the row never exceeds the
+    // available width and forces a horizontal scrollbar; they hold their width when there's room.
     .Table__head__column,
     .Table__body__column {
-      flex: 1 1 0 !important;
+      flex: 0 1 auto;
       min-width: 0 !important;
       display: flex !important;
       align-items: center;
       border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // The final column has no fixed width in the config — let it absorb the leftover width
+    // so the row still spans the full table.
+    .Table__head__column:last-of-type,
+    .Table__body__column:last-of-type {
+      flex: 1 1 auto;
     }
 
     // Long filenames/paths must wrap and stay inside their own column instead
@@ -704,5 +746,82 @@ div .table-row {
     .Table__body__column:last-child {
       border-right: none !important;
     }
+  }
+}
+
+// Asset mapper table — responsive like the entry mapper. Flex column that fills the
+// bounded step area; the venus table is content-sized (its body height comes from the
+// measured `tableHeight` prop in assetMapper.tsx, not CSS, so react-window's native scroll
+// works), and the Save footer stays pinned below.
+.asset-mapper-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+
+  // Size to content, not flex-grow — flex-grow would balloon the body and, since we measure
+  // to set tableHeight, create a runaway loop.
+  .Table {
+    flex: 0 0 auto;
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .Table__body {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  .TableFooter,
+  .Pagination,
+  .Table__pagination {
+    flex: 0 0 auto;
+  }
+
+  .mapper-footer {
+    flex: 0 0 auto;
+    position: static;
+  }
+}
+
+// Make the entry-mapper table area responsive so the pagination bar never slides
+// under (or past) the Save footer when the effective viewport shrinks on zoom.
+// It's a flex column that owns all the vertical space between the locale/search row
+// and the footer; the table grows/shrinks to fit and its body scrolls internally,
+// while the footer stays pinned at the bottom.
+.entry-mapper-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+
+  // Size to content, NOT flex-grow. react-window sizes the body from the measured
+  // `tableHeight` prop (entryMapper.tsx); letting .Table flex-grow would balloon the body
+  // and, since we measure to set that prop, create a runaway loop. Content-sized keeps
+  // .Table = body(tableHeight) + panel + pagination, leaving room for the footer below.
+  .Table {
+    flex: 0 0 auto;
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Keep pagination pinned just above the footer regardless of table height.
+  .TableFooter,
+  .Pagination,
+  .Table__pagination {
+    flex: 0 0 auto;
+  }
+
+  // Footer never gets pushed off-screen — it's the last flex child.
+  .mapper-footer {
+    flex: 0 0 auto;
+    position: static;
   }
 }

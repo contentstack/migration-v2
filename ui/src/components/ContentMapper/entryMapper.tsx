@@ -57,6 +57,7 @@ import {
   applyContentTypeStatus,
 } from './entryMapper.utils';
 import { toSelectedMap, computeChangedUids } from './assetMapper.utils';
+import { useMeasuredTableHeight } from './useMeasuredTableHeight';
 
 // Styles and Assets
 import './index.scss';
@@ -477,13 +478,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       ),
       accessor: accessorCall,
       id: 'uuid',
-      width: '250px',
+      width: '340px',
     },
     {
       disableSortBy: true,
       Header: <span>{`${newMigrationData?.legacy_cms?.selectedCms?.title} UIDs:`}</span>,
       accessor: accessorForCMSUid,
-      id: '1'
+      id: '1',
+      width: '360px',
     },
     {
       disableSortBy: true,
@@ -493,11 +495,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   ];
 
-  // Must match the .Table__body height in index.scss so the react-window list is exactly
-  // as tall as the scroll body. Leave ~140px below for the search row, pagination bar and
-  // Save footer; the body scrolls internally so all rows of a page stay reachable.
-  const calcHeight = () => window.innerHeight - 520;
-  const tableHeight = calcHeight();
+  // Responsive table height for the entry mapper — see useMeasuredTableHeight for the why.
+  const tableHeight = useMeasuredTableHeight(tableWrapperRef, [contentTypeUid, tableData?.length], {
+    panelSelector: '.TablePanel',
+    footerSelector: '.mapper-footer',
+  });
 
   return (
     isLoading || newMigrationData?.isprojectMapped
@@ -619,82 +621,92 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
 
             {/* Entry Mapping Table */}
             <div className="content-types-fields-wrapper">
-              <div className="table-wrapper" ref={tableWrapperRef}>
-                <div className={`entry-mapper-container${localeOptions?.length > 0 ? ' has-locale-select' : ''}`}>
-                  {localeOptions?.length > 0 && (
-                    <div className="locale-select-inline">
-                      <Select
-                        className="locale-select"
-                        value={selectedLocale}
-                        options={localeOptions}
-                        onChange={(opt: { label: string; value: string }) => setSelectedLocale(opt)}
-                        isSearchable={false}
-                        isClearable={false}
-                        placeholder="Select locale"
-                        width="240px"
-                        version="v2"
-                      />
-                    </div>
-                  )}
+              <div
+                className={`entry-table-wrapper entry-mapper-container${localeOptions?.length > 0 ? ' has-locale-select' : ''}`}
+                ref={tableWrapperRef}
+              >
+                {localeOptions?.length > 0 && (
+                  <div className="locale-select-inline">
+                    <Select
+                      className="locale-select"
+                      value={selectedLocale}
+                      options={localeOptions}
+                      onChange={(opt: { label: string; value: string }) => setSelectedLocale(opt)}
+                      isSearchable={false}
+                      isClearable={false}
+                      placeholder="Select locale"
+                      width="240px"
+                      version="v2"
+                    />
+                  </div>
+                )}
+                <div className="entry-mapper-table">
                   <InfiniteScrollTable
-                    key={contentTypeUid || 'entry-mapper-table'}
-                    loading={loading}
-                    canSearch={true}
-                    totalCounts={totalCounts ?? 0}
-                    data={[...tableData]}
-                    columns={columns}
-                    uniqueKey={'id'}
-                    isRowSelect={true}
-                    fullRowSelect={true}
-                    fetchTableData={fetchData}
-                    tableHeight={tableHeight}
-                    equalWidthColumns={true}
-                    columnSelector={false}
-                    v2Features={{ pagination: true, isNewEmptyState: true }}
-                    rowPerPageOptions={[10, 30, 50, 100]}
-                    minBatchSizeToFetch={30}
-                    initialRowSelectedData={initialRowSelectedData}
-                    initialSelectedRowIds={rowIds}
-                    itemSize={70}
-                    getSelectedRow={handleSelectedEntries}
-                    rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
-                    name={{
-                      singular: '',
-                      plural: `${totalCounts === 0 ? 'Count' : ''}`
-                    }}
-                    customEmptyState={
-                      <EmptyState
-                        forPage="list"
-                        heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
-                        description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
-                        moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
-                        type="secondary"
-                        className="custom-empty-state"
-                      />
-                    }
-                  />
-                  {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
-                    <div className="mapper-footer">
-                      <div>
-                        {/* Total Entries: <strong>{totalCounts}</strong> */}
-                      </div>
-                      <Button
-                        className="saveButton"
-                        onClick={handleSaveContentType}
-                        version="v2"
-                        // Lock the Save button only while a migration is actively in flight.
-                        // Using migrationStarted alone would permanently lock revisits on delta
-                        // iterations since migrationStarted stays true after completion.
-                        disabled={
-                          !!newMigrationData?.migration_execution?.migrationStarted &&
-                          !newMigrationData?.migration_execution?.migrationCompleted
-                        }
-                        isLoading={isLoadingSaveButton}
-                      >
-                        Save
-                      </Button>
+                  key={contentTypeUid || 'entry-mapper-table'}
+                  loading={loading}
+                  canSearch={true}
+                  totalCounts={totalCounts ?? 0}
+                  data={[...tableData]}
+                  columns={columns}
+                  uniqueKey={'id'}
+                  isRowSelect={true}
+                  fullRowSelect={true}
+                  fetchTableData={fetchData}
+                  tableHeight={tableHeight}
+                  equalWidthColumns={false}
+                  columnSelector={false}
+                  v2Features={{ pagination: true, isNewEmptyState: true }}
+                  rowPerPageOptions={[10, 30, 50, 100]}
+                  minBatchSizeToFetch={30}
+                  initialRowSelectedData={initialRowSelectedData}
+                  initialSelectedRowIds={rowIds}
+                  itemSize={70}
+                  getSelectedRow={handleSelectedEntries}
+                  rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+                  name={{
+                    singular: '',
+                    plural: `${totalCounts === 0 ? 'Count' : ''}`
+                  }}
+                  customEmptyState={
+                    <EmptyState
+                      forPage="list"
+                      heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
+                      description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
+                      moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
+                      type="secondary"
+                      className="custom-empty-state"
+                    />
+                  }
+                />
+                {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
+                  <div className="mapper-footer">
+                    <div>
+                      {/* Total Entries: <strong>{totalCounts}</strong> */}
                     </div>
-                  )}
+                    <Button
+                      className="saveButton"
+                      onClick={handleSaveContentType}
+                      version="v2"
+                      // Lock the Save button only while a migration is actively in flight.
+                      // Using migrationStarted alone would permanently lock revisits on delta
+                      // iterations since migrationStarted stays true after completion.
+                      // Also lock when there's nothing to save: no pending selection AND the
+                      // current page has no mappable row. tableData is only the current
+                      // server-paginated page, so we must fall back to rowIds (persisted +
+                      // pending selection) — otherwise a content type whose mappable rows sit
+                      // on page 2+ would wrongly disable Save.
+                      disabled={
+                        (!!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted) ||
+                        (Object.keys(rowIds ?? {}).length === 0 &&
+                          !tableData?.some((row) => row?._canSelect))
+                      }
+                      isLoading={isLoadingSaveButton}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                )}
                 </div>
               </div>
             </div>

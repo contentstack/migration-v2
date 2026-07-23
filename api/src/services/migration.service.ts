@@ -450,6 +450,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       region,
       user_id,
       is_sso,
+      isTest: true
     });
     
     await marketPlaceAppService?.createAppManifest({
