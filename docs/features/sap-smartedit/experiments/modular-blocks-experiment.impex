@@ -1,0 +1,136 @@
+# =============================================================================
+# SAP SmartEdit / SAP Commerce Cloud - Modular Blocks Experiment
+# =============================================================================
+# Purpose: stress-test the CURRENT connector (parseImpex -> classifyColumn ->
+# mapField) against component/field shapes NOT covered by sample-export.impex.
+# This is a standalone export — not wired into any real page/slot graph — the
+# goal is column classification and field mapping, not a full migration run.
+#
+# New shapes covered here that sample-export.impex does NOT have:
+#   1. CMSTabParagraphComponent — a "tabs" reference column (multi-value,
+#      NOT named cmsComponents) pointing at a mix of other component uids.
+#      This is SAP's closest real analog to Contentstack modular blocks:
+#      an ordered, heterogeneous list of sub-items under one parent.
+#   2. YoutubeVideoComponent — video id (string) + autoplay (boolean) + a
+#      thumbnail media field together on one component.
+#   3. NavigationBarComponent + NavigationBarLinkComponent — a second,
+#      differently-named nav pattern (multi-level bar vs. the existing
+#      NavigationNode/NavigationComponent tree).
+#   4. ProductReferencesComponent — a comma-separated list of plain SKU
+#      strings (NOT an ImpEx &ref/reference column) to confirm it's treated
+#      as flat text, not mistakenly detected as a reference.
+#   5. ScriptRestrictionComponent — ISO-datetime fields (activeFrom /
+#      activeUntil) plus a "restrictions" reference column with an unknown
+#      target type.
+#   6. PromoCountdownComponent — decimal + negative numbers, to test the
+#      number-classification regex beyond plain integers.
+#   7. SearchBoxComponent — a near-empty component (just a placeholder
+#      string) beyond the synthesized title/url.
+#   8. A dangling reference: HomepageUtilitySlot references
+#      "ChatWidgetComponent", which is never defined anywhere below.
+#   9. A field literally named "tags" (Contentstack-reserved) to confirm
+#      guardReservedUid renames it to src_tags instead of erroring later.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# MACRO DEFINITIONS
+# -----------------------------------------------------------------------------
+$contentCatalog = electronics-contentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$contentCatalog]),CatalogVersion.version[default=Staged])[default=$contentCatalog:Staged]
+$lang = en
+$picture = media(code, $contentCV)
+
+
+# -----------------------------------------------------------------------------
+# MEDIA (ASSETS)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE Media; code[unique=true]              ; $contentCV[unique=true]; mime      ; realfilename            ; altText                     ; description                        ; URL
+                   ; /images/yt-thumbnail.jpg       ;                        ; image/jpeg; yt-thumbnail.jpg        ; Product walkthrough thumbnail; Thumbnail for embedded video       ; https://placehold.co/640x360.jpg
+
+
+# -----------------------------------------------------------------------------
+# CONTENT SLOTS (minimal — just enough to exercise a dangling reference)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ContentSlot; uid[unique=true]        ; $contentCV[unique=true]; name                   ; active; cmsComponents(&componentRef)
+                         ; HomepageUtilitySlot      ;                        ; Homepage Utility Slot ; true  ; ChatWidgetComponent
+                         ; HomepageVideoSlot        ;                        ; Homepage Video Slot   ; true  ; ProductWalkthroughVideoComponent
+                         ; HomepageTabsSlot         ;                        ; Homepage Tabs Slot    ; true  ; ProductInfoTabsComponent
+                         ; HomepagePromoCountdown   ;                        ; Homepage Promo Timer  ; true  ; FlashSaleCountdownComponent
+
+
+# -----------------------------------------------------------------------------
+# 1. CMSTabParagraphComponent — modular-blocks analog
+# Fields: uid, name, tabs (&ref list of heterogeneous component uids)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE CMSTabParagraphComponent; &componentRef             ; uid[unique=true]          ; $contentCV[unique=true]; name                     ; tabs(&componentRef)
+                                      ; ProductInfoTabsComponent  ; ProductInfoTabsComponent  ;                        ; Product Info Tabs        ; SpecsTabComponent,ReviewsTabComponent,ShippingTabComponent
+
+INSERT_UPDATE CMSParagraphComponent; &componentRef        ; uid[unique=true]     ; $contentCV[unique=true]; name                 ; content                                                                    ; tags
+                                   ; SpecsTabComponent    ; SpecsTabComponent    ;                        ; Specs Tab            ; "<ul><li>6.1-inch display</li><li>128GB storage</li></ul>"               ; specs,hardware
+                                   ; ReviewsTabComponent  ; ReviewsTabComponent  ;                        ; Reviews Tab          ; "<p>4.7 out of 5 stars across 1,204 reviews.</p>"                        ; reviews,social-proof
+                                   ; ShippingTabComponent ; ShippingTabComponent ;                        ; Shipping Tab         ; "<p>Free shipping on orders over $50. Delivered in 3-5 business days.</p>"; shipping,logistics
+
+
+# -----------------------------------------------------------------------------
+# 2. YoutubeVideoComponent — video id + boolean + media together
+# Fields: uid, name, videoId, autoPlay, media (thumbnail)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE YoutubeVideoComponent; &componentRef                     ; uid[unique=true]                  ; $contentCV[unique=true]; name                          ; videoId    ; autoPlay[default='false']; media(code,$contentCV)
+                                   ; ProductWalkthroughVideoComponent  ; ProductWalkthroughVideoComponent  ;                        ; Product Walkthrough Video    ; dQw4w9WgXcQ; false                    ; /images/yt-thumbnail.jpg
+
+
+# -----------------------------------------------------------------------------
+# 3. NavigationBarComponent + NavigationBarLinkComponent
+# A second, independent nav pattern (multi-level bar vs. NavigationNode tree)
+# Fields: uid, name, links (&ref list) / uid, name, label, url, depth
+# -----------------------------------------------------------------------------
+INSERT_UPDATE NavigationBarLinkComponent; &componentRef      ; uid[unique=true]   ; $contentCV[unique=true]; name              ; label         ; url          ; depth
+                                        ; DealsBarLink        ; DealsBarLink       ;                        ; Deals Bar Link    ; Today's Deals ; /deals       ; 0
+                                        ; SupportBarLink      ; SupportBarLink     ;                        ; Support Bar Link  ; Support       ; /support     ; 0
+                                        ; TrackOrderBarLink   ; TrackOrderBarLink  ;                        ; Track Order Link  ; Track Order   ; /track-order ; 1
+
+INSERT_UPDATE NavigationBarComponent; &componentRef   ; uid[unique=true] ; $contentCV[unique=true]; name             ; links(&componentRef)
+                                     ; TopUtilityBar   ; TopUtilityBar    ;                        ; Top Utility Bar  ; DealsBarLink,SupportBarLink,TrackOrderBarLink
+
+
+# -----------------------------------------------------------------------------
+# 4. ProductReferencesComponent — plain comma-separated SKU strings
+# (NOT an ImpEx &ref column — must classify as string, not a reference)
+# Fields: uid, name, productCodes
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ProductReferencesComponent; &componentRef            ; uid[unique=true]         ; $contentCV[unique=true]; name                    ; productCodes
+                                        ; RelatedAccessoriesComponent; RelatedAccessoriesComponent;                    ; Related Accessories     ; SKU-1001,SKU-1002,SKU-1003
+
+
+# -----------------------------------------------------------------------------
+# 5. ScriptRestrictionComponent — ISO datetimes + unknown-target reference
+# Fields: uid, name, activeFrom, activeUntil, restrictions (&ref, unresolved)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ScriptRestrictionComponent; &componentRef        ; uid[unique=true]     ; $contentCV[unique=true]; name                 ; activeFrom              ; activeUntil              ; restrictions(&componentRef)
+                                         ; FlashSaleRestriction; FlashSaleRestriction ;                        ; Flash Sale Restriction; 2026-07-14T00:00:00+0000; 2026-07-21T23:59:59+0000; GeoUSRestriction,LoggedInRestriction
+
+
+# -----------------------------------------------------------------------------
+# 6. PromoCountdownComponent — decimal + negative numbers
+# Fields: uid, name, discountPercentage (decimal), zIndex (negative int), restrictions
+# -----------------------------------------------------------------------------
+INSERT_UPDATE PromoCountdownComponent; &componentRef            ; uid[unique=true]         ; $contentCV[unique=true]; name                  ; discountPercentage; zIndex; restrictions(&componentRef)
+                                     ; FlashSaleCountdownComponent; FlashSaleCountdownComponent;                     ; Flash Sale Countdown  ; 12.5              ; -1    ; FlashSaleRestriction
+
+
+# -----------------------------------------------------------------------------
+# 7. SearchBoxComponent — near-empty component
+# Fields: uid, name, placeholder
+# -----------------------------------------------------------------------------
+INSERT_UPDATE SearchBoxComponent; &componentRef      ; uid[unique=true]   ; $contentCV[unique=true]; name           ; placeholder
+                                 ; HeaderSearchBox    ; HeaderSearchBox    ;                        ; Header Search  ; Search products...
+
+
+# -----------------------------------------------------------------------------
+# 8. StoreFinderComponent — long plain-text blurb, no HTML markup
+# Fields: uid, name, blurb (>100 chars, plain text -> should classify as
+# multiline / multi_line_text rather than single_line_text)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE StoreFinderComponent; &componentRef      ; uid[unique=true]     ; $contentCV[unique=true]; name          ; blurb
+                                   ; StoreFinderComponent; StoreFinderComponent;                        ; Store Finder  ; Find the nearest Electronics Store location to you, check real-time stock availability, and book a free in-store consultation with one of our product experts today.

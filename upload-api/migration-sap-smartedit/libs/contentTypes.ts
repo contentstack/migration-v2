@@ -86,6 +86,21 @@ function readJsonFilesFromFolder(folderPath: string): CT[] {
 }
 
 /**
+ * Matches real HTML tags only (a fixed whitelist), NOT any `<word>` token —
+ * DSL/script values from extension modules (Promotions rule scripts, etc.)
+ * commonly contain generic-type syntax like `List<String>` or
+ * `Map<String,Integer>`, which a bare `<[a-z][^>]*>` pattern would wrongly
+ * match and misclassify as HTML, corrupting the value once Contentstack's
+ * HTML-RTE tries to parse "String"/"Integer" as tags.
+ */
+const HTML_TAG_RE =
+  /<\/?(p|div|span|strong|em|b|i|u|s|ul|ol|li|h[1-6]|a|br|img|table|thead|tbody|tr|td|th|blockquote|pre|code|figure|figcaption)\b[^>]*>/i;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+/** Contentstack's single-line text editor is meant for short values; longer
+ *  plain-text values (descriptions, blurbs) read better as multi_line_text. */
+const MULTILINE_THRESHOLD = 100;
+
+/**
  * Classify an ImpEx column into a source type consumed by schemaMapper, using
  * the header-derived flags plus the observed cell values for that column.
  */
@@ -98,12 +113,18 @@ function classifyColumn(col: ImpexColumnDef, values: string[]): string {
   }
 
   const name = col.name.toLowerCase();
-  if (name === 'content') return 'html';
   if (name === 'url' || name === 'urllink') return 'url';
 
   const nonEmpty = values.filter((v) => v !== '');
+  // Column named `content`, or any column whose values actually contain HTML
+  // markup (SAP components put rich text under many different field names).
+  if (name === 'content' || (nonEmpty.length && nonEmpty.some((v) => HTML_TAG_RE.test(v)))) {
+    return 'html';
+  }
   if (nonEmpty.length && nonEmpty.every((v) => v === 'true' || v === 'false')) return 'boolean';
   if (nonEmpty.length && nonEmpty.every((v) => /^-?\d+(\.\d+)?$/.test(v))) return 'number';
+  if (nonEmpty.length && nonEmpty.every((v) => ISO_DATE_RE.test(v))) return 'date';
+  if (nonEmpty.length && nonEmpty.some((v) => v.length > MULTILINE_THRESHOLD)) return 'multiline';
   return 'string';
 }
 
@@ -138,11 +159,13 @@ function ensureMandatoryFields(fieldMapping: Field[]): void {
   // title is mandatory whether it came from a source column or was synthesized
   titleField.advanced = { ...titleField.advanced, mandatory: true };
 
-  if (!fieldMapping.some((f) => f.contentstackFieldUid === 'url')) {
-    const row = baseField('url', 'text', 'url');
-    row.advanced = { mandatory: true };
-    fieldMapping.push(row);
+  let urlField = fieldMapping.find((f) => f.contentstackFieldUid === 'url');
+  if (!urlField) {
+    urlField = baseField('url', 'text', 'url');
+    fieldMapping.push(urlField);
   }
+  // url is mandatory whether it came from a source column or was synthesized
+  urlField.advanced = { ...urlField.advanced, mandatory: true };
 }
 
 /**

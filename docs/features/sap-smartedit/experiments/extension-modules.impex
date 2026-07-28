@@ -1,0 +1,78 @@
+# =============================================================================
+# SAP Commerce Cloud - Platform Extension Modules Test
+# =============================================================================
+# Unlike the other experiment files (which test CORE CMS component variety),
+# this tests whether the connector survives ImpEx item types produced by real
+# SAP Commerce Cloud EXTENSIONS/add-ons: B2B Commerce, Personalization,
+# Promotions, Subscriptions. The parser is generic/header-driven (it has no
+# allowlist of "known" type names — any INSERT_UPDATE <Type> block becomes a
+# content type the same way), so the real risk isn't the type NAME, it's
+# whether extension-specific VALUE SHAPES break classifyColumn's heuristics:
+#
+#   1. B2BUnit               hierarchical org tree (parent self-reference) —
+#                            same pattern as NavigationNode, different domain
+#   2. CustomerSegment       Personalization extension — a JSON-blob
+#                            attribute value; confirms it stays plain text
+#                            (json auto-detection is an intentional non-goal,
+#                            see schemaMapper.ts's mapField default comment)
+#   3. PromotionRestriction  Promotions engine — a DSL rule-script value
+#                            containing generic-type syntax (`List<String>`,
+#                            `Map<String,Integer>`) to stress-test the new
+#                            HTML-by-value sniffing added for real HTML
+#                            content — a false positive here would wrongly
+#                            turn a script field into an `html` field
+#   4. SubscriptionPlan      Subscriptions extension — enum-like string +
+#                            decimal price + a real date value together
+#   5. LocalizedProperty     deliberately reproduces the KNOWN, documented
+#                            limitation in extractLocale.ts ("Per-column
+#                            [lang=xx] localization is a documented
+#                            follow-up") — two same-named-after-stripping
+#                            columns on one line, confirming which value
+#                            survives, not chasing a fix
+# =============================================================================
+
+
+$contentCatalog = electronics-contentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$contentCatalog]),CatalogVersion.version[default=Staged])[default=$contentCatalog:Staged]
+
+
+# -----------------------------------------------------------------------------
+# 1. B2BUnit — hierarchical org unit tree (B2B Commerce extension)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE B2BUnit; uid[unique=true]  ; $contentCV[unique=true]; name             ; active; parent(uid,$contentCV)
+                      ; GlobalOrg         ;                        ; Global HQ        ; true  ;
+                      ; NorthAmericaOrg   ;                        ; North America    ; true  ; GlobalOrg
+                      ; EuropeOrg         ;                        ; Europe           ; true  ; GlobalOrg
+                      ; USRetailOrg       ;                        ; US Retail Div    ; true  ; NorthAmericaOrg
+
+
+# -----------------------------------------------------------------------------
+# 2. CustomerSegment — Personalization extension, JSON-blob criteria value
+# -----------------------------------------------------------------------------
+INSERT_UPDATE CustomerSegment; uid[unique=true] ; $contentCV[unique=true]; name          ; description                                                                                          ; active; criteria
+                             ; VipSegment        ;                        ; VIP Customers ; Customers who qualify for VIP treatment based on lifetime spend and order frequency thresholds set by marketing.; true  ; {"minLifetimeSpend":5000,"minOrders":10,"countries":["US","CA"]}
+
+
+# -----------------------------------------------------------------------------
+# 3. PromotionRestriction — Promotions engine, DSL rule script with
+# generic-type syntax that could false-positive as HTML
+# -----------------------------------------------------------------------------
+INSERT_UPDATE PromotionRestriction; uid[unique=true]      ; $contentCV[unique=true]; name                    ; ruleScript
+                                   ; CartTotalRestriction  ;                        ; Cart Total Restriction  ; "List<String> eligibleCountries = [\"US\",\"CA\"]; return cart.total > 100 && cart.total < 500;"
+                                   ; SegmentMapRestriction ;                        ; Segment Map Restriction ; "Map<String,Integer> segmentDiscounts = [:]; return segmentDiscounts.containsKey(customer.segment);"
+
+
+# -----------------------------------------------------------------------------
+# 4. SubscriptionPlan — Subscriptions extension
+# -----------------------------------------------------------------------------
+INSERT_UPDATE SubscriptionPlan; uid[unique=true] ; $contentCV[unique=true]; name              ; billingCycle; price ; trialDays; nextRenewalDate
+                               ; MonthlyProPlan    ;                        ; Monthly Pro Plan  ; MONTHLY     ; 29.99 ; 14       ; 2026-08-01T00:00:00+0000
+
+
+# -----------------------------------------------------------------------------
+# 5. LocalizedProperty — reproduces the documented per-column [lang=xx]
+# limitation (extractLocale.ts). Both columns strip down to base name
+# `value`; confirms which one wins, not a fix attempt.
+# -----------------------------------------------------------------------------
+INSERT_UPDATE LocalizedProperty; uid[unique=true]  ; $contentCV[unique=true]; name                ; value[lang=en] ; value[lang=fr]
+                                ; WelcomeMessage     ;                        ; Welcome Message     ; Welcome!       ; Bienvenue!

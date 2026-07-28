@@ -55,6 +55,14 @@ export const mapField = (name: string, sourceType: string, parent?: ParentCtx): 
     case 'html':
       return baseField(name, sourceType, 'html', parent);
 
+    // long plain text without markup (descriptions/blurbs)
+    case 'multiline':
+      return baseField(name, sourceType, 'multi_line_text', parent);
+
+    // ISO-8601 date/datetime values (e.g. activeFrom/activeUntil)
+    case 'date':
+      return baseField(name, sourceType, 'isodate', parent);
+
     // media(...) lookups + the $picture macro -> Contentstack asset field
     case 'file':
       return baseField(name, sourceType, 'file', parent);

@@ -1,0 +1,148 @@
+# =============================================================================
+# SAP SmartEdit / SAP Commerce Cloud - Full Field & Asset Coverage Test
+# =============================================================================
+# One self-contained export exercising every column classification path the
+# connector currently supports, wired into a real page -> slot -> component
+# graph so it can be run through the actual app end-to-end (schema + entries
+# + asset download), not just through the schema-extraction script.
+#
+# Coverage matrix (source column -> classifyColumn -> mapField):
+#   string            plain short text                  -> single_line_text
+#   multiline          plain text > 100 chars, no markup  -> multi_line_text
+#   html (by name)     column literally named `content`  -> html
+#   html (by value)    HTML tags in values, any column    -> html
+#   date               ISO-8601 date/datetime values      -> isodate
+#   boolean            true/false values                  -> boolean
+#   number (int)       whole numbers                       -> number
+#   number (decimal)   decimal numbers                     -> number
+#   number (negative)  negative numbers                    -> number
+#   url                column named url / urlLink          -> url
+#   file               $picture / media(...) lookup        -> file
+#   reference (single) single uid lookup, e.g. template()  -> reference
+#   reference (multi, &ref list)     cmsComponents(&ref)   -> reference[]
+#   reference (multi, comma list)    plain comma values    -> reference[]
+#   reference (dangling)             target never defined  -> reference
+#   reserved uid collision           column named `tags`   -> src_tags
+#   dropped columns                  uid / uuid             -> (not emitted)
+#   asset (real, reachable)          placehold.co URL       -> downloads
+#   asset (broken, unreachable)      bad-domain URL          -> logged to
+#                                                              cs_failed.json,
+#                                                              does not crash
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# MACRO DEFINITIONS
+# -----------------------------------------------------------------------------
+$contentCatalog = electronics-contentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$contentCatalog]),CatalogVersion.version[default=Staged])[default=$contentCatalog:Staged]
+$lang = en
+$picture = media(code, $contentCV)
+
+
+# -----------------------------------------------------------------------------
+# MEDIA (ASSETS)
+# Includes one deliberately broken URL (bad-domain-does-not-exist.test) to
+# confirm asset download failures are logged (cs_failed.json) without
+# aborting the rest of the migration.
+# -----------------------------------------------------------------------------
+INSERT_UPDATE Media; code[unique=true]           ; $contentCV[unique=true]; mime      ; realfilename         ; altText                    ; description                       ; URL
+                   ; /images/hero.jpg            ;                        ; image/jpeg; hero.jpg             ; Hero banner image          ; Full-width homepage hero image    ; https://placehold.co/1200x400.jpg
+                   ; /images/logo.png            ;                        ; image/png ; logo.png             ; Site logo                  ; Main site logo                    ; https://placehold.co/200x80.png
+                   ; /images/product-thumb.jpg   ;                        ; image/jpeg; product-thumb.jpg    ; Product thumbnail          ; Thumbnail used on product cards   ; https://placehold.co/400x400.jpg
+                   ; /images/video-thumb.jpg     ;                        ; image/jpeg; video-thumb.jpg      ; Video thumbnail            ; Thumbnail for embedded video      ; https://placehold.co/640x360.jpg
+                   ; /images/broken-asset.jpg    ;                        ; image/jpeg; broken-asset.jpg     ; Intentionally broken asset ; Used to test download-failure path; https://bad-domain-does-not-exist.test/broken.jpg
+
+
+# -----------------------------------------------------------------------------
+# PAGE TEMPLATE
+# -----------------------------------------------------------------------------
+INSERT_UPDATE PageTemplate; uid[unique=true]      ; $contentCV[unique=true]; active; name                     ; frontendTemplateName    ; restrictedPageTypes(code)
+                          ; ContentPageTemplate    ;                        ; true  ; Generic Content Template ; layout/contentLayout   ; ContentPage
+
+
+# -----------------------------------------------------------------------------
+# CMS PAGE
+# Field coverage on the page itself: multiline (metaDescription), date
+# (publishedDate), number decimal (priority), boolean (featured), reserved
+# uid collision (tags), dropped columns (uid, uuid).
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ContentPage; uid[unique=true] ; $contentCV[unique=true]; uuid                                ; name         ; title                ; template(uid,$contentCV); label   ; metaDescription                                                                                                                     ; publishedDate            ; priority; featured; tags
+                         ; landing-page     ;                        ; a1b2c3d4-e5f6-7890-abcd-ef1234567890; Landing Page ; Full Coverage Landing; ContentPageTemplate      ; landing ; This landing page exists purely to exercise every field classification path the SAP SmartEdit connector supports, end to end. ; 2026-07-01T09:00:00+0000 ; 8.5     ; true    ; qa,coverage-test
+
+
+# -----------------------------------------------------------------------------
+# CONTENT SLOTS + PAGE MAPPING
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ContentSlot; uid[unique=true]  ; $contentCV[unique=true]; name              ; active; cmsComponents(&componentRef)
+                         ; HeroSlot           ;                        ; Hero Slot         ; true  ; HeroBannerComponent
+                         ; VideoSlot          ;                        ; Video Slot        ; true  ; ProductVideoComponent
+                         ; TabsSlot           ;                        ; Tabs Slot         ; true  ; ProductInfoTabsComponent
+                         ; RestrictionSlot    ;                        ; Restriction Slot  ; true  ; FlashSaleRestrictionComponent
+                         ; RecommendedSlot    ;                        ; Recommended Slot  ; true  ; RelatedSkusComponent
+                         ; UtilitySlot        ;                        ; Utility Slot      ; true  ; ChatWidgetComponent
+
+INSERT_UPDATE ContentSlotForPage; uid[unique=true]         ; $contentCV[unique=true]; position; page(uid,$contentCV); contentSlot(uid,$contentCV)
+                                ; HeroSlot-landing          ;                        ; Section1; landing-page        ; HeroSlot
+                                ; VideoSlot-landing         ;                        ; Section2; landing-page        ; VideoSlot
+                                ; TabsSlot-landing          ;                        ; Section3; landing-page        ; TabsSlot
+                                ; RestrictionSlot-landing   ;                        ; Section4; landing-page        ; RestrictionSlot
+                                ; RecommendedSlot-landing   ;                        ; Section5; landing-page        ; RecommendedSlot
+                                ; UtilitySlot-landing       ;                        ; Section6; landing-page        ; UtilitySlot
+
+
+# -----------------------------------------------------------------------------
+# 1. HeroBannerComponent — file (real asset) + url + boolean + string
+# -----------------------------------------------------------------------------
+INSERT_UPDATE SimpleBannerComponent; &componentRef      ; uid[unique=true]   ; $contentCV[unique=true]; name         ; $picture             ; urlLink   ; external[default='false']; target[default='_self']
+                                   ; HeroBannerComponent ; HeroBannerComponent;                        ; Hero Banner  ; /images/hero.jpg     ; /welcome  ; false                    ; _self
+
+
+# -----------------------------------------------------------------------------
+# 2. ProductVideoComponent — string + boolean + file (real asset)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE YoutubeVideoComponent; &componentRef        ; uid[unique=true]     ; $contentCV[unique=true]; name           ; videoId     ; autoPlay[default='false']; media(code,$contentCV)
+                                   ; ProductVideoComponent ; ProductVideoComponent;                        ; Product Video  ; dQw4w9WgXcQ; false                    ; /images/video-thumb.jpg
+
+
+# -----------------------------------------------------------------------------
+# 3. CMSTabParagraphComponent — multi-ref (&ref list) fanning into 3 tabs,
+# each exercising: html-by-name, html-by-value (different column name),
+# multiline, and a reserved-uid ("tags") collision.
+# -----------------------------------------------------------------------------
+INSERT_UPDATE CMSTabParagraphComponent; &componentRef            ; uid[unique=true]         ; $contentCV[unique=true]; name              ; tabs(&componentRef)
+                                      ; ProductInfoTabsComponent ; ProductInfoTabsComponent ;                        ; Product Info Tabs ; SpecsTabComponent,StoryTabComponent,ShippingTabComponent
+
+INSERT_UPDATE CMSParagraphComponent; &componentRef        ; uid[unique=true]     ; $contentCV[unique=true]; name         ; content                                                                    ; tags
+                                   ; SpecsTabComponent    ; SpecsTabComponent    ;                        ; Specs Tab    ; "<ul><li>6.1-inch OLED display</li><li>256GB storage</li><li>5G-enabled</li></ul>"; specs,hardware
+
+INSERT_UPDATE ProductStoryComponent; &componentRef      ; uid[unique=true]   ; $contentCV[unique=true]; name       ; richBody                                                                                    ; blurb
+                                   ; StoryTabComponent  ; StoryTabComponent  ;                        ; Story Tab  ; "<h3>Crafted with care</h3><p>Every unit is <em>hand-tested</em> before it ships.</p>"      ; This product line has been refined over six generations of customer feedback, balancing battery life, camera quality, and everyday durability without pushing the price into flagship territory.
+
+INSERT_UPDATE CMSParagraphComponent; &componentRef         ; uid[unique=true]      ; $contentCV[unique=true]; name          ; content
+                                   ; ShippingTabComponent  ; ShippingTabComponent  ;                        ; Shipping Tab  ; "<p>Free shipping on orders over $50. Delivered in 3-5 business days.</p>"
+
+
+# -----------------------------------------------------------------------------
+# 4. FlashSaleRestrictionComponent — date x2, decimal, negative number,
+# dangling reference (GeoUSRestriction / LoggedInRestriction never defined)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ScriptRestrictionComponent; &componentRef             ; uid[unique=true]          ; $contentCV[unique=true]; name                  ; activeFrom              ; activeUntil              ; discountPercentage; zIndex; restrictions(&componentRef)
+                                         ; FlashSaleRestrictionComponent; FlashSaleRestrictionComponent;                  ; Flash Sale Restriction ; 2026-07-14T00:00:00+0000; 2026-07-21T23:59:59+0000; 12.5              ; -1    ; GeoUSRestriction,LoggedInRestriction
+
+
+# -----------------------------------------------------------------------------
+# 5. RelatedSkusComponent — comma-list treated as PLAIN TEXT (no &ref/paren
+# syntax in the header, so it must NOT be misclassified as a reference)
+# -----------------------------------------------------------------------------
+INSERT_UPDATE ProductReferencesComponent; &componentRef      ; uid[unique=true]     ; $contentCV[unique=true]; name             ; productCodes
+                                        ; RelatedSkusComponent; RelatedSkusComponent;                        ; Related Products ; SKU-1001,SKU-1002,SKU-1003
+
+
+# -----------------------------------------------------------------------------
+# 6. ChatWidgetComponent — deliberately NOT defined anywhere.
+# UtilitySlot above references it; this exercises the dangling-reference
+# path at the slot level (in addition to the restrictions-level dangling
+# refs above).
+# -----------------------------------------------------------------------------
+# (intentionally left undefined)
