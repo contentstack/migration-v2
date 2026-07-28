@@ -53,8 +53,51 @@
     }
   }
 }
+// Both ContentMapper (.table-wrapper) and AssetMapper (.asset-mapper-table)
+// render venus's <Table>. Venus's own CSS sets
+// `.Table__body__column { min-width: auto !important; width: auto !important }`,
+// which overrides every column-width we configure and lets an unbreakable URL
+// expand the cell past its share, bleeding text over the next columns. Force
+// min-width: 0 on the cell so it can shrink to its flex-basis and the child
+// (.cms-field--wrap) can wrap character-by-character.
+.table-wrapper .Table__body__column,
+.asset-mapper-table .Table__body__column {
+  min-width: 0 !important;
+}
+.table-wrapper .Table__body__column .d-flex,
+.asset-mapper-table .Table__body__column .d-flex {
+  min-width: 0;
+}
+// The wrap styling itself was only defined inside `.table-wrapper .Table`,
+// so AssetMapper's `.cms-field--wrap` cells got no wrap rules. Duplicate the
+// wrap rules under `.asset-mapper-table` so long URLs actually break there.
+.asset-mapper-table .cms-field {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.asset-mapper-table .cms-field--wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-line-clamp: unset;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 .ct-list-wrapper {
-  height: calc(100vh - 375px);
+  // The wrapper's bottom must stay inside the viewport, else its internal
+  // scroll ends off-screen and the last few items become unreachable.
+  // Measured wrapper-top on the delta Map Entry step is ~490px (migration
+  // header + horizontal 6-step stepper + tabs + list header + search),
+  // leaving ~viewport - 490 for a fully-visible scroll region. 500px
+  // (10px buffer) keeps the wrapper inside the viewport across sizes.
+  height: calc(100vh - 500px);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -198,15 +241,18 @@
     }
     // Asset mapper: long filenames/paths should wrap within their own column
     // instead of clamping to one line and bleeding into the next column.
+    // Unbreakable URLs made the flex cell expand past the column width — pin the
+    // wrapper to the parent's width and force per-character breaks.
     .cms-field--wrap {
       display: block;
       width: 100%;
       max-width: 100%;
+      min-width: 0;
       -webkit-line-clamp: unset;
-      overflow: visible;
+      overflow: hidden;
       white-space: normal;
       overflow-wrap: anywhere;
-      word-break: break-word;
+      word-break: break-all;
     }
     .InstructionText {
       font-size: $size-font-small;
@@ -505,6 +551,15 @@ div .table-row {
 
 
 .custom-empty-state {
+  // Force the empty state to occupy the body area instead of collapsing into
+  // (and overlapping) the table header when the search returns zero rows.
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+
   .Icon--original {
     width: 207px !important;
     height: auto !important;
