@@ -335,11 +335,7 @@ async function readFile(filePath: string, fileName: string) {
  * @throws {Error} - If there is an error writing the file.
  */
 async function writeOneFile(indexPath: string, fileMeta: any) {
-  fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
-    if (err) {
-      console.error("Error writing file: 3", err);
-    }
-  });
+  await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
 }
 
 /**
@@ -798,6 +794,7 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
       );
 
       await Promise.all(tasks);
+      await fs.promises.mkdir(assetsSave, { recursive: true });
       const assetMasterFolderPath = path.join(assetsSave, ASSETS_FAILED_FILE);
 
       await writeOneFile(path.join(assetsSave, ASSETS_SCHEMA_FILE), assetData);
@@ -833,6 +830,7 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
       err
     )
     await customLogger(projectId, destination_stack_id, 'error', message);
+    throw err;
   }
 };
 
