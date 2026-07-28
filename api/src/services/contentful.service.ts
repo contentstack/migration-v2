@@ -830,6 +830,7 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
       err
     )
     await customLogger(projectId, destination_stack_id, 'error', message);
+    throw err;
   }
 };
 
