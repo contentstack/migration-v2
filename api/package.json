@@ -5,11 +5,11 @@
   "exports": "./src/server.ts",
   "scripts": {
     "build": "npx tsc",
-    "start": "NODE_ENV=production node dist/server.js",
+    "start": "NODE_ENV=production node dist/src/server.js",
     "dev": "NODE_ENV=production tsx ./src/server.ts",
     "prettify": "prettier --write .",
     "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
-    "winstart": "SET NODE_ENV=production&& node dist/server.js",
+    "winstart": "SET NODE_ENV=production&& node dist/src/server.js",
     "lint:fix": "eslint --ext .ts --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
     "precommit": "npm run prettify && npm run lint:fix",
     "test": "vitest run",

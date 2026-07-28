@@ -18,10 +18,11 @@
     "baseUrl": "./",
     "paths": {
       "*": ["src/types/*"],
-      "react": ["./node_modules/@types/react"]
+      "react": ["./node_modules/@types/react"],
+      "@v3/*": ["v3/*"]
     },
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": ["src", "v3"]
 }

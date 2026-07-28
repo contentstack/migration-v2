@@ -16,6 +16,9 @@ import { unmatchedRoutesMiddleware } from './middlewares/unmatched-routes.middle
 import logger from './utils/logger.js';
 import contentMapperRoutes from './routes/contentMapper.routes.js';
 import migrationRoutes from './routes/migration.routes.js';
+// v3 API — fully standalone router (own middleware/controllers/services).
+// This mount is the single integration seam; v3 imports nothing from src.
+import v3Router from '../v3/index.js';
 import chokidar from 'chokidar';
 import { Server } from 'socket.io';
 import fs from 'fs';
@@ -87,6 +90,9 @@ try {
   app.use('/v2/org/:orgId/project', authenticateUser, projectRoutes);
   app.use('/v2/mapper', authenticateUser, contentMapperRoutes);
   app.use('/v2/migration', authenticateUser, migrationRoutes);
+
+  // v3 routes (self-contained; auth handled inside the v3 router)
+  app.use('/v3', v3Router);
 
   // Handle unmatched routes
   app.use(unmatchedRoutesMiddleware);

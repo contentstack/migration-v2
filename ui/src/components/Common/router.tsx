@@ -19,6 +19,10 @@ const MigrationLazyLoad = lazy(() => import('../../pages/Migration'));
 const ProjectsLazyLoad = lazy(() => import('../../pages/Projects'));
 const SettingsLazyLoad = lazy(() => import('../Common/Settings'));
 
+// v3 flow — fully independent app (own store/Provider + own route guard),
+// mounted under /v3/*. See ui/v3/V3App.tsx.
+const V3AppLazyLoad = lazy(() => import('@v3/V3App'));
+
 /**
  * Renders the application router.
  * @returns The application router component.
@@ -42,6 +46,9 @@ const AppRouter = () => {
 
         <Route path="/projects/:projectId/settings" element={<SettingsLazyLoad />} />
       </Route>
+
+      {/* ALL v3 ROUTES (self-guarded inside V3App) */}
+      <Route path="/v3/*" element={<V3AppLazyLoad />} />
 
       <Route path="*" element={<ErrorPage contentType={CS_ENTRIES.NOT_FOUND_ERROR} />} />
     </Routes>

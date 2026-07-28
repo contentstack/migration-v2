@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Cases — Contentstack Source Selection</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --card: #ffffff; --ink: #1f2430; --muted: #6b7280;
+    --border: #e5e7eb; --accent: #374151;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5; padding: 24px; }
+  header { max-width: 1200px; margin: 0 auto 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .src { color: var(--muted); font-size: 13px; }
+  .wrap { max-width: 1200px; margin: 0 auto; background: var(--card);
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex;
+    gap: 12px; align-items: center; flex-wrap: wrap; }
+  #q { flex: 1; min-width: 220px; padding: 8px 11px; border: 1px solid var(--border);
+    border-radius: 7px; font-size: 14px; }
+  .count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border);
+    vertical-align: top; }
+  th { position: sticky; top: 0; background: #f0f2f5; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted); white-space: nowrap; }
+  td.id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+  tr:hover td { background: #fafbfc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+    font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+  .t-UI { background:#eef2ff; color:#3730a3; }
+  .t-Functional { background:#ecfdf5; color:#065f46; }
+  .t-Negative { background:#fef2f2; color:#991b1b; }
+  .t-Usability { background:#fffbeb; color:#92400e; }
+  .t-Security { background:#f5f3ff; color:#5b21b6; }
+  .t-Accessibility { background:#ecfeff; color:#155e75; }
+  .t-Performance { background:#fdf2f8; color:#9d174d; }
+  .a-Y { background:#ecfdf5; color:#065f46; }
+  .a-N { background:#f3f4f6; color:#374151; }
+  .s-NotRun { background:#f3f4f6; color:#4b5563; }
+  .gaps { max-width: 1200px; margin: 20px auto 0; background: var(--card);
+    border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .gaps h2 { font-size: 15px; margin: 0 0 10px; }
+  .gaps li { margin-bottom: 8px; font-size: 13px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Test Cases — Contentstack Source Selection (Content Map &amp; Audit — Source panel)</h1>
+  <div class="src">Source: feature.md + prd.md + trd.md · Generated from PRD/TRD only — no codebase referenced.</div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <input id="q" type="text" placeholder="Filter test cases (matches any column)…" autocomplete="off">
+    <span class="count" id="count"></span>
+  </div>
+  <div class="scroll">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>ID</th><th>Module/Scenario</th><th>Type</th><th>Sub-Type</th>
+          <th>Test Case</th><th>Expected Result</th><th>Auto</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="gaps">
+  <h2>Gaps / Needs Clarification</h2>
+  <ul>
+    <li><strong>NFR-1 dropdown latency threshold is provisional.</strong> "SHOULD respond p95 &lt; 800ms" but the exact threshold is TBD (feature.md Q-2 / trd.md TQ-7). TC_SRC_058 uses 800 ms provisionally.</li>
+    <li><strong>Export/extract duration budget and max-graph-size ceiling are undefined</strong> (Q-2/NFR-2/EC-10, TQ-7). TC_SRC_057 checks "remains interactive" qualitatively only.</li>
+    <li><strong>Product success-metric thresholds (G-1, G-2) are TBD</strong> (PQ-1) and depend on telemetry not confirmed to exist (PQ-2). No product-metric test cases written.</li>
+    <li><strong>Concurrent / stale-selection handling (EC-9) is undecided</strong> (Q-5 / TQ-3). No conflict-resolution test written.</li>
+    <li><strong>Exact copy for zero-org/zero-stack empty state and error toasts is TBD</strong> (PQ-5). Tests assert an error/empty state appears, not exact wording (except dropzone and graph empty-state text, specified verbatim).</li>
+    <li><strong>Supported browser matrix (NFR-6) is TBD</strong> (Q-3 / PQ-5). No compatibility cases generated.</li>
+    <li><strong>At-rest handling of source credentials is unresolved</strong> (TQ-6): whether the stack API key is persisted/encrypted is undecided. TC_SRC_050 covers "not logged" only.</li>
+    <li><strong>Persisted <code>source</code> schema is a proposal pending sign-off</strong> (DM-1 / TQ-1). Persistence tests assert round-trip, not a frozen field contract.</li>
+  </ul>
+</div>
+
+<script>
+  var DATA = [
+    ["TC_SRC_001","Mode & Layout","UI","Default mode","Load the Source panel fresh","\"From a stack\" tab is active by default; stack controls visible, file controls hidden (FR-1.1)","Y","Not Run"],
+    ["TC_SRC_002","Mode & Layout","Functional","Mode toggle","After entering a Region on the stack tab, switch to \"From a file\" then back to \"From a stack\"","Target mode's controls shown and the other's hidden; previously entered stack data is retained within the session (FR-1.2, EC-8)","Y","Not Run"],
+    ["TC_SRC_003","Mode & Layout","Negative","Hidden-mode not submitted","Enter data in stack mode, switch to file mode, trigger the file action","Only the active (file) mode drives the action; hidden stack data is not submitted (EC-8)","Y","Not Run"],
+    ["TC_SRC_004","Mode & Layout","UI","Header/badge","Observe the Source header while state is idle, running, and ready","Header shows source name + meta line; status badge reflects the current source state (FR-1.3)","Y","Not Run"],
+    ["TC_SRC_005","From a Stack","UI","Initial gating","Open the stack tab with no selections made","Region enabled; Organization and Stack disabled/empty; primary action disabled (AC-1.1)","Y","Not Run"],
+    ["TC_SRC_006","From a Stack","Functional","Cascade region-org","Select a Region, then open the Organization dropdown","Organization lists the orgs available for that region (AC-1.2, FR-2.2)","Y","Not Run"],
+    ["TC_SRC_007","From a Stack","Functional","Cascade org-stack","Select an Organization","Stack dropdown becomes enabled and lists the stacks in that org (AC-1.2, FR-2.3)","Y","Not Run"],
+    ["TC_SRC_008","From a Stack","Functional","Ordered gating","Attempt to use the Stack dropdown before selecting an Organization","Stack remains disabled/empty until its upstream Organization is chosen (FR-2.4)","Y","Not Run"],
+    ["TC_SRC_009","From a Stack","UI","Branch default","Select a Stack and observe the Branch row","Branch row shows the default branch main (FR-2.5, A-2)","Y","Not Run"],
+    ["TC_SRC_010","From a Stack","Functional","Branch change","Click \"Change\" on the Branch row and select a non-default branch","Branch row updates; the subsequent export request uses that branch (AC-1.5, UC-1b)","Y","Not Run"],
+    ["TC_SRC_011","From a Stack","Functional","Whole-stack export","With Region+Org+Stack selected and scope \"Whole stack\", click the primary action","Button enters loading; a scoped export request is sent for the selected stack + branch; on success the content graph and five stat tiles render (AC-1.3)","Y","Not Run"],
+    ["TC_SRC_012","From a Stack","UI","Scope default","Observe the scope radio on the stack tab","\"Whole stack\" is selected by default (FR-2.6)","Y","Not Run"],
+    ["TC_SRC_013","From a Stack","Functional","Specific-module gate","Switch scope to \"Specific module\" and open the module dropdown","Modules listed each with a numeric count; primary action stays disabled until at least one module is checked (AC-1.6, FR-2.7)","Y","Not Run"],
+    ["TC_SRC_014","From a Stack","Functional","Specific-module scoping","Check exactly two modules and start the export","The export request is scoped to exactly those two modules (AC-1.7)","Y","Not Run"],
+    ["TC_SRC_015","From a Stack","Negative","Action gating","Leave any one of Region/Org/Stack unset and inspect the primary action","Primary action remains disabled; no export request is sent (FR-2.9, EC-2)","Y","Not Run"],
+    ["TC_SRC_016","From a Stack","Functional","Persistence","Complete a whole-stack export","The source selection (region, org, stack, branch, scope=whole) is persisted to the project (AC-1.4, FR-5.2)","Y","Not Run"],
+    ["TC_SRC_017","From a File","UI","Initial state","Switch to the \"From a file\" tab with no file selected","Dropzone \"Drop a migration file or click to browse\" shown; extract action disabled (AC-2.1)","Y","Not Run"],
+    ["TC_SRC_018","From a File","Functional","Select valid zip","Choose a valid .zip Contentstack export bundle","File card shows name, size, and \"selected just now\"; a remove (x) control is present (AC-2.2, FR-3.2)","Y","Not Run"],
+    ["TC_SRC_019","From a File","Functional","Extract & validate","With a valid bundle selected, trigger extract/validate","Actions lock; on success a \"What's in this file\" manifest lists each module with a count, plus a file meta line (AC-2.3, FR-3.3)","Y","Not Run"],
+    ["TC_SRC_020","From a File","UI","Import scope default","After validation, observe the import scope radio","\"Everything in this file\" is selected by default (FR-3.4)","Y","Not Run"],
+    ["TC_SRC_021","From a File","Functional","Everything - graph + persist","With scope \"Everything in this file\", proceed","Content graph renders from the extracted file; the file source selection is persisted (AC-2.4)","Y","Not Run"],
+    ["TC_SRC_022","From a File","Functional","Specific-modules list","Switch scope to \"Specific modules\" and open the dropdown","The file's modules are listed each with a count (FR-3.5)","Y","Not Run"],
+    ["TC_SRC_023","From a File","Functional","Forced dependency","Check a module that depends on another (entries requiring content types/assets)","The required module is auto-checked and labeled \"required by entries\" (AC-2.5, FR-3.6)","Y","Not Run"],
+    ["TC_SRC_024","From a File","Negative","Forced-dependency uncheck block","Attempt to uncheck a \"required by entries\" module while a dependent module is still checked","The uncheck is prevented (AC-2.5, FR-3.6)","Y","Not Run"],
+    ["TC_SRC_025","From a File","Functional","Remove file pre-validate","Select a file (not yet validated) and click the remove (x) control","The file is cleared and the dropzone is shown again (AC-2.6)","Y","Not Run"],
+    ["TC_SRC_026","From a File","Functional","Upload another","After validation, click \"Upload another file\"","The current bundle and manifest are discarded and the dropzone is shown (AC-2.7, UC-2b)","Y","Not Run"],
+    ["TC_SRC_027","From a File","Functional","Actions locked during extract","Observe both file actions while an extract is in progress","\"Upload another file\" and the extract action are both disabled (fileActionsLocked) (FR-3.7)","Y","Not Run"],
+    ["TC_SRC_028","From a File","Negative","Invalid bundle","Upload a non-Contentstack / corrupt / missing-manifest zip and validate","Validation fails; a user-visible error is shown; no manifest renders (EC-3, FR-3.8)","Y","Not Run"],
+    ["TC_SRC_029","From a File","Negative","Oversized file","Attempt to upload a bundle larger than 100 MB","Upload rejected with a user-visible size-limit message (EC-4, FR-3.9)","Y","Not Run"],
+    ["TC_SRC_030","From a File","Negative","Extract gating","Choose \"Specific modules\" with no module checked","Extract/proceed stays disabled; no request is sent (EC-2)","Y","Not Run"],
+    ["TC_SRC_031","Content Graph","UI","Empty state","Open the Source panel before any read completes","Graph area shows \"Relationship between content types will be shown here once the export completes.\" (AC-3.1, FR-4.1)","Y","Not Run"],
+    ["TC_SRC_032","Content Graph","Functional","Stat tiles","After a successful export/extract with known counts","The five tiles (Content types, Assets, Entries, Global fields, References) show counts equal to the extract result (AC-3.2, FR-4.2, G-4)","Y","Not Run"],
+    ["TC_SRC_033","Content Graph","UI","Node/edge render","After a successful read","Content-type nodes render in dependency order top-to-bottom with reference edges between related types (FR-4.3)","Y","Not Run"],
+    ["TC_SRC_034","Content Graph","Usability","Pan/zoom","Click zoom-in, zoom-out, reset, and drag the canvas","Graph scales and pans accordingly; reset returns it to the default view (AC-3.3, FR-4.4)","N","Not Run"],
+    ["TC_SRC_035","Content Graph","Functional","Zero content","Export/extract an empty stack or file","Graph shows a valid zero-state (all five counts = 0) rather than erroring (EC-7)","Y","Not Run"],
+    ["TC_SRC_036","Persistence & Resume","Functional","Restore after reload","With a persisted source, reload the Content Map & Audit step","Correct tab, region/org/stack/branch or file reference, scope, and selected modules restored to persisted values (AC-4.1, UC-4, NFR-5)","Y","Not Run"],
+    ["TC_SRC_037","Persistence & Resume","Functional","Graph restore","Return to the step after a completed export","The persisted graph summary (nodes/edges + five counts) is restored/shown (UC-4; TRD DM-2)","Y","Not Run"],
+    ["TC_SRC_038","API","Functional","Start export","POST /v3/source/export with a valid stack selection","Responds 202 with { jobId } (API-1, FR-5.5)","Y","Not Run"],
+    ["TC_SRC_039","API","Functional","Poll export status","GET /v3/source/export/:jobId for a running job","Returns { status } of queued/running/succeeded/failed (with progress when running) (API-2)","Y","Not Run"],
+    ["TC_SRC_040","API","Functional","Upload/validate","POST /v3/source/upload (multipart) with a valid .zip","Responds 200 with { sourceId, fileName, sizeBytes, manifest[] } (API-3)","Y","Not Run"],
+    ["TC_SRC_041","API","Negative","Upload invalid bundle","POST /v3/source/upload with an invalid/corrupt bundle","Responds 400 (not-a-valid-bundle) (API-3, EC-3)","Y","Not Run"],
+    ["TC_SRC_042","API","Negative","Upload oversize","POST /v3/source/upload with a file > 100 MB","Responds 413 (too-large) (API-3, EC-4)","Y","Not Run"],
+    ["TC_SRC_043","API","Functional","Listing endpoints","GET /v3/source/regions, /orgs?region=, /stacks?orgId=, /branches?stackApiKey=","Each returns the expected list shape for the supplied upstream parameter (API-4, FR-5.3)","Y","Not Run"],
+    ["TC_SRC_044","API","Functional","Modules endpoint","GET /v3/source/modules for a stack or file","Returns { modules:[{name,count,forced?,requiredBy?}] } (API-5, FR-5.4)","Y","Not Run"],
+    ["TC_SRC_045","API","Functional","Graph endpoint","GET /v3/source/:projectId/graph after a successful read","Returns { counts, nodes, edges } (API-6, FR-5.6)","Y","Not Run"],
+    ["TC_SRC_046","API","Negative","Graph before ready","GET /v3/source/:projectId/graph before any export completed","Responds 404 (no-graph-yet) (API-6)","Y","Not Run"],
+    ["TC_SRC_047","API","Functional","Persist source","PUT /v3/org/:orgId/project/:projectId/source with a selection sub-object","Responds 200 with { source }; the persisted selection is retrievable (API-7, FR-5.2)","Y","Not Run"],
+    ["TC_SRC_048","Security","Security","Auth required","Call any /v3/source endpoint without a valid app_token header","Responds 401 Unauthorized; request is rejected (NFR-3, EC-5)","Y","Not Run"],
+    ["TC_SRC_049","Security","Security","Permission denied surfaced","Perform a list/export with an expired session or insufficient scope","401/403 returned and the UI surfaces an auth/permission error rather than failing silently (EC-5)","Y","Not Run"],
+    ["TC_SRC_050","Security","Security","Secrets not logged","Trigger an export using a stack management token, then inspect server logs","Source credentials/tokens do not appear in logs (NFR-3)","N","Not Run"],
+    ["TC_SRC_051","Observability","Functional","Export lifecycle logged","Start, succeed, and fail an export/extract","Start, success, and failure logged with project/stack identifiers and no secrets (NFR-7)","N","Not Run"],
+    ["TC_SRC_052","Accessibility","Accessibility","Zoom aria-labels","Inspect the graph zoom-in/zoom-out/reset buttons","Each button exposes an aria-label (\"Zoom in\" / \"Zoom out\" / \"Reset view\") (NFR-4)","Y","Not Run"],
+    ["TC_SRC_053","Accessibility","Accessibility","Keyboard operable","Operate the dropdowns, scope radios, and module checkboxes using the keyboard only","All controls are reachable and operable via keyboard (NFR-4)","N","Not Run"],
+    ["TC_SRC_054","Error Handling","Negative","Zero orgs/stacks","Use an account with no accessible orgs (or select an org with no stacks)","Org/Stack dropdown shows an empty state; primary action stays disabled; a message explains none are available (EC-1)","Y","Not Run"],
+    ["TC_SRC_055","Error Handling","Negative","Network/timeout mid-export","Simulate a network failure or timeout during export/extract","Loading/locked state ends; an error is shown; the selection is preserved so the user can retry without re-entering it (EC-6)","Y","Not Run"],
+    ["TC_SRC_056","Error Handling","Usability","Progress feedback","Observe the UI during a long export/extract","UI reflects the loading/locked state and never appears frozen (NFR-2)","N","Not Run"],
+    ["TC_SRC_057","Performance","Usability","Large-graph interactivity","Load a source with a large number of content types/references","Graph remains pannable/zoomable and the UI does not freeze (EC-10 - node/reference ceiling is a gap)","N","Not Run"],
+    ["TC_SRC_058","Performance","Performance","Dropdown latency (provisional)","Measure p95 latency of the regions/orgs/stacks/branches list endpoints","p95 < 800 ms (provisional per NFR-1 SHOULD; threshold not finalized - see gaps)","N","Not Run"]
+  ];
+
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function cls(s){ return String(s).replace(/[^A-Za-z0-9]/g,""); }
+
+  var rowsEl = document.getElementById("rows");
+  var html = "";
+  for (var i=0;i<DATA.length;i++){
+    var r = DATA[i];
+    html += "<tr>"
+      + "<td class='id'>"+esc(r[0])+"</td>"
+      + "<td>"+esc(r[1])+"</td>"
+      + "<td><span class='badge t-"+cls(r[2])+"'>"+esc(r[2])+"</span></td>"
+      + "<td>"+esc(r[3])+"</td>"
+      + "<td>"+esc(r[4])+"</td>"
+      + "<td>"+esc(r[5])+"</td>"
+      + "<td><span class='badge a-"+cls(r[6])+"'>"+esc(r[6])+"</span></td>"
+      + "<td><span class='badge s-"+cls(r[7])+"'>"+esc(r[7])+"</span></td>"
+      + "</tr>";
+  }
+  rowsEl.innerHTML = html;
+
+  var q = document.getElementById("q");
+  var countEl = document.getElementById("count");
+  var trs = rowsEl.getElementsByTagName("tr");
+  function refresh(){
+    var term = q.value.toLowerCase();
+    var shown = 0;
+    for (var i=0;i<trs.length;i++){
+      var match = trs[i].textContent.toLowerCase().indexOf(term) !== -1;
+      trs[i].className = match ? "" : "hidden";
+      if (match) shown++;
+    }
+    countEl.textContent = shown + " of " + DATA.length + " test cases";
+  }
+  q.addEventListener("input", refresh);
+  refresh();
+</script>
+</body>
+</html>

@@ -32,5 +32,29 @@
     ],
     "@typescript-eslint/no-explicit-any": "warn",
     "no-console": ["error", { "allow": ["warn", "error", "info"] }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["v3/**/*.ts", "v3/**/*.tsx"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "localStorage",
+            "message": "Direct localStorage access is banned in ui/v3. Route the auth token through ui/v3/auth/token.ts (the only exception)."
+          },
+          {
+            "property": "localStorage",
+            "message": "Direct localStorage access (e.g. window.localStorage) is banned in ui/v3. Route the auth token through ui/v3/auth/token.ts (the only exception)."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["v3/auth/token.ts"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
+    }
+  ]
 }
