@@ -673,7 +673,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                       heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
                       description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
                       moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
-                      type="secondary"
                       className="custom-empty-state"
                     />
                   }
