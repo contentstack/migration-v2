@@ -25,6 +25,9 @@ const getAuditData = async (req: Request, res: Response): Promise<void> => {
  */
 const startTestMigration = async (req: Request, res: Response): Promise<void> => {
   const resp = migrationService.startTestMigration(req);
+  Promise.resolve(resp).catch((err) => {
+    console.error('startTestMigration failed', err);
+  });
   res.status(200).json(resp);
 };
 
@@ -38,6 +41,9 @@ const startTestMigration = async (req: Request, res: Response): Promise<void> =>
  */
 const startMigration = async (req: Request, res: Response): Promise<void> => {
   const resp = migrationService.startMigration(req);
+  Promise.resolve(resp).catch((err) => {
+    console.error('startMigration failed', err);
+  });
   res.status(200).json(resp);
 };
 
