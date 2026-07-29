@@ -7,6 +7,12 @@ beforeAll(() => {
   vi.stubEnv('VITE_API_VERSION', 'v2');
   vi.stubEnv('VITE_UPLOAD_SERVER', 'http://localhost:5002/');
   vi.stubEnv('VITE_OFFLINE_CMS', 'true');
+
+  // jsdom does not implement scrollIntoView (real browsers do) — stub it so
+  // components that call ref.current?.scrollIntoView(...) don't throw.
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = vi.fn();
+  }
 });
 
 afterEach(() => {

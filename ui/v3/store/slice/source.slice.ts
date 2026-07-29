@@ -29,6 +29,13 @@ export interface JobLogLine {
   level: LogLevel;
   msg: string;
 }
+export interface LiveCounts {
+  contentTypes: number;
+  assets: number;
+  entries: number;
+  globalFields: number;
+  references: number;
+}
 
 interface StackState {
   regions: Option[];
@@ -46,6 +53,10 @@ interface StackState {
   scope: StackScope;
   modules: ModuleRow[];
   selectedModules: string[];
+  /** Distinct from `modules.length === 0`, which is ambiguous between
+   * "still loading", "load failed", and "genuinely no modules". */
+  modulesLoading: boolean;
+  modulesError?: string;
 }
 
 interface FileState {
@@ -78,6 +89,10 @@ interface SourceState {
   jobId?: string;
   jobStatus?: 'queued' | 'running' | 'succeeded' | 'failed';
   jobLogs: JobLogLine[];
+  /** Running tallies of real discovered items, updated as the export
+   * progresses — distinct from the final persisted `graph.counts`, which only
+   * exists once the job succeeds. */
+  jobLiveCounts?: LiveCounts;
   graph?: { counts: Record<string, number>; nodes: unknown[]; edges: unknown[] };
   error?: string;
   regionLogin: RegionLoginState;
@@ -106,6 +121,8 @@ const initialState: SourceState = {
     scope: 'whole',
     modules: [],
     selectedModules: [],
+    modulesLoading: false,
+    modulesError: undefined,
   },
   file: {
     validated: false,
@@ -181,6 +198,9 @@ const sourceSlice = createSlice({
     },
     setJobLogs: (state, action: PayloadAction<JobLogLine[]>) => {
       state.jobLogs = action.payload;
+    },
+    setJobLiveCounts: (state, action: PayloadAction<LiveCounts | undefined>) => {
+      state.jobLiveCounts = action.payload;
     },
     setGraph: (state, action: PayloadAction<SourceState['graph']>) => {
       state.graph = action.payload;

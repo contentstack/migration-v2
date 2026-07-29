@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
@@ -8,12 +8,13 @@ import { configureStore } from '@reduxjs/toolkit';
  * (ordered cascade: Stack disabled until Org chosen), TC_SRC_013 (specific-module
  * gate). Thunks are mocked to no-ops so the mount effect doesn't hit the network.
  */
+const { mockLoadStackModules } = vi.hoisted(() => ({ mockLoadStackModules: vi.fn(() => () => {}) }));
 vi.mock('../../../../../v3/store/thunks/source.thunks', () => ({
   loadRegions: () => () => {},
   selectRegion: () => () => {},
   selectOrg: () => () => {},
   selectStack: () => () => {},
-  loadStackModules: () => () => {},
+  loadStackModules: mockLoadStackModules,
   startExportAndPoll: () => () => {},
 }));
 
@@ -140,5 +141,34 @@ describe('v3 StackPanel', () => {
       store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
     });
     expect(startBtn()).not.toBeDisabled();
+  });
+
+  // Regression: the "Specific module" panel used to be indistinguishable
+  // between "still loading" and "load failed" — both looked like an infinite
+  // "Loading modules…". Now modulesLoading and modulesError are tracked
+  // separately and rendered distinctly.
+  it('(modules, positive) shows a loading indicator while modulesLoading is true, not the module list', () => {
+    renderStack((store) => {
+      store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+      store.dispatch(sourceActions.setStackField({ field: 'scope', value: 'specific' }));
+      store.dispatch(sourceActions.setStackField({ field: 'modulesLoading', value: true }));
+    });
+    expect(screen.getByText(/Loading modules/i)).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't load modules|failed to load/i)).toBeNull();
+  });
+
+  // Negative — a failed load shows a distinct error + Retry, NOT the loading text forever.
+  it('(modules, negative) a modulesError shows an error message and a working Retry button', () => {
+    renderStack((store) => {
+      store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+      store.dispatch(sourceActions.setStackField({ field: 'scope', value: 'specific' }));
+      store.dispatch(sourceActions.setStackField({ field: 'modulesError', value: 'Contentstack API error' }));
+    });
+    expect(screen.queryByText(/Loading modules/i)).toBeNull();
+    expect(screen.getByText('Contentstack API error')).toBeInTheDocument();
+
+    mockLoadStackModules.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(mockLoadStackModules).toHaveBeenCalledTimes(1);
   });
 });

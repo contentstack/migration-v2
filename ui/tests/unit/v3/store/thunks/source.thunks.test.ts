@@ -23,7 +23,12 @@ const { mockApi } = vi.hoisted(() => ({
 vi.mock('../../../../../v3/services/api/source.service', () => ({ sourceApi: mockApi }));
 
 import sourceReducer, { sourceActions } from '../../../../../v3/store/slice/source.slice';
-import { selectRegion, selectOrg, loadRegions } from '../../../../../v3/store/thunks/source.thunks';
+import {
+  selectRegion,
+  selectOrg,
+  loadRegions,
+  loadStackModules,
+} from '../../../../../v3/store/thunks/source.thunks';
 
 const mkStore = () => configureStore({ reducer: { source: sourceReducer } });
 
@@ -161,5 +166,43 @@ describe('v3 source thunks — cascade', () => {
     const s = store.getState().source;
     expect(s.error).toBe('network down');
     expect(s.stack.stacks).toEqual([]);
+  });
+
+  it('(modules, positive) loadStackModules sets modulesLoading during the fetch and populates modules on success', async () => {
+    let resolveFetch: (v: any) => void;
+    mockApi.getStackModules.mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+
+    const promise = store.dispatch(loadStackModules() as any);
+    expect(store.getState().source.stack.modulesLoading).toBe(true);
+
+    resolveFetch!({ data: { modules: [{ key: 'contentTypes', label: 'Content Types', count: 2, dependsOn: [] }] } });
+    await promise;
+
+    const st = store.getState().source.stack;
+    expect(st.modulesLoading).toBe(false);
+    expect(st.modules).toHaveLength(1);
+    expect(st.modulesError).toBeUndefined();
+  });
+
+  // Negative — taxonomy #6 (dependency failure): a real bug this locks in — a
+  // failed module fetch must NOT leave the panel stuck showing "Loading
+  // modules…" forever; it must surface a distinct, retryable error.
+  it('(modules, negative) a failing module fetch clears modulesLoading and sets a distinct modulesError', async () => {
+    mockApi.getStackModules.mockRejectedValue({ response: { data: { message: 'Contentstack API error' } } });
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+
+    await store.dispatch(loadStackModules() as any);
+
+    const st = store.getState().source.stack;
+    expect(st.modulesLoading).toBe(false);
+    expect(st.modulesError).toBe('Contentstack API error');
+    expect(st.modules).toEqual([]);
   });
 });

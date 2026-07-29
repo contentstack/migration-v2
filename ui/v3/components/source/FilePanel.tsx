@@ -107,14 +107,23 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
         </div>
       )}
 
+      {file.validated && (
+        <button
+          type="button"
+          aria-label="Remove file"
+          onClick={reset}
+          disabled={running}
+          style={{ alignSelf: 'flex-start', border: 'none', background: 'none', padding: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', cursor: running ? 'not-allowed' : 'pointer', textDecoration: 'underline', opacity: running ? 0.5 : 1 }}
+        >
+          Remove file
+        </button>
+      )}
+
       <div style={{ display: 'flex', gap: 10 }}>
         {file.validated ? (
-          <>
-            <button type="button" className="v3-btn v3-btn--secondary" onClick={reset} disabled={running} style={{ flex: 1 }}>Upload another file</button>
-            <button type="button" className="v3-btn" onClick={() => dispatch(startExportAndPoll(projectId))} disabled={!canProceed || running} style={{ flex: 1 }}>
-              {running ? 'Building…' : 'Build content graph'}
-            </button>
-          </>
+          <button type="button" className="v3-btn" onClick={() => dispatch(startExportAndPoll(projectId))} disabled={!canProceed || running} style={{ flex: 1 }}>
+            {running ? 'Reading source…' : 'Start export'}
+          </button>
         ) : (
           <button type="button" className="v3-btn" onClick={() => picked && dispatch(uploadFile(picked))} disabled={!picked || running} style={{ flex: 1 }}>
             {running ? 'Validating…' : 'Extract & validate'}

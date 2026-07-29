@@ -1,13 +1,22 @@
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { sourceActions, SourceMode } from '../../store/slice/source.slice';
+import { sourceActions, SourceMode, LiveCounts } from '../../store/slice/source.slice';
 import { loadPersistedGraph } from '../../store/thunks/source.thunks';
 import StackPanel from './StackPanel';
 import FilePanel from './FilePanel';
 import GraphView from './GraphView';
 import ExportLogView from './ExportLogView';
 import RegionLoginModal from './RegionLoginModal';
+import StatTiles from './StatTiles';
+
+const ZERO_COUNTS: LiveCounts = {
+  contentTypes: 0,
+  assets: 0,
+  entries: 0,
+  globalFields: 0,
+  references: 0,
+};
 
 const badgeFor = (running: boolean, jobStatus?: string, hasGraph?: boolean) => {
   if (running || jobStatus === 'running' || jobStatus === 'queued')
@@ -19,14 +28,41 @@ const badgeFor = (running: boolean, jobStatus?: string, hasGraph?: boolean) => {
 
 const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
-  const { mode, stack, file, running, jobStatus, jobLogs, graph, error } = useV3Selector(
-    (s) => s.source
-  );
+  const { mode, stack, file, running, jobStatus, jobLogs, jobLiveCounts, graph, error } =
+    useV3Selector((s) => s.source);
+
+  const activityRef = useRef<HTMLDivElement>(null);
+  const graphColRef = useRef<HTMLDivElement>(null);
+  const prevRunning = useRef(false);
+  const awaitingGraphScroll = useRef(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     if (!graph && projectId) dispatch(loadPersistedGraph(projectId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Export just started: the activity log is the main focus while it runs —
+  // take the user straight to it. Only fires on the false→true transition
+  // (not on every re-render while already running).
+  useEffect(() => {
+    if (running && !prevRunning.current) {
+      awaitingGraphScroll.current = true;
+      setFullscreen(false); // don't leave the user stuck viewing a stale graph full-screen
+      activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    prevRunning.current = running;
+  }, [running]);
+
+  // Export just finished: bring the user to the content graph. Gated on
+  // awaitingGraphScroll (only set by an export started THIS session) so
+  // restoring a previously-persisted graph on mount does not also scroll.
+  useEffect(() => {
+    if (graph && awaitingGraphScroll.current) {
+      awaitingGraphScroll.current = false;
+      graphColRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [graph]);
 
   const badge = badgeFor(running, jobStatus, !!graph);
   const sourceName =
@@ -50,6 +86,7 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   );
 
   const showActivity = running || jobLogs.length > 0;
+  const showLiveTiles = !graph && (running || jobStatus === 'queued' || jobStatus === 'running');
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto' }}>
@@ -86,27 +123,48 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
           </span>
         </div>
 
-        {/* board: form column + graph column */}
+        {/* board: form column + graph column (form column collapses while the graph is fullscreen) */}
         <div style={{ display: 'flex', alignItems: 'stretch', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 460px', minWidth: 320, padding: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
-            <div style={{ display: 'flex', gap: 3, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: 3 }}>
-              {seg('stack', 'From a stack')}
-              {seg('file', 'From a file')}
-            </div>
-
-            {error && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--danger)', background: 'var(--danger-surface)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-md)', padding: '9px 12px', fontSize: 12.5 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flex: 'none' }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M12 8v5M12 16h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                {error}
+          {!fullscreen && (
+            <div style={{ flex: '1 1 460px', minWidth: 320, padding: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
+              <div style={{ display: 'flex', gap: 3, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: 3 }}>
+                {seg('stack', 'From a stack')}
+                {seg('file', 'From a file')}
               </div>
-            )}
 
-            {mode === 'stack' ? <StackPanel projectId={projectId} /> : <FilePanel projectId={projectId} />}
-          </div>
+              {error && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--danger)', background: 'var(--danger-surface)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-md)', padding: '9px 12px', fontSize: 12.5 }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flex: 'none' }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M12 8v5M12 16h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                  {error}
+                </div>
+              )}
 
-          <div style={{ flex: '1 1 420px', minWidth: 320, borderLeft: '1px solid var(--border-subtle)', background: 'linear-gradient(180deg, var(--brand-subtle), transparent 42%)', padding: 18 }}>
+              {mode === 'stack' ? <StackPanel projectId={projectId} /> : <FilePanel projectId={projectId} />}
+            </div>
+          )}
+
+          <div
+            ref={graphColRef}
+            style={{
+              flex: fullscreen ? '1 1 100%' : '1 1 420px', minWidth: 320,
+              borderLeft: fullscreen ? 'none' : '1px solid var(--border-subtle)',
+              background: 'linear-gradient(180deg, var(--brand-subtle), transparent 42%)', padding: 18,
+            }}
+          >
             {graph ? (
-              <GraphView graph={graph as any} />
+              <GraphView graph={graph as any} fullscreen={fullscreen} onToggleFullscreen={() => setFullscreen((f) => !f)} />
+            ) : showLiveTiles ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ width: 14, height: 14, border: '2px solid var(--border-default)', borderTopColor: 'var(--brand-strong)', borderRadius: '50%', animation: 'v3-spin .7s linear infinite', flex: 'none' }} />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-strong)' }}>Reading source…</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>numbers update as items are discovered</span>
+                </div>
+                <StatTiles counts={(jobLiveCounts ?? ZERO_COUNTS) as unknown as Record<string, number>} live />
+                <div style={{ marginTop: 20, textAlign: 'center', color: 'var(--text-subtle)', fontSize: 12 }}>
+                  The content graph will render here once the export completes — watch the activity log below for live detail.
+                </div>
+              </div>
             ) : (
               <div style={{ height: '100%', minHeight: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', color: 'var(--text-subtle)' }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -123,7 +181,7 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
 
       {/* activity log — a separate full-width section below the Source card */}
       {showActivity && (
-        <div className="v3-card" style={{ marginTop: 16, padding: 18 }}>
+        <div ref={activityRef} className="v3-card" style={{ marginTop: 16, padding: 18 }}>
           <ExportLogView logs={jobLogs} running={running} />
         </div>
       )}

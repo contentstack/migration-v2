@@ -149,17 +149,29 @@ export const selectStack =
     }
   };
 
+/**
+ * Loads a stack's modules for the "Specific module" picker. Tracks its own
+ * `modulesLoading`/`modulesError` — distinct from `modules.length === 0`,
+ * which is ambiguous between still-loading, load-failed, and genuinely empty.
+ * Without this, a failed fetch left the panel stuck on "Loading modules…"
+ * forever with no way to tell it had actually failed, or to retry.
+ */
 export const loadStackModules =
   () => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     const state = getState();
     const st = state.source.stack;
     if (!st.stackApiKey) return;
+
+    dispatch(sourceActions.setStackField({ field: 'modulesLoading', value: true }));
+    dispatch(sourceActions.setStackField({ field: 'modulesError', value: undefined }));
     try {
       const rc = currentCredential(state);
       const { data } = await sourceApi.getStackModules(st.stackApiKey, st.branch, rc);
       dispatch(sourceActions.setStackField({ field: 'modules', value: data.modules ?? [] }));
     } catch (e) {
-      dispatch(sourceActions.setError(errMsg(e)));
+      dispatch(sourceActions.setStackField({ field: 'modulesError', value: errMsg(e) }));
+    } finally {
+      dispatch(sourceActions.setStackField({ field: 'modulesLoading', value: false }));
     }
   };
 
@@ -235,6 +247,7 @@ export const startExportAndPoll =
 
     dispatch(sourceActions.setError(undefined));
     dispatch(sourceActions.setJobLogs([]));
+    dispatch(sourceActions.setJobLiveCounts(undefined));
     dispatch(sourceActions.setRunning(true));
     try {
       const { data } = await sourceApi.startExport(body);
@@ -248,6 +261,7 @@ export const startExportAndPoll =
         status = s.data.status;
         dispatch(sourceActions.setJob({ jobId, jobStatus: status as any }));
         if (s.data.logs) dispatch(sourceActions.setJobLogs(s.data.logs));
+        if (s.data.liveCounts) dispatch(sourceActions.setJobLiveCounts(s.data.liveCounts));
       }
 
       if (status === 'succeeded') {

@@ -95,11 +95,30 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
         </div>
         {specific && (
           <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 240, overflowY: 'auto' }}>
-            {stack.modules.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>Loading modules…</div>}
-            {stack.modules.map((m) => (
-              <ModuleRow key={m.key} label={m.label} count={m.count} checked={stack.selectedModules.includes(m.key)} forced={forced.has(m.key)}
-                onToggle={() => dispatch(sourceActions.setStackField({ field: 'selectedModules', value: toggleModule(stack.modules, stack.selectedModules, m.key) }))} />
-            ))}
+            {stack.modulesError ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start', padding: 10 }}>
+                <span style={{ fontSize: 12, color: 'var(--danger)' }}>{stack.modulesError}</span>
+                <button
+                  type="button"
+                  onClick={() => dispatch(loadStackModules())}
+                  style={{ border: '1px solid var(--border-default)', background: 'var(--surface-card)', borderRadius: 'var(--radius-sm)', padding: '4px 10px', fontSize: 12, fontWeight: 700, color: 'var(--brand-strong)', cursor: 'pointer' }}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : stack.modulesLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>
+                <span style={{ width: 13, height: 13, border: '2px solid var(--border-default)', borderTopColor: 'var(--brand-strong)', borderRadius: '50%', animation: 'v3-spin .7s linear infinite' }} />
+                Loading modules…
+              </div>
+            ) : stack.modules.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>No modules found.</div>
+            ) : (
+              stack.modules.map((m) => (
+                <ModuleRow key={m.key} label={m.label} count={m.count} checked={stack.selectedModules.includes(m.key)} forced={forced.has(m.key)}
+                  onToggle={() => dispatch(sourceActions.setStackField({ field: 'selectedModules', value: toggleModule(stack.modules, stack.selectedModules, m.key) }))} />
+              ))
+            )}
           </div>
         )}
       </div>

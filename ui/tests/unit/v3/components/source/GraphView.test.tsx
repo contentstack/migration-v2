@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 import GraphView from '../../../../../v3/components/source/GraphView';
@@ -84,5 +84,55 @@ describe('v3 GraphView', () => {
     fireEvent.click(screen.getByLabelText('Zoom in'));
     fireEvent.click(screen.getByLabelText('Reset view'));
     expect(getScale(canvas)).toBe(1);
+  });
+
+  // Fullscreen toggle — bird's-eye view of the whole graph. GraphView itself
+  // only owns the button + its own label/height reaction; SourcePanel owns
+  // actually hiding the form column (covered in SourcePanel.test.tsx).
+  it('(fullscreen, positive) renders an "Enter fullscreen" control that calls onToggleFullscreen', () => {
+    const onToggle = vi.fn();
+    render(<GraphView graph={graph} fullscreen={false} onToggleFullscreen={onToggle} />);
+    fireEvent.click(screen.getByLabelText('Enter fullscreen'));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  // Negative — once fullscreen is active, the SAME control flips to an "Exit
+  // fullscreen" label (not a second, separate button) and still wires to the callback.
+  it('(fullscreen, negative) when fullscreen=true the control instead reads "Exit fullscreen"', () => {
+    const onToggle = vi.fn();
+    render(<GraphView graph={graph} fullscreen onToggleFullscreen={onToggle} />);
+    expect(screen.queryByLabelText('Enter fullscreen')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Exit fullscreen'));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('(fullscreen, positive) the canvas grows taller while fullscreen is active', () => {
+    const { container, rerender } = render(<GraphView graph={graph} fullscreen={false} onToggleFullscreen={() => {}} />);
+    const canvasNormal = container.querySelector('div[style*="touch-action"]') as HTMLElement;
+    expect(canvasNormal.style.height).toBe('440px');
+
+    rerender(<GraphView graph={graph} fullscreen onToggleFullscreen={() => {}} />);
+    const canvasFull = container.querySelector('div[style*="touch-action"]') as HTMLElement;
+    expect(canvasFull.style.height).not.toBe('440px');
+  });
+
+  // Regression: dragging to pan the canvas was also selecting the node
+  // labels' text (browser default drag-select), which highlights every node
+  // title blue mid-drag — bad UX. The canvas must opt out of text selection.
+  it('(regression) the pannable canvas disables text selection so dragging never highlights node labels', () => {
+    const { container } = render(<GraphView graph={graph} />);
+    const canvas = container.querySelector('div[style*="touch-action"]') as HTMLElement;
+    expect(canvas.style.userSelect).toBe('none');
+  });
+
+  // Regression: the "Reset view" icon's arc and arrowhead paths didn't
+  // geometrically connect, rendering as a broken/garbled glyph instead of a
+  // recognizable reset icon. Guard the known-correct path data.
+  it('(regression) the Reset view icon uses the connected arc+arrowhead path (not a disjoint shape)', () => {
+    render(<GraphView graph={graph} />);
+    const btn = screen.getByLabelText('Reset view');
+    const paths = [...btn.querySelectorAll('path')].map((p) => p.getAttribute('d'));
+    expect(paths).toContain('M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8');
+    expect(paths).toContain('M3 3v5h5');
   });
 });

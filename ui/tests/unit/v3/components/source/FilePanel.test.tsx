@@ -66,7 +66,7 @@ describe('v3 FilePanel', () => {
       store.dispatch(sourceActions.setFileField({ field: 'scope', value: 'specific' }));
       store.dispatch(sourceActions.setFileField({ field: 'modules', value: [{ key: 'contentTypes', label: 'Content Types', count: 2, dependsOn: [] }] }));
     });
-    expect(screen.getByRole('button', { name: /Build content graph/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Start export/i })).toBeDisabled();
   });
 
   // Negative — checking a module enables the build action.
@@ -77,7 +77,7 @@ describe('v3 FilePanel', () => {
       store.dispatch(sourceActions.setFileField({ field: 'modules', value: [{ key: 'contentTypes', label: 'Content Types', count: 2, dependsOn: [] }] }));
       store.dispatch(sourceActions.setFileField({ field: 'selectedModules', value: ['contentTypes'] }));
     });
-    expect(screen.getByRole('button', { name: /Build content graph/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Start export/i })).not.toBeDisabled();
   });
 
   it('TC_SRC_018 (positive): a picked file shows the card with name and "selected just now"', () => {
@@ -119,13 +119,13 @@ describe('v3 FilePanel', () => {
     expect(screen.queryByLabelText('Content Types')).toBeNull();
   });
 
-  it('TC_SRC_027 (positive): actions are locked while an extract is running', () => {
+  it('TC_SRC_027 (positive): actions are locked while an export is running', () => {
     renderFile((store) => {
       store.dispatch(sourceActions.setFileValidated({ sourceId: 's1', manifest: [] }));
       store.dispatch(sourceActions.setRunning(true));
     });
-    expect(screen.getByRole('button', { name: /Upload another file/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Building/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Remove file/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Reading source/i })).toBeDisabled();
   });
 
   // Negative — when not running, the actions are usable.
@@ -134,7 +134,31 @@ describe('v3 FilePanel', () => {
       store.dispatch(sourceActions.setFileValidated({ sourceId: 's1', manifest: [] }));
       // scope 'all' → canProceed true, running false
     });
-    expect(screen.getByRole('button', { name: /Upload another file/i })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: /Build content graph/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Remove file/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Start export/i })).not.toBeDisabled();
+  });
+
+  // The primary action is a single, unambiguous "Start export" button once
+  // validated — "Build content graph" was confusing (the graph is just a
+  // side effect of the export, not a separate step), and "Upload another
+  // file" no longer competes for attention as a full-width sibling button.
+  it('(ux, positive) once validated, "Start export" is the only prominent full-width action', () => {
+    renderFile((store) => {
+      store.dispatch(sourceActions.setFileValidated({ sourceId: 's1', manifest: [] }));
+    });
+    expect(screen.queryByRole('button', { name: /Upload another file/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Build content graph/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Start export$/i })).toBeInTheDocument();
+  });
+
+  // Negative — the file-swap action is still reachable once validated (as a
+  // small, secondary "Remove file" control), just no longer a prominent
+  // competing button — and it still does the same reset back to the dropzone.
+  it('(ux, negative) the secondary "Remove file" control still resets back to the dropzone', () => {
+    renderFile((store) => {
+      store.dispatch(sourceActions.setFileValidated({ sourceId: 's1', manifest: [] }));
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Remove file/i }));
+    expect(screen.getByText(/Drop a migration file or click to browse/i)).toBeInTheDocument();
   });
 });

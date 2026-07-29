@@ -220,6 +220,7 @@ const getExportStatus = (req: Request, res: Response) => {
     status: job.status,
     progress: job.progress,
     logs: job.logs,
+    liveCounts: job.liveCounts,
     ...(job.error ? { error: job.error } : {}),
   });
 };

@@ -53,6 +53,41 @@ describe('v3 export/upload thunks', () => {
     );
   });
 
+  it('(live counts, positive) polling dispatches liveCounts from the job status into the store', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    mockApi.getExportStatus.mockResolvedValue({
+      data: { status: 'succeeded', liveCounts: { contentTypes: 3, assets: 1, entries: 9, globalFields: 0, references: 2 } },
+    });
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobLiveCounts).toEqual({
+      contentTypes: 3,
+      assets: 1,
+      entries: 9,
+      globalFields: 0,
+      references: 2,
+    });
+  });
+
+  // Negative — taxonomy #1 (missing/empty): starting a new run resets any stale liveCounts
+  // from a previous export, rather than showing leftover numbers from before.
+  it('(live counts, negative) starting a new export resets jobLiveCounts from a previous run', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setJobLiveCounts({ contentTypes: 9, assets: 9, entries: 9, globalFields: 9, references: 9 }));
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j2' } });
+    mockApi.getExportStatus.mockResolvedValue({ data: { status: 'succeeded' } }); // no liveCounts this tick
+    mockApi.getGraph.mockResolvedValue({ data: {} });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobLiveCounts).toBeUndefined();
+  });
+
   // Negative — taxonomy #6 (dependency failure): a failed job surfaces an error, no graph.
   it('TC_SRC_011 (negative): a failed export job surfaces an error and stores no graph', async () => {
     const store = mkStore();
