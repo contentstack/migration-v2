@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development stage — runs a feature through three hard-gated phases: (1) write strictly paired positive/negative tests from the approved test-case matrix, (2) implement the functionality until every test passes, (3) finish the UI to pixel-perfect fidelity against the reference design. Step 4 of the development flow, consuming feature-spec, prd-trd, and test-case outputs. Assumes a Snyk scan already ran as a precondition; never invokes Snyk. Trigger on phrases like "TDD this feature", "run TDD on <slug>", "write tests and implement", "test-driven development for <feature>", "build <page> test-first", "implement <feature> pixel perfect".
+description: Test-driven development stage — runs a feature through three hard-gated phases: (1) write strictly paired positive/negative tests from the approved test-case matrix, (2) implement the functionality until every test passes, (3) finish the UI to pixel-perfect fidelity against a reference design. The reference can be a live Claude Design link (claude.ai/design/...) or an exported design file — the skill resolves either before starting. Step 4 of the development flow, consuming feature-spec, prd-trd, and test-case outputs. Assumes a Snyk scan already ran as a precondition; never invokes Snyk. Trigger on phrases like "TDD this feature", "run TDD on <slug>", "write tests and implement", "test-driven development for <feature>", "build <page> test-first", "implement <feature> pixel perfect", "build this from the Claude Design link".
 ---
 
 # tdd
@@ -42,6 +42,11 @@ Ask once: *"Has the Snyk scan for this codebase already been run and passed?"* C
    - `trd.md` — owning package/module, data model, integration points to mock.
    - `<slug>-test-cases.md` (or the `.csv`) — the `TC_<PREFIX>_###` matrix.
    - **Also locate the reference design** named in `feature.md` §17 References — Phase 3 is impossible without it. If the feature has UI and no design reference exists, ask for it now, before Phase 1.
+   - **The reference may be given as a live Claude Design link** (`claude.ai/design/p/...`), not just an exported file. Resolve it now, in Step 0.5 — don't wait until Phase 3 to discover you can't reach it:
+     1. **Try `claude-in-chrome` first.** These links require the viewer's claude.ai login — `WebFetch` and the sandboxed preview browser cannot authenticate and will fail (403, or a redirect to sign-in). `claude-in-chrome` uses the user's real, already-logged-in browser, so try it first: `tabs_context_mcp` → `navigate` to the link. If the extension isn't connected, tell the user exactly how to fix it (install: `https://chromewebstore.google.com/detail/fcoeoabgfenejglbffodgkkbkcdhcgfn`, then open the Claude side panel in Chrome and sign in with the same account) and offer the fallback below rather than stalling on it.
+     2. **If connected:** the project has multiple pages — do not stop at whichever loads first. List every page relevant to this feature's slug and navigate to each one. For each page, click through every state that applies from the §3.4 state matrix (default, filled, selected, disabled, error, etc.) and screenshot/`read_page` each one now, so Phase 3 has real references for every state instead of only the default view.
+     3. **Fallback if Chrome isn't available or auth still fails:** ask the user to export the specific page(s) from Claude Design as standalone `.html` files (Share/Export/Download) and save them locally — proven to work regardless of Chrome connectivity, see §3.1 for how to render one.
+     4. Note in the report which method was used — live Chrome session vs. exported file — since that affects how reproducible a later re-check is.
 3. **Missing artifact → stop** and name the skill that produces it (`feature-spec`, `prd-trd`, `test-case`).
 4. **Audit traceability both ways:**
    - Forward: every `Automated = Y` row → tests. This is the work list.
@@ -207,15 +212,18 @@ The functionality works; now make it **visually identical to the reference desig
 
 ## 3.1 Render the reference design side by side
 
-You cannot match a design you have not looked at. Get it on screen:
+You cannot match a design you have not looked at. This should already be resolved from Step 0.5 — if not, resolve it now before doing anything else in this phase:
 
-- **Claude Design / self-extracting `.html` export** — these are self-extracting bundles; the markup only assembles when a browser executes them, and `file://` won't load in the preview pane. Serve it and open it:
+- **Live Claude Design link, reached via `claude-in-chrome` (Step 0.5.1–2)** — you should already have screenshots/`read_page` output for every relevant page and state. If you skipped ahead without capturing them, go back and do it now rather than guessing from memory.
+- **Claude Design / self-extracting `.html` export** (the Step 0.5.3 fallback) — these are self-extracting bundles; the markup only assembles when a browser executes them, and `file://` won't load in the preview pane. Serve it and open it:
   ```bash
   cd <dir-with-the-export> && nohup python3 -m http.server 8934 --bind 127.0.0.1 > /tmp/ref.log 2>&1 & disown
   ```
-  Then `preview_start` at `http://127.0.0.1:8934/<file>.html`, navigate to the relevant step/page, and screenshot. Stop the server when done (`pkill -f "http.server 8934"`).
+  Then `preview_start` at `http://127.0.0.1:8934/<file>.html`, navigate to the relevant step/page, and screenshot. If the project has multiple pages, navigate to and capture every one relevant to this feature — not just whichever loads first. Stop the server when done (`pkill -f "http.server 8934"`).
 - **Figma / screenshots / images** — read them directly.
 - **Run the real implementation** in the preview pane at the **same viewport** as the reference (`resize_window`) so comparisons are apples-to-apples.
+
+Whichever path was used, carry the same reference screenshots into §3.3–3.4 for the region diff and state matrix — don't re-derive them from a fresh, possibly different render.
 
 ## 3.2 Extract exact tokens, don't approximate
 
