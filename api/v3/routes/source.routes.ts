@@ -11,9 +11,11 @@ import { sourceController } from "../controllers/source.controller.js";
 const router = express.Router({ mergeParams: true });
 
 // In-memory upload for export bundles, capped at 100 MB (FR-3.9 / DEP-5).
+// Limit overridable via V3_UPLOAD_LIMIT (bytes) for tests.
+const uploadLimit = Number(process.env.V3_UPLOAD_LIMIT) || 100 * 1024 * 1024;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 },
+  limits: { fileSize: uploadLimit },
 });
 
 // Listing (feeds cascading dropdowns) — API-4 / FR-5.3

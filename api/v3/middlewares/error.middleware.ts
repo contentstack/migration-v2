@@ -13,6 +13,16 @@ export const v3ErrorMiddleware = (
   res: Response,
   _next: NextFunction
 ) => {
+  // multer's file-size limit surfaces as a MulterError before the controller.
+  if (err?.code === "LIMIT_FILE_SIZE") {
+    return res.status(HTTP_CODES.PAYLOAD_TOO_LARGE).json({
+      error: {
+        code: HTTP_CODES.PAYLOAD_TOO_LARGE,
+        message: "File exceeds the 100 MB limit.",
+      },
+    });
+  }
+
   const status = err?.status ?? HTTP_CODES.SERVER_ERROR;
   res.status(status).json({
     error: {

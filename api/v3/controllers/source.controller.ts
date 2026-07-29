@@ -1,43 +1,224 @@
 import { Request, Response } from "express";
+import { randomUUID } from "crypto";
 
 import { HTTP_CODES } from "../constants/http.js";
+import { getV3Project, upsertV3Source } from "../models/project.store.js";
+import { getUploadMeta, saveUpload } from "../models/upload.store.js";
+import { V3Source, V3SourceMode } from "../models/types.js";
+import { csManagement } from "../services/csManagement.service.js";
+import { parseBundle, MODULE_DEFS } from "../services/bundle.service.js";
+import { getJob, startExportJob } from "../services/export.service.js";
 
 /**
- * v3 Source controller — SKELETON.
- *
- * Every handler is a stub returning 501 Not Implemented so the routes stand up
- * and are auth-guarded, without any business logic yet. These are filled in by
- * later tasks (TRD T-2…T-5): CS Management client, upload/validate, async
- * export job, graph build, and persistence.
+ * v3 Source controller. Thin handlers over the (unit-tested) v3 services.
+ * Errors thrown by services carry a `.status` and are mapped by the v3 error
+ * middleware via asyncRouter.
  */
-const notImplemented =
-  (endpoint: string) => (_req: Request, res: Response) =>
-    res.status(HTTP_CODES.NOT_IMPLEMENTED).json({
-      status: HTTP_CODES.NOT_IMPLEMENTED,
-      message: `Not implemented yet: ${endpoint}`,
-    });
+const VALID_MODES: V3SourceMode[] = ["stack", "file"];
+
+// ---- Listing (API-4 / FR-5.3) ----
+const listRegions = (req: Request, res: Response) => {
+  const region = req.body?.token_payload?.region as string | undefined;
+  const regions = region
+    ? [{ value: region, label: region }]
+    : csManagement.regions();
+  return res.status(HTTP_CODES.OK).json({ regions });
+};
+
+const listOrgs = async (req: Request, res: Response) => {
+  const orgs = await csManagement.listOrgs(req.body?.token_payload);
+  return res.status(HTTP_CODES.OK).json({ orgs });
+};
+
+const listStacks = async (req: Request, res: Response) => {
+  const orgId = req.query.orgId as string | undefined;
+  if (!orgId) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "Query param 'orgId' is required." });
+  }
+  const stacks = await csManagement.listStacks(req.body?.token_payload, orgId);
+  return res.status(HTTP_CODES.OK).json({ stacks });
+};
+
+const listBranches = async (req: Request, res: Response) => {
+  const stackApiKey = req.query.stackApiKey as string | undefined;
+  if (!stackApiKey) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "Query param 'stackApiKey' is required." });
+  }
+  const branches = await csManagement.listBranches(req.body?.token_payload, stackApiKey);
+  return res.status(HTTP_CODES.OK).json({ branches });
+};
+
+// ---- Modules (API-5 / FR-5.4) ----
+const listModules = async (req: Request, res: Response) => {
+  const sourceId = req.query.sourceId as string | undefined;
+  if (sourceId) {
+    const meta = getUploadMeta(sourceId);
+    if (!meta) {
+      return res
+        .status(HTTP_CODES.NOT_FOUND)
+        .json({ status: HTTP_CODES.NOT_FOUND, message: "Unknown sourceId — upload the bundle first." });
+    }
+    const modules = MODULE_DEFS.map((m) => ({
+      key: m.key,
+      label: m.label,
+      count: meta.modules[m.key] ?? 0,
+      dependsOn: m.dependsOn,
+    }));
+    return res.status(HTTP_CODES.OK).json({ modules });
+  }
+
+  const stackApiKey = req.query.stackApiKey as string | undefined;
+  if (stackApiKey) {
+    const branch = req.query.branch as string | undefined;
+    const counts = await csManagement.getStackModuleCounts(
+      req.body?.token_payload,
+      stackApiKey,
+      branch
+    );
+    const modules = MODULE_DEFS.map((m) => ({
+      key: m.key,
+      label: m.label,
+      count: counts[m.key] ?? 0,
+      dependsOn: m.dependsOn,
+    }));
+    return res.status(HTTP_CODES.OK).json({ modules });
+  }
+
+  return res
+    .status(HTTP_CODES.BAD_REQUEST)
+    .json({ status: HTTP_CODES.BAD_REQUEST, message: "Provide 'sourceId' (file) or 'stackApiKey' (stack)." });
+};
+
+// ---- Upload/validate (API-3 / FR-3.3, FR-3.8, FR-3.9) ----
+const uploadBundle = async (req: Request, res: Response) => {
+  const file = (req as any).file as
+    | { buffer: Buffer; originalname: string; size: number }
+    | undefined;
+  if (!file) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "No file uploaded (field 'file')." });
+  }
+
+  const parsed = parseBundle(file.buffer); // throws BundleError(400) on invalid
+  const sourceId = randomUUID();
+  saveUpload(sourceId, file.buffer, {
+    sourceId,
+    fileName: file.originalname,
+    sizeBytes: file.size,
+    contentVersion: parsed.contentVersion,
+    modules: parsed.modules,
+    manifest: parsed.manifest,
+    createdAt: new Date().toISOString(),
+  });
+
+  return res.status(HTTP_CODES.OK).json({
+    sourceId,
+    fileName: file.originalname,
+    sizeBytes: file.size,
+    manifest: parsed.manifest,
+  });
+};
+
+// ---- Async export/status (API-1, API-2 / FR-5.5) ----
+const startExport = async (req: Request, res: Response) => {
+  const { token_payload, orgId, projectId, mode, stack, file } =
+    (req.body ?? {}) as Record<string, any>;
+
+  if (!projectId) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "'projectId' is required." });
+  }
+  if (!VALID_MODES.includes(mode)) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "'mode' must be 'stack' or 'file'." });
+  }
+  if (mode === "file" && !file?.sourceId) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "File mode requires 'file.sourceId'." });
+  }
+  if (mode === "stack" && !stack?.stackApiKey) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "Stack mode requires 'stack.stackApiKey'." });
+  }
+
+  const source: V3Source = { mode, stack, file };
+  await upsertV3Source(orgId ?? "", projectId, source, new Date().toISOString());
+  const jobId = startExportJob({ projectId, source, tokenPayload: token_payload });
+  return res.status(HTTP_CODES.ACCEPTED).json({ jobId });
+};
+
+const getExportStatus = (req: Request, res: Response) => {
+  const job = getJob(req.params.jobId);
+  if (!job) {
+    return res
+      .status(HTTP_CODES.NOT_FOUND)
+      .json({ status: HTTP_CODES.NOT_FOUND, message: "Unknown jobId." });
+  }
+  return res.status(HTTP_CODES.OK).json({
+    jobId: job.jobId,
+    status: job.status,
+    progress: job.progress,
+    ...(job.error ? { error: job.error } : {}),
+  });
+};
+
+// ---- Content graph (API-6 / FR-5.6) ----
+const getGraph = async (req: Request, res: Response) => {
+  const project = await getV3Project(req.params.projectId);
+  const graph = project?.source?.graph;
+  if (!graph) {
+    return res
+      .status(HTTP_CODES.NOT_FOUND)
+      .json({ status: HTTP_CODES.NOT_FOUND, message: "No content graph yet — run an export first." });
+  }
+  return res.status(HTTP_CODES.OK).json(graph);
+};
+
+// ---- Persist / read source selection (API-7 / FR-5.2) ----
+const persistSource = async (req: Request, res: Response) => {
+  const { orgId, projectId } = req.params as { orgId: string; projectId: string };
+  const { token_payload, ...rest } = (req.body ?? {}) as Record<string, any>;
+  const source = rest as V3Source;
+
+  if (!source.mode || !VALID_MODES.includes(source.mode)) {
+    return res
+      .status(HTTP_CODES.BAD_REQUEST)
+      .json({ status: HTTP_CODES.BAD_REQUEST, message: "Invalid source: 'mode' must be 'stack' or 'file'." });
+  }
+  const saved = await upsertV3Source(orgId, projectId, source, new Date().toISOString());
+  return res.status(HTTP_CODES.OK).json({ source: saved });
+};
+
+const getSource = async (req: Request, res: Response) => {
+  const { projectId } = req.params as { projectId: string };
+  const project = await getV3Project(projectId);
+  if (!project || !project.source) {
+    return res
+      .status(HTTP_CODES.NOT_FOUND)
+      .json({ status: HTTP_CODES.NOT_FOUND, message: "No source selection found for this project." });
+  }
+  return res.status(HTTP_CODES.OK).json({ source: project.source });
+};
 
 export const sourceController = {
-  // Listing endpoints (API-4 / FR-5.3)
-  listRegions: notImplemented("GET /v3/source/regions"),
-  listOrgs: notImplemented("GET /v3/source/orgs"),
-  listStacks: notImplemented("GET /v3/source/stacks"),
-  listBranches: notImplemented("GET /v3/source/branches"),
-
-  // Modules with counts (API-5 / FR-5.4)
-  listModules: notImplemented("GET /v3/source/modules"),
-
-  // Async export/extract (API-1, API-2 / FR-5.5)
-  startExport: notImplemented("POST /v3/source/export"),
-  getExportStatus: notImplemented("GET /v3/source/export/:jobId"),
-
-  // File upload + validate (API-3 / FR-3.3, FR-3.8, FR-3.9)
-  uploadBundle: notImplemented("POST /v3/source/upload"),
-
-  // Content graph (API-6 / FR-5.6)
-  getGraph: notImplemented("GET /v3/source/:projectId/graph"),
-
-  // Persist / read source selection (API-7 / FR-5.2)
-  persistSource: notImplemented("PUT /v3/org/:orgId/project/:projectId/source"),
-  getSource: notImplemented("GET /v3/org/:orgId/project/:projectId/source"),
+  listRegions,
+  listOrgs,
+  listStacks,
+  listBranches,
+  listModules,
+  startExport,
+  getExportStatus,
+  uploadBundle,
+  getGraph,
+  persistSource,
+  getSource,
 };

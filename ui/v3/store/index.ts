@@ -1,16 +1,13 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 
-import placeholderReducer from './slice/placeholder.slice';
+import sourceReducer from './slice/source.slice';
 
 /**
- * v3 store — fully independent from v2's store. It is mounted via its own
- * <Provider> inside V3App, wrapping only the v3 route subtree, so v3 and v2
- * state never collide.
- *
- * Add real v3 feature reducers to `combineReducers` below as features land.
+ * v3 store — fully independent from v2's store. Mounted via its own <Provider>
+ * inside V3App, wrapping only the v3 route subtree.
  */
 const rootReducer = combineReducers({
-  _placeholder: placeholderReducer,
+  source: sourceReducer,
 });
 
 export const v3Store = configureStore({

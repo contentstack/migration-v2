@@ -89,3 +89,68 @@ describe("v3 csManagement.service", () => {
     expect(await csManagement.listOrgs(TP)).toEqual([]);
   });
 });
+
+/**
+ * Stack-scoped methods (getContentTypes / getStackModuleCounts) — back
+ * TC_SRC_044 (stack-mode modules with counts). feature.md FR-5.4.
+ */
+describe("v3 csManagement.service — stack methods", () => {
+  it("TC_SRC_044 (positive): getStackModuleCounts aggregates per-module counts from CS", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockImplementation((url: string) => {
+      if (url.includes("/entries")) {
+        return Promise.resolve({ data: { count: url.includes("/a/") ? 3 : 2 } });
+      }
+      if (url.includes("/content_types")) {
+        return Promise.resolve({ data: { content_types: [{ uid: "a" }, { uid: "b" }] } });
+      }
+      if (url.includes("/global_fields")) {
+        return Promise.resolve({ data: { global_fields: [{ uid: "g" }] } });
+      }
+      if (url.includes("/assets")) return Promise.resolve({ data: { count: 5 } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const counts = await csManagement.getStackModuleCounts(TP, "blt1", "main");
+    expect(counts).toEqual({ contentTypes: 2, globalFields: 1, assets: 5, entries: 5 });
+  });
+
+  // Negative — taxonomy #6 (dependency failure): a failing count call degrades to 0, not a crash.
+  it("TC_SRC_044 (negative): a failing assets count falls back to 0 while other counts stand", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockImplementation((url: string) => {
+      if (url.includes("/entries")) return Promise.resolve({ data: { count: 1 } });
+      if (url.includes("/content_types")) return Promise.resolve({ data: { content_types: [{ uid: "a" }] } });
+      if (url.includes("/global_fields")) return Promise.resolve({ data: { global_fields: [] } });
+      if (url.includes("/assets")) return Promise.reject({ response: { status: 500 } });
+      return Promise.resolve({ data: {} });
+    });
+
+    const counts = await csManagement.getStackModuleCounts(TP, "blt1");
+    expect(counts.assets).toBe(0);
+    expect(counts.contentTypes).toBe(1);
+    expect(counts.entries).toBe(1);
+  });
+
+  it("TC_SRC_044 (positive): getContentTypes returns the CS content_types array with stack headers", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockResolvedValue({ data: { content_types: [{ uid: "a" }, { uid: "b" }] } });
+
+    const cts = await csManagement.getContentTypes(TP, "blt1", "main");
+    expect(cts).toHaveLength(2);
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining("/content_types"),
+      expect.objectContaining({
+        headers: expect.objectContaining({ api_key: "blt1", branch: "main", authtoken: "tok" }),
+      })
+    );
+  });
+
+  // Negative — taxonomy #2 (invalid/missing shape): no content_types field → [], not a crash.
+  it("TC_SRC_044 (negative): getContentTypes returns [] when the response has no content_types", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockResolvedValue({ data: {} });
+
+    expect(await csManagement.getContentTypes(TP, "blt1")).toEqual([]);
+  });
+});

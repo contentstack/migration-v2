@@ -54,6 +54,17 @@ const hostFor = (region: string): string => {
   return host;
 };
 
+/** Adds stack-scoping headers (api_key, branch) to an auth header set. */
+const stackHeaders = (
+  auth: Record<string, string>,
+  stackApiKey: string,
+  branch?: string
+): Record<string, string> => ({
+  ...auth,
+  api_key: stackApiKey,
+  ...(branch ? { branch } : {}),
+});
+
 const csGet = async (url: string, headers: Record<string, string>): Promise<any> => {
   try {
     const res = await axios.get(url, { headers, timeout: 60_000 });
@@ -98,5 +109,63 @@ export const csManagement = {
     const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
     const data = await csGet(`${hostFor(region)}/stacks/branches`, headers);
     return (data?.branches ?? []).map((b: any) => ({ uid: b?.uid }));
+  },
+
+  /** All content-type schemas in a stack (for the stack-mode graph build). */
+  getContentTypes: async (
+    tp: TokenPayload | undefined,
+    stackApiKey: string,
+    branch?: string
+  ) => {
+    const region = tp?.region as string;
+    const headers = stackHeaders(await authHeaders(tp), stackApiKey, branch);
+    const data = await csGet(
+      `${hostFor(region)}/content_types?include_global_field_schema=true`,
+      headers
+    );
+    return data?.content_types ?? [];
+  },
+
+  /**
+   * Per-module counts for a stack (stack-mode modules + graph counts, FR-5.4).
+   * `entries` is summed per content type; individual count failures degrade to 0.
+   */
+  getStackModuleCounts: async (
+    tp: TokenPayload | undefined,
+    stackApiKey: string,
+    branch?: string,
+    contentTypes?: any[]
+  ): Promise<Record<string, number>> => {
+    const region = tp?.region as string;
+    const host = hostFor(region);
+    const headers = stackHeaders(await authHeaders(tp), stackApiKey, branch);
+
+    const cts =
+      contentTypes ??
+      (await csGet(`${host}/content_types`, headers))?.content_types ??
+      [];
+
+    const [globalFields, assets] = await Promise.all([
+      csGet(`${host}/global_fields`, headers)
+        .then((d) => (d?.global_fields ?? []).length)
+        .catch(() => 0),
+      csGet(`${host}/assets?include_count=true&limit=1`, headers)
+        .then((d) => Number(d?.count ?? 0))
+        .catch(() => 0),
+    ]);
+
+    let entries = 0;
+    for (const ct of cts) {
+      const uid = ct?.uid;
+      if (!uid) continue;
+      entries += await csGet(
+        `${host}/content_types/${uid}/entries?include_count=true&limit=1`,
+        headers
+      )
+        .then((d) => Number(d?.count ?? 0))
+        .catch(() => 0);
+    }
+
+    return { contentTypes: cts.length, globalFields, assets, entries };
   },
 };
