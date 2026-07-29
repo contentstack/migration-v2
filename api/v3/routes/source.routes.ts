@@ -20,6 +20,10 @@ const upload = multer({
 
 // Listing (feeds cascading dropdowns) — API-4 / FR-5.3
 router.get("/regions", asyncRouter(sourceController.listRegions));
+
+// Cross-region source authentication — real Contentstack login for a region
+// other than the caller's home-region session.
+router.post("/region-login", asyncRouter(sourceController.regionLogin));
 router.get("/orgs", asyncRouter(sourceController.listOrgs));
 router.get("/stacks", asyncRouter(sourceController.listStacks));
 router.get("/branches", asyncRouter(sourceController.listBranches));

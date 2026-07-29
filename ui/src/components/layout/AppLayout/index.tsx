@@ -22,12 +22,21 @@ const AppLayout: FC<IProps> = ({ children }) => {
   const authentication = useSelector((state: RootState) => state?.authentication?.isAuthenticated);
 
   const projectId = location?.pathname?.split('/')?.[2];
+  const isV3 = location.pathname.startsWith('/v3');
 
   useEffect(() => {
     dispatch(getUserDetails());
   }, []);
 
   useAuthCheck();
+
+  // v3 is a fully independent flow with its own chrome and scrolling — it must
+  // not be wrapped in the v2 page-wrapper (fixed 100vh + overflow:hidden), nor
+  // get the v2 MainHeader/SideBar (which would otherwise render here since v3
+  // paths like /v3/projects/... also contain the substring "projects").
+  if (isV3) {
+    return <>{children}</>;
+  }
 
   return (
     <>

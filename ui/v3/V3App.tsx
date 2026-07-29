@@ -4,6 +4,7 @@ import { Route, Routes } from 'react-router';
 
 import PrivateRouteV3 from './auth/PrivateRouteV3';
 import { v3Store } from './store';
+import './styles/theme.css';
 
 /**
  * v3 application root.
@@ -20,6 +21,7 @@ const SettingsV3 = lazy(() => import('./pages/Settings'));
 const V3App: FC = () => {
   return (
     <Provider store={v3Store}>
+      <div className="v3-scope" style={{ minHeight: '100vh', background: 'var(--surface-page)' }}>
       <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
         <Routes>
           {/* v3 guards with its own PrivateRouteV3 (reads ui/v3/auth/token). */}
@@ -36,6 +38,7 @@ const V3App: FC = () => {
           </Route>
         </Routes>
       </Suspense>
+      </div>
     </Provider>
   );
 };

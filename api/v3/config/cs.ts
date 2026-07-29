@@ -30,3 +30,17 @@ export const CS_REGIONS = Object.keys(CS_API_HOSTS);
 /** Returns the Management-API base host for a region, or undefined if unknown. */
 export const csApiHost = (region: string): string | undefined =>
   CS_API_HOSTS[region];
+
+/**
+ * The regions offered in the Source panel's Region dropdown, with the exact
+ * display labels used by the design (Content Map and Audit). `value` is our
+ * internal region code (matches CS_API_HOSTS); `label` is the full name shown
+ * to the user.
+ */
+export const SOURCE_REGIONS: { value: string; label: string }[] = [
+  { value: "NA", label: "North America" },
+  { value: "EU", label: "Europe" },
+  { value: "AZURE_NA", label: "Azure North America" },
+  { value: "AZURE_EU", label: "Azure Europe" },
+  { value: "GCP_NA", label: "GCP North America" },
+];

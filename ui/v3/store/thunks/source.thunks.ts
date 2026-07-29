@@ -1,5 +1,5 @@
 import type { V3Dispatch, V3RootState } from '../index';
-import { sourceApi, StartExportBody } from '../../services/api/source.service';
+import { sourceApi, StartExportBody, RegionCredential } from '../../services/api/source.service';
 import { sourceActions } from '../slice/source.slice';
 
 const errMsg = (e: any): string =>
@@ -8,28 +8,30 @@ const errMsg = (e: any): string =>
   e?.message ??
   'Something went wrong.';
 
-/** Load the (session) region, auto-select it, and load its orgs. */
-export const loadRegions = () => async (dispatch: V3Dispatch) => {
-  try {
-    const { data } = await sourceApi.getRegions();
-    const regions = data.regions ?? [];
-    dispatch(sourceActions.setRegions(regions));
-    if (regions.length === 1) {
-      await dispatch(selectRegion(regions[0].value) as any);
-    }
-  } catch (e) {
-    dispatch(sourceActions.setError(errMsg(e)));
-  }
+/** Client-side fallback so the Region dropdown is never limited to one entry
+ * or blank, even if the /regions call fails or returns something unexpected. */
+const DEFAULT_REGIONS = [
+  { value: 'NA', label: 'North America' },
+  { value: 'EU', label: 'Europe' },
+  { value: 'AZURE_NA', label: 'Azure North America' },
+  { value: 'AZURE_EU', label: 'Azure Europe' },
+  { value: 'GCP_NA', label: 'GCP North America' },
+];
+const DEFAULT_HOME_REGION = 'NA';
+
+/** Credential for the currently-selected stack region: home region needs
+ * none (the session covers it); a region unlocked via region-login carries
+ * its resolved userId. */
+const currentCredential = (state: V3RootState): RegionCredential => {
+  const { region, regionAuth } = state.source.stack;
+  return { region, regionUserId: regionAuth[region] };
 };
 
-export const selectRegion = (region: string) => async (dispatch: V3Dispatch) => {
-  dispatch(sourceActions.setStackField({ field: 'region', value: region }));
-  dispatch(sourceActions.setStackField({ field: 'org', value: '' }));
-  dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+const loadOrgsFor = async (dispatch: V3Dispatch, rc: RegionCredential) => {
   dispatch(sourceActions.setStacks([]));
   dispatch(sourceActions.setBranches([]));
   try {
-    const { data } = await sourceApi.getOrgs();
+    const { data } = await sourceApi.getOrgs(rc);
     dispatch(
       sourceActions.setOrgs((data.orgs ?? []).map((o: any) => ({ value: o.uid, label: o.name })))
     );
@@ -38,43 +40,123 @@ export const selectRegion = (region: string) => async (dispatch: V3Dispatch) => 
   }
 };
 
-export const selectOrg = (org: string) => async (dispatch: V3Dispatch) => {
-  dispatch(sourceActions.setStackField({ field: 'org', value: org }));
-  dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
-  dispatch(sourceActions.setBranches([]));
+/**
+ * Load the session's home region + all selectable regions, then its orgs.
+ * Defaults to NA / the full region list on any gap in the response, so the
+ * dropdown is never blank or limited to a single entry.
+ */
+export const loadRegions = () => async (dispatch: V3Dispatch) => {
+  const applyDefaults = async () => {
+    dispatch(sourceActions.setRegions(DEFAULT_REGIONS));
+    dispatch(sourceActions.setStackField({ field: 'homeRegion', value: DEFAULT_HOME_REGION }));
+    dispatch(sourceActions.setStackField({ field: 'region', value: DEFAULT_HOME_REGION }));
+    await loadOrgsFor(dispatch, { region: DEFAULT_HOME_REGION });
+  };
+
   try {
-    const { data } = await sourceApi.getStacks(org);
-    dispatch(
-      sourceActions.setStacks(
-        (data.stacks ?? []).map((s: any) => ({ value: s.apiKey, label: s.name }))
-      )
-    );
+    const { data } = await sourceApi.getRegions();
+    const regions = data.regions?.length ? data.regions : DEFAULT_REGIONS;
+    const homeRegion: string = data.homeRegion || DEFAULT_HOME_REGION;
+
+    dispatch(sourceActions.setRegions(regions));
+    dispatch(sourceActions.setStackField({ field: 'homeRegion', value: homeRegion }));
+    dispatch(sourceActions.setStackField({ field: 'region', value: homeRegion }));
+    dispatch(sourceActions.setStackField({ field: 'org', value: '' }));
+    dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+    await loadOrgsFor(dispatch, { region: homeRegion });
   } catch (e) {
     dispatch(sourceActions.setError(errMsg(e)));
+    await applyDefaults();
   }
 };
 
-export const selectStack = (stackApiKey: string) => async (dispatch: V3Dispatch) => {
-  dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: stackApiKey }));
-  dispatch(sourceActions.setStackField({ field: 'branch', value: 'main' }));
-  try {
-    const { data } = await sourceApi.getBranches(stackApiKey);
-    dispatch(
-      sourceActions.setBranches(
-        (data.branches ?? []).map((b: any) => ({ value: b.uid, label: b.uid }))
-      )
-    );
-  } catch (e) {
-    dispatch(sourceActions.setError(errMsg(e)));
-  }
+/**
+ * Region select changed. The home region (or one already unlocked this
+ * session via region-login) loads immediately. Any other region requires a
+ * fresh Contentstack login for that region first — the login modal opens and
+ * org/stack loading is deferred until it succeeds (see submitRegionLogin).
+ */
+export const selectRegion =
+  (region: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
+    const st = getState().source.stack;
+    const alreadyUnlocked = region === st.homeRegion || !!st.regionAuth[region];
+
+    if (!alreadyUnlocked) {
+      dispatch(sourceActions.openRegionLogin({ region, prevRegion: st.region }));
+      return;
+    }
+
+    dispatch(sourceActions.setStackField({ field: 'region', value: region }));
+    dispatch(sourceActions.setStackField({ field: 'org', value: '' }));
+    dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+    await loadOrgsFor(dispatch, { region, regionUserId: st.regionAuth[region] });
+  };
+
+/** Submit the region-login modal: real Contentstack login, then unlock the region. */
+export const submitRegionLogin =
+  () => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
+    const rl = getState().source.regionLogin;
+    if (!rl.region || !rl.email.trim() || !rl.password.trim()) return;
+
+    dispatch(sourceActions.setRegionLoginLoading(true));
+    try {
+      const { data } = await sourceApi.regionLogin(rl.region, rl.email.trim(), rl.password);
+      dispatch(sourceActions.regionAuthed({ region: rl.region, userId: data.userId }));
+      dispatch(sourceActions.setStackField({ field: 'org', value: '' }));
+      dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+      await loadOrgsFor(dispatch, { region: rl.region, regionUserId: data.userId });
+    } catch (e) {
+      dispatch(sourceActions.setRegionLoginError(errMsg(e)));
+    }
+  };
+
+export const cancelRegionLogin = () => (dispatch: V3Dispatch) => {
+  dispatch(sourceActions.cancelRegionLogin());
 };
+
+export const selectOrg =
+  (org: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
+    dispatch(sourceActions.setStackField({ field: 'org', value: org }));
+    dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+    dispatch(sourceActions.setBranches([]));
+    try {
+      const rc = currentCredential(getState());
+      const { data } = await sourceApi.getStacks(org, rc);
+      dispatch(
+        sourceActions.setStacks(
+          (data.stacks ?? []).map((s: any) => ({ value: s.apiKey, label: s.name }))
+        )
+      );
+    } catch (e) {
+      dispatch(sourceActions.setError(errMsg(e)));
+    }
+  };
+
+export const selectStack =
+  (stackApiKey: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
+    dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: stackApiKey }));
+    dispatch(sourceActions.setStackField({ field: 'branch', value: 'main' }));
+    try {
+      const rc = currentCredential(getState());
+      const { data } = await sourceApi.getBranches(stackApiKey, rc);
+      dispatch(
+        sourceActions.setBranches(
+          (data.branches ?? []).map((b: any) => ({ value: b.uid, label: b.uid }))
+        )
+      );
+    } catch (e) {
+      dispatch(sourceActions.setError(errMsg(e)));
+    }
+  };
 
 export const loadStackModules =
   () => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
-    const st = getState().source.stack;
+    const state = getState();
+    const st = state.source.stack;
     if (!st.stackApiKey) return;
     try {
-      const { data } = await sourceApi.getStackModules(st.stackApiKey, st.branch);
+      const rc = currentCredential(state);
+      const { data } = await sourceApi.getStackModules(st.stackApiKey, st.branch, rc);
       dispatch(sourceActions.setStackField({ field: 'modules', value: data.modules ?? [] }));
     } catch (e) {
       dispatch(sourceActions.setError(errMsg(e)));
@@ -122,6 +204,7 @@ export const startExportAndPoll =
   (projectId: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     const st = getState().source;
     const orgId = st.stack.org || '';
+    const rc = currentCredential(getState());
 
     const body: StartExportBody =
       st.mode === 'stack'
@@ -131,6 +214,7 @@ export const startExportAndPoll =
             mode: 'stack',
             stack: {
               region: st.stack.region,
+              regionUserId: rc.regionUserId,
               orgId: st.stack.org,
               stackApiKey: st.stack.stackApiKey,
               branch: st.stack.branch,
@@ -150,6 +234,7 @@ export const startExportAndPoll =
           };
 
     dispatch(sourceActions.setError(undefined));
+    dispatch(sourceActions.setJobLogs([]));
     dispatch(sourceActions.setRunning(true));
     try {
       const { data } = await sourceApi.startExport(body);
@@ -162,6 +247,7 @@ export const startExportAndPoll =
         const s = await sourceApi.getExportStatus(jobId);
         status = s.data.status;
         dispatch(sourceActions.setJob({ jobId, jobStatus: status as any }));
+        if (s.data.logs) dispatch(sourceActions.setJobLogs(s.data.logs));
       }
 
       if (status === 'succeeded') {

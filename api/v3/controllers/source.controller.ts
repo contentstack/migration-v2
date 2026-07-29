@@ -4,10 +4,13 @@ import { randomUUID } from "crypto";
 import { HTTP_CODES } from "../constants/http.js";
 import { getV3Project, upsertV3Source } from "../models/project.store.js";
 import { getUploadMeta, saveUpload } from "../models/upload.store.js";
+import { saveAuthtoken } from "../models/auth.store.js";
 import { V3Source, V3SourceMode } from "../models/types.js";
-import { csManagement } from "../services/csManagement.service.js";
+import { csManagement, TokenPayload } from "../services/csManagement.service.js";
 import { parseBundle, MODULE_DEFS } from "../services/bundle.service.js";
 import { getJob, startExportJob } from "../services/export.service.js";
+import { SOURCE_REGIONS } from "../config/cs.js";
+import { resolveRegionCredential } from "../utils/region-credential.util.js";
 
 /**
  * v3 Source controller. Thin handlers over the (unit-tested) v3 services.
@@ -17,16 +20,32 @@ import { getJob, startExportJob } from "../services/export.service.js";
 const VALID_MODES: V3SourceMode[] = ["stack", "file"];
 
 // ---- Listing (API-4 / FR-5.3) ----
+
+/**
+ * GET /v3/source/regions — the fixed set of selectable source regions, plus
+ * the caller's home (already-authenticated) region so the UI can default to
+ * it and know which other selections require a region-login.
+ */
 const listRegions = (req: Request, res: Response) => {
-  const region = req.body?.token_payload?.region as string | undefined;
-  const regions = region
-    ? [{ value: region, label: region }]
-    : csManagement.regions();
-  return res.status(HTTP_CODES.OK).json({ regions });
+  const homeRegion = req.body?.token_payload?.region as string | undefined;
+  return res.status(HTTP_CODES.OK).json({ regions: SOURCE_REGIONS, homeRegion });
 };
 
+/**
+ * Reads the caller's requested region-credential from the query string
+ * (`region`, `regionUserId`) and resolves it against the session's home
+ * credential. Throws RegionAuthError (401) if a non-home region is requested
+ * without a completed region-login.
+ */
+const credentialFromQuery = (req: Request): TokenPayload =>
+  resolveRegionCredential(
+    req.body?.token_payload,
+    req.query.region as string | undefined,
+    req.query.regionUserId as string | undefined
+  );
+
 const listOrgs = async (req: Request, res: Response) => {
-  const orgs = await csManagement.listOrgs(req.body?.token_payload);
+  const orgs = await csManagement.listOrgs(credentialFromQuery(req));
   return res.status(HTTP_CODES.OK).json({ orgs });
 };
 
@@ -37,7 +56,7 @@ const listStacks = async (req: Request, res: Response) => {
       .status(HTTP_CODES.BAD_REQUEST)
       .json({ status: HTTP_CODES.BAD_REQUEST, message: "Query param 'orgId' is required." });
   }
-  const stacks = await csManagement.listStacks(req.body?.token_payload, orgId);
+  const stacks = await csManagement.listStacks(credentialFromQuery(req), orgId);
   return res.status(HTTP_CODES.OK).json({ stacks });
 };
 
@@ -48,8 +67,33 @@ const listBranches = async (req: Request, res: Response) => {
       .status(HTTP_CODES.BAD_REQUEST)
       .json({ status: HTTP_CODES.BAD_REQUEST, message: "Query param 'stackApiKey' is required." });
   }
-  const branches = await csManagement.listBranches(req.body?.token_payload, stackApiKey);
+  const branches = await csManagement.listBranches(credentialFromQuery(req), stackApiKey);
   return res.status(HTTP_CODES.OK).json({ branches });
+};
+
+/**
+ * POST /v3/source/region-login — real Contentstack login for a region other
+ * than the caller's home-region session (FR — cross-region source auth).
+ * Persists the resulting credential to the shared auth store and returns only
+ * the (region-specific) userId + email — never the authtoken — to the client.
+ */
+const regionLogin = async (req: Request, res: Response) => {
+  const { region, email, password } = (req.body ?? {}) as Record<string, any>;
+  if (!region || !email || !password) {
+    return res.status(HTTP_CODES.BAD_REQUEST).json({
+      status: HTTP_CODES.BAD_REQUEST,
+      message: "'region', 'email' and 'password' are required.",
+    });
+  }
+
+  const { userId, email: csEmail, authtoken } = await csManagement.regionLogin(
+    region,
+    email,
+    password
+  );
+  await saveAuthtoken(region, userId, csEmail, authtoken);
+
+  return res.status(HTTP_CODES.OK).json({ userId, email: csEmail });
 };
 
 // ---- Modules (API-5 / FR-5.4) ----
@@ -75,7 +119,7 @@ const listModules = async (req: Request, res: Response) => {
   if (stackApiKey) {
     const branch = req.query.branch as string | undefined;
     const counts = await csManagement.getStackModuleCounts(
-      req.body?.token_payload,
+      credentialFromQuery(req),
       stackApiKey,
       branch
     );
@@ -150,9 +194,17 @@ const startExport = async (req: Request, res: Response) => {
       .json({ status: HTTP_CODES.BAD_REQUEST, message: "Stack mode requires 'stack.stackApiKey'." });
   }
 
+  // Stack mode against a non-home region requires a completed region-login
+  // (stack.regionUserId); throws RegionAuthError (401) otherwise (FR — cross-
+  // region source auth). File mode has no CS credential to resolve.
+  const effectiveTokenPayload: TokenPayload =
+    mode === "stack"
+      ? resolveRegionCredential(token_payload, stack?.region, stack?.regionUserId)
+      : token_payload;
+
   const source: V3Source = { mode, stack, file };
   await upsertV3Source(orgId ?? "", projectId, source, new Date().toISOString());
-  const jobId = startExportJob({ projectId, source, tokenPayload: token_payload });
+  const jobId = startExportJob({ projectId, source, tokenPayload: effectiveTokenPayload });
   return res.status(HTTP_CODES.ACCEPTED).json({ jobId });
 };
 
@@ -167,6 +219,7 @@ const getExportStatus = (req: Request, res: Response) => {
     jobId: job.jobId,
     status: job.status,
     progress: job.progress,
+    logs: job.logs,
     ...(job.error ? { error: job.error } : {}),
   });
 };
@@ -211,6 +264,7 @@ const getSource = async (req: Request, res: Response) => {
 
 export const sourceController = {
   listRegions,
+  regionLogin,
   listOrgs,
   listStacks,
   listBranches,

@@ -1,0 +1,91 @@
+/* v3 theme — Contentstack Design System tokens (from the Claude Design project),
+   scoped under .v3-scope so they never leak into the v2 app. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+.v3-scope {
+  /* Brand: Contentstack Violet */
+  --violet-50: #F5EEFF;  --violet-100: #EADCFF; --violet-200: #D9C0FF;
+  --violet-300: #C29CFF; --violet-400: #AC75FF; --violet-500: #9457FF;
+  --violet-600: #7C3AF0; --violet-700: #6427D1; --violet-800: #4D1CA3; --violet-900: #321169;
+
+  --gray-0: #FFFFFF; --gray-50: #F8F7FC; --gray-100: #F1EFF7; --gray-200: #E5E2EE;
+  --gray-300: #D2CDDF; --gray-400: #ABA4BD; --gray-500: #7E7691; --gray-600: #5A5369;
+  --gray-700: #403A4D; --gray-800: #272232; --gray-900: #161320;
+
+  --green-50: #E7F7F0; --green-600: #0E8359;
+  --amber-50: #FDF3E2; --amber-600: #B97505;
+  --red-50: #FDECEC;  --red-600: #C32A2A;
+
+  --brand: var(--violet-400); --brand-strong: var(--violet-600); --brand-stronger: var(--violet-700);
+  --brand-subtle: var(--violet-50); --brand-subtle-2: var(--violet-100);
+
+  --text-strong: var(--gray-900); --text-body: var(--gray-700); --text-muted: var(--gray-500);
+  --text-subtle: var(--gray-400); --text-on-brand: #fff; --text-link: var(--violet-600);
+
+  --surface-page: var(--gray-50); --surface-card: var(--gray-0);
+  --surface-sunken: var(--gray-100); --surface-inset: var(--gray-200);
+
+  --border-subtle: var(--gray-200); --border-default: var(--gray-300); --border-strong: var(--gray-400);
+  --border-brand: var(--violet-400);
+
+  --success: var(--green-600); --success-surface: var(--green-50);
+  --warning: var(--amber-600); --warning-surface: var(--amber-50);
+  --danger: var(--red-600); --danger-surface: var(--red-50);
+
+  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-pill: 999px;
+  --shadow-xs: 0 1px 2px rgba(22,19,32,.06);
+  --shadow-sm: 0 1px 3px rgba(22,19,32,.08), 0 1px 2px rgba(22,19,32,.04);
+  --shadow-md: 0 4px 12px rgba(22,19,32,.08), 0 2px 4px rgba(22,19,32,.04);
+  --shadow-lg: 0 12px 28px rgba(22,19,32,.12), 0 4px 8px rgba(22,19,32,.05);
+  --shadow-brand: 0 8px 24px rgba(124,58,240,.28);
+
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  font-family: var(--font-sans);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- reusable primitives (design-system look) ---- */
+.v3-scope .v3-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+.v3-scope .v3-eyebrow {
+  font-size: 10px; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--brand-strong);
+}
+.v3-scope .v3-label {
+  font-size: 13px; font-weight: 700; color: var(--text-strong);
+  display: block; margin-bottom: 6px;
+}
+/* DS-style Select / Input */
+.v3-scope .v3-field {
+  width: 100%; height: 40px; padding: 0 34px 0 12px;
+  border: 1px solid var(--border-default); border-radius: var(--radius-md);
+  background: var(--surface-card); color: var(--text-strong); font-size: 13.5px;
+  font-family: var(--font-sans); appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237E7691' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center;
+  transition: border-color var(--dur-fast, 120ms), box-shadow 120ms;
+}
+.v3-scope .v3-field:focus { outline: none; border-color: var(--brand-strong); box-shadow: 0 0 0 3px color-mix(in oklch, var(--violet-500) 30%, transparent); }
+.v3-scope .v3-field:disabled { background: var(--surface-sunken); color: var(--text-subtle); cursor: not-allowed; }
+
+/* Primary button */
+.v3-scope .v3-btn {
+  height: 40px; padding: 0 16px; border: none; border-radius: var(--radius-md);
+  background: var(--brand-strong); color: #fff; font-weight: 700; font-size: 14px;
+  font-family: var(--font-sans); cursor: pointer; box-shadow: var(--shadow-brand);
+  transition: background 120ms, transform 80ms;
+}
+.v3-scope .v3-btn:hover:not(:disabled) { background: var(--brand-stronger); }
+.v3-scope .v3-btn:active:not(:disabled) { transform: translateY(1px); }
+.v3-scope .v3-btn:disabled { background: var(--violet-200); box-shadow: none; cursor: not-allowed; }
+.v3-scope .v3-btn--secondary { background: var(--surface-card); color: var(--text-strong); border: 1px solid var(--border-default); box-shadow: none; }
+.v3-scope .v3-btn--secondary:hover:not(:disabled) { background: var(--surface-sunken); }
+
+@keyframes v3-spin { to { transform: rotate(360deg); } }

@@ -10,6 +10,7 @@ import { configureStore } from '@reduxjs/toolkit';
 const { mockApi } = vi.hoisted(() => ({
   mockApi: {
     getRegions: vi.fn(),
+    regionLogin: vi.fn(),
     getOrgs: vi.fn(),
     getStacks: vi.fn(),
     getBranches: vi.fn(),
@@ -158,6 +159,65 @@ describe('v3 export/upload thunks', () => {
     expect(mockApi.startExport).toHaveBeenCalledWith(
       expect.objectContaining({ stack: expect.objectContaining({ branch: 'main' }) })
     );
+  });
+
+  it('(region-login, positive) submitRegionLogin authenticates the region and loads its orgs', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.openRegionLogin({ region: 'EU', prevRegion: 'NA' }));
+    store.dispatch(sourceActions.setRegionLoginField({ field: 'email', value: 'a@b.com' }));
+    store.dispatch(sourceActions.setRegionLoginField({ field: 'password', value: 'secret' }));
+    mockApi.regionLogin.mockResolvedValue({ data: { userId: 'u2', email: 'a@b.com' } });
+    mockApi.getOrgs.mockResolvedValue({ data: { orgs: [{ uid: 'o9', name: 'Org 9' }] } });
+
+    await store.dispatch(thunks.submitRegionLogin());
+
+    const s = store.getState().source;
+    expect(s.regionLogin.open).toBe(false);
+    expect(s.stack.regionAuth.EU).toBe('u2');
+    expect(s.stack.orgs).toEqual([{ value: 'o9', label: 'Org 9' }]);
+    expect(mockApi.regionLogin).toHaveBeenCalledWith('EU', 'a@b.com', 'secret');
+  });
+
+  // Negative — taxonomy #5 (permission denial): a failed CS login keeps the modal open with an error, doesn't unlock the region.
+  it('(region-login, negative) a failed login keeps the modal open with an error and does not unlock the region', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.openRegionLogin({ region: 'EU', prevRegion: 'NA' }));
+    store.dispatch(sourceActions.setRegionLoginField({ field: 'email', value: 'a@b.com' }));
+    store.dispatch(sourceActions.setRegionLoginField({ field: 'password', value: 'wrong' }));
+    mockApi.regionLogin.mockRejectedValue({ response: { data: { message: 'Invalid email or password' } } });
+
+    await store.dispatch(thunks.submitRegionLogin());
+
+    const s = store.getState().source;
+    expect(s.regionLogin.open).toBe(true);
+    expect(s.regionLogin.error).toBe('Invalid email or password');
+    expect(s.stack.regionAuth.EU).toBeUndefined();
+    expect(mockApi.getOrgs).not.toHaveBeenCalled();
+  });
+
+  it('(region-login, positive) canceling reverts the region back to what it was', () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'region', value: 'NA' }));
+    store.dispatch(sourceActions.openRegionLogin({ region: 'EU', prevRegion: 'NA' }));
+    expect(store.getState().source.stack.region).toBe('EU');
+
+    store.dispatch(thunks.cancelRegionLogin());
+
+    const s = store.getState().source;
+    expect(s.stack.region).toBe('NA');
+    expect(s.regionLogin.open).toBe(false);
+  });
+
+  // Negative — canceling when there was no prior region (fresh state) just closes the modal without throwing.
+  it('(region-login, negative) canceling with no prior selection just closes the modal', () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.openRegionLogin({ region: 'EU', prevRegion: '' }));
+
+    store.dispatch(thunks.cancelRegionLogin());
+
+    const s = store.getState().source;
+    expect(s.stack.region).toBe('');
+    expect(s.regionLogin.open).toBe(false);
   });
 
   it('TC_SRC_037 (positive): loadPersistedGraph restores a persisted graph into state', async () => {

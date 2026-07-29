@@ -362,6 +362,7 @@ combine.log
 !production.env
 
 database/
+database-v3/
 /sitecoreMigrationData
 /cmsMigrationData
 /migration-data

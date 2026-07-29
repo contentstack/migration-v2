@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 import GraphView from '../../../../../v3/components/source/GraphView';
 
@@ -55,5 +55,34 @@ describe('v3 GraphView', () => {
     };
     render(<GraphView graph={empty} />);
     expect(screen.getByLabelText('Reset view')).toBeTruthy();
+  });
+
+  // Regression test for a real bug: the canvas calls setPointerCapture on
+  // pointerdown for panning, which (in a real browser) retargets the click
+  // event to the canvas instead of a nested button, silently breaking the
+  // zoom controls. Fixed by stopping propagation on the button cluster's
+  // pointerdown. jsdom's fireEvent.click bypasses real pointer-capture
+  // retargeting, so this only guards the onClick wiring itself — not the
+  // capture-retargeting behavior, which is real-browser-only.
+  const getScale = (el: HTMLElement): number => {
+    const m = el.style.transform.match(/scale\(([\d.]+)\)/);
+    return m ? parseFloat(m[1]) : 1;
+  };
+
+  it('(regression) clicking Zoom in/out/reset updates the canvas transform', () => {
+    const { container } = render(<GraphView graph={graph} />);
+    const canvas = container.querySelector('div[style*="translate"]') as HTMLElement;
+    expect(getScale(canvas)).toBe(1);
+
+    fireEvent.click(screen.getByLabelText('Zoom in'));
+    expect(getScale(canvas)).toBeCloseTo(1.2);
+
+    fireEvent.click(screen.getByLabelText('Zoom out'));
+    expect(getScale(canvas)).toBeCloseTo(1.0);
+
+    fireEvent.click(screen.getByLabelText('Zoom in'));
+    fireEvent.click(screen.getByLabelText('Zoom in'));
+    fireEvent.click(screen.getByLabelText('Reset view'));
+    expect(getScale(canvas)).toBe(1);
   });
 });

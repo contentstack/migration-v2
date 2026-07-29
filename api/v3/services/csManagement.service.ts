@@ -168,4 +168,41 @@ export const csManagement = {
 
     return { contentTypes: cts.length, globalFields, assets, entries };
   },
+
+  /**
+   * Real Contentstack login for a region (cross-region source authentication).
+   * Calls CS's `/user-session` — the SAME endpoint v2's login uses — directly
+   * (standalone; not via v2 code). Returns the region-specific `userId` (CS
+   * `uid`, which differs per region for the same email) and the authtoken;
+   * the caller persists the authtoken via `auth.store.saveAuthtoken`.
+   */
+  regionLogin: async (
+    region: string,
+    email: string,
+    password: string
+  ): Promise<{ userId: string; email: string; authtoken: string }> => {
+    const host = hostFor(region);
+    let data: any;
+    try {
+      const res = await axios.post(
+        `${host}/user-session?include_orgs_roles=true`,
+        { user: { email, password } },
+        { headers: { "Content-Type": "application/json" }, timeout: 60_000 }
+      );
+      data = res.data;
+    } catch (e: any) {
+      const status = e?.response?.status ?? HTTP_CODES.SERVER_ERROR;
+      const message =
+        e?.response?.data?.error_message ??
+        e?.response?.data?.errors?.email?.[0] ??
+        e?.message ??
+        "Contentstack login failed.";
+      throw new CsError(status, message);
+    }
+    const user = data?.user;
+    if (!user?.uid || !user?.authtoken) {
+      throw new CsError(HTTP_CODES.SERVER_ERROR, "Unexpected response from Contentstack.");
+    }
+    return { userId: user.uid, email: user.email, authtoken: user.authtoken };
+  },
 };
