@@ -298,6 +298,64 @@ export const enrichConfigWithAssetMapping = (
 };
 
 /**
+ * Reads old (previous iteration) and new (current iteration) entry uid mappings
+ * — both the flat source→dest map and the per-locale map written by
+ * `writePerLocaleEntryUidMapping` — and merges them into the updated-entries
+ * config file under `__entryMapping__`.
+ *
+ * This lets the entry-update-script resolve Link(Entry)/reference field values
+ * to their real Contentstack destination uid before writing them onto a
+ * localized (non-master) copy of an entry. Without this, reference fields
+ * written during a locale-add restart keep the export's source-side uid,
+ * which only happens to work when source and destination uids are identical —
+ * the master-locale bulk import resolves this correctly via the Contentstack
+ * CLI's own reference pass, but this update path does not, unless we prime it
+ * with the same uid-mapper data (mirrors `enrichConfigWithAssetMapping`).
+ */
+export const enrichConfigWithEntryMapping = (
+    configFilePath: string,
+    projectId: string,
+    iteration: number,
+    loggerPath?: string
+): void => {
+    const dbBase = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId);
+
+    const readEntryMapper = (iter: number): { flat: Record<string, string>; byLocale: Record<string, Record<string, string>> } => {
+        const p = path.join(dbBase, iter.toString(), DATABASE_FILES.UID_MAPPER);
+        if (!fs.existsSync(p)) return { flat: {}, byLocale: {} };
+        try {
+            const data = JSON.parse(fs.readFileSync(p, "utf-8"));
+            return { flat: data?.entry || {}, byLocale: data?.entryByLocale || {} };
+        } catch (err) {
+            console.error(`Failed to read uid-mapper for iteration ${iter}:`, err);
+            return { flat: {}, byLocale: {} };
+        }
+    };
+
+    const oldEntryMapping = iteration > 1 ? readEntryMapper(iteration - 1) : { flat: {}, byLocale: {} };
+    const newEntryMapping = readEntryMapper(iteration);
+
+    writeLogEntry(
+        `Loaded entry uid mappings — old: ${Object.keys(oldEntryMapping.flat).length} flat / ${Object.keys(oldEntryMapping.byLocale).length} locales, ` +
+        `new: ${Object.keys(newEntryMapping.flat).length} flat / ${Object.keys(newEntryMapping.byLocale).length} locales`,
+        "enrichConfigWithEntryMapping",
+        loggerPath,
+    );
+
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__entryMapping__ = { old: oldEntryMapping, new: newEntryMapping };
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+    } catch (err) {
+        console.error("Failed to write entry mapping into update config:", err);
+        writeLogEntry(`Failed to write __entryMapping__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithEntryMapping", loggerPath);
+        return;
+    }
+
+    writeLogEntry(`Entry mapping enriched into config for iteration ${iteration}`, "enrichConfigWithEntryMapping", loggerPath);
+};
+
+/**
  * Ensures an update config file exists for this iteration and returns its path.
  * Used when there are asset updates but no entry updates produced a config, so
  * the update CLI still has a file to drive the asset-replace task.

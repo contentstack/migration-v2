@@ -50,7 +50,7 @@ import {
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
-import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
+import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithEntryMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
 import { removeExistingAssets, saveAssetMetadata, AssetUpdate } from '../utils/asset-update.utils.js';
 
 /**
@@ -1257,6 +1257,12 @@ const startMigration = async (req: Request): Promise<any> => {
 
     if (configFilePath) {
       enrichConfigWithAssetMapping(
+        configFilePath,
+        safePid,
+        iteration,
+        safeDeltaMigrationLogPath
+      );
+      enrichConfigWithEntryMapping(
         configFilePath,
         safePid,
         iteration,

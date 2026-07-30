@@ -18,6 +18,7 @@ import {
   getMigratedLocales,
   isFullMigrationForLocale,
   recordMigratedLocales,
+  extractLocalesFromUpdateConfig,
 } from '../../../src/utils/locale-migration.utils';
 
 describe('locale-migration.utils', () => {
@@ -181,6 +182,62 @@ describe('locale-migration.utils', () => {
       mockProjectUpdate.mockImplementation(async (mut: any) => mut(data));
       await recordMigratedLocales('missing', ['en-us']);
       expect((data.projects[0] as any).migrated_locales).toBeUndefined();
+    });
+  });
+
+  // Covers the fix for the "locale marked migrated before it was ever
+  // actually processed" bug: runCli.service.ts used to compute the migrated
+  // locale set from the project's FULL configured locale list, which
+  // permanently skipped any locale configured ahead of when it was meant to
+  // be migrated. This helper extracts ONLY the locale(s) an iteration's delta
+  // pass actually queued, from updated-entries.json's compound
+  // `${csUid}::${localeCode}` keys.
+  describe('extractLocalesFromUpdateConfig', () => {
+    it('extracts locale codes from compound entry keys across content types', () => {
+      const config = {
+        article: { 'blt-1::en-in': {}, 'blt-2::en-in': {} },
+        author: { 'blt-3::en-in': {} },
+      };
+      expect(extractLocalesFromUpdateConfig(config)).toEqual(['en-in']);
+    });
+
+    it('dedupes locales seen across multiple entries', () => {
+      const config = {
+        article: { 'blt-1::en-gb': {}, 'blt-2::en-gb': {}, 'blt-3::en-in': {} },
+      };
+      const result = extractLocalesFromUpdateConfig(config);
+      expect(result).toEqual(expect.arrayContaining(['en-gb', 'en-in']));
+      expect(result).toHaveLength(2);
+    });
+
+    it('ignores bookkeeping keys (__assetMapping__, __entryMapping__, __assetUpdates__)', () => {
+      const config = {
+        __assetMapping__: { old: {}, new: {} },
+        __entryMapping__: { old: {}, new: {} },
+        __assetUpdates__: [{ uid: 'a' }],
+        article: { 'blt-1::en-gb': {} },
+      };
+      expect(extractLocalesFromUpdateConfig(config)).toEqual(['en-gb']);
+    });
+
+    it('ignores legacy keys with no locale suffix', () => {
+      const config = { page: { 'cs-1': { title: 'T' } } };
+      expect(extractLocalesFromUpdateConfig(config)).toEqual([]);
+    });
+
+    it('returns [] for null, undefined, or non-object input', () => {
+      expect(extractLocalesFromUpdateConfig(null)).toEqual([]);
+      expect(extractLocalesFromUpdateConfig(undefined)).toEqual([]);
+      expect(extractLocalesFromUpdateConfig('not an object' as any)).toEqual([]);
+    });
+
+    it('returns [] for an empty config object', () => {
+      expect(extractLocalesFromUpdateConfig({})).toEqual([]);
+    });
+
+    it('skips content types whose value is not an object', () => {
+      const config = { article: null, author: { 'blt-1::en-in': {} } };
+      expect(extractLocalesFromUpdateConfig(config)).toEqual(['en-in']);
     });
   });
 });
