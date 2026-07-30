@@ -11,7 +11,7 @@ import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
 import { DataConfig, Field, CT } from '../interface/interface';
 import { handleAcfData, acfMpapperGenerator, acfMapperFromExportFiles } from './extractAcfData';
-import { attachSeoGlobalField, contentTypeReferencesSeo, buildSeoGlobalFieldDefinition, SEO_GLOBAL_FIELD_UID } from './globalFields';
+import { attachSeoGlobalField, contentTypeReferencesSeo, mergeSeoGlobalFieldDefinition, yoastSubFieldUid, SEO_GLOBAL_FIELD_UID } from './globalFields';
 
 const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
@@ -344,7 +344,6 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     const authorsData = $('wp\\author');
     const CT: CT = [];
     const duplicateBlockMappings: Record<string, string> = {};
-    let isCategories : boolean = false;
     let isTermReffered : boolean = false;
 
     const acfContentMapper = config.acfExportDir
@@ -512,12 +511,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         if(data?.category){
           const categoryData = Array?.isArray(data?.category) ? data?.category : [data?.category];
-          const domain = categoryData?.some((item: any) => item?.attributes?.domain === 'category');
           const termsDomain = categoryData?.find((item: any) => item?.attributes?.domain !== 'category');
           isTermReffered = terms?.some((item: any) => item?.['wp:term_taxonomy'] === termsDomain?.attributes?.domain);
-          if(domain){
-            isCategories = true;
-          }
           const category = await extractTaxonomy(data?.category, categories, 'categories');
           if (!categoryArray?.advanced) {
             categoryArray.advanced = { taxonomies: [] };
@@ -737,8 +732,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
      }
         }
       }
-    // Push category only once, outside the loop
-    if (categories?.length > 0 && isCategories && !isAllContentEmpty) {
+    // Push the taxonomy field only once, outside the loop. Attach it whenever taxonomies were
+    // derived — from channel <wp:category> definitions or from inline <category> tags — rather than
+    // requiring channel-level categories to exist.
+    if (categoryArray?.advanced?.taxonomies?.length > 0 && !isAllContentEmpty) {
         const existingCategory = CT?.find((item: Field) => 
             item?.uid === 'categories' && 
             item?.contentstackFieldType === 'taxonomy'
@@ -788,6 +785,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
       });
     }
 
+    // Yoast SEO sub-field uids discovered across this content type's posts. Drives the SEO
+    // global field schema generically — one text sub-field per distinct Yoast key present.
+    const seoSubFieldUids = new Set<string>();
     for (const data of item) {
       if(data?.['wp:postmeta']){
         const postmetaData = Array?.isArray(data?.['wp:postmeta']) ? data?.['wp:postmeta'] : [data?.['wp:postmeta']];
@@ -795,6 +795,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
           const metaKey = postmeta?.['wp:meta_key'];
           // Yoast SEO → reusable "SEO" global field reference (see libs/globalFields).
           attachSeoGlobalField(CT, metaKey);
+          const subUid = yoastSubFieldUid(metaKey);
+          if (subUid) seoSubFieldUids.add(subUid);
         }
       }
     }
@@ -842,11 +844,20 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
           }
         }
         if (!Array.isArray(globalFields)) globalFields = [];
-        if (!globalFields.some((gf: any) => gf?.uid === SEO_GLOBAL_FIELD_UID)) {
-          globalFields.push(buildSeoGlobalFieldDefinition());
-          await helper.writeFileAsync(globalFieldsPath, globalFields, 4);
-          console.log('Successfully wrote SEO global field: globalfields.json');
+        // Merge (union) the discovered Yoast sub-fields into any existing SEO definition so the
+        // schema accumulates across content types instead of being frozen on first write.
+        const existingIndex = globalFields.findIndex((gf: any) => gf?.uid === SEO_GLOBAL_FIELD_UID);
+        const mergedSeo = mergeSeoGlobalFieldDefinition(
+          existingIndex >= 0 ? globalFields[existingIndex] : undefined,
+          Array.from(seoSubFieldUids)
+        );
+        if (existingIndex >= 0) {
+          globalFields[existingIndex] = mergedSeo;
+        } else {
+          globalFields.push(mergedSeo);
         }
+        await helper.writeFileAsync(globalFieldsPath, globalFields, 4);
+        console.log('Successfully wrote SEO global field: globalfields.json');
       } catch (error: any) {
         console.error('Error writing SEO global field file:', error?.message);
       }

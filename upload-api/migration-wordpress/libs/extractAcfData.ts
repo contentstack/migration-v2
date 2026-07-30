@@ -29,18 +29,60 @@ interface AcfTypeMappingEntry {
 type AcfTypeMapping = Record<string, AcfTypeMappingEntry>;
 
 /**
+ * Resolves the configured ACF export path (acfExportDir) into the set of JSON
+ * files to process plus the base directory used for the acf-type-mapping.json
+ * override.
+ *
+ * Accepts either:
+ *  - a directory → every *.json inside it (excluding acf-type-mapping.json)
+ *  - a single .json file → just that file; baseDir is the file's parent dir
+ *
+ * Returns absolute file paths so callers never re-join against the base dir.
+ */
+async function resolveAcfExport(
+  exportPath: string
+): Promise<{ files: string[]; baseDir: string }> {
+  let stat: fs.Stats;
+  try {
+    stat = await fs.promises.stat(exportPath);
+  } catch {
+    // Path does not exist / not accessible — nothing to process
+    return { files: [], baseDir: exportPath };
+  }
+
+  if (stat.isFile()) {
+    return { files: [exportPath], baseDir: path.dirname(exportPath) };
+  }
+
+  if (stat.isDirectory()) {
+    let entries: string[];
+    try {
+      entries = await fs.promises.readdir(exportPath);
+    } catch {
+      return { files: [], baseDir: exportPath };
+    }
+    const files = entries
+      .filter(entry => entry.endsWith('.json') && entry !== 'acf-type-mapping.json')
+      .map(entry => path.join(exportPath, entry));
+    return { files, baseDir: exportPath };
+  }
+
+  return { files: [], baseDir: exportPath };
+}
+
+/**
  * Loads the ACF→Contentstack type mapping.
  * Starts from the bundled default (acf-type-mapping.json) and merges any
- * acf-type-mapping.json found in exportDir on top, so users can override or
+ * acf-type-mapping.json found in baseDir on top, so users can override or
  * extend entries without touching source code.
  */
-async function loadTypeMapping(exportDir: string): Promise<AcfTypeMapping> {
+async function loadTypeMapping(baseDir: string): Promise<AcfTypeMapping> {
   const mapping: AcfTypeMapping = { ...(defaultTypeMapping as AcfTypeMapping) };
 
-  if (!exportDir) return mapping;
+  if (!baseDir) return mapping;
 
   try {
-    const raw = await fs.promises.readFile(path.join(exportDir, 'acf-type-mapping.json'), 'utf8');
+    const raw = await fs.promises.readFile(path.join(baseDir, 'acf-type-mapping.json'), 'utf8');
     const custom: AcfTypeMapping = JSON.parse(raw);
     Object.assign(mapping, custom);
   } catch {
@@ -59,30 +101,25 @@ function groupAppliesToPostType(group: AcfExportGroup, postType: string): boolea
 /**
  * Builds a Contentstack field mapper from ACF JSON export files.
  *
- * Reads every *.json file in exportDir (skipping acf-type-mapping.json),
- * filters groups to those that apply to postType and are active,
- * and resolves each field's Contentstack type via the loaded type mapping.
+ * `exportPath` may point at either a directory of ACF export files or a single
+ * ACF export .json file (see resolveAcfExport). Reads each file (skipping
+ * acf-type-mapping.json), filters groups to those that apply to postType, and
+ * resolves each field's Contentstack type via the loaded type mapping.
  */
-async function acfMapperFromExportFiles(exportDir: string, postType: string): Promise<Record<string, unknown>> {
+async function acfMapperFromExportFiles(exportPath: string, postType: string): Promise<Record<string, unknown>> {
   const acfMapper: Record<string, unknown> = {};
 
-  if (!exportDir) return acfMapper;
+  if (!exportPath) return acfMapper;
 
-  const typeMapping = await loadTypeMapping(exportDir);
+  const { files, baseDir } = await resolveAcfExport(exportPath);
+  if (!files.length) return acfMapper;
 
-  let files: string[];
-  try {
-    files = await fs.promises.readdir(exportDir);
-  } catch {
-    return acfMapper;
-  }
+  const typeMapping = await loadTypeMapping(baseDir);
 
-  for (const file of files) {
-    if (!file.endsWith('.json') || file === 'acf-type-mapping.json') continue;
-
+  for (const filePath of files) {
     let groups: AcfExportGroup[];
     try {
-      const raw = await fs.promises.readFile(path.join(exportDir, file), 'utf8');
+      const raw = await fs.promises.readFile(filePath, 'utf8');
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) continue;
       groups = parsed;
@@ -90,6 +127,7 @@ async function acfMapperFromExportFiles(exportDir: string, postType: string): Pr
       continue;
     }
 
+    const file = path.basename(filePath);
     console.log(`Processing ACF export file: ${file}`);
     console.info(`Found ${groups.length} groups in ${file}`, groups);
 

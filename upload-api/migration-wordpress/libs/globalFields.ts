@@ -13,12 +13,44 @@ import { CT, Field } from '../interface/interface';
 /** uid of the reusable SEO global field referenced by migrated content types. */
 export const SEO_GLOBAL_FIELD_UID = 'seo';
 
-/** Yoast postmeta keys mapped into the SEO global field. */
-const YOAST_SEO_META_KEYS = ['_yoast_wpseo_title', '_yoast_wpseo_metadesc'];
+/**
+ * Prefix that identifies Yoast SEO postmeta keys. Any postmeta key under this prefix is mapped
+ * into the SEO global field generically — no per-field enumeration in code. To include a Yoast
+ * field, no code change is needed: if it exists on the post it flows through automatically.
+ */
+const YOAST_SEO_KEY_PREFIX = '_yoast_wpseo_';
+
+/** Yoast keys occasionally appear without the leading underscore; normalize to the canonical form. */
+function normalizeMetaKey(metaKey: string): string {
+  return metaKey.startsWith('_') ? metaKey : `_${metaKey}`;
+}
 
 /** True when a WordPress postmeta key carries Yoast SEO data we map into the SEO global field. */
 export function isYoastSeoMetaKey(metaKey: string | undefined): boolean {
-  return !!metaKey && YOAST_SEO_META_KEYS.includes(metaKey);
+  return !!metaKey && normalizeMetaKey(metaKey).startsWith(YOAST_SEO_KEY_PREFIX);
+}
+
+/**
+ * Derive the SEO sub-field uid from a Yoast meta key, generically.
+ * `_yoast_wpseo_opengraph-image-id` → `opengraph_image_id`
+ * Returns '' for keys that are not Yoast SEO keys.
+ */
+export function yoastSubFieldUid(metaKey: string | undefined): string {
+  if (!isYoastSeoMetaKey(metaKey)) return '';
+  return normalizeMetaKey(metaKey as string)
+    .slice(YOAST_SEO_KEY_PREFIX.length)
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
+}
+
+/** `opengraph_image_id` → `Opengraph Image Id` (display name for the generated sub-field). */
+function humanizeUid(uid: string): string {
+  return uid
+    .split('_')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 /** Content-type field that references the reusable "SEO" global field (schema: title + description). */
@@ -54,40 +86,50 @@ export function contentTypeReferencesSeo(CT: CT): boolean {
   );
 }
 
+/** A single text sub-field within the SEO global field, generated from a Yoast sub-field uid. */
+function buildSeoSubField(uid: string): Record<string, any> {
+  return {
+    data_type: 'text',
+    display_name: humanizeUid(uid),
+    uid,
+    field_metadata: { description: '', default_value: '', version: 3 },
+    format: '',
+    error_messages: { format: '' },
+    multiple: false,
+    mandatory: false,
+    unique: false,
+    non_localizable: false
+  };
+}
+
 /**
- * Full Contentstack definition for the reusable "SEO" global field (schema: Title + Description).
+ * Full Contentstack definition for the reusable "SEO" global field.
+ *
+ * The schema is built dynamically from the set of Yoast sub-field uids discovered in the export
+ * (see yoastSubFieldUid). No field is hardcoded — passing more Yoast keys yields more sub-fields.
  * Written to the global_fields export so the CLI can create it before content types reference it.
  */
-export function buildSeoGlobalFieldDefinition(): Record<string, any> {
+export function buildSeoGlobalFieldDefinition(subFieldUids: string[] = []): Record<string, any> {
+  const uniqueUids = Array.from(new Set(subFieldUids.filter(Boolean)));
   return {
     title: 'SEO',
     uid: SEO_GLOBAL_FIELD_UID,
     description: 'Reusable SEO metadata (mapped from Yoast SEO during migration).',
-    schema: [
-      {
-        data_type: 'text',
-        display_name: 'Title',
-        uid: 'title',
-        field_metadata: { description: '', default_value: '', version: 3 },
-        format: '',
-        error_messages: { format: '' },
-        multiple: false,
-        mandatory: false,
-        unique: false,
-        non_localizable: false
-      },
-      {
-        data_type: 'text',
-        display_name: 'Description',
-        uid: 'description',
-        field_metadata: { description: '', default_value: '', multiline: true, version: 3 },
-        format: '',
-        error_messages: { format: '' },
-        multiple: false,
-        mandatory: false,
-        unique: false,
-        non_localizable: false
-      }
-    ]
+    schema: uniqueUids.map(buildSeoSubField)
   };
+}
+
+/**
+ * Merge newly-discovered Yoast sub-field uids into an existing SEO global field definition,
+ * returning the union of sub-fields. Lets the schema accumulate across content types that each
+ * surface a different subset of Yoast keys, so no field is lost by write order.
+ */
+export function mergeSeoGlobalFieldDefinition(
+  existing: Record<string, any> | undefined,
+  subFieldUids: string[]
+): Record<string, any> {
+  const existingUids: string[] = Array.isArray(existing?.schema)
+    ? existing!.schema.map((f: any) => f?.uid).filter(Boolean)
+    : [];
+  return buildSeoGlobalFieldDefinition([...existingUids, ...subFieldUids]);
 }
