@@ -120,3 +120,79 @@ describe('entry-update.utils — enrichConfigWithAssetMapping (extra branches)',
     expect(written.__assetMapping__).toEqual({ old: {}, new: {} });
   });
 });
+
+// Covers the fix for the "reference fields blank on localized entries" bug:
+// entry-update-script.cjs needs entry uid-mapper data (flat + per-locale)
+// threaded into the config under __entryMapping__, the same way asset uids
+// already are under __assetMapping__.
+describe('entry-update.utils — enrichConfigWithEntryMapping', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('writes empty old/new entry mappings when no uid-mapper files exist', async () => {
+    mockExistsSync.mockReturnValue(false);
+    mockReadFileSync.mockReturnValue(JSON.stringify({ page: {} }));
+
+    const { enrichConfigWithEntryMapping } = await import('../../../src/utils/entry-update.utils.js');
+    enrichConfigWithEntryMapping('/tmp/config.json', 'p1', 1, '/tmp/x.log');
+
+    const write = mockWriteFileSync.mock.calls.find((c) => c[0] === '/tmp/config.json');
+    const written = JSON.parse(String(write?.[1]));
+    expect(written.__entryMapping__).toEqual({
+      old: { flat: {}, byLocale: {} },
+      new: { flat: {}, byLocale: {} },
+    });
+  });
+
+  it('reads new-iteration entry + entryByLocale maps from uid-mapper.json', async () => {
+    mockExistsSync.mockImplementation((p: string) => p.includes('/2/uid-mapper.json'));
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (p.includes('/2/uid-mapper.json')) {
+        return JSON.stringify({
+          entry: { 'src-a': 'cs-a' },
+          entryByLocale: { 'en-in': { 'src-a': 'cs-a-in' } },
+        });
+      }
+      return JSON.stringify({ page: {} }); // config file
+    });
+
+    const { enrichConfigWithEntryMapping } = await import('../../../src/utils/entry-update.utils.js');
+    enrichConfigWithEntryMapping('/tmp/config.json', 'p1', 2, '/tmp/x.log');
+
+    const write = mockWriteFileSync.mock.calls.find((c) => c[0] === '/tmp/config.json');
+    const written = JSON.parse(String(write?.[1]));
+    expect(written.__entryMapping__.new).toEqual({
+      flat: { 'src-a': 'cs-a' },
+      byLocale: { 'en-in': { 'src-a': 'cs-a-in' } },
+    });
+    expect(written.__entryMapping__.old).toEqual({ flat: {}, byLocale: {} });
+  });
+
+  it('reads both old (iteration-1) and new mappings when iteration > 1', async () => {
+    mockExistsSync.mockReturnValue(true);
+    mockReadFileSync.mockImplementation((p: string) => {
+      if (p.includes('/1/uid-mapper.json')) {
+        return JSON.stringify({ entry: { 'src-old': 'cs-old' }, entryByLocale: {} });
+      }
+      if (p.includes('/2/uid-mapper.json')) {
+        return JSON.stringify({ entry: { 'src-new': 'cs-new' }, entryByLocale: {} });
+      }
+      return JSON.stringify({ page: {} });
+    });
+
+    const { enrichConfigWithEntryMapping } = await import('../../../src/utils/entry-update.utils.js');
+    enrichConfigWithEntryMapping('/tmp/config.json', 'p1', 2, '/tmp/x.log');
+
+    const write = mockWriteFileSync.mock.calls.find((c) => c[0] === '/tmp/config.json');
+    const written = JSON.parse(String(write?.[1]));
+    expect(written.__entryMapping__.old.flat).toEqual({ 'src-old': 'cs-old' });
+    expect(written.__entryMapping__.new.flat).toEqual({ 'src-new': 'cs-new' });
+  });
+
+  it('swallows a read/parse error on the config file without throwing', async () => {
+    mockExistsSync.mockReturnValue(false);
+    mockReadFileSync.mockReturnValue('{ not json');
+
+    const { enrichConfigWithEntryMapping } = await import('../../../src/utils/entry-update.utils.js');
+    expect(() => enrichConfigWithEntryMapping('/tmp/config.json', 'p1', 1, '/tmp/x.log')).not.toThrow();
+  });
+});
