@@ -7,7 +7,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // default function export for testing.
 const require = createRequire(import.meta.url);
 const script = require('../../../src/utils/entry-update-script.cjs');
-const { isAssetField, resolveAssetField, mergeFlatPayloadIntoEntry } = script;
+const {
+  isAssetField,
+  resolveAssetField,
+  mergeFlatPayloadIntoEntry,
+  isReferenceValue,
+  isReferenceArray,
+  resolveReferenceUid,
+  resolveReferenceField,
+} = script;
 
 describe('entry-update-script — isAssetField', () => {
   it('is true only for objects carrying urlPath + filename', () => {
@@ -66,6 +74,91 @@ describe('entry-update-script — resolveAssetField (3-way resolution)', () => {
   });
 });
 
+describe('entry-update-script — isReferenceValue / isReferenceArray', () => {
+  it('recognizes the { uid, _content_type_uid } shape produced by processField', () => {
+    expect(isReferenceValue({ uid: 'src-1', _content_type_uid: 'author' })).toBe(true);
+  });
+
+  it('is false for asset shapes, primitives, and arrays', () => {
+    expect(isReferenceValue({ urlPath: '/x', filename: 'f.jpg' })).toBe(false);
+    expect(isReferenceValue(null)).toBeFalsy();
+    expect(isReferenceValue('str')).toBeFalsy();
+    expect(isReferenceValue([{ uid: 'a', _content_type_uid: 'b' }])).toBe(false);
+    expect(isReferenceValue({ uid: 'src-1' })).toBe(false); // missing _content_type_uid
+  });
+
+  it('recognizes a non-empty array of reference values (multi-reference field)', () => {
+    expect(isReferenceArray([{ uid: 'a', _content_type_uid: 'article' }, { uid: 'b', _content_type_uid: 'article' }])).toBe(true);
+  });
+
+  it('is false for an empty array or a mixed array', () => {
+    expect(isReferenceArray([])).toBe(false);
+    expect(isReferenceArray([{ uid: 'a', _content_type_uid: 'article' }, 'not-a-ref'])).toBe(false);
+  });
+});
+
+describe('entry-update-script — resolveReferenceUid', () => {
+  const locale = 'en-in';
+  const entryMapping = {
+    old: { flat: { 'src-1': 'cs-old-flat' }, byLocale: { 'en-in': { 'src-2': 'cs-old-locale' } } },
+    new: { flat: { 'src-3': 'cs-new-flat' }, byLocale: { 'en-in': { 'src-1': 'cs-new-locale' } } },
+  };
+
+  it('prefers the new per-locale mapping over everything else', () => {
+    expect(resolveReferenceUid('src-1', locale, entryMapping)).toBe('cs-new-locale');
+  });
+
+  it('falls back to the old per-locale mapping when no new per-locale entry exists', () => {
+    expect(resolveReferenceUid('src-2', locale, entryMapping)).toBe('cs-old-locale');
+  });
+
+  it('falls back to the flat new mapping when no per-locale entry exists at all', () => {
+    expect(resolveReferenceUid('src-3', locale, entryMapping)).toBe('cs-new-flat');
+  });
+
+  it('falls back to the flat old mapping as a last resort', () => {
+    const mapping = { old: { flat: { 'src-4': 'cs-old-flat-only' }, byLocale: {} }, new: { flat: {}, byLocale: {} } };
+    expect(resolveReferenceUid('src-4', locale, mapping)).toBe('cs-old-flat-only');
+  });
+
+  it('falls back to identity (source uid unchanged) when no mapping exists at all', () => {
+    expect(resolveReferenceUid('unmapped-src', locale, { old: { flat: {}, byLocale: {} }, new: { flat: {}, byLocale: {} } })).toBe('unmapped-src');
+  });
+
+  it('handles a missing/undefined entryMapping gracefully', () => {
+    expect(resolveReferenceUid('src-1', locale, undefined)).toBe('src-1');
+  });
+});
+
+describe('entry-update-script — resolveReferenceField', () => {
+  const locale = 'en-gb';
+  const entryMapping = { old: { flat: {}, byLocale: {} }, new: { flat: {}, byLocale: { 'en-gb': { 'author-src': 'author-cs' } } } };
+
+  it('remaps a single reference value uid', () => {
+    const out = resolveReferenceField('author', 'e1', { uid: 'author-src', _content_type_uid: 'author' }, locale, entryMapping);
+    expect(out).toEqual({ uid: 'author-cs', _content_type_uid: 'author' });
+  });
+
+  it('remaps every uid in a multi-reference array', () => {
+    const mapping = { old: { flat: {}, byLocale: {} }, new: { flat: {}, byLocale: { 'en-gb': { a1: 'a1-cs', a2: 'a2-cs' } } } };
+    const out = resolveReferenceField(
+      'relatedArticles',
+      'e1',
+      [{ uid: 'a1', _content_type_uid: 'article' }, { uid: 'a2', _content_type_uid: 'article' }],
+      locale,
+      mapping
+    );
+    expect(out).toEqual([
+      { uid: 'a1-cs', _content_type_uid: 'article' },
+      { uid: 'a2-cs', _content_type_uid: 'article' },
+    ]);
+  });
+
+  it('passes non-reference values through unchanged', () => {
+    expect(resolveReferenceField('title', 'e1', 'plain string', locale, entryMapping)).toBe('plain string');
+  });
+});
+
 describe('entry-update-script — mergeFlatPayloadIntoEntry', () => {
   it('merges flat fields into entry.content, resolves assets, and skips reserved keys', async () => {
     const update = vi.fn().mockResolvedValue(undefined);
@@ -87,6 +180,40 @@ describe('entry-update-script — mergeFlatPayloadIntoEntry', () => {
     expect(entry.content.uid).toBeUndefined(); // reserved key skipped
     expect(entry.content._version).toBeUndefined();
     expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves a reference field uid using entryMapping when localizing an existing entry (CMG delta bug)', async () => {
+    // Reproduces the bug: an export's reference field carries the SOURCE cms
+    // entry id (e.g. Contentful's id), which only equals the Contentstack uid
+    // by coincidence. Without entryMapping this used to be written verbatim,
+    // silently pointing at a non-existent uid on any locale added via restart.
+    const update = vi.fn().mockResolvedValue(undefined);
+    const entry: any = { title: 'old', content: {}, update };
+
+    const updateData = {
+      uid: 'should-be-skipped',
+      title: 'Article 1',
+      author: { uid: 'contentful-author-src-id', _content_type_uid: 'author' },
+    };
+
+    const entryMapping = {
+      old: { flat: {}, byLocale: {} },
+      new: { flat: {}, byLocale: { 'en-in': { 'contentful-author-src-id': 'real-cs-author-uid' } } },
+    };
+
+    await mergeFlatPayloadIntoEntry(entry, 'e1', updateData, {}, {}, undefined, 'en-in', entryMapping);
+
+    expect(entry.content.author).toEqual({ uid: 'real-cs-author-uid', _content_type_uid: 'author' });
+  });
+
+  it('falls back to the source uid unchanged when no entryMapping is supplied (back-compat)', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    const entry: any = { title: 'old', content: {}, update };
+    const updateData = { author: { uid: 'src-id', _content_type_uid: 'author' } };
+
+    await mergeFlatPayloadIntoEntry(entry, 'e1', updateData, {}, {}, undefined, 'en-in', undefined);
+
+    expect(entry.content.author).toEqual({ uid: 'src-id', _content_type_uid: 'author' });
   });
 });
 
