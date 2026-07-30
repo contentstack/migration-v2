@@ -4,6 +4,63 @@ const isAssetField = (value) =>
     value && typeof value === 'object' && !Array.isArray(value) &&
     'urlPath' in value && 'filename' in value;
 
+/** Shape produced by processField's 'reference' case: { uid, _content_type_uid }. */
+const isReferenceValue = (value) =>
+    value && typeof value === 'object' && !Array.isArray(value) &&
+    'uid' in value && '_content_type_uid' in value;
+
+const isReferenceArray = (value) =>
+    Array.isArray(value) && value.length > 0 && value.every(isReferenceValue);
+
+/**
+ * Resolves a source-side entry uid to its real Contentstack destination uid.
+ *
+ * The export JSON's reference fields carry the SOURCE cms entry id (see
+ * `contentful.service.ts`'s `createRefrence`), which only happens to equal the
+ * Contentstack uid when entries are imported preserving source ids. The
+ * bulk/master-locale import resolves this correctly via the CLI's own
+ * reference pass; this update path does not, so it needs the same uid-mapper
+ * data the asset resolution above already uses (see `entryMapping`).
+ *
+ * Preference order: per-locale mapping (most precise — handles entries that
+ * ended up as distinct Contentstack uids per locale across iterations) →
+ * flat mapping → identity fallback (keeps existing behavior when no mapping
+ * data exists, e.g. simple setups where source id equals destination uid).
+ */
+const resolveReferenceUid = (sourceUid, locale, entryMapping) => {
+    if (!sourceUid) return sourceUid;
+    const newByLocale = entryMapping?.new?.byLocale?.[locale]?.[sourceUid];
+    if (newByLocale) return newByLocale;
+    const oldByLocale = entryMapping?.old?.byLocale?.[locale]?.[sourceUid];
+    if (oldByLocale) return oldByLocale;
+    const newFlat = entryMapping?.new?.flat?.[sourceUid];
+    if (newFlat) return newFlat;
+    const oldFlat = entryMapping?.old?.flat?.[sourceUid];
+    if (oldFlat) return oldFlat;
+    return sourceUid;
+};
+
+/**
+ * Remaps the uid(s) inside a reference field value (single link object or
+ * array of link objects) to their Contentstack destination uids.
+ */
+const resolveReferenceField = (fieldName, entryUid, value, locale, entryMapping) => {
+    if (isReferenceValue(value)) {
+        const resolved = resolveReferenceUid(value.uid, locale, entryMapping);
+        if (resolved !== value.uid) {
+            console.info(`[${entryUid}] "${fieldName}"${locale ? ` (${locale})` : ''}: resolved reference uid "${value.uid}" → "${resolved}"`);
+        }
+        return { ...value, uid: resolved };
+    }
+    if (isReferenceArray(value)) {
+        return value.map((item) => {
+            const resolved = resolveReferenceUid(item.uid, locale, entryMapping);
+            return { ...item, uid: resolved };
+        });
+    }
+    return value;
+};
+
 /** Export JSON metadata — not Contentstack content-type field UIDs (WordPress entries are flat). */
 const FLAT_PAYLOAD_SKIP = new Set([
     'uid',
@@ -68,7 +125,7 @@ const resolveAssetField = (fieldName, entryUid, updateValue, stackValue, oldMapp
  * WordPress (and similar) write migration JSON with fields at the root (email, url, …).
  * Fetched stack entries keep custom fields under entry.content — merge flat updateData there.
  */
-const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping, updateOpts) => {
+const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping, updateOpts, locale, entryMapping) => {
     for (const field of Object.keys(updateData)) {
         if (FLAT_PAYLOAD_SKIP.has(field)) {
             continue;
@@ -89,6 +146,8 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
                 oldMapping,
                 newMapping
             );
+        } else if (isReferenceValue(nextVal) || isReferenceArray(nextVal)) {
+            nextVal = resolveReferenceField(field, entryUid, nextVal, locale, entryMapping);
         }
         entry.content[field] = nextVal;
     }
@@ -103,6 +162,9 @@ module.exports = async ({
     const assetMapping = config.__assetMapping__ || { old: {}, new: {} };
     delete config.__assetMapping__;
 
+    const entryMapping = config.__entryMapping__ || { old: { flat: {}, byLocale: {} }, new: { flat: {}, byLocale: {} } };
+    delete config.__entryMapping__;
+
     // Assets the user chose to update in place (same UID, new file).
     const assetUpdates = Array.isArray(config.__assetUpdates__) ? config.__assetUpdates__ : [];
     delete config.__assetUpdates__;
@@ -110,6 +172,7 @@ module.exports = async ({
     const oldMapping = assetMapping.old || {};
     const newMapping = assetMapping.new || {};
     console.info(`Asset mappings loaded — old: ${Object.keys(oldMapping).length}, new: ${Object.keys(newMapping).length}`);
+    console.info(`Entry mappings loaded — old: ${Object.keys(entryMapping?.old?.flat || {}).length} flat / ${Object.keys(entryMapping?.old?.byLocale || {}).length} locales, new: ${Object.keys(entryMapping?.new?.flat || {}).length} flat / ${Object.keys(entryMapping?.new?.byLocale || {}).length} locales`);
     console.info(`Asset updates to replace in place: ${assetUpdates.length}`);
 
     const contentTypes = Object.keys(config);
@@ -187,13 +250,21 @@ module.exports = async ({
                                             oldMapping,
                                             newMapping
                                         );
+                                    } else if (isReferenceValue(updateData?.content[field]) || isReferenceArray(updateData?.content[field])) {
+                                        updateData.content[field] = resolveReferenceField(
+                                            field,
+                                            entryUid,
+                                            updateData?.content[field],
+                                            locale,
+                                            entryMapping
+                                        );
                                     }
                                 }
                                 Object.assign(entry?.content, updateData?.content);
                                 await entry.update(updateOpts);
                             } else if (hasStackContent) {
                                 console.info(`[${realEntryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)${locale ? ` for locale "${locale}"` : ''}`);
-                                await mergeFlatPayloadIntoEntry(entry, realEntryUid, updateData, oldMapping, newMapping, updateOpts);
+                                await mergeFlatPayloadIntoEntry(entry, realEntryUid, updateData, oldMapping, newMapping, updateOpts, locale, entryMapping);
                             } else {
                                 if (updateData && entry) {
                                     for (const field of Object.keys(updateData)) {
@@ -205,6 +276,14 @@ module.exports = async ({
                                                 entry[field],
                                                 oldMapping,
                                                 newMapping
+                                            );
+                                        } else if (isReferenceValue(updateData[field]) || isReferenceArray(updateData[field])) {
+                                            updateData[field] = resolveReferenceField(
+                                                field,
+                                                entryUid,
+                                                updateData[field],
+                                                locale,
+                                                entryMapping
                                             );
                                         }
                                     }
@@ -237,3 +316,7 @@ module.exports = async ({
 module.exports.isAssetField = isAssetField;
 module.exports.resolveAssetField = resolveAssetField;
 module.exports.mergeFlatPayloadIntoEntry = mergeFlatPayloadIntoEntry;
+module.exports.isReferenceValue = isReferenceValue;
+module.exports.isReferenceArray = isReferenceArray;
+module.exports.resolveReferenceUid = resolveReferenceUid;
+module.exports.resolveReferenceField = resolveReferenceField;
