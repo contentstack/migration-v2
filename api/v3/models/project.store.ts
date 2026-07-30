@@ -3,7 +3,13 @@ import path from "path";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 
-import { V3GraphSummary, V3LastExport, V3Project, V3Source } from "./types.js";
+import {
+  V3Destination,
+  V3GraphSummary,
+  V3LastExport,
+  V3Project,
+  V3Source,
+} from "./types.js";
 
 /**
  * v3 project store — a standalone lowdb JSON store, separate from v2's
@@ -75,6 +81,39 @@ export const upsertV3Source = async (
 
   await db.write();
   return merged;
+};
+
+/**
+ * Upserts the destination SELECTION onto a v3 project (trd.md API-1 / DM-1).
+ * Additive and independent of `source`: writing a destination never touches the
+ * source sub-document, so this feature can never corrupt Source's data.
+ * Creates a minimal record if the project doesn't exist yet.
+ */
+export const upsertV3Destination = async (
+  orgId: string,
+  projectId: string,
+  incoming: V3Destination,
+  nowIso: string
+): Promise<V3Destination> => {
+  await db.read();
+  const existing = db.data.projects.find((p) => p.id === projectId);
+
+  if (existing) {
+    existing.destination = incoming;
+    existing.updated_at = nowIso;
+    if (!existing.org_id) existing.org_id = orgId;
+  } else {
+    db.data.projects.push({
+      id: projectId,
+      org_id: orgId,
+      destination: incoming,
+      created_at: nowIso,
+      updated_at: nowIso,
+    });
+  }
+
+  await db.write();
+  return incoming;
 };
 
 /**

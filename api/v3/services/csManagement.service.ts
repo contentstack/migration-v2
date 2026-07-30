@@ -94,6 +94,34 @@ const csGet = async (url: string, headers: Record<string, string>): Promise<any>
   }
 };
 
+/** POST counterpart of `csGet`, with the same 429 backoff and error mapping. */
+const csPost = async (
+  url: string,
+  body: unknown,
+  headers: Record<string, string>
+): Promise<any> => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await axios.post(url, body, { headers, timeout: 60_000 });
+      return res.data;
+    } catch (e: any) {
+      const status = e?.response?.status ?? HTTP_CODES.SERVER_ERROR;
+      if (status === RATE_LIMIT_STATUS && attempt < rateLimitMaxRetries()) {
+        const retryAfter = Number(e?.response?.headers?.["retry-after"]);
+        const delay = retryAfter > 0 ? retryAfter * 1000 : rateLimitBaseDelayMs() * 2 ** attempt;
+        await sleep(delay);
+        continue;
+      }
+      const message =
+        e?.response?.data?.error_message ?? e?.message ?? "Contentstack API error";
+      throw new CsError(status, message);
+    }
+  }
+};
+
+/** Deterministic thousands separators regardless of the host's default locale. */
+const fmt = (n: number): string => n.toLocaleString("en-US");
+
 export const csManagement = {
   /** Static list of regions configured for the current environment. */
   regions: () => CS_REGIONS.map((code) => ({ value: code, label: code })),
@@ -308,6 +336,147 @@ export const csManagement = {
       if (batch.length === 0 || skip >= total) break;
     }
     return all;
+  },
+
+  // ---- Destination panel (trd.md TR-11, TR-13, TR-14) ----
+
+  /**
+   * Creates a new stack in an organization (API-4 / FR-1.5). Contentstack itself
+   * rejects a name that collides with an existing stack in the org; that 400 is
+   * surfaced verbatim so the UI can show "already exists" (EC-3). Non-idempotent
+   * — callers MUST NOT retry blindly (TRR-5).
+   */
+  createStack: async (
+    tp: TokenPayload | undefined,
+    orgId: string,
+    name: string,
+    description?: string
+  ): Promise<{ apiKey: string; name: string; description?: string }> => {
+    const region = tp?.region as string;
+    const headers = { ...(await authHeaders(tp)), organization_uid: orgId };
+    const data = await csPost(
+      `${hostFor(region)}/stacks`,
+      { stack: { name, ...(description ? { description } : {}) } },
+      headers
+    );
+    const stack = data?.stack;
+    if (!stack?.api_key) {
+      throw new CsError(HTTP_CODES.SERVER_ERROR, "Unexpected response from Contentstack.");
+    }
+    return {
+      apiKey: stack.api_key,
+      name: stack.name,
+      ...(stack.description ? { description: stack.description } : {}),
+    };
+  },
+
+  /** Modules a migration import must be able to read AND write. */
+  managementTokenModules: [
+    "content_type",
+    "entry",
+    "asset",
+    "global_field",
+    "environment",
+    "locale",
+  ],
+
+  /**
+   * Creates a read+write management token on the destination stack (API-3 /
+   * FR-3.3). Contentstack returns the secret exactly once, at creation. A
+   * duplicate token name on the same stack surfaces as a 400 so the UI can show
+   * "already exists" (EC-13). Non-idempotent (TRR-6).
+   */
+  createManagementToken: async (
+    tp: TokenPayload | undefined,
+    stackApiKey: string,
+    name: string
+  ): Promise<{ uid: string; name: string; secret: string }> => {
+    const region = tp?.region as string;
+    const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
+    const scope = csManagement.managementTokenModules.map((module) => ({
+      module,
+      acl: { read: true, write: true },
+    }));
+    const data = await csPost(
+      `${hostFor(region)}/stacks/management_tokens`,
+      { token: { name, scope } },
+      headers
+    );
+    const token = data?.token;
+    if (!token?.uid || !token?.token) {
+      throw new CsError(HTTP_CODES.SERVER_ERROR, "Unexpected response from Contentstack.");
+    }
+    return { uid: token.uid, name: token.name ?? name, secret: token.token };
+  },
+
+  /**
+   * Existing content statistics for the destination stack, for the "Stack
+   * contents" card (API-5 / FR-10.2–10.4). `isEmpty` is driven by the content-type
+   * count — a stack with no content types has nothing that could be overwritten.
+   * Individual count failures degrade to 0 rather than failing the whole card.
+   */
+  getStackStats: async (
+    tp: TokenPayload | undefined,
+    stackApiKey: string
+  ): Promise<{ isEmpty: boolean; stats: { label: string; value: string }[] }> => {
+    const region = tp?.region as string;
+    const host = hostFor(region);
+    const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
+
+    const cts = (await csGet(`${host}/content_types`, headers))?.content_types ?? [];
+
+    const [globalFields, assets, locales, branches] = await Promise.all([
+      csGet(`${host}/global_fields`, headers)
+        .then((d) => (d?.global_fields ?? []).length)
+        .catch(() => 0),
+      csGet(`${host}/assets?include_count=true&limit=1`, headers)
+        .then((d) => Number(d?.count ?? 0))
+        .catch(() => 0),
+      csGet(`${host}/locales`, headers)
+        .then((d) => (d?.locales ?? []).length)
+        .catch(() => 0),
+      csGet(`${host}/stacks/branches`, headers)
+        .then((d) => (d?.branches ?? []).length)
+        .catch(() => 0),
+    ]);
+
+    const entries = (
+      await Promise.all(
+        cts
+          .filter((ct: any) => ct?.uid)
+          .map((ct: any) =>
+            csGet(
+              `${host}/content_types/${ct.uid}/entries?include_count=true&limit=1`,
+              headers
+            )
+              .then((d) => Number(d?.count ?? 0))
+              .catch(() => 0)
+          )
+      )
+    ).reduce((sum: number, c: number) => sum + c, 0);
+
+    return {
+      isEmpty: cts.length === 0,
+      stats: [
+        { label: "Content types", value: fmt(cts.length) },
+        { label: "Global fields", value: fmt(globalFields) },
+        { label: "Entries", value: fmt(entries) },
+        { label: "Assets", value: fmt(assets) },
+        { label: "Locales", value: fmt(locales) },
+        { label: "Branches", value: fmt(branches) },
+      ],
+    };
+  },
+
+  /** Locales configured on a stack — feeds the destination locale dropdowns. */
+  listLocales: async (
+    tp: TokenPayload | undefined,
+    stackApiKey: string
+  ): Promise<{ code: string; name?: string }[]> => {
+    const region = tp?.region as string;
+    const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
+    const data = await csGet(`${hostFor(region)}/locales`, headers);
+    return (data?.locales ?? []).map((l: any) => ({ code: l?.code, name: l?.name }));
   },
 
   /**

@@ -53,10 +53,50 @@ export interface V3Source {
   lastExport?: V3LastExport;
 }
 
+// ---- Destination (Content Map & Audit — Destination panel), trd.md DM-1 ----
+
+export type V3ImportAuthMethod = "management" | "authToken";
+
+export interface V3DestinationStack {
+  apiKey: string;
+  name: string;
+  /** Distinguishes a stack created via API-4 from one picked off the existing list. */
+  wasCreated: boolean;
+  description?: string;
+}
+
+/**
+ * How the later import authenticates against the destination stack. For
+ * `authToken` no fields are stored — it is a deferred, per-region credential
+ * lookup at migrate time (feature.md FR-3.7). For `management` only the token's
+ * NAME and uid are persisted; the secret is never written here (NFR-1 / TQ-2).
+ */
+export interface V3ImportAuth {
+  method: V3ImportAuthMethod;
+  managementToken?: { name: string; uid?: string };
+}
+
+export interface V3LocaleMapping {
+  srcLocale: string;
+  destLocale: string;
+}
+
+export interface V3Destination {
+  region: string;
+  orgId: string;
+  stack: V3DestinationStack;
+  importAuth: V3ImportAuth;
+  /** Singular, not a list — there is only ever one selected source branch. */
+  branchMapping: { srcBranch: string; destBranch: string };
+  masterLocaleMapping: V3LocaleMapping;
+  additionalLanguageMappings: V3LocaleMapping[];
+}
+
 export interface V3Project {
   id: string;
   org_id: string;
   source?: V3Source;
+  destination?: V3Destination;
   created_at: string;
   updated_at: string;
 }

@@ -4,6 +4,8 @@ import { authenticateV3User } from "./middlewares/auth.middleware.js";
 import { v3ErrorMiddleware } from "./middlewares/error.middleware.js";
 import sourceRoutes from "./routes/source.routes.js";
 import projectSourceRoutes from "./routes/projectSource.routes.js";
+import destinationRoutes from "./routes/destination.routes.js";
+import projectDestinationRoutes from "./routes/projectDestination.routes.js";
 
 /**
  * v3 API router — fully standalone. Composed here and mounted once at `/v3`
@@ -23,6 +25,14 @@ v3.use(
   "/org/:orgId/project/:projectId/source",
   authenticateV3User,
   projectSourceRoutes
+);
+
+// Destination panel (Content Map & Audit) — all endpoints require the app_token JWT.
+v3.use("/destination", authenticateV3User, destinationRoutes);
+v3.use(
+  "/org/:orgId/project/:projectId/destination",
+  authenticateV3User,
+  projectDestinationRoutes
 );
 
 // v3-local error handler (mounted last).

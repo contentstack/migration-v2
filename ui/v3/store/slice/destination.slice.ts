@@ -1,0 +1,350 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+/**
+ * v3 Destination panel state (Content Map & Audit — Destination panel).
+ * Mirrors trd.md DM-1: the persisted shape is region / orgId / stack /
+ * importAuth / branchMapping (singular) / masterLocaleMapping /
+ * additionalLanguageMappings.
+ *
+ * The locked halves of the two mapping rows (`branchMapping.srcBranch`,
+ * `masterLocaleMapping.srcLocale`) are inherited from the persisted SOURCE
+ * selection and are never editable here (FR-9.1 / FR-4.1).
+ */
+export type ImportAuthMethod = 'management' | 'authToken';
+
+export interface Option {
+  value: string;
+  label: string;
+}
+export interface LocaleMapping {
+  srcLocale: string;
+  destLocale: string;
+}
+export interface StackStat {
+  label: string;
+  value: string;
+}
+export interface StackStats {
+  isEmpty: boolean;
+  stats: StackStat[];
+}
+
+/** Read-only view of the persisted source this panel depends on (DEP-1 / FR-8.3). */
+interface SourceContext {
+  ready: boolean;
+  region: string;
+  branch: string;
+  masterLocale: string;
+}
+
+interface CreateStackState {
+  open: boolean;
+  name: string;
+  description: string;
+  loading: boolean;
+  error?: string;
+}
+
+/** Cross-region destination authentication modal (real Contentstack login). */
+interface RegionLoginState {
+  open: boolean;
+  region?: string;
+  prevRegion?: string;
+  email: string;
+  password: string;
+  loading: boolean;
+  error?: string;
+}
+
+interface DestinationState {
+  regions: Option[];
+  orgs: Option[];
+  stacks: Option[];
+  branches: Option[];
+  locales: Option[];
+  /** The session's already-authenticated region (no login needed to use it). */
+  homeRegion: string;
+  /** Regions unlocked this session via region-login: region -> resolved userId. */
+  regionAuth: Record<string, string>;
+  region: string;
+  org: string;
+  stackApiKey: string;
+  stackName: string;
+  /** True only for a stack this panel created via UC-7 (drives EC-12 + UC-9a). */
+  stackWasCreated: boolean;
+  importAuth: { method?: ImportAuthMethod; managementTokenName: string };
+  appsWarningDismissed: boolean;
+  branchMapping: { srcBranch: string; destBranch: string };
+  masterLocaleMapping: LocaleMapping;
+  additionalLanguageMappings: LocaleMapping[];
+  createStack: CreateStackState;
+  stackStats?: StackStats;
+  statsLoading: boolean;
+  source: SourceContext;
+  regionLogin: RegionLoginState;
+  saving: boolean;
+  error?: string;
+  /** Set once the selection is persisted and the wizard may advance (FR-6.3). */
+  proceeded: boolean;
+}
+
+const initialRegionLogin: RegionLoginState = {
+  open: false,
+  email: '',
+  password: '',
+  loading: false,
+};
+
+const initialCreateStack: CreateStackState = {
+  open: false,
+  name: '',
+  description: '',
+  loading: false,
+};
+
+const initialState: DestinationState = {
+  regions: [],
+  orgs: [],
+  stacks: [],
+  branches: [],
+  locales: [],
+  homeRegion: '',
+  regionAuth: {},
+  region: '',
+  org: '',
+  stackApiKey: '',
+  stackName: '',
+  stackWasCreated: false,
+  importAuth: { method: undefined, managementTokenName: '' },
+  appsWarningDismissed: false,
+  branchMapping: { srcBranch: '', destBranch: '' },
+  masterLocaleMapping: { srcLocale: '', destLocale: '' },
+  additionalLanguageMappings: [],
+  createStack: { ...initialCreateStack },
+  statsLoading: false,
+  source: { ready: false, region: '', branch: '', masterLocale: '' },
+  regionLogin: initialRegionLogin,
+  saving: false,
+  proceeded: false,
+};
+
+const destinationSlice = createSlice({
+  name: 'v3Destination',
+  initialState,
+  reducers: {
+    setRegions: (state, action: PayloadAction<Option[]>) => {
+      state.regions = action.payload;
+    },
+    setOrgs: (state, action: PayloadAction<Option[]>) => {
+      state.orgs = action.payload;
+    },
+    setStacks: (state, action: PayloadAction<Option[]>) => {
+      state.stacks = action.payload;
+    },
+    setBranches: (state, action: PayloadAction<Option[]>) => {
+      state.branches = action.payload;
+    },
+    setLocales: (state, action: PayloadAction<Option[]>) => {
+      state.locales = action.payload;
+    },
+    setField: (
+      state,
+      action: PayloadAction<{ field: keyof DestinationState; value: any }>
+    ) => {
+      (state as any)[action.payload.field] = action.payload.value;
+    },
+
+    // ---- import authentication (FR-3.1–3.6) ----
+    /** Switching method discards the method being left's entered token name
+     * (EC-9). Re-selecting the ALREADY-active method is not a switch, so the
+     * value the user typed survives. */
+    setImportMethod: (state, action: PayloadAction<ImportAuthMethod>) => {
+      if (state.importAuth.method === action.payload) return;
+      state.importAuth = { method: action.payload, managementTokenName: '' };
+      state.appsWarningDismissed = false;
+    },
+    setManagementTokenName: (state, action: PayloadAction<string>) => {
+      state.importAuth.managementTokenName = action.payload;
+    },
+    dismissAppsWarning: (state) => {
+      state.appsWarningDismissed = true;
+    },
+
+    // ---- branch + language mapping (FR-9.x, FR-4.x) ----
+    setDestBranch: (state, action: PayloadAction<string>) => {
+      state.branchMapping.destBranch = action.payload;
+    },
+    setDestMasterLocale: (state, action: PayloadAction<string>) => {
+      state.masterLocaleMapping.destLocale = action.payload;
+    },
+    addLanguageRow: (state) => {
+      state.additionalLanguageMappings.push({ srcLocale: '', destLocale: '' });
+    },
+    removeLanguageRow: (state, action: PayloadAction<number>) => {
+      state.additionalLanguageMappings.splice(action.payload, 1);
+    },
+    setLanguageRow: (
+      state,
+      action: PayloadAction<{ index: number; field: keyof LocaleMapping; value: string }>
+    ) => {
+      const row = state.additionalLanguageMappings[action.payload.index];
+      if (row) row[action.payload.field] = action.payload.value;
+    },
+
+    // ---- create a new stack (UC-7 / FR-1.4–1.6) ----
+    openCreateStack: (state) => {
+      state.createStack = { ...initialCreateStack, open: true };
+    },
+    /** Cancel creates nothing and discards the typed draft (FR-1.6 / AC-7.3). */
+    cancelCreateStack: (state) => {
+      state.createStack = { ...initialCreateStack };
+    },
+    setCreateStackField: (
+      state,
+      action: PayloadAction<{ field: 'name' | 'description'; value: string }>
+    ) => {
+      state.createStack[action.payload.field] = action.payload.value;
+      state.createStack.error = undefined;
+    },
+    setCreateStackLoading: (state, action: PayloadAction<boolean>) => {
+      state.createStack.loading = action.payload;
+    },
+    setCreateStackError: (state, action: PayloadAction<string | undefined>) => {
+      state.createStack.error = action.payload;
+      state.createStack.loading = false;
+    },
+    /** A newly created stack is always empty (UC-9a), so its stats are known
+     * without a fetch — and the previous stack's stats must not linger. */
+    stackCreated: (state, action: PayloadAction<{ apiKey: string; name: string }>) => {
+      state.stackApiKey = action.payload.apiKey;
+      state.stackName = action.payload.name;
+      state.stackWasCreated = true;
+      state.createStack = { ...initialCreateStack };
+      state.stackStats = { isEmpty: true, stats: [] };
+      state.statsLoading = false;
+    },
+
+    // ---- "Stack contents" card (FR-10.x) ----
+    setStackStats: (state, action: PayloadAction<StackStats | undefined>) => {
+      state.stackStats = action.payload;
+      state.statsLoading = false;
+    },
+    setStatsLoading: (state, action: PayloadAction<boolean>) => {
+      state.statsLoading = action.payload;
+    },
+
+    /** Persisted-source context (FR-8.3): also seeds the two locked mapping halves. */
+    setSourceContext: (state, action: PayloadAction<SourceContext>) => {
+      state.source = action.payload;
+      state.branchMapping.srcBranch = action.payload.branch;
+      state.masterLocaleMapping.srcLocale = action.payload.masterLocale;
+    },
+
+    // ---- cross-region destination authentication (FR-2.1–2.4) ----
+    openRegionLogin: (
+      state,
+      action: PayloadAction<{ region: string; prevRegion: string }>
+    ) => {
+      state.region = action.payload.region;
+      state.regionLogin = {
+        ...initialRegionLogin,
+        open: true,
+        region: action.payload.region,
+        prevRegion: action.payload.prevRegion,
+      };
+    },
+    cancelRegionLogin: (state) => {
+      if (state.regionLogin.prevRegion !== undefined) {
+        state.region = state.regionLogin.prevRegion;
+      }
+      state.regionLogin = initialRegionLogin;
+    },
+    setRegionLoginField: (
+      state,
+      action: PayloadAction<{ field: 'email' | 'password'; value: string }>
+    ) => {
+      state.regionLogin[action.payload.field] = action.payload.value;
+      state.regionLogin.error = undefined;
+    },
+    setRegionLoginLoading: (state, action: PayloadAction<boolean>) => {
+      state.regionLogin.loading = action.payload;
+    },
+    setRegionLoginError: (state, action: PayloadAction<string | undefined>) => {
+      state.regionLogin.error = action.payload;
+      state.regionLogin.loading = false;
+    },
+    regionAuthed: (
+      state,
+      action: PayloadAction<{ region: string; userId: string }>
+    ) => {
+      state.regionAuth[action.payload.region] = action.payload.userId;
+      state.regionLogin = initialRegionLogin;
+    },
+
+    // ---- persist / resume (FR-6.3, UC-5) ----
+    setSaving: (state, action: PayloadAction<boolean>) => {
+      state.saving = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | undefined>) => {
+      state.error = action.payload;
+    },
+    setProceeded: (state, action: PayloadAction<boolean>) => {
+      state.proceeded = action.payload;
+    },
+
+    /**
+     * Restore a previously persisted destination (UC-5 / AC-5.1). Tolerates a
+     * partial document: anything absent keeps its current value rather than
+     * being wiped, so a narrower persisted shape can never blank the form.
+     */
+    hydrate: (state, action: PayloadAction<Record<string, any>>) => {
+      const d = action.payload ?? {};
+      if (d.region !== undefined) state.region = d.region;
+      if (d.orgId !== undefined) state.org = d.orgId;
+      if (d.stack) {
+        state.stackApiKey = d.stack.apiKey ?? state.stackApiKey;
+        state.stackName = d.stack.name ?? state.stackName;
+        state.stackWasCreated = !!d.stack.wasCreated;
+      }
+      if (d.importAuth?.method) {
+        state.importAuth = {
+          method: d.importAuth.method,
+          managementTokenName: d.importAuth.managementToken?.name ?? '',
+        };
+      }
+      if (d.branchMapping) state.branchMapping = { ...d.branchMapping };
+      if (d.masterLocaleMapping) state.masterLocaleMapping = { ...d.masterLocaleMapping };
+      if (d.additionalLanguageMappings) {
+        state.additionalLanguageMappings = d.additionalLanguageMappings.map(
+          (m: LocaleMapping) => ({ ...m })
+        );
+      }
+    },
+
+    reset: () => initialState,
+  },
+});
+
+/**
+ * FR-6.1 gate: every required field set AND the persisted source ready.
+ * A pure derivation of state, so both the panel and the Proceed thunk can share
+ * one definition of "ready" (and the panel can use it without pulling in thunks).
+ */
+export const canProceed = (d: DestinationState): boolean => {
+  const authComplete =
+    d.importAuth.method === 'authToken' ||
+    (d.importAuth.method === 'management' && !!d.importAuth.managementTokenName.trim());
+  return !!d.region && !!d.org && !!d.stackApiKey && authComplete && d.source.ready;
+};
+
+/** Display name for the selected destination stack: a created stack carries its
+ * own name; an existing one is labelled by the stack list it came from. */
+export const destStackLabel = (s: {
+  stackApiKey: string;
+  stackName: string;
+  stacks: Option[];
+}): string =>
+  s.stacks.find((o) => o.value === s.stackApiKey)?.label || s.stackName || '';
+
+export const destinationActions = destinationSlice.actions;
+export default destinationSlice.reducer;

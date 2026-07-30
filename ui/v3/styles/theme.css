@@ -12,9 +12,10 @@
   --gray-300: #D2CDDF; --gray-400: #ABA4BD; --gray-500: #7E7691; --gray-600: #5A5369;
   --gray-700: #403A4D; --gray-800: #272232; --gray-900: #161320;
 
-  --green-50: #E7F7F0; --green-600: #0E8359;
-  --amber-50: #FDF3E2; --amber-600: #B97505;
-  --red-50: #FDECEC;  --red-600: #C32A2A;
+  --green-50: #E7F7F0; --green-500: #16A06E; --green-600: #0E8359;
+  --amber-50: #FDF3E2; --amber-500: #E29208; --amber-600: #B97505;
+  --red-50: #FDECEC;   --red-500: #E23B3B;   --red-600: #C32A2A;
+  --blue-50: #E9F1FE;  --blue-500: #2F6BED;  --blue-600: #1E54C9;
 
   --brand: var(--violet-400); --brand-strong: var(--violet-600); --brand-stronger: var(--violet-700);
   --brand-subtle: var(--violet-50); --brand-subtle-2: var(--violet-100);
@@ -24,28 +25,52 @@
 
   --surface-page: var(--gray-50); --surface-card: var(--gray-0);
   --surface-sunken: var(--gray-100); --surface-inset: var(--gray-200);
+  --surface-brand: var(--violet-600);
 
   --border-subtle: var(--gray-200); --border-default: var(--gray-300); --border-strong: var(--gray-400);
   --border-brand: var(--violet-400);
+  --ring-focus: color-mix(in oklch, var(--violet-500) 45%, transparent);
 
   --success: var(--green-600); --success-surface: var(--green-50);
   --warning: var(--amber-600); --warning-surface: var(--amber-50);
   --danger: var(--red-600); --danger-surface: var(--red-50);
+  --info: var(--blue-600); --info-surface: var(--blue-50);
 
-  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-pill: 999px;
+  --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+  --radius-xl: 16px; --radius-2xl: 24px; --radius-pill: 999px;
   --shadow-xs: 0 1px 2px rgba(22,19,32,.06);
   --shadow-sm: 0 1px 3px rgba(22,19,32,.08), 0 1px 2px rgba(22,19,32,.04);
   --shadow-md: 0 4px 12px rgba(22,19,32,.08), 0 2px 4px rgba(22,19,32,.04);
   --shadow-lg: 0 12px 28px rgba(22,19,32,.12), 0 4px 8px rgba(22,19,32,.05);
+  --shadow-xl: 0 24px 56px rgba(22,19,32,.16);
   --shadow-brand: 0 8px 24px rgba(124,58,240,.28);
 
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
+  /* Type scale */
+  --text-h1: 2.5rem; --text-h2: 2rem; --text-h3: 1.5rem; --text-h4: 1.25rem;
+  --text-lg: 1.125rem; --text-base: 1rem; --text-sm: .875rem; --text-xs: .75rem;
+  --ls-tight: -.02em; --ls-snug: -.01em; --ls-wide: .04em;
+  --lh-tight: 1.1; --lh-snug: 1.25; --lh-normal: 1.5; --lh-relaxed: 1.65;
+
+  /* Control heights + motion */
+  --control-sm: 32px; --control-md: 40px; --control-lg: 48px;
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(.3, 0, 0, 1);
+  --ease-out: cubic-bezier(0, 0, .2, 1);
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 320ms;
+
   font-family: var(--font-sans);
   color: var(--text-body);
   -webkit-font-smoothing: antialiased;
 }
+
+/* The design system's base.css applies `box-sizing: border-box` globally. v3 is
+   standalone, so it must set this within its own scope rather than inheriting a
+   reset from the v2 app — without it, padding adds to declared widths and the
+   panel's min-width columns overflow their card at narrow viewports. */
+.v3-scope, .v3-scope *, .v3-scope *::before, .v3-scope *::after { box-sizing: border-box; }
 
 /* ---- reusable primitives (design-system look) ---- */
 .v3-scope .v3-card {
@@ -56,6 +81,12 @@
 }
 .v3-scope .v3-eyebrow {
   font-size: 10px; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--brand-strong);
+}
+/* The design system's own `.cs-eyebrow` (12px / .04em) — used by the modals,
+   where the design applies that class rather than the panel's inline 10px style. */
+.v3-scope .v3-eyebrow-lg {
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--ls-wide);
   text-transform: uppercase; color: var(--brand-strong);
 }
 .v3-scope .v3-label {
@@ -72,7 +103,7 @@
   background-repeat: no-repeat; background-position: right 10px center;
   transition: border-color var(--dur-fast, 120ms), box-shadow 120ms;
 }
-.v3-scope .v3-field:focus { outline: none; border-color: var(--brand-strong); box-shadow: 0 0 0 3px color-mix(in oklch, var(--violet-500) 30%, transparent); }
+.v3-scope .v3-field:focus { outline: none; border-color: var(--brand-strong); box-shadow: 0 0 0 3px var(--ring-focus); }
 .v3-scope .v3-field:disabled { background: var(--surface-sunken); color: var(--text-subtle); cursor: not-allowed; }
 
 /* V3Select option list — hover/selected use CSS so pointer position drives the highlight live */
@@ -93,6 +124,37 @@
 .v3-scope .v3-btn:disabled { background: var(--violet-200); box-shadow: none; cursor: not-allowed; }
 .v3-scope .v3-btn--secondary { background: var(--surface-card); color: var(--text-strong); border: 1px solid var(--border-default); box-shadow: none; }
 .v3-scope .v3-btn--secondary:hover:not(:disabled) { background: var(--surface-sunken); }
+
+/* Hover states from the design's `style-hover` attributes. These need real CSS
+   rules — inline React styles cannot express :hover — so the hoverable
+   properties live here rather than inline, where they would win the cascade.
+   The auth card keeps its border inline (it encodes the selected state), so its
+   hover is scoped to the UNSELECTED card and marked important to beat inline. */
+.v3-scope .v3-authcard[aria-checked='false']:hover { border-color: var(--brand-strong) !important; }
+
+.v3-scope .v3-iconbtn { background: transparent; color: var(--text-subtle); }
+.v3-scope .v3-iconbtn:hover { background: rgba(0, 0, 0, .06); color: var(--text-strong); }
+
+.v3-scope .v3-rowremove { background: transparent; color: var(--text-subtle); }
+.v3-scope .v3-rowremove:hover { background: var(--danger-surface); color: var(--danger); }
+
+.v3-scope .v3-addrow {
+  border: 1px dashed var(--border-strong); background: transparent; color: var(--brand-strong);
+  transition: border-color var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
+}
+.v3-scope .v3-addrow:hover { border-color: var(--brand-strong); background: var(--brand-subtle); }
+
+.v3-scope .v3-modalclose { background: transparent; color: var(--text-subtle); }
+.v3-scope .v3-modalclose:hover { background: var(--surface-sunken); color: var(--text-strong); }
+
+/* Design-system base.css focus ring — every keyboard-reachable control gets a
+   visible ring (feature.md NFR-3). Applies to the radio-style method cards and
+   the mapping-row remove buttons, which are not .v3-field/.v3-btn. */
+.v3-scope :focus-visible {
+  outline: 3px solid var(--ring-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
 
 @keyframes v3-spin { to { transform: rotate(360deg); } }
 @keyframes v3-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(1.3); } }
