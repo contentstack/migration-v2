@@ -108,7 +108,7 @@ describe('v3 StackPanel', () => {
       store.dispatch(sourceActions.setStackField({ field: 'org', value: 'o1' }));
       store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
     });
-    expect((screen.getByLabelText('Branch') as HTMLSelectElement).value).toBe('main');
+    expect(screen.getByLabelText('Branch')).toHaveTextContent('main');
   });
 
   // Negative — loaded branches appear as selectable options (not stuck at main-only).
@@ -121,6 +121,7 @@ describe('v3 StackPanel', () => {
         { value: 'develop', label: 'develop' },
       ]));
     });
+    fireEvent.click(screen.getByLabelText('Branch'));
     expect(screen.getByRole('option', { name: 'develop' })).toBeInTheDocument();
   });
 

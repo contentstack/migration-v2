@@ -178,7 +178,7 @@ export const loadStackModules =
 /** Upload + validate a bundle, then load its modules (file mode). */
 export const uploadFile = (file: File) => async (dispatch: V3Dispatch) => {
   dispatch(sourceActions.setError(undefined));
-  dispatch(sourceActions.setRunning(true));
+  dispatch(sourceActions.setValidating(true));
   try {
     const { data } = await sourceApi.uploadBundle(file);
     dispatch(
@@ -189,7 +189,7 @@ export const uploadFile = (file: File) => async (dispatch: V3Dispatch) => {
   } catch (e) {
     dispatch(sourceActions.setError(errMsg(e)));
   } finally {
-    dispatch(sourceActions.setRunning(false));
+    dispatch(sourceActions.setValidating(false));
   }
 };
 

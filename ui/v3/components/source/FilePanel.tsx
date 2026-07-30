@@ -9,6 +9,7 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
   const file = useV3Selector((s) => s.source.file);
   const running = useV3Selector((s) => s.source.running);
+  const validating = useV3Selector((s) => s.source.validating);
   const inputRef = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<File | null>(null);
 
@@ -125,8 +126,8 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
             {running ? 'Reading source…' : 'Start export'}
           </button>
         ) : (
-          <button type="button" className="v3-btn" onClick={() => picked && dispatch(uploadFile(picked))} disabled={!picked || running} style={{ flex: 1 }}>
-            {running ? 'Validating…' : 'Extract & validate'}
+          <button type="button" className="v3-btn" onClick={() => picked && dispatch(uploadFile(picked))} disabled={!picked || validating} style={{ flex: 1 }}>
+            {validating ? 'Validating…' : 'Validate'}
           </button>
         )}
       </div>

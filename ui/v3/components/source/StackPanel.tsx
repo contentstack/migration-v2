@@ -6,6 +6,7 @@ import {
   loadRegions, loadStackModules, selectOrg, selectRegion, selectStack, startExportAndPoll,
 } from '../../store/thunks/source.thunks';
 import { forcedKeys, toggleModule } from '../../utils/moduleSelection';
+import V3Select from './V3Select';
 
 const ScopeCard: FC<{ active: boolean; title: string; sub: string; onClick: () => void }> = ({ active, title, sub, onClick }) => (
   <div onClick={onClick} role="button" style={{
@@ -53,26 +54,40 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
       <div>
         <label className="v3-label" htmlFor="v3-region">Region *</label>
-        <select id="v3-region" aria-label="Region" className="v3-field" value={stack.region} onChange={(e) => dispatch(selectRegion(e.target.value))}>
-          <option value="">Select a region…</option>
-          {stack.regions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <V3Select
+          id="v3-region"
+          ariaLabel="Region"
+          value={stack.region}
+          placeholder="Select a region…"
+          options={stack.regions}
+          onChange={(v) => dispatch(selectRegion(v))}
+        />
       </div>
 
       <div>
         <label className="v3-label" htmlFor="v3-org">Organization *</label>
-        <select id="v3-org" aria-label="Organization" className="v3-field" value={stack.org} disabled={!stack.region} onChange={(e) => dispatch(selectOrg(e.target.value))}>
-          <option value="">{stack.region ? 'Select an organization…' : 'Select a region first'}</option>
-          {stack.orgs.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <V3Select
+          id="v3-org"
+          ariaLabel="Organization"
+          value={stack.org}
+          placeholder={stack.region ? 'Select an organization…' : 'Select a region first'}
+          options={stack.orgs}
+          disabled={!stack.region}
+          onChange={(v) => dispatch(selectOrg(v))}
+        />
       </div>
 
       <div>
         <label className="v3-label" htmlFor="v3-stack">Stack *</label>
-        <select id="v3-stack" aria-label="Stack" className="v3-field" value={stack.stackApiKey} disabled={!stack.org} onChange={(e) => dispatch(selectStack(e.target.value))}>
-          <option value="">{stack.org ? 'Select a stack…' : 'Select an organization first'}</option>
-          {stack.stacks.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <V3Select
+          id="v3-stack"
+          ariaLabel="Stack"
+          value={stack.stackApiKey}
+          placeholder={stack.org ? 'Select a stack…' : 'Select an organization first'}
+          options={stack.stacks}
+          disabled={!stack.org}
+          onChange={(v) => dispatch(selectStack(v))}
+        />
         {stack.stackApiKey && <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>All content types, entries and assets in this stack will be read.</div>}
       </div>
 
@@ -80,10 +95,15 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--border-subtle)', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '9px 12px' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flex: 'none', color: 'var(--brand-strong)' }}><path d="M6 3v12m0 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm12-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0v1a4 4 0 0 1-4 4h-4a4 4 0 0 0-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Branch</span>
-          <select aria-label="Branch" value={stack.branch} onChange={(e) => dispatch(sourceActions.setStackField({ field: 'branch', value: e.target.value }))}
-            className="v3-field" style={{ width: 'auto', height: 30, padding: '0 28px 0 10px', marginLeft: 'auto', fontWeight: 700 }}>
-            {(stack.branches.length ? stack.branches : [{ value: 'main', label: 'main' }]).map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-          </select>
+          <V3Select
+            ariaLabel="Branch"
+            value={stack.branch}
+            placeholder="main"
+            options={stack.branches.length ? stack.branches : [{ value: 'main', label: 'main' }]}
+            onChange={(v) => dispatch(sourceActions.setStackField({ field: 'branch', value: v }))}
+            style={{ width: 'auto', marginLeft: 'auto' }}
+            buttonStyle={{ width: 'auto', height: 30, padding: '0 28px 0 10px', fontWeight: 700 }}
+          />
         </div>
       )}
 

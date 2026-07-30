@@ -86,6 +86,10 @@ interface SourceState {
   stack: StackState;
   file: FileState;
   running: boolean;
+  /** File-mode upload+validate is a distinct operation from running an
+   * export — kept separate so validating a file never triggers the
+   * export-only "scroll to the activity log" behavior. */
+  validating: boolean;
   jobId?: string;
   jobStatus?: 'queued' | 'running' | 'succeeded' | 'failed';
   jobLogs: JobLogLine[];
@@ -132,6 +136,7 @@ const initialState: SourceState = {
     selectedModules: [],
   },
   running: false,
+  validating: false,
   jobLogs: [],
   regionLogin: initialRegionLogin,
 };
@@ -188,6 +193,9 @@ const sourceSlice = createSlice({
     },
     setRunning: (state, action: PayloadAction<boolean>) => {
       state.running = action.payload;
+    },
+    setValidating: (state, action: PayloadAction<boolean>) => {
+      state.validating = action.payload;
     },
     setJob: (
       state,

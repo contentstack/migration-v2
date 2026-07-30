@@ -75,6 +75,12 @@
 .v3-scope .v3-field:focus { outline: none; border-color: var(--brand-strong); box-shadow: 0 0 0 3px color-mix(in oklch, var(--violet-500) 30%, transparent); }
 .v3-scope .v3-field:disabled { background: var(--surface-sunken); color: var(--text-subtle); cursor: not-allowed; }
 
+/* V3Select option list — hover/selected use CSS so pointer position drives the highlight live */
+.v3-scope .v3-select-option { background: transparent; }
+.v3-scope .v3-select-option:hover { background: var(--surface-sunken); }
+.v3-scope .v3-select-option[data-selected="true"] { background: var(--brand-subtle); }
+.v3-scope .v3-select-option[data-selected="true"]:hover { background: var(--brand-subtle); }
+
 /* Primary button */
 .v3-scope .v3-btn {
   height: 40px; padding: 0 16px; border: none; border-radius: var(--radius-md);

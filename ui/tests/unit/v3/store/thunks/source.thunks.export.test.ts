@@ -151,7 +151,7 @@ describe('v3 export/upload thunks', () => {
     expect(f.sourceId).toBe('s1');
     expect(f.manifest).toEqual([{ name: 'Content Types', count: 2 }]);
     expect(f.modules).toHaveLength(1);
-    expect(store.getState().source.running).toBe(false);
+    expect(store.getState().source.validating).toBe(false);
   });
 
   // Negative — taxonomy #6 (dependency failure): an upload error is surfaced; file stays unvalidated.
@@ -163,7 +163,42 @@ describe('v3 export/upload thunks', () => {
 
     expect(store.getState().source.error).toBe('File exceeds the 100 MB limit.');
     expect(store.getState().source.file.validated).toBe(false);
+    expect(store.getState().source.validating).toBe(false);
+  });
+
+  // Regression: uploadFile used to share the same `running` flag as an
+  // actual export, which wrongly triggered SourcePanel's scroll-to-logs
+  // behavior on every file validation. It now uses its own `validating` flag
+  // — `running` must stay untouched throughout.
+  it('(validate, positive) uploadFile toggles `validating`, not `running`, while in flight', async () => {
+    const store = mkStore();
+    mockApi.getFileModules.mockResolvedValue({ data: { modules: [] } });
+    let resolveUpload!: (v: any) => void;
+    mockApi.uploadBundle.mockReturnValue(new Promise((r) => (resolveUpload = r)));
+
+    const p = store.dispatch(thunks.uploadFile(new File([new Blob(['zip'])], 'e.zip')));
+    expect(store.getState().source.validating).toBe(true);
     expect(store.getState().source.running).toBe(false);
+
+    resolveUpload({ data: { sourceId: 's1', manifest: [] } });
+    await p;
+
+    expect(store.getState().source.validating).toBe(false);
+    expect(store.getState().source.running).toBe(false);
+  });
+
+  // Negative — contrast: starting a real export toggles `running`, not `validating`.
+  it('(validate, negative) startExportAndPoll toggles `running`, not `validating`', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    mockApi.getExportStatus.mockResolvedValue({ data: { status: 'succeeded' } });
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.running).toBe(false); // settled back to false after completion
+    expect(store.getState().source.validating).toBe(false); // never touched
   });
 
   it('TC_SRC_010 (positive): a changed branch is carried into the export request', async () => {

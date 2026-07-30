@@ -168,7 +168,9 @@ describe('v3 SourcePanel', () => {
     expect(scrollMock).not.toHaveBeenCalled();
   });
 
-  it('(scroll, positive) finishing an export that was started this session scrolls to the content graph', () => {
+  // The user is taken to the logs when an export starts — but must stay
+  // there to review them once it finishes, not get yanked over to the graph.
+  it('(scroll, negative) finishing an export does not auto-scroll away from the logs to the content graph', () => {
     const store = mountLive();
     const scrollMock = vi.mocked(Element.prototype.scrollIntoView);
 
@@ -178,15 +180,14 @@ describe('v3 SourcePanel', () => {
     scrollMock.mockClear();
     act(() => {
       store.dispatch(sourceActions.setRunning(false));
-      graphState(store); // job completes -> should scroll to the graph
+      graphState(store); // job completes -> must NOT scroll away from the logs
     });
 
-    expect(scrollMock).toHaveBeenCalledTimes(1);
+    expect(scrollMock).not.toHaveBeenCalled();
   });
 
   // Negative — a graph appearing WITHOUT an export having been started this
-  // session (e.g. restoring a persisted graph) must NOT trigger an auto-scroll;
-  // only a graph that follows an active run should move the viewport.
+  // session (e.g. restoring a persisted graph) must NOT trigger an auto-scroll either.
   it('(scroll, negative) a graph appearing without an export started this session does not auto-scroll', () => {
     const store = mountLive();
     const scrollMock = vi.mocked(Element.prototype.scrollIntoView);
@@ -194,6 +195,22 @@ describe('v3 SourcePanel', () => {
 
     act(() => {
       graphState(store);
+    });
+
+    expect(scrollMock).not.toHaveBeenCalled();
+  });
+
+  // Regression: validating a file (from FilePanel's "Validate" button) used
+  // to share the same `running` flag as an actual export, so it wrongly
+  // triggered the scroll-to-logs behavior too. Validating must not scroll
+  // anywhere — only starting a real export should.
+  it('(scroll, negative) validating a file does not scroll to the activity log', () => {
+    const store = mountLive();
+    const scrollMock = vi.mocked(Element.prototype.scrollIntoView);
+    scrollMock.mockClear();
+
+    act(() => {
+      store.dispatch(sourceActions.setValidating(true));
     });
 
     expect(scrollMock).not.toHaveBeenCalled();

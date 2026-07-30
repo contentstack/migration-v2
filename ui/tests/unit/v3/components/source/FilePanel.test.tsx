@@ -36,14 +36,32 @@ describe('v3 FilePanel', () => {
   it('TC_SRC_017 (positive): initial state shows the dropzone and disables the extract action', () => {
     renderFile();
     expect(screen.getByText(/Drop a migration file or click to browse/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Extract & validate/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Validate/i })).toBeDisabled();
   });
 
   // Negative — once a file is picked the extract action enables.
   it('TC_SRC_017 (negative): after a file is picked the extract action enables', () => {
     const { container } = renderFile();
     pickFile(container);
-    expect(screen.getByRole('button', { name: /Extract & validate/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Validate/i })).not.toBeDisabled();
+  });
+
+  // Regression: validating used to share the same `running` flag as an
+  // actual export, which also (wrongly) triggered SourcePanel's
+  // scroll-to-logs behavior on every file validation. `validating` is now a
+  // dedicated flag, decoupled from export `running`.
+  it('(validate, positive) the Validate button disables and relabels "Validating…" while validating', () => {
+    const { container } = renderFile((store) => store.dispatch(sourceActions.setValidating(true)));
+    pickFile(container);
+    expect(screen.getByRole('button', { name: /Validating…/i })).toBeDisabled();
+  });
+
+  // Negative — picking a file with export `running` set (not `validating`)
+  // leaves the Validate button idle and enabled — the two flags are independent.
+  it('(validate, negative) the Validate button stays idle/enabled when only export `running` is set', () => {
+    const { container } = renderFile((store) => store.dispatch(sourceActions.setRunning(true)));
+    pickFile(container);
+    expect(screen.getByRole('button', { name: /^Validate$/i })).not.toBeDisabled();
   });
 
   it('TC_SRC_025 (positive): a picked file shows a file card with its name', () => {

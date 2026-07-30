@@ -34,7 +34,6 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const activityRef = useRef<HTMLDivElement>(null);
   const graphColRef = useRef<HTMLDivElement>(null);
   const prevRunning = useRef(false);
-  const awaitingGraphScroll = useRef(false);
   const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
@@ -44,25 +43,16 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
 
   // Export just started: the activity log is the main focus while it runs —
   // take the user straight to it. Only fires on the false→true transition
-  // (not on every re-render while already running).
+  // (not on every re-render while already running). Deliberately does NOT
+  // scroll back to the content graph once the export finishes — the user
+  // needs to stay put to review the logs, not get yanked away from them.
   useEffect(() => {
     if (running && !prevRunning.current) {
-      awaitingGraphScroll.current = true;
       setFullscreen(false); // don't leave the user stuck viewing a stale graph full-screen
       activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     prevRunning.current = running;
   }, [running]);
-
-  // Export just finished: bring the user to the content graph. Gated on
-  // awaitingGraphScroll (only set by an export started THIS session) so
-  // restoring a previously-persisted graph on mount does not also scroll.
-  useEffect(() => {
-    if (graph && awaitingGraphScroll.current) {
-      awaitingGraphScroll.current = false;
-      graphColRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [graph]);
 
   const badge = badgeFor(running, jobStatus, !!graph);
   const sourceName =
