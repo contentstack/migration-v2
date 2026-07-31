@@ -248,6 +248,7 @@ export const startExportAndPoll =
     dispatch(sourceActions.setError(undefined));
     dispatch(sourceActions.setJobLogs([]));
     dispatch(sourceActions.setJobLiveCounts(undefined));
+    dispatch(sourceActions.setJobProgress(0));
     dispatch(sourceActions.setRunning(true));
     try {
       const { data } = await sourceApi.startExport(body);
@@ -262,6 +263,7 @@ export const startExportAndPoll =
         dispatch(sourceActions.setJob({ jobId, jobStatus: status as any }));
         if (s.data.logs) dispatch(sourceActions.setJobLogs(s.data.logs));
         if (s.data.liveCounts) dispatch(sourceActions.setJobLiveCounts(s.data.liveCounts));
+        if (typeof s.data.progress === 'number') dispatch(sourceActions.setJobProgress(s.data.progress));
       }
 
       if (status === 'succeeded') {

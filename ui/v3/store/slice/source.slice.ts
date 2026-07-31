@@ -92,6 +92,10 @@ interface SourceState {
   validating: boolean;
   jobId?: string;
   jobStatus?: 'queued' | 'running' | 'succeeded' | 'failed';
+  /** 0–100, relayed from the backend job as it advances through its batches
+   * (see api/v3/services/export.service.ts `setProgress` calls). Undefined
+   * before any export has started this session. */
+  jobProgress?: number;
   jobLogs: JobLogLine[];
   /** Running tallies of real discovered items, updated as the export
    * progresses — distinct from the final persisted `graph.counts`, which only
@@ -206,6 +210,9 @@ const sourceSlice = createSlice({
     },
     setJobLogs: (state, action: PayloadAction<JobLogLine[]>) => {
       state.jobLogs = action.payload;
+    },
+    setJobProgress: (state, action: PayloadAction<number | undefined>) => {
+      state.jobProgress = action.payload;
     },
     setJobLiveCounts: (state, action: PayloadAction<LiveCounts | undefined>) => {
       state.jobLiveCounts = action.payload;

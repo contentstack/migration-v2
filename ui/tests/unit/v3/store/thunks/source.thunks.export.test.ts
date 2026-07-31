@@ -88,6 +88,56 @@ describe('v3 export/upload thunks', () => {
     expect(store.getState().source.jobLiveCounts).toBeUndefined();
   });
 
+  // The export job runs in backend batches, each reporting a 0–100 progress
+  // value (api/v3/services/export.service.ts `setProgress`) — the poll loop
+  // must relay it live into the store so the UI progress bar can track it.
+  it('(progress, positive) polling dispatches the live progress value from the job status', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j3' } });
+    mockApi.getExportStatus
+      .mockResolvedValueOnce({ data: { status: 'running', progress: 35 } })
+      .mockResolvedValueOnce({ data: { status: 'succeeded', progress: 100 } });
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobProgress).toBe(100);
+  });
+
+  // Negative — taxonomy #1 (missing/empty): a poll tick that omits `progress`
+  // (e.g. a queued status before the job has advanced) must not clobber the
+  // last known value with `undefined`.
+  it('(progress, negative) a poll tick without a progress field leaves the last known value intact', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j4' } });
+    mockApi.getExportStatus
+      .mockResolvedValueOnce({ data: { status: 'running', progress: 40 } })
+      .mockResolvedValueOnce({ data: { status: 'succeeded' } }); // no progress this tick
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobProgress).toBe(40);
+  });
+
+  // Negative — starting a fresh export resets a stale progress value from a
+  // previous run back to 0, rather than the bar briefly showing last time's
+  // near-complete percentage before the first new poll tick arrives.
+  it('(progress, negative) starting a new export resets jobProgress from a previous run', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setJobProgress(90));
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j5' } });
+    mockApi.getExportStatus.mockResolvedValue({ data: { status: 'succeeded' } }); // no progress this tick
+    mockApi.getGraph.mockResolvedValue({ data: {} });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobProgress).toBe(0);
+  });
+
   // Negative — taxonomy #6 (dependency failure): a failed job surfaces an error, no graph.
   it('TC_SRC_011 (negative): a failed export job surfaces an error and stores no graph', async () => {
     const store = mkStore();

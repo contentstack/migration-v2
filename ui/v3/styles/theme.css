@@ -159,3 +159,19 @@
 @keyframes v3-spin { to { transform: rotate(360deg); } }
 @keyframes v3-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(1.3); } }
 @keyframes v3-tile-in { from { transform: translateY(-3px); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
+
+/* Export progress bar — gradient fill with a moving shimmer while a job is
+   actively running, so a live batch-driven progress reads as alive rather
+   than a flat static bar. */
+@keyframes v3-progress-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+@keyframes v3-progress-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--brand-strong) 45%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in oklch, var(--brand-strong) 12%, transparent); } }
+.v3-scope .v3-progress-fill--running {
+  background: linear-gradient(90deg, var(--violet-600, #6D28D9), var(--brand-strong) 45%, var(--violet-400, #A78BFA));
+  background-size: 200% 100%;
+}
+.v3-scope .v3-progress-fill--running::after {
+  content: ''; position: absolute; inset: 0; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: v3-progress-shimmer 1.5s ease-in-out infinite;
+}
+.v3-scope .v3-progress-step--active { animation: v3-progress-ring 1.4s ease-in-out infinite; }

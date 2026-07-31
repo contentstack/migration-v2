@@ -28,7 +28,7 @@ const badgeFor = (running: boolean, jobStatus?: string, hasGraph?: boolean) => {
 
 const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
-  const { mode, stack, file, running, jobStatus, jobLogs, jobLiveCounts, graph, error } =
+  const { mode, stack, file, running, jobStatus, jobLogs, jobProgress, jobLiveCounts, graph, error } =
     useV3Selector((s) => s.source);
 
   const activityRef = useRef<HTMLDivElement>(null);
@@ -40,6 +40,18 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
     if (!graph && projectId) dispatch(loadPersistedGraph(projectId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fullscreen is a true full-viewport overlay (see the board/overlay split
+  // below), not just an expanded column inside the page's max-width card —
+  // Escape is the standard way out of that kind of overlay.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [fullscreen]);
 
   // Export just started: the activity log is the main focus while it runs —
   // take the user straight to it. Only fires on the false→true transition
@@ -113,9 +125,12 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
           </span>
         </div>
 
-        {/* board: form column + graph column (form column collapses while the graph is fullscreen) */}
-        <div style={{ display: 'flex', alignItems: 'stretch', flexWrap: 'wrap' }}>
-          {!fullscreen && (
+        {/* board: form column + graph column. Entirely replaced by the fullscreen
+            overlay below while fullscreen is active, rather than just expanding
+            the graph column inline — an inline expansion is still capped by this
+            card's max-width, leaving unused space on either side of the browser. */}
+        {!fullscreen && (
+          <div style={{ display: 'flex', alignItems: 'stretch', flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 460px', minWidth: 320, padding: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
               <div style={{ display: 'flex', gap: 3, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: 3 }}>
                 {seg('stack', 'From a stack')}
@@ -131,48 +146,91 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
 
               {mode === 'stack' ? <StackPanel projectId={projectId} /> : <FilePanel projectId={projectId} />}
             </div>
-          )}
 
-          <div
-            ref={graphColRef}
-            style={{
-              flex: fullscreen ? '1 1 100%' : '1 1 420px', minWidth: 320,
-              borderLeft: fullscreen ? 'none' : '1px solid var(--border-subtle)',
-              background: 'linear-gradient(180deg, var(--brand-subtle), transparent 42%)', padding: 18,
-            }}
-          >
-            {graph ? (
-              <GraphView graph={graph as any} fullscreen={fullscreen} onToggleFullscreen={() => setFullscreen((f) => !f)} />
-            ) : showLiveTiles ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ width: 14, height: 14, border: '2px solid var(--border-default)', borderTopColor: 'var(--brand-strong)', borderRadius: '50%', animation: 'v3-spin .7s linear infinite', flex: 'none' }} />
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-strong)' }}>Reading source…</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>numbers update as items are discovered</span>
+            <div
+              ref={graphColRef}
+              style={{
+                flex: '1 1 420px', minWidth: 320,
+                borderLeft: '1px solid var(--border-subtle)',
+                background: 'linear-gradient(180deg, var(--brand-subtle), transparent 42%)', padding: 18,
+              }}
+            >
+              {graph ? (
+                <GraphView graph={graph as any} fullscreen={false} onToggleFullscreen={() => setFullscreen(true)} />
+              ) : showLiveTiles ? (
+                <div>
+                  {/* persistent "Content graph" header — per the Claude Design
+                      reference, this title/subtitle is always present, even
+                      before there's a graph to show, not just once GraphView
+                      itself mounts. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', background: 'var(--brand-subtle)', color: 'var(--brand-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" /><path d="M7 6h5a3 3 0 0 1 3 3v.5M7 18h5a3 3 0 0 0 3-3v-.5" /></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text-strong)' }}>Content graph</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Types in dependency order, top to bottom</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ width: 14, height: 14, border: '2px solid var(--border-default)', borderTopColor: 'var(--brand-strong)', borderRadius: '50%', animation: 'v3-spin .7s linear infinite', flex: 'none' }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-strong)' }}>Reading source…</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>numbers update as items are discovered</span>
+                  </div>
+                  <StatTiles counts={(jobLiveCounts ?? ZERO_COUNTS) as unknown as Record<string, number>} live />
+                  <div style={{ marginTop: 20, textAlign: 'center', color: 'var(--text-subtle)', fontSize: 12 }}>
+                    The content graph will render here once the export completes — watch the activity log below for live detail.
+                  </div>
                 </div>
-                <StatTiles counts={(jobLiveCounts ?? ZERO_COUNTS) as unknown as Record<string, number>} live />
-                <div style={{ marginTop: 20, textAlign: 'center', color: 'var(--text-subtle)', fontSize: 12 }}>
-                  The content graph will render here once the export completes — watch the activity log below for live detail.
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', background: 'var(--brand-subtle)', color: 'var(--brand-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" /><path d="M7 6h5a3 3 0 0 1 3 3v.5M7 18h5a3 3 0 0 0 3-3v-.5" /></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text-strong)' }}>Content graph</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Types in dependency order, top to bottom</div>
+                    </div>
+                  </div>
+
+                  <div style={{ minHeight: 340, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', color: 'var(--text-subtle)' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--text-muted)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" /><path d="M7 6h5a3 3 0 0 1 3 3v.5M7 18h5a3 3 0 0 0 3-3v-.5" /></svg>
+                    </div>
+                    <div style={{ fontSize: 12.5, lineHeight: 1.55, maxWidth: '28ch', color: 'var(--text-muted)' }}>
+                      Relationship between content types will be shown here once the export completes.
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div style={{ height: '100%', minHeight: 420, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center', color: 'var(--text-subtle)' }}>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--text-muted)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" /><path d="M7 6h5a3 3 0 0 1 3 3v.5M7 18h5a3 3 0 0 0 3-3v-.5" /></svg>
-                </div>
-                <div style={{ fontSize: 12.5, lineHeight: 1.55, maxWidth: '28ch', color: 'var(--text-muted)' }}>
-                  Relationship between content types will be shown here once the export completes.
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* fullscreen overlay — fixed to the viewport (not the 1180px-capped card
+          above) so the graph genuinely uses the browser's full width/height
+          instead of the empty gutters either side of the constrained layout. */}
+      {fullscreen && graph && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Content graph, fullscreen"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000, overflow: 'auto',
+            background: 'var(--surface-sunken)', padding: '24px clamp(16px, 4vw, 48px)',
+          }}
+        >
+          <GraphView graph={graph as any} fullscreen onToggleFullscreen={() => setFullscreen(false)} />
+        </div>
+      )}
 
       {/* activity log — a separate full-width section below the Source card */}
       {showActivity && (
         <div ref={activityRef} className="v3-card" style={{ marginTop: 16, padding: 18 }}>
-          <ExportLogView logs={jobLogs} running={running} />
+          <ExportLogView logs={jobLogs} running={running} progress={jobProgress} jobStatus={jobStatus} />
         </div>
       )}
     </div>
