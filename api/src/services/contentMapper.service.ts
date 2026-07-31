@@ -34,6 +34,7 @@ import getUidMapperDb from "../models/uidMapper.js";
 import { isDuplicateEntry } from '../utils/entry-duplicate.utils.js';
 import { getSourceLocaleForDestination } from '../utils/locale-migration.utils.js';
 import { loadPreviousAssetMetadata } from '../utils/asset-update.utils.js';
+import { flattenNestedUidMap } from '../utils/uid-mapper.utils.js';
 
 
 const idCorrector = ({ id }: { id: string }) => {
@@ -2219,17 +2220,6 @@ const getEntryUidMap = (uidMapperModel: any): Record<string, any> => {
   if (nUid > 0) return fromEntryUid;
   if (nEnt > 0) return fromEntry;
   return {};
-};
-
-const flattenNestedUidMap = (raw: Record<string, any>): Record<string, any> => {
-  const keys = Object?.keys(raw ?? {});
-  if (keys?.length === 0) return {};
-  const nested = keys?.every((k) => {
-    const v = raw[k];
-    return v != null && typeof v === 'object' && !Array.isArray(v);
-  });
-  if (!nested) return { ...raw };
-  return keys.reduce<Record<string, any>>((acc, k) => ({ ...acc, ...raw[k] }), {});
 };
 
 /**

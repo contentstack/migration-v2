@@ -6,6 +6,28 @@ import fs from "fs";
 import projectModelLowdb from "../models/project-lowdb";
 
 /**
+ * Normalises a uid map that may be either flat `{ sourceUid: destUid }` or nested
+ * per-content-type `{ [ctUid]: { sourceUid: destUid } }` into a single flat map.
+ * If ANY top-level value is a non-array object, we treat the whole map as nested
+ * and merge the second-level objects; otherwise the input is passed through.
+ * Kept in this module so both entry-mapping consumers (`contentMapper.service`
+ * and `entry-update.utils`) share one authoritative implementation.
+ */
+export const flattenNestedUidMap = (raw: Record<string, any> | undefined | null): Record<string, any> => {
+  const keys = Object?.keys(raw ?? {});
+  if (keys?.length === 0) return {};
+  const nested = keys?.every((k) => {
+    const v = (raw as Record<string, any>)[k];
+    return v != null && typeof v === 'object' && !Array.isArray(v);
+  });
+  if (!nested) return { ...(raw as Record<string, any>) };
+  return keys.reduce<Record<string, any>>(
+    (acc, k) => ({ ...acc, ...(raw as Record<string, any>)[k] }),
+    {},
+  );
+};
+
+/**
  * Merges a previous iteration's uid map under the current run's map (current
  * wins on conflict). Values can be plain strings (flat old→new maps) or
  * one-level nested objects (per-content-type entry maps) — nested objects are

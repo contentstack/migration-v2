@@ -9,6 +9,7 @@ import {
     getSourceLocaleForDestination,
 } from "./locale-migration.utils.js";
 import type { AssetUpdate } from "./asset-update.utils.js";
+import { flattenNestedUidMap } from "./uid-mapper.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -325,7 +326,17 @@ export const enrichConfigWithEntryMapping = (
         if (!fs.existsSync(p)) return { flat: {}, byLocale: {} };
         try {
             const data = JSON.parse(fs.readFileSync(p, "utf-8"));
-            return { flat: data?.entry || {}, byLocale: data?.entryByLocale || {} };
+            // Uid-mapper's `entry` key can be either the flat `{ sourceUid: destUid }` shape
+            // or the nested `{ [ctUid]: { sourceUid: destUid } }` shape (see
+            // uid-mapper.utils.ts:mergeUidMaps). contentMapper.service also merges in an
+            // `entryUid` variant — do the same here so both readers stay in sync and the
+            // resolver never silently falls through to the identity fallback.
+            const fromEntry = flattenNestedUidMap(data?.entry);
+            const fromEntryUid = flattenNestedUidMap(data?.entryUid);
+            return {
+                flat: { ...fromEntry, ...fromEntryUid },
+                byLocale: data?.entryByLocale || {},
+            };
         } catch (err) {
             console.error(`Failed to read uid-mapper for iteration ${iter}:`, err);
             return { flat: {}, byLocale: {} };
