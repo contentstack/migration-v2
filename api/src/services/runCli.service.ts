@@ -20,7 +20,7 @@ interface TestStack {
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
 import writeUidMapping, { writePerLocaleEntryUidMapping } from '../utils/uid-mapper.utils.js';
-import { extractLocalesFromUpdateConfig, recordMigratedLocales } from '../utils/locale-migration.utils.js';
+import { recordMigratedLocales } from '../utils/locale-migration.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -325,52 +325,25 @@ export const runCli = async (
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         await ProjectModelLowdb.write();
 
-        // Record every locale that was ACTUALLY processed this run so the next delta
-        // restart can tell which locales still need a full pass vs delta.
-        //
-        // On iteration 1 there's no delta/localize step at all — the whole configured
-        // locale set genuinely gets migrated in one shot, so using the full config is
-        // correct here. From iteration 2 onward, a locale only "ran" this iteration if
-        // it's the master locale (always present) or its entries were actually queued
-        // in this iteration's updated-entries.json (written by removeEntriesFromDatabase
-        // before this CLI import step even started). Using the FULL project locale
-        // config here — instead of what this run actually touched — used to mark
-        // not-yet-migrated locales as done prematurely, permanently skipping them on
-        // every later restart (see CMG delta-migration locale bug).
+        // On iteration 1 the full configured locale set genuinely gets migrated in a single
+        // bulk import — this CLI IS the terminal step, so recording here is safe.
+        // For iteration 2+, recording is deliberately deferred to migration.service.ts, AFTER
+        // the update/localize CLI (`utilsUpdateCli.updateEntryCli`) actually completes. If we
+        // recorded here, a locale queued in updated-entries.json would be marked migrated
+        // even when the subsequent update CLI never wrote it (it swallows failures — see
+        // updateEntryCli.service.ts:240-249), and would then be silently skipped on the next
+        // restart — the very bug this PR fixes, just via a different trigger.
         const proj: any = ProjectModelLowdb.data.projects[projectIndex];
         const currentIteration = proj?.iteration || 1;
-        let ranLocales: string[];
         if (currentIteration <= 1) {
-          ranLocales = Array.from(
+          const ranLocales = Array.from(
             new Set([
               ...Object.keys(proj?.master_locale ?? {}),
               ...Object.keys(proj?.locales ?? {}),
             ]),
           );
-        } else {
-          const updatedEntriesPath = path.join(
-            process.cwd(),
-            DATABASE_FILES.DIRECTORY,
-            projectId,
-            currentIteration.toString(),
-            DATABASE_FILES.UPDATED_ENTRIES,
-          );
-          let updateConfig: Record<string, any> | null = null;
-          if (fs.existsSync(updatedEntriesPath)) {
-            try {
-              updateConfig = JSON.parse(fs.readFileSync(updatedEntriesPath, 'utf-8'));
-            } catch {
-              updateConfig = null;
-            }
-          }
-          ranLocales = Array.from(
-            new Set([
-              ...Object.keys(proj?.master_locale ?? {}),
-              ...extractLocalesFromUpdateConfig(updateConfig),
-            ]),
-          );
+          await recordMigratedLocales(projectId, ranLocales);
         }
-        await recordMigratedLocales(projectId, ranLocales);
       }
     } else {
       console.info('User not found.');

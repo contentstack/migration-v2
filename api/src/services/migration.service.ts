@@ -18,6 +18,7 @@ import {
   CMS,
   GET_AUDIT_DATA,
   MIGRATION_DATA_CONFIG,
+  DATABASE_FILES,
 } from '../constants/index.js';
 import {
   BadRequestError,
@@ -52,6 +53,7 @@ import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
 import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithEntryMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
 import { removeExistingAssets, saveAssetMetadata, AssetUpdate } from '../utils/asset-update.utils.js';
+import { extractLocalesFromUpdateConfig, recordMigratedLocales } from '../utils/locale-migration.utils.js';
 
 /**
  * Creates a test stack.  
@@ -1280,6 +1282,50 @@ const startMigration = async (req: Request): Promise<any> => {
         safeDeltaMigrationLogPath || '',
         configFilePath
       );
+
+      // Record every locale that ACTUALLY ran this iteration, AFTER the update/localize CLI
+      // resolves — moved out of runCli.service.ts because the previous position recorded
+      // locales before this step wrote them, so a silent failure here (updateEntryCli
+      // swallows errors — see updateEntryCli.service.ts:240-249) would permanently skip the
+      // affected locales on every future restart.
+      //
+      // The union of three sources covers everything this iteration actually touched:
+      //   1. master locale — always considered migrated on any successful run.
+      //   2. Locales present in updated-entries.json — entries the update CLI just localized.
+      //   3. Locales present in this iteration's uid-mapper `entryByLocale` — brand-new
+      //      entries created by runCli's bulk import. Without this, a locale whose entries
+      //      were ALL new (no prior csEntryUid) would never appear in updated-entries.json,
+      //      and would then be routed through the localize path on every subsequent restart
+      //      forever.
+      try {
+        const proj: any = project;
+        let updateConfig: Record<string, any> | null = null;
+        try {
+          updateConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+        } catch {
+          updateConfig = null;
+        }
+        let entryByLocaleKeys: string[] = [];
+        try {
+          const uidMapperPath = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, safePid, iteration.toString(), DATABASE_FILES.UID_MAPPER);
+          if (fs.existsSync(uidMapperPath)) {
+            const mapper = JSON.parse(fs.readFileSync(uidMapperPath, 'utf-8'));
+            entryByLocaleKeys = Object.keys(mapper?.entryByLocale ?? {});
+          }
+        } catch (err) {
+          await customLogger(projectId, destinationStackId, 'warn', `Failed to read uid-mapper for locale recording: ${(err as Error)?.message}`);
+        }
+        const ranLocales = Array.from(
+          new Set([
+            ...Object.keys(proj?.master_locale ?? {}),
+            ...extractLocalesFromUpdateConfig(updateConfig),
+            ...entryByLocaleKeys,
+          ]),
+        );
+        await recordMigratedLocales(projectId, ranLocales);
+      } catch (err) {
+        await customLogger(projectId, destinationStackId, 'warn', `Failed to record migrated locales: ${(err as Error)?.message}`);
+      }
     }
     else{
       await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');

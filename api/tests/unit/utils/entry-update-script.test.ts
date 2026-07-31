@@ -91,9 +91,12 @@ describe('entry-update-script — isReferenceValue / isReferenceArray', () => {
     expect(isReferenceArray([{ uid: 'a', _content_type_uid: 'article' }, { uid: 'b', _content_type_uid: 'article' }])).toBe(true);
   });
 
-  it('is false for an empty array or a mixed array', () => {
+  it('is false for an empty array', () => {
     expect(isReferenceArray([])).toBe(false);
-    expect(isReferenceArray([{ uid: 'a', _content_type_uid: 'article' }, 'not-a-ref'])).toBe(false);
+  });
+
+  it('is true for a mixed array so per-item remap still runs — non-ref items pass through in resolveReferenceField', () => {
+    expect(isReferenceArray([{ uid: 'a', _content_type_uid: 'article' }, 'not-a-ref'])).toBe(true);
   });
 });
 
