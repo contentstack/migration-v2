@@ -9,8 +9,13 @@ const isReferenceValue = (value) =>
     value && typeof value === 'object' && !Array.isArray(value) &&
     'uid' in value && '_content_type_uid' in value;
 
+// Loosened from `.every(...)` to `.some(...)`: producers can legitimately emit mixed arrays
+// — `processArrayFields` (contentful.service.ts) pushes the raw Contentful Link object when
+// the target isn't in the references map, and the single-reference path can inject
+// `[undefined]` — so one non-reference element would otherwise disable resolution for the
+// whole field. Per-item remap happens in resolveReferenceField.
 const isReferenceArray = (value) =>
-    Array.isArray(value) && value.length > 0 && value.every(isReferenceValue);
+    Array.isArray(value) && value.length > 0 && value.some(isReferenceValue);
 
 /**
  * Resolves a source-side entry uid to its real Contentstack destination uid.
@@ -53,7 +58,11 @@ const resolveReferenceField = (fieldName, entryUid, value, locale, entryMapping)
         return { ...value, uid: resolved };
     }
     if (isReferenceArray(value)) {
+        // Pass non-reference items through untouched so a stray non-link element (e.g. a raw
+        // Contentful link that wasn't in the references map, or `undefined` from an earlier
+        // failed resolve) doesn't crash and doesn't corrupt neighboring references.
         return value.map((item) => {
+            if (!isReferenceValue(item)) return item;
             const resolved = resolveReferenceUid(item.uid, locale, entryMapping);
             return { ...item, uid: resolved };
         });
