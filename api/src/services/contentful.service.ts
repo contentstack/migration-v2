@@ -436,7 +436,7 @@ const processField = (
         return refs;
       }
       const id = lang_value?.sys?.id;
-      if(Array?.isArray(entryId?.id)){
+      if(Array.isArray(entryId?.[id])){
         return entryId?.[id];
       }
       else{
