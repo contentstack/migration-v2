@@ -31,6 +31,8 @@ export interface CreateStackBody {
   orgId: string;
   name: string;
   description?: string;
+  /** Fixed at creation — a stack's master locale cannot be changed later. */
+  masterLocale?: string;
 }
 
 export interface CreateManagementTokenBody {
@@ -55,6 +57,11 @@ export const destinationApi = {
   // ---- new to this feature ----
   getLocales: (stackApiKey: string, rc?: RegionCredential) =>
     apiClient.get(`${destBase}/locales`, { params: { stackApiKey, ...regionParams(rc) } }),
+
+  /** Every locale Contentstack supports — for the create-stack master-locale
+   * picker. Not stack-scoped: the stack being created doesn't exist yet. */
+  getContentstackLocales: (rc?: RegionCredential) =>
+    apiClient.get(`${destBase}/contentstack-locales`, { params: regionParams(rc) }),
 
   // Both mutating calls carry the cross-region credential in the BODY (rather
   // than as a separate argument), so a destination region unlocked via

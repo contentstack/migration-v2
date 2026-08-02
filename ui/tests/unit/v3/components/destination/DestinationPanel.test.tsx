@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -29,6 +29,7 @@ vi.mock('../../../../../v3/store/thunks/destination.thunks', () => ({
   loadPersistedDestination: () => () => {},
   loadDestStackStats: () => () => {},
   createDestStack: () => () => {},
+  loadContentstackLocales: () => () => {},
   submitDestRegionLogin: () => () => {},
   cancelDestRegionLogin: () => () => {},
   selectDestRegion: mockSelectDestRegion,
@@ -69,6 +70,15 @@ const seedComplete = (store: any) => {
 
 const proceedBtn = () => screen.getByRole('button', { name: /proceed to content mapping/i });
 
+/** The dropdowns are themed (V3Select): options only exist once the trigger is
+ * opened, and each open list is a listbox labelled like its trigger. */
+const openDropdown = async (label: string) => {
+  await userEvent.click(screen.getByLabelText(label));
+  return screen.getByRole('listbox', { name: label });
+};
+const optionLabels = (list: HTMLElement) =>
+  within(list).getAllByRole('option').map((o) => o.textContent);
+
 beforeEach(() => {
   mockProceed.mockClear();
   mockSelectDestRegion.mockClear();
@@ -79,9 +89,10 @@ beforeEach(() => {
 describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
   it('TC_DEST_001 (positive): a fresh panel has Region/Org/Stack empty, no auth method, and Proceed disabled', () => {
     renderPanel();
-    expect((screen.getByLabelText('Region') as HTMLSelectElement).value).toBe('');
-    expect((screen.getByLabelText('Organization') as HTMLSelectElement).value).toBe('');
-    expect((screen.getByLabelText('Stack') as HTMLSelectElement).value).toBe('');
+    // Nothing selected: each trigger shows its placeholder rather than a value.
+    expect(screen.getByLabelText('Region')).toHaveTextContent('Select a region…');
+    expect(screen.getByLabelText('Organization')).toHaveTextContent('Select a region first');
+    expect(screen.getByLabelText('Stack')).toHaveTextContent('Select an organization first');
     expect(screen.getByTestId('summary-auth')).toHaveTextContent('Not selected');
     expect(proceedBtn()).toBeDisabled();
   });
@@ -107,10 +118,10 @@ describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
   it('TC_DEST_002 (negative): with no Region chosen the Organization dropdown is disabled', () => {
     renderPanel();
     expect(screen.getByLabelText('Organization')).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'Select a region first' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Organization')).toHaveTextContent('Select a region first');
   });
 
-  it('TC_DEST_003 (positive): choosing an Organization lists its stacks plus a "Create a new stack" option', () => {
+  it('TC_DEST_003 (positive): choosing an Organization lists its stacks plus a "Create a new stack" option', async () => {
     renderPanel((store) => {
       store.dispatch(destinationActions.setField({ field: 'region', value: 'NA' }));
       store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
@@ -121,19 +132,23 @@ describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
         ])
       );
     });
-    expect(screen.getByRole('option', { name: 'Production — EU Marketing Site' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Staging — EU Marketing Site' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '+ Create a new stack' })).toBeInTheDocument();
+    const list = await openDropdown('Stack');
+    expect(optionLabels(list)).toEqual([
+      'Production — EU Marketing Site',
+      'Staging — EU Marketing Site',
+      '+ Create a new stack',
+    ]);
   });
 
   // Negative — taxonomy #1 (missing input): with no Organization chosen the Stack
   // dropdown is disabled and offers no stack options at all.
-  it('TC_DEST_003 (negative): with no Organization chosen the Stack dropdown is disabled', () => {
+  it('TC_DEST_003 (negative): with no Organization chosen the Stack dropdown is disabled', async () => {
     renderPanel((store) => {
       store.dispatch(destinationActions.setField({ field: 'region', value: 'NA' }));
     });
     expect(screen.getByLabelText('Stack')).toBeDisabled();
-    expect(screen.queryByRole('option', { name: '+ Create a new stack' })).toBeNull();
+    await userEvent.click(screen.getByLabelText('Stack'));
+    expect(screen.queryByRole('listbox', { name: 'Stack' })).toBeNull();
   });
 
   it('TC_DEST_004 (positive): selecting an existing stack sets it as the destination without opening a modal', async () => {
@@ -143,7 +158,8 @@ describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
       store.dispatch(destinationActions.setStacks([{ value: 'blt1', label: 'Production — EU' }]));
     });
 
-    await userEvent.selectOptions(screen.getByLabelText('Stack'), 'blt1');
+    const list = await openDropdown('Stack');
+    await userEvent.click(within(list).getByRole('option', { name: 'Production — EU' }));
 
     expect(mockSelectDestStack).toHaveBeenCalledWith('blt1');
     expect(screen.queryByRole('dialog', { name: 'Create a new stack' })).toBeNull();
@@ -158,35 +174,33 @@ describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
       store.dispatch(destinationActions.setStacks([{ value: 'blt1', label: 'Production — EU' }]));
     });
 
-    await userEvent.selectOptions(screen.getByLabelText('Stack'), '__create__');
+    const list = await openDropdown('Stack');
+    await userEvent.click(within(list).getByRole('option', { name: '+ Create a new stack' }));
 
     expect(mockSelectDestStack).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: 'Create a new stack' })).toBeInTheDocument();
   });
 
-  it('TC_DEST_005 (positive): an organization with zero stacks offers only the "Create a new stack" option', () => {
+  it('TC_DEST_005 (positive): an organization with zero stacks offers only the "Create a new stack" option', async () => {
     renderPanel((store) => {
       store.dispatch(destinationActions.setField({ field: 'region', value: 'NA' }));
       store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
       store.dispatch(destinationActions.setStacks([]));
     });
-    expect(screen.getByRole('option', { name: '+ Create a new stack' })).toBeInTheDocument();
-    // The only other option is the unselected placeholder — no real stack entries.
-    const options = screen.getAllByRole('option', { hidden: true });
-    const stackSelect = screen.getByLabelText('Stack');
-    const stackOptions = options.filter((o) => o.closest('select') === stackSelect);
-    expect(stackOptions.map((o) => o.textContent)).toEqual(['Select a stack…', '+ Create a new stack']);
+    const list = await openDropdown('Stack');
+    // Only the create entry — no real stack entries at all.
+    expect(optionLabels(list)).toEqual(['+ Create a new stack']);
   });
 
   // Negative — a populated organization does list its real stacks alongside the create option.
-  it('TC_DEST_005 (negative): an organization with stacks lists them alongside the create option', () => {
+  it('TC_DEST_005 (negative): an organization with stacks lists them alongside the create option', async () => {
     renderPanel((store) => {
       store.dispatch(destinationActions.setField({ field: 'region', value: 'NA' }));
       store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
       store.dispatch(destinationActions.setStacks([{ value: 'blt1', label: 'Sandbox — EU' }]));
     });
-    expect(screen.getByRole('option', { name: 'Sandbox — EU' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '+ Create a new stack' })).toBeInTheDocument();
+    const list = await openDropdown('Stack');
+    expect(optionLabels(list)).toEqual(['Sandbox — EU', '+ Create a new stack']);
   });
 
   it('TC_DEST_006 (positive): a region with zero accessible organizations shows an empty state and keeps Proceed disabled', () => {
@@ -198,18 +212,19 @@ describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
         destinationActions.setSourceContext({ ready: true, region: 'NA', branch: 'main', masterLocale: 'en-us' })
       );
     });
-    expect(screen.getByRole('option', { name: 'No organizations found' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Organization')).toHaveTextContent('No organizations found');
     expect(proceedBtn()).toBeDisabled();
   });
 
   // Negative — with organizations present the empty state is gone and a real org is selectable.
-  it('TC_DEST_006 (negative): with organizations present the empty state is not shown', () => {
+  it('TC_DEST_006 (negative): with organizations present the empty state is not shown', async () => {
     renderPanel((store) => {
       store.dispatch(destinationActions.setField({ field: 'region', value: 'NA' }));
       store.dispatch(destinationActions.setOrgs([{ value: 'o1', label: 'TSO Migrations' }]));
     });
-    expect(screen.queryByRole('option', { name: 'No organizations found' })).toBeNull();
-    expect(screen.getByRole('option', { name: 'TSO Migrations' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Organization')).not.toHaveTextContent('No organizations found');
+    const list = await openDropdown('Organization');
+    expect(optionLabels(list)).toEqual(['TSO Migrations']);
   });
 
   it('TC_DEST_007 (positive): leaving Stack unset keeps Proceed disabled and sends no request', async () => {

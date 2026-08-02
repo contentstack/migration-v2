@@ -192,7 +192,10 @@ export const createDestStack =
   () => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     const d = getState().destination;
     const name = d.createStack.name.trim();
-    if (!name) return;
+    const masterLocale = d.createStack.masterLocale.trim();
+    // A stack's master locale is fixed at creation and cannot be changed
+    // afterwards, so it must be an explicit choice — never defaulted here.
+    if (!name || !masterLocale) return;
 
     const description = d.createStack.description.trim() || undefined;
     const rc = currentCredential(getState());
@@ -204,14 +207,53 @@ export const createDestStack =
         orgId: d.org,
         name,
         description,
+        masterLocale,
         ...rc,
       });
-      dispatch(destinationActions.stackCreated({ apiKey: data.apiKey, name: data.name }));
+      dispatch(
+        destinationActions.stackCreated({
+          apiKey: data.apiKey,
+          name: data.name,
+          masterLocale: data.masterLocale ?? masterLocale,
+        })
+      );
       // A newly created stack has only the default `main` branch (EC-12).
       dispatch(destinationActions.setBranches([{ value: 'main', label: 'main' }]));
       dispatch(destinationActions.setDestBranch('main'));
     } catch (e) {
       dispatch(destinationActions.setCreateStackError(errMsg(e)));
+    }
+  };
+
+/** Every locale Contentstack supports — feeds the create-stack master-locale
+ * picker. Loaded once; a failure just leaves the picker empty. */
+export const loadContentstackLocales =
+  () => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
+    if (getState().destination.allLocales.length) return;
+    dispatch(destinationActions.setAllLocalesLoading(true));
+    dispatch(destinationActions.setAllLocalesError(undefined));
+    dispatch(destinationActions.setAllLocalesLoading(true));
+    try {
+      const { data } = await destinationApi.getContentstackLocales(
+        currentCredential(getState())
+      );
+      const list = (data.locales ?? [])
+        .filter((l: any) => l?.code)
+        .map((l: any) => ({
+          value: l.code,
+          label: l.name ? `${l.name} (${l.code})` : l.code,
+        }));
+      if (!list.length) {
+        // A 200 with nothing usable is still a dead end for the user — say so
+        // rather than rendering an empty dropdown.
+        dispatch(
+          destinationActions.setAllLocalesError('Contentstack returned no locales.')
+        );
+        return;
+      }
+      dispatch(destinationActions.setAllLocales(list));
+    } catch (e) {
+      dispatch(destinationActions.setAllLocalesError(errMsg(e)));
     }
   };
 

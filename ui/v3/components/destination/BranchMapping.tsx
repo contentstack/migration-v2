@@ -37,6 +37,7 @@ const BranchMapping: FC = () => {
         <MapSelect
           label="Destination branch"
           value={branchMapping.destBranch}
+          placeholder="Select a branch…"
           options={options}
           onChange={(v) => dispatch(destinationActions.setDestBranch(v))}
         />

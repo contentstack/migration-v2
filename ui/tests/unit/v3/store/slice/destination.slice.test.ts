@@ -36,6 +36,51 @@ describe('v3 destination.slice — region-switch login', () => {
   });
 });
 
+describe('v3 destination.slice — created stack master locale', () => {
+  it('(created-stack master locale, positive) seeds the destination master locale and the stack’s locale list', () => {
+    let s = init();
+    s = reducer(
+      s,
+      destinationActions.setSourceContext({
+        ready: true,
+        region: 'NA',
+        branch: 'main',
+        masterLocale: 'en-us',
+      })
+    );
+    s = reducer(
+      s,
+      destinationActions.stackCreated({ apiKey: 'blt-new', name: 'new-stack', masterLocale: 'fr-fr' })
+    );
+
+    // The locale chosen at creation IS the new stack's master locale, so it
+    // becomes the destination side of the locked master-locale mapping row.
+    expect(s.masterLocaleMapping).toEqual({ srcLocale: 'en-us', destLocale: 'fr-fr' });
+    // A brand-new stack has exactly that one locale.
+    expect(s.locales).toEqual([{ value: 'fr-fr', label: 'fr-fr' }]);
+  });
+
+  // Negative — taxonomy #4 (forbidden state): a previously-selected stack's locale
+  // list must not survive into the newly created stack.
+  it('(created-stack master locale, negative) replaces a previously selected stack’s locale list', () => {
+    let s = init();
+    s = reducer(
+      s,
+      destinationActions.setLocales([
+        { value: 'en-us', label: 'en-us' },
+        { value: 'de-de', label: 'de-de' },
+      ])
+    );
+    s = reducer(
+      s,
+      destinationActions.stackCreated({ apiKey: 'blt-new', name: 'new-stack', masterLocale: 'fr-fr' })
+    );
+
+    expect(s.locales).toEqual([{ value: 'fr-fr', label: 'fr-fr' }]);
+    expect(s.locales.map((l) => l.value)).not.toContain('de-de');
+  });
+});
+
 describe('v3 destination.slice — import authentication', () => {
   it('TC_DEST_025 (positive): switching from Management token to authToken discards the entered token name', () => {
     let s = init();

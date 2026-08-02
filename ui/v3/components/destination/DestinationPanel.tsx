@@ -18,6 +18,10 @@ import DestRegionLoginModal from './DestRegionLoginModal';
 import ImportAuthCards from './ImportAuthCards';
 import LanguageMapping from './LanguageMapping';
 import StackContents from './StackContents';
+// Shared themed dropdown, introduced by cs-source-selection. Reused here rather
+// than duplicated (v3-internal reuse). Worth relocating to a shared folder —
+// see tdd.md — but that touches Source's imports, so left where its owner put it.
+import V3Select from '../source/V3Select';
 
 /** Sentinel option that opens the create-stack modal instead of selecting a stack. */
 const CREATE_SENTINEL = '__create__';
@@ -58,6 +62,17 @@ const DestinationPanel: FC<{ orgId: string; projectId: string }> = ({ orgId, pro
     if (!v) return;
     dispatch(selectDestStack(v));
   };
+
+  const orgPlaceholder = !d.region
+    ? 'Select a region first'
+    : d.orgs.length === 0
+      ? 'No organizations found'
+      : 'Select an organization…';
+
+  // "Create a new stack" is always the last entry once an org is chosen (FR-1.3).
+  const stackOptions = d.org
+    ? [...d.stacks, { value: CREATE_SENTINEL, label: '+ Create a new stack' }]
+    : d.stacks;
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto' }}>
@@ -149,69 +164,44 @@ const DestinationPanel: FC<{ orgId: string; projectId: string }> = ({ orgId, pro
               <label className="v3-label" htmlFor="v3-dest-region">
                 Region *
               </label>
-              <select
+              <V3Select
                 id="v3-dest-region"
-                aria-label="Region"
-                className="v3-field"
+                ariaLabel="Region"
                 value={d.region}
-                onChange={(e) => dispatch(selectDestRegion(e.target.value))}
-              >
-                <option value="">Select a region…</option>
-                {d.regions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select a region…"
+                options={d.regions}
+                onChange={(v) => dispatch(selectDestRegion(v))}
+              />
             </div>
 
             <div>
               <label className="v3-label" htmlFor="v3-dest-org">
                 Organization *
               </label>
-              <select
+              <V3Select
                 id="v3-dest-org"
-                aria-label="Organization"
-                className="v3-field"
+                ariaLabel="Organization"
                 value={d.org}
+                placeholder={orgPlaceholder}
+                options={d.orgs}
                 disabled={!d.region}
-                onChange={(e) => dispatch(selectDestOrg(e.target.value))}
-              >
-                {!d.region ? (
-                  <option value="">Select a region first</option>
-                ) : d.orgs.length === 0 ? (
-                  <option value="">No organizations found</option>
-                ) : (
-                  <option value="">Select an organization…</option>
-                )}
-                {d.orgs.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => dispatch(selectDestOrg(v))}
+              />
             </div>
 
             <div>
               <label className="v3-label" htmlFor="v3-dest-stack">
                 Stack *
               </label>
-              <select
+              <V3Select
                 id="v3-dest-stack"
-                aria-label="Stack"
-                className="v3-field"
+                ariaLabel="Stack"
                 value={d.stackApiKey}
+                placeholder={d.org ? 'Select a stack…' : 'Select an organization first'}
+                options={stackOptions}
                 disabled={!d.org}
-                onChange={(e) => onStackChange(e.target.value)}
-              >
-                <option value="">{d.org ? 'Select a stack…' : 'Select an organization first'}</option>
-                {d.stacks.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-                {d.org && <option value={CREATE_SENTINEL}>+ Create a new stack</option>}
-              </select>
+                onChange={onStackChange}
+              />
               <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 6 }}>
                 Pick an existing stack in this organization, or create a new one.
               </div>

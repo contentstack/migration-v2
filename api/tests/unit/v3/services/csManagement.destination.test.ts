@@ -127,6 +127,46 @@ describe("v3 csManagement.createManagementToken", () => {
   });
 });
 
+describe("v3 csManagement.listContentstackLocales", () => {
+  it("(all-locales, positive) maps a normal array response to {code,name}[]", async () => {
+    mockGet.mockResolvedValue({
+      data: { locales: [{ code: "en-us", name: "English - United States" }] },
+    });
+
+    const locales = await csManagement.listContentstackLocales(TP);
+
+    expect(locales).toEqual([{ code: "en-us", name: "English - United States" }]);
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining("/locales?include_all=true"),
+      expect.objectContaining({ headers: expect.objectContaining({ authtoken: "tok" }) })
+    );
+  });
+
+  // Negative — taxonomy #2 (invalid shape): this is the shape Contentstack ACTUALLY
+  // returns — an object whose KEYS are the locale codes and whose VALUES are plain
+  // display-name strings (confirmed against v2's AddStack, which does
+  // `Object.keys(res.data.locales).map(k => ({ value: k, label: locales[k] }))`).
+  // Treating it as an array throws; treating it as an object of objects silently
+  // yields `{code: undefined}` for every entry and an empty picker.
+  it("(all-locales, negative) an object of code→name strings is mapped, not dropped", async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        locales: {
+          "en-us": "English - United States",
+          "fr-fr": "French - France",
+        },
+      },
+    });
+
+    const locales = await csManagement.listContentstackLocales(TP);
+
+    expect(locales).toEqual([
+      { code: "en-us", name: "English - United States" },
+      { code: "fr-fr", name: "French - France" },
+    ]);
+  });
+});
+
 describe("v3 csManagement.getStackStats", () => {
   it("(getStackStats, positive) a stack with content reports isEmpty false and labelled stat tiles", async () => {
     // content_types → 12, global_fields → 4, assets count → 1180, locales → 6, branches → 3

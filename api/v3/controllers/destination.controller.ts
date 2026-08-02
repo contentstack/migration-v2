@@ -36,10 +36,8 @@ const credentialFor = (
 
 // ---- API-4: create a new destination stack (FR-1.4, FR-1.5, TR-11) ----
 const createStack = async (req: Request, res: Response) => {
-  const { orgId, name, description, region, regionUserId } = (req.body ?? {}) as Record<
-    string,
-    any
-  >;
+  const { orgId, name, description, masterLocale, region, regionUserId } = (req.body ??
+    {}) as Record<string, any>;
   if (!orgId) return badRequest(res, "'orgId' is required.");
   if (!name || !String(name).trim()) return badRequest(res, "'name' is required.");
 
@@ -47,9 +45,25 @@ const createStack = async (req: Request, res: Response) => {
     credentialFor(req, region, regionUserId),
     orgId,
     String(name).trim(),
-    description ? String(description).trim() : undefined
+    description ? String(description).trim() : undefined,
+    masterLocale ? String(masterLocale).trim() : undefined
   );
   return res.status(HTTP_CODES.CREATED).json(stack);
+};
+
+/**
+ * Every locale Contentstack supports — feeds the create-stack master-locale
+ * picker. Not stack-scoped: the stack being named doesn't exist yet.
+ */
+const listContentstackLocales = async (req: Request, res: Response) => {
+  const locales = await csManagement.listContentstackLocales(
+    credentialFor(
+      req,
+      req.query.region as string | undefined,
+      req.query.regionUserId as string | undefined
+    )
+  );
+  return res.status(HTTP_CODES.OK).json({ locales });
 };
 
 // ---- API-3: create a read/write management token (FR-3.3, TR-13) ----
@@ -141,6 +155,7 @@ const getDestination = async (req: Request, res: Response) => {
 
 export const destinationController = {
   createStack,
+  listContentstackLocales,
   createManagementToken,
   getStackStats,
   listLocales,

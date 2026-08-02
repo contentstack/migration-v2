@@ -25,6 +25,13 @@ router.post(
 // Locales on the destination stack — feeds FR-4.1/FR-4.2 dropdowns
 router.get("/locales", asyncRouter(destinationController.listLocales));
 
+// Every locale Contentstack supports — feeds the create-stack master-locale
+// picker (the stack being created has no locales of its own yet).
+router.get(
+  "/contentstack-locales",
+  asyncRouter(destinationController.listContentstackLocales)
+);
+
 // Existing content statistics for the "Stack contents" card — API-5 / FR-10.2–10.4
 router.get(
   "/stacks/:apiKey/stats",

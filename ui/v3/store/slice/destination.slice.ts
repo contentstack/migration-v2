@@ -41,6 +41,8 @@ interface CreateStackState {
   open: boolean;
   name: string;
   description: string;
+  /** A stack's master locale is fixed at creation, so it is chosen here. */
+  masterLocale: string;
   loading: boolean;
   error?: string;
 }
@@ -61,7 +63,12 @@ interface DestinationState {
   orgs: Option[];
   stacks: Option[];
   branches: Option[];
+  /** Locales configured on the SELECTED destination stack. */
   locales: Option[];
+  /** Every locale Contentstack supports — the create-stack master-locale picker. */
+  allLocales: Option[];
+  allLocalesLoading: boolean;
+  allLocalesError?: string;
   /** The session's already-authenticated region (no login needed to use it). */
   homeRegion: string;
   /** Regions unlocked this session via region-login: region -> resolved userId. */
@@ -99,6 +106,7 @@ const initialCreateStack: CreateStackState = {
   open: false,
   name: '',
   description: '',
+  masterLocale: '',
   loading: false,
 };
 
@@ -108,6 +116,8 @@ const initialState: DestinationState = {
   stacks: [],
   branches: [],
   locales: [],
+  allLocales: [],
+  allLocalesLoading: false,
   homeRegion: '',
   regionAuth: {},
   region: '',
@@ -146,6 +156,20 @@ const destinationSlice = createSlice({
     },
     setLocales: (state, action: PayloadAction<Option[]>) => {
       state.locales = action.payload;
+    },
+    setAllLocales: (state, action: PayloadAction<Option[]>) => {
+      state.allLocales = action.payload;
+      state.allLocalesLoading = false;
+      state.allLocalesError = undefined;
+    },
+    setAllLocalesLoading: (state, action: PayloadAction<boolean>) => {
+      state.allLocalesLoading = action.payload;
+    },
+    /** Surfaced in the modal — a silently empty picker is indistinguishable from
+     * "Contentstack returned nothing", and blocks stack creation with no reason. */
+    setAllLocalesError: (state, action: PayloadAction<string | undefined>) => {
+      state.allLocalesError = action.payload;
+      state.allLocalesLoading = false;
     },
     setField: (
       state,
@@ -201,7 +225,7 @@ const destinationSlice = createSlice({
     },
     setCreateStackField: (
       state,
-      action: PayloadAction<{ field: 'name' | 'description'; value: string }>
+      action: PayloadAction<{ field: 'name' | 'description' | 'masterLocale'; value: string }>
     ) => {
       state.createStack[action.payload.field] = action.payload.value;
       state.createStack.error = undefined;
@@ -215,13 +239,32 @@ const destinationSlice = createSlice({
     },
     /** A newly created stack is always empty (UC-9a), so its stats are known
      * without a fetch — and the previous stack's stats must not linger. */
-    stackCreated: (state, action: PayloadAction<{ apiKey: string; name: string }>) => {
-      state.stackApiKey = action.payload.apiKey;
-      state.stackName = action.payload.name;
+    stackCreated: (
+      state,
+      action: PayloadAction<{ apiKey: string; name: string; masterLocale?: string }>
+    ) => {
+      const { apiKey, name, masterLocale } = action.payload;
+      // Append to the option list as well as selecting it. The Stack dropdown
+      // renders its options from `stacks`, so selecting an apiKey that isn't in
+      // that list leaves the <select> bound to a value with no matching <option>
+      // — the field renders blank and the new stack is invisible.
+      if (!state.stacks.some((o) => o.value === apiKey)) {
+        state.stacks.push({ value: apiKey, label: name });
+      }
+      state.stackApiKey = apiKey;
+      state.stackName = name;
       state.stackWasCreated = true;
       state.createStack = { ...initialCreateStack };
       state.stackStats = { isEmpty: true, stats: [] };
       state.statsLoading = false;
+      if (masterLocale) {
+        // The locale chosen at creation IS the new stack's master locale, so it
+        // is the destination side of the locked master-locale mapping row. A
+        // brand-new stack has exactly this one locale — any list left over from
+        // a previously selected stack must not linger.
+        state.masterLocaleMapping.destLocale = masterLocale;
+        state.locales = [{ value: masterLocale, label: masterLocale }];
+      }
     },
 
     // ---- "Stack contents" card (FR-10.x) ----

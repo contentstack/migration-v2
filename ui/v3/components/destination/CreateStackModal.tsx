@@ -2,7 +2,8 @@ import { FC, useEffect, useRef } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
 import { destinationActions } from '../../store/slice/destination.slice';
-import { createDestStack } from '../../store/thunks/destination.thunks';
+import { createDestStack, loadContentstackLocales } from '../../store/thunks/destination.thunks';
+import V3Select from '../source/V3Select';
 
 /**
  * "Create a new stack" modal (UC-7 / FR-1.4–1.6).
@@ -18,16 +19,24 @@ const CreateStackModal: FC = () => {
   const cs = useV3Selector((s) => s.destination.createStack);
   const orgs = useV3Selector((s) => s.destination.orgs);
   const org = useV3Selector((s) => s.destination.org);
+  const allLocales = useV3Selector((s) => s.destination.allLocales);
+  const allLocalesLoading = useV3Selector((s) => s.destination.allLocalesLoading);
+  const allLocalesError = useV3Selector((s) => s.destination.allLocalesError);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (cs.open) nameRef.current?.focus();
+    if (!cs.open) return;
+    nameRef.current?.focus();
+    // The master-locale list is the full Contentstack set, not the stack's own —
+    // fetched lazily the first time the modal opens.
+    dispatch(loadContentstackLocales());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cs.open]);
 
   if (!cs.open) return null;
 
   const orgLabel = orgs.find((o) => o.value === org)?.label ?? org;
-  const canCreate = !!cs.name.trim() && !cs.loading;
+  const canCreate = !!cs.name.trim() && !!cs.masterLocale.trim() && !cs.loading;
   const cancel = () => dispatch(destinationActions.cancelCreateStack());
 
   const onSubmit = (e: React.FormEvent) => {
@@ -121,6 +130,42 @@ const CreateStackModal: FC = () => {
                 }
               />
             </div>
+            <div>
+              <label className="v3-label" htmlFor="v3-new-stack-master-locale">
+                Master locale *
+              </label>
+              <V3Select
+                id="v3-new-stack-master-locale"
+                ariaLabel="Master locale"
+                value={cs.masterLocale}
+                placeholder={
+                  allLocalesLoading ? 'Loading locales…' : 'Select a master locale…'
+                }
+                options={allLocales}
+                disabled={allLocalesLoading || !!allLocalesError}
+                onChange={(v) =>
+                  dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: v }))
+                }
+              />
+              {allLocalesError ? (
+                <div
+                  role="alert"
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: 'var(--danger)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Couldn&rsquo;t load locales — {allLocalesError}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 6 }}>
+                  A stack&rsquo;s master locale is fixed at creation and cannot be changed later.
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="v3-label" htmlFor="v3-new-stack-desc">
                 Stack description

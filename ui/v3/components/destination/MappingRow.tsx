@@ -1,4 +1,6 @@
-import { CSSProperties, FC, ReactNode } from 'react';
+import { CSSProperties, FC } from 'react';
+
+import V3Select from '../source/V3Select';
 
 /** Shared 4-column grid used by both the branch and language mapping rows:
  * source | dash | destination | row-action. */
@@ -106,27 +108,25 @@ export const MapDash: FC = () => (
   <span style={{ textAlign: 'center', color: 'var(--text-subtle)', fontWeight: 700 }}>–</span>
 );
 
-/** A `<select>` styled as the design-system Select, used for both mapping halves. */
+/**
+ * The editable right-hand half of a mapping row. Uses the shared themed
+ * dropdown rather than a native `<select>` so the open option list is styled by
+ * the app instead of the OS popup chrome (see V3Select).
+ */
 export const MapSelect: FC<{
   label: string;
   value: string;
+  placeholder: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
-  children?: ReactNode;
-}> = ({ label, value, options, onChange, children }) => (
+}> = ({ label, value, placeholder, options, onChange }) => (
   <div style={{ minWidth: 0 }}>
-    <select
-      aria-label={label}
-      className="v3-field"
+    <V3Select
+      ariaLabel={label}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      {children}
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+      placeholder={placeholder}
+      options={options}
+      onChange={onChange}
+    />
   </div>
 );

@@ -22,6 +22,7 @@ const { mockApi } = vi.hoisted(() => ({
     getStacks: vi.fn(),
     getBranches: vi.fn(),
     getLocales: vi.fn(),
+    getContentstackLocales: vi.fn(),
     createStack: vi.fn(),
     createManagementToken: vi.fn(),
     getStackStats: vi.fn(),
@@ -75,6 +76,7 @@ beforeEach(() => {
   mockApi.getStackStats.mockResolvedValue({ data: { isEmpty: true, stats: [] } });
   mockApi.getBranches.mockResolvedValue({ data: { branches: [{ uid: 'main' }] } });
   mockApi.getLocales.mockResolvedValue({ data: { locales: [{ code: 'en-us' }] } });
+  mockApi.getContentstackLocales.mockResolvedValue({ data: { locales: [{ code: 'en-us', name: 'English' }] } });
   mockApi.getOrgs.mockResolvedValue({ data: { orgs: [] } });
   mockApi.getStacks.mockResolvedValue({ data: { stacks: [] } });
 });
@@ -85,6 +87,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     mockApi.createStack.mockResolvedValue({ data: { apiKey: 'blt-new', name: 'production-eu' } });
 
     await store.dispatch(createDestStack() as any);
@@ -94,6 +97,13 @@ describe('v3 destination thunks — create stack', () => {
     expect(st.stackName).toBe('production-eu');
     expect(st.stackWasCreated).toBe(true);
     expect(st.createStack.open).toBe(false);
+    // "Set as the selected destination Stack" (AC-7.2) means actually selectable:
+    // the Stack dropdown builds its options from `stacks`, so a created stack that
+    // is not appended there leaves the select bound to a value with no matching
+    // option — which renders blank.
+    expect(st.stacks).toEqual(
+      expect.arrayContaining([{ value: 'blt-new', label: 'production-eu' }])
+    );
   });
 
   // Negative — taxonomy #1 (missing/empty input): a blank name never reaches the API.
@@ -113,6 +123,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     store.dispatch(destinationActions.setCreateStackField({ field: 'description', value: 'draft desc' }));
     mockApi.createStack.mockRejectedValue(httpError(502, 'Contentstack is unreachable.'));
 
@@ -135,6 +146,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     mockApi.createStack.mockResolvedValue({ data: { apiKey: 'blt-new', name: 'production-eu' } });
 
     await store.dispatch(createDestStack() as any);
@@ -149,6 +161,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     mockApi.createStack.mockResolvedValue({ data: { apiKey: 'blt-new', name: 'production-eu' } });
 
     await store.dispatch(createDestStack() as any);
@@ -157,6 +170,7 @@ describe('v3 destination thunks — create stack', () => {
       orgId: 'o1',
       name: 'production-eu',
       description: undefined,
+      masterLocale: 'en-us',
     });
   });
 
@@ -167,6 +181,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     store.dispatch(
       destinationActions.setCreateStackField({ field: 'description', value: 'EU marketing content' })
     );
@@ -178,6 +193,7 @@ describe('v3 destination thunks — create stack', () => {
       orgId: 'o1',
       name: 'production-eu',
       description: 'EU marketing content',
+      masterLocale: 'en-us',
     });
   });
 
@@ -186,6 +202,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     mockApi.createStack.mockRejectedValue(
       httpError(400, "A stack named 'production-eu' already exists in this organization.")
     );
@@ -210,6 +227,7 @@ describe('v3 destination thunks — create stack', () => {
     store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
     store.dispatch(destinationActions.openCreateStack());
     store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu-2' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'en-us' }));
     mockApi.createStack.mockResolvedValue({ data: { apiKey: 'blt-new', name: 'production-eu-2' } });
 
     await store.dispatch(createDestStack() as any);
@@ -217,6 +235,40 @@ describe('v3 destination thunks — create stack', () => {
     const st = store.getState().destination;
     expect(st.createStack.error).toBeUndefined();
     expect(st.stackWasCreated).toBe(true);
+  });
+});
+
+describe('v3 destination thunks — create stack master locale', () => {
+  it('(master locale, positive) the chosen master locale is forwarded and seeds the mapping row', async () => {
+    const store = mkStoreHomeNA();
+    store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
+    store.dispatch(destinationActions.openCreateStack());
+    store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+    store.dispatch(destinationActions.setCreateStackField({ field: 'masterLocale', value: 'fr-fr' }));
+    mockApi.createStack.mockResolvedValue({
+      data: { apiKey: 'blt-new', name: 'production-eu', masterLocale: 'fr-fr' },
+    });
+
+    await store.dispatch(createDestStack() as any);
+
+    expect(mockApi.createStack).toHaveBeenCalledWith(
+      expect.objectContaining({ masterLocale: 'fr-fr' })
+    );
+    expect(store.getState().destination.masterLocaleMapping.destLocale).toBe('fr-fr');
+  });
+
+  // Negative — taxonomy #1 (missing input): no master locale, no request. A stack's
+  // master locale cannot be changed after creation, so it must not be defaulted here.
+  it('(master locale, negative) a missing master locale issues no create request', async () => {
+    const store = mkStoreHomeNA();
+    store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
+    store.dispatch(destinationActions.openCreateStack());
+    store.dispatch(destinationActions.setCreateStackField({ field: 'name', value: 'production-eu' }));
+
+    await store.dispatch(createDestStack() as any);
+
+    expect(mockApi.createStack).not.toHaveBeenCalled();
+    expect(store.getState().destination.createStack.open).toBe(true);
   });
 });
 

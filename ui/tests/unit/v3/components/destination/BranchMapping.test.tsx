@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
@@ -93,7 +94,7 @@ describe('v3 BranchMapping', () => {
     expect(dest).not.toHaveAttribute('aria-readonly', 'true');
   });
 
-  it('TC_DEST_033 (positive): a just-created destination stack offers only the default main branch', () => {
+  it('TC_DEST_033 (positive): a just-created destination stack offers only the default main branch', async () => {
     renderBranches((store) => {
       store.dispatch(destinationActions.stackCreated({ apiKey: 'blt-new', name: 'brand-new-stack' }));
       // Even if a stale branch list is in state, a new stack has only `main`.
@@ -105,13 +106,14 @@ describe('v3 BranchMapping', () => {
       );
     });
 
-    const options = screen.getAllByRole('option').map((o) => o.textContent);
-    expect(options).toEqual(['main']);
+    await userEvent.click(screen.getByLabelText('Destination branch'));
+    const list = screen.getByRole('listbox', { name: 'Destination branch' });
+    expect(within(list).getAllByRole('option').map((o) => o.textContent)).toEqual(['main']);
   });
 
   // Negative — taxonomy #4 (forbidden state): an EXISTING (not newly created) stack is
   // not restricted — its real branch list is offered.
-  it('TC_DEST_033 (negative): an existing destination stack offers its full branch list', () => {
+  it('TC_DEST_033 (negative): an existing destination stack offers its full branch list', async () => {
     renderBranches((store) => {
       store.dispatch(destinationActions.setField({ field: 'stackApiKey', value: 'blt-existing' }));
       store.dispatch(
@@ -122,6 +124,7 @@ describe('v3 BranchMapping', () => {
       );
     });
 
+    await userEvent.click(screen.getByLabelText('Destination branch'));
     expect(screen.getByRole('option', { name: 'develop' })).toBeInTheDocument();
   });
 });

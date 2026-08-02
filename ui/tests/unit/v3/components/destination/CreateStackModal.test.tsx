@@ -16,6 +16,7 @@ const { mockCreateDestStack } = vi.hoisted(() => ({
 }));
 vi.mock('../../../../../v3/store/thunks/destination.thunks', () => ({
   createDestStack: mockCreateDestStack,
+  loadContentstackLocales: () => () => {},
 }));
 
 import destinationReducer, {
@@ -27,6 +28,12 @@ const renderModal = (setup?: (store: any) => void) => {
   const store = configureStore({ reducer: { destination: destinationReducer } });
   store.dispatch(destinationActions.setOrgs([{ value: 'o1', label: 'TSO Migrations' }]));
   store.dispatch(destinationActions.setField({ field: 'org', value: 'o1' }));
+  store.dispatch(
+    destinationActions.setAllLocales([
+      { value: 'en-us', label: 'English - United States (en-us)' },
+      { value: 'fr-fr', label: 'French - France (fr-fr)' },
+    ])
+  );
   store.dispatch(destinationActions.openCreateStack());
   setup?.(store);
   render(
@@ -49,6 +56,9 @@ describe('v3 CreateStackModal', () => {
     expect(screen.getByRole('dialog', { name: 'Create a new stack' })).toBeInTheDocument();
     expect(screen.getByLabelText('Stack name')).toBeRequired();
     expect(screen.getByLabelText('Stack description')).not.toBeRequired();
+    // A new stack's master locale is chosen at creation time — it can't be
+    // changed afterwards, so the modal is the only place to set it.
+    expect(screen.getByLabelText('Master locale')).toBeInTheDocument();
     expect(createBtn()).toBeDisabled();
   });
 
@@ -65,9 +75,12 @@ describe('v3 CreateStackModal', () => {
     expect(screen.queryByRole('button', { name: 'Create stack' })).toBeNull();
   });
 
-  it('TC_DEST_009 (positive): typing a non-empty Stack name enables the Create stack button', async () => {
+  it('TC_DEST_009 (positive): a non-empty Stack name plus a chosen Master locale enables the Create stack button', async () => {
     renderModal();
     await userEvent.type(screen.getByLabelText('Stack name'), 'production-eu-marketing-site');
+    await userEvent.click(screen.getByLabelText('Master locale'));
+    await userEvent.click(screen.getByRole('option', { name: /French - France/ }));
+
     expect(createBtn()).not.toBeDisabled();
   });
 
@@ -80,6 +93,44 @@ describe('v3 CreateStackModal', () => {
     expect(createBtn()).toBeDisabled();
     await userEvent.click(createBtn());
     expect(mockCreateDestStack).not.toHaveBeenCalled();
+  });
+
+  it('(master locale, positive) the chosen Master locale is recorded on the create-stack draft', async () => {
+    const store = renderModal();
+    await userEvent.click(screen.getByLabelText('Master locale'));
+    await userEvent.click(screen.getByRole('option', { name: /French - France/ }));
+
+    expect(store.getState().destination.createStack.masterLocale).toBe('fr-fr');
+  });
+
+  // Negative — taxonomy #1 (missing input): a valid name with NO master locale is
+  // still incomplete, because a stack's master locale is fixed at creation.
+  it('(master locale, negative) a named stack with no Master locale keeps Create disabled', async () => {
+    renderModal();
+    await userEvent.type(screen.getByLabelText('Stack name'), 'production-eu');
+
+    expect(createBtn()).toBeDisabled();
+    await userEvent.click(createBtn());
+    expect(mockCreateDestStack).not.toHaveBeenCalled();
+  });
+
+  it('(locale load failure, positive) a failed locale fetch is surfaced, not swallowed into an empty picker', () => {
+    renderModal((s) => {
+      s.dispatch(destinationActions.setAllLocales([]));
+      s.dispatch(destinationActions.setAllLocalesError('Contentstack is unreachable.'));
+    });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Contentstack is unreachable.');
+  });
+
+  // Negative — taxonomy #6 (dependency failure, contrast): when the fetch succeeds
+  // there is no error and the picker is populated.
+  it('(locale load failure, negative) a successful fetch shows no error and offers the locales', async () => {
+    renderModal();
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await userEvent.click(screen.getByLabelText('Master locale'));
+    expect(screen.getByRole('option', { name: /French - France/ })).toBeInTheDocument();
   });
 
   it('TC_DEST_011 (positive): Cancel closes the modal, creates nothing and leaves the Stack selection unchanged', async () => {

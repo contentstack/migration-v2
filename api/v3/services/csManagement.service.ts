@@ -122,6 +122,20 @@ const csPost = async (
 /** Deterministic thousands separators regardless of the host's default locale. */
 const fmt = (n: number): string => n.toLocaleString("en-US");
 
+/**
+ * Normalises a Contentstack list field to an array.
+ *
+ * Some endpoints return a keyed OBJECT rather than an array (`/locales` returns
+ * `{ "en-us": {...} }`). `x ?? []` does not protect against that — the value is
+ * truthy, so it passes straight through and the next `.map`/`.filter` throws a
+ * TypeError that surfaces to the user as "…map is not a function".
+ */
+const asArray = (value: unknown): any[] => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value as object);
+  return [];
+};
+
 export const csManagement = {
   /** Static list of regions configured for the current environment. */
   regions: () => CS_REGIONS.map((code) => ({ value: code, label: code })),
@@ -350,13 +364,28 @@ export const csManagement = {
     tp: TokenPayload | undefined,
     orgId: string,
     name: string,
-    description?: string
-  ): Promise<{ apiKey: string; name: string; description?: string }> => {
+    description?: string,
+    /** A stack's master locale is fixed at creation and cannot be changed
+     * afterwards, so it is chosen in the create-stack modal. Omitted → whatever
+     * Contentstack defaults to. */
+    masterLocale?: string
+  ): Promise<{
+    apiKey: string;
+    name: string;
+    description?: string;
+    masterLocale?: string;
+  }> => {
     const region = tp?.region as string;
     const headers = { ...(await authHeaders(tp)), organization_uid: orgId };
     const data = await csPost(
       `${hostFor(region)}/stacks`,
-      { stack: { name, ...(description ? { description } : {}) } },
+      {
+        stack: {
+          name,
+          ...(description ? { description } : {}),
+          ...(masterLocale ? { master_locale: masterLocale } : {}),
+        },
+      },
       headers
     );
     const stack = data?.stack;
@@ -367,7 +396,36 @@ export const csManagement = {
       apiKey: stack.api_key,
       name: stack.name,
       ...(stack.description ? { description: stack.description } : {}),
+      ...(stack.master_locale ? { masterLocale: stack.master_locale } : {}),
     };
+  },
+
+  /**
+   * Every locale Contentstack supports, for the create-stack master-locale
+   * picker. Distinct from `listLocales`, which returns the locales configured on
+   * one existing stack — a stack that doesn't exist yet has none. Mirrors v2's
+   * `orgService.getLocales` (`/locales?include_all=true`); needs no api_key.
+   */
+  listContentstackLocales: async (
+    tp: TokenPayload | undefined
+  ): Promise<{ code: string; name?: string }[]> => {
+    const region = tp?.region as string;
+    const data = await csGet(`${hostFor(region)}/locales?include_all=true`, await authHeaders(tp));
+    const raw = data?.locales;
+
+    // Contentstack returns THIS list as an object whose keys are locale codes and
+    // whose values are display-name strings:
+    //   { "en-us": "English - United States", "fr-fr": "French - France", ... }
+    // (v2's AddStack reads it the same way.) Object.values() alone would yield the
+    // names and lose every code, producing a silently empty picker.
+    if (raw && !Array.isArray(raw) && typeof raw === "object") {
+      return Object.entries(raw as Record<string, unknown>).map(([code, name]) => ({
+        code,
+        name: typeof name === "string" ? name : (name as any)?.name ?? code,
+      }));
+    }
+    // Array form, in case the endpoint ever returns locale objects instead.
+    return asArray(raw).map((l: any) => ({ code: l?.code, name: l?.name }));
   },
 
   /** Modules a migration import must be able to read AND write. */
@@ -423,20 +481,20 @@ export const csManagement = {
     const host = hostFor(region);
     const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
 
-    const cts = (await csGet(`${host}/content_types`, headers))?.content_types ?? [];
+    const cts = asArray((await csGet(`${host}/content_types`, headers))?.content_types);
 
     const [globalFields, assets, locales, branches] = await Promise.all([
       csGet(`${host}/global_fields`, headers)
-        .then((d) => (d?.global_fields ?? []).length)
+        .then((d) => asArray(d?.global_fields).length)
         .catch(() => 0),
       csGet(`${host}/assets?include_count=true&limit=1`, headers)
         .then((d) => Number(d?.count ?? 0))
         .catch(() => 0),
       csGet(`${host}/locales`, headers)
-        .then((d) => (d?.locales ?? []).length)
+        .then((d) => asArray(d?.locales).length)
         .catch(() => 0),
       csGet(`${host}/stacks/branches`, headers)
-        .then((d) => (d?.branches ?? []).length)
+        .then((d) => asArray(d?.branches).length)
         .catch(() => 0),
     ]);
 
@@ -476,7 +534,7 @@ export const csManagement = {
     const region = tp?.region as string;
     const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
     const data = await csGet(`${hostFor(region)}/locales`, headers);
-    return (data?.locales ?? []).map((l: any) => ({ code: l?.code, name: l?.name }));
+    return asArray(data?.locales).map((l: any) => ({ code: l?.code, name: l?.name }));
   },
 
   /**

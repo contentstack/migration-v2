@@ -37,11 +37,10 @@ const LanguageMapping: FC = () => {
         <MapSelect
           label="Destination master locale"
           value={masterLocaleMapping.destLocale}
+          placeholder="Select a locale…"
           options={locales}
           onChange={(v) => dispatch(destinationActions.setDestMasterLocale(v))}
-        >
-          <option value="">Select a locale…</option>
-        </MapSelect>
+        />
         <span />
       </div>
 
@@ -56,24 +55,22 @@ const LanguageMapping: FC = () => {
           <MapSelect
             label={`Source locale ${i + 1}`}
             value={row.srcLocale}
+            placeholder="Select a locale…"
             options={locales}
             onChange={(v) =>
               dispatch(destinationActions.setLanguageRow({ index: i, field: 'srcLocale', value: v }))
             }
-          >
-            <option value="">Select a locale…</option>
-          </MapSelect>
+          />
           <MapDash />
           <MapSelect
             label={`Destination locale ${i + 1}`}
             value={row.destLocale}
+            placeholder="Select a locale…"
             options={locales}
             onChange={(v) =>
               dispatch(destinationActions.setLanguageRow({ index: i, field: 'destLocale', value: v }))
             }
-          >
-            <option value="">Select a locale…</option>
-          </MapSelect>
+          />
           <button
             type="button"
             className="v3-rowremove"
