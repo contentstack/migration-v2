@@ -1299,15 +1299,21 @@ const startMigration = async (req: Request): Promise<any> => {
       //      forever.
       try {
         const proj: any = project;
+        const dbBase = path.resolve(process.cwd(), DATABASE_FILES.DIRECTORY);
         let updateConfig: Record<string, any> | null = null;
         try {
+          // configFilePath came from removeEntriesFromDatabase / ensureUpdateConfigFile
+          // (path.join'd against safePid + iteration) — re-assert it resolves under the
+          // database dir before reading, so Snyk sees an explicit sink check.
+          assertResolvedPathUnderBase(dbBase, configFilePath);
           updateConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
         } catch {
           updateConfig = null;
         }
         let entryByLocaleKeys: string[] = [];
         try {
-          const uidMapperPath = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, safePid, iteration.toString(), DATABASE_FILES.UID_MAPPER);
+          const uidMapperPath = path.join(dbBase, safePid, iteration.toString(), DATABASE_FILES.UID_MAPPER);
+          assertResolvedPathUnderBase(dbBase, uidMapperPath);
           if (fs.existsSync(uidMapperPath)) {
             const mapper = JSON.parse(fs.readFileSync(uidMapperPath, 'utf-8'));
             entryByLocaleKeys = Object.keys(mapper?.entryByLocale ?? {});
