@@ -1312,7 +1312,11 @@ const startMigration = async (req: Request): Promise<any> => {
         }
         let entryByLocaleKeys: string[] = [];
         try {
-          const uidMapperPath = path.join(dbBase, safePid, iteration.toString(), DATABASE_FILES.UID_MAPPER);
+          // path.basename on every user-derived segment strips any traversal
+          // characters and is the sanitizer Snyk recognizes on this sink.
+          const safeIter = path.basename(iteration.toString());
+          const safeMapperFile = path.basename(DATABASE_FILES.UID_MAPPER);
+          const uidMapperPath = path.join(dbBase, path.basename(safePid), safeIter, safeMapperFile);
           assertResolvedPathUnderBase(dbBase, uidMapperPath);
           if (fs.existsSync(uidMapperPath)) {
             const mapper = JSON.parse(fs.readFileSync(uidMapperPath, 'utf-8'));
