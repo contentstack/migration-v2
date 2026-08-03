@@ -365,6 +365,7 @@ database/
 database-v3/
 /sitecoreMigrationData
 /cmsMigrationData
+/v3/cmsMigrationData
 /migration-data
 **/copy*
 **copy.ts

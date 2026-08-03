@@ -38,10 +38,34 @@ const V3Select: FC<V3SelectProps> = ({
   buttonStyle,
 }) => {
   const [open, setOpen] = useState(false);
+  // Whether to flip the list above the trigger instead of below — decided
+  // fresh each time the list opens, so a field near the bottom of the
+  // viewport (e.g. Stack, with a long options list) never renders its popup
+  // partly off-screen or under the page's sticky footer.
+  const [openUpward, setOpenUpward] = useState(false);
+  // The list's own maxHeight is clamped to whatever room actually exists on
+  // the chosen side (not just a fixed constant) — otherwise a field with
+  // little space in BOTH directions (e.g. Stack, sitting just above the
+  // wizard's sticky footer) would still render a fixed-height popup that
+  // spills past the viewport or over the footer no matter which way it opens.
+  const [listMaxHeight, setListMaxHeight] = useState(260);
   const rootRef = useRef<HTMLDivElement>(null);
+  const MAX_LIST_HEIGHT = 260;
+  const MIN_LIST_HEIGHT = 120;
+  const VIEWPORT_MARGIN = 8;
 
   useEffect(() => {
     if (!open) return;
+    const el = rootRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_MARGIN;
+      const spaceAbove = rect.top - VIEWPORT_MARGIN;
+      const upward = spaceBelow < MAX_LIST_HEIGHT && spaceAbove > spaceBelow;
+      setOpenUpward(upward);
+      const available = upward ? spaceAbove : spaceBelow;
+      setListMaxHeight(Math.max(MIN_LIST_HEIGHT, Math.min(MAX_LIST_HEIGHT, available)));
+    }
     const onDocMouseDown = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
@@ -84,8 +108,9 @@ const V3Select: FC<V3SelectProps> = ({
           role="listbox"
           aria-label={ariaLabel}
           style={{
-            position: 'absolute', zIndex: 20, top: 'calc(100% + 4px)', left: 0, right: 0,
-            margin: 0, padding: 4, listStyle: 'none', maxHeight: 260, overflowY: 'auto',
+            position: 'absolute', zIndex: 500, left: 0, right: 0,
+            ...(openUpward ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }),
+            margin: 0, padding: 4, listStyle: 'none', maxHeight: listMaxHeight, overflowY: 'auto',
             background: 'var(--surface-card)', border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)',
           }}
@@ -102,9 +127,9 @@ const V3Select: FC<V3SelectProps> = ({
               }}
               className="v3-select-option"
               style={{
-                cursor: 'pointer', padding: '8px 10px', borderRadius: 'var(--radius-sm)',
-                fontSize: 13.5, fontFamily: 'var(--font-sans)', fontWeight: o.value === value ? 700 : 500,
-                color: 'var(--text-strong)',
+                cursor: 'pointer', padding: '5px 10px', borderRadius: 'var(--radius-sm)',
+                fontSize: 13, fontFamily: 'var(--font-sans)', fontWeight: o.value === value ? 700 : 500,
+                color: 'var(--text-strong)', lineHeight: 1.4,
               }}
             >
               {o.label}

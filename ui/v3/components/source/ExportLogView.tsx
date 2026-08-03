@@ -36,13 +36,6 @@ const STATUS_COLOR: Record<JobStatus, string> = {
   failed: 'var(--danger)',
 };
 
-const CheckIcon: FC = () => (
-  <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-);
-const CrossIcon: FC = () => (
-  <svg width="7" height="7" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="#fff" strokeWidth="4" strokeLinecap="round" /></svg>
-);
-
 const LEVEL_COLOR: Record<LogLevel, string> = {
   DEBUG: 'var(--text-subtle)',
   INFO: 'var(--text-body)',
@@ -72,6 +65,22 @@ interface ExportLogViewProps {
   jobStatus?: JobStatus;
 }
 
+/** Formats live elapsed time the way the design's clock chip does — sub-10s
+ * runs keep one decimal (so a ~1s run doesn't read as a frozen "1s"), longer
+ * ones round to whole seconds, and anything over a minute switches to m/s. */
+const formatElapsed = (ms: number): string => {
+  const s = ms / 1000;
+  if (s < 60) return `${s < 10 ? s.toFixed(1) : Math.round(s)}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m ${Math.round(s % 60)}s`;
+};
+
+const ClockIcon: FC = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" />
+  </svg>
+);
+
 const ExportLogView: FC<ExportLogViewProps> = ({ logs, running, progress, jobStatus }) => {
   const [filter, setFilter] = useState<'all' | LogLevel>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -86,128 +95,146 @@ const ExportLogView: FC<ExportLogViewProps> = ({ logs, running, progress, jobSta
     if (el && running) el.scrollTop = el.scrollHeight;
   }, [logs, running]);
 
+  // Live elapsed time for the clock chip — starts on the false→true running
+  // transition, ticks while running, and freezes at its last value once the
+  // job finishes (rather than resetting or continuing to climb).
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const startedAt = useRef<number | null>(null);
+  const wasRunning = useRef(false);
+
+  useEffect(() => {
+    if (running && !wasRunning.current) {
+      startedAt.current = performance.now();
+      setElapsedMs(0);
+    }
+    wasRunning.current = running;
+  }, [running]);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      if (startedAt.current != null) setElapsedMs(performance.now() - startedAt.current);
+    }, 100);
+    return () => clearInterval(id);
+  }, [running]);
+
+  // The backend only reports progress at a handful of real batch boundaries
+  // (see STAGES), so the raw value jumps straight from e.g. 35 to 65 instead
+  // of climbing steadily. Tweening the on-screen number/bar between those
+  // jumps is what actually makes it read as "live" rather than stepped.
+  const [displayPct, setDisplayPct] = useState(0);
+  const displayRef = useRef(0);
+  const rafRef = useRef<number>();
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (progress === undefined) return;
+    const target = Math.max(0, Math.min(100, progress));
+
+    if (!initialized.current) {
+      // First time this run has a progress value (e.g. mounting mid-poll) —
+      // snap instead of animating up from 0.
+      initialized.current = true;
+      displayRef.current = target;
+      setDisplayPct(target);
+      return;
+    }
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    // A backward jump (a fresh run starting over) snaps instantly too —
+    // only forward motion animates, so it never looks like it's undoing.
+    const start = target < displayRef.current ? target : displayRef.current;
+    if (start === target) {
+      displayRef.current = target;
+      setDisplayPct(target);
+      return;
+    }
+
+    const startTime = performance.now();
+    const duration = 650;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = start + (target - start) * eased;
+      displayRef.current = val;
+      setDisplayPct(val);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [progress]);
+
+  // Real batch data once a run has happened this session — drives both the
+  // thin top-edge strip and the status row (dot, label, % chip, clock).
+  const pct = progress !== undefined ? Math.max(0, Math.min(100, progress)) : 0;
+  const stageIndex = stageIndexFor(pct);
+  const currentLabel =
+    jobStatus === 'succeeded' ? 'Exported successfully'
+      : jobStatus === 'failed' ? 'Export failed'
+        : jobStatus === 'queued' ? 'Queued…'
+          : STAGES[stageIndex]?.label ?? 'Exporting…';
+  const statusColor = jobStatus ? STATUS_COLOR[jobStatus] : 'var(--brand-strong)';
+  const isRunning = jobStatus !== 'succeeded' && jobStatus !== 'failed';
+  const barColor = jobStatus === 'failed' ? 'var(--danger)' : jobStatus === 'succeeded' ? DONE_COLOR : 'var(--brand-strong)';
+
   return (
     <div>
+      {/* thin top-edge progress strip — flush with the card's own top edge
+          (the card wrapping this component is unpadded + overflow:hidden for
+          exactly this reason), matching the Claude Design reference rather
+          than a padded, boxed meter sitting inside the content. */}
+      {progress !== undefined && (
+        <div
+          role="progressbar"
+          aria-label="Export progress"
+          aria-valuenow={Math.round(pct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          style={{ height: 3, background: 'var(--surface-sunken)' }}
+        >
+          <div
+            className={isRunning ? 'v3-progress-fill--running' : undefined}
+            style={{
+              height: '100%', width: `${displayPct}%`,
+              background: isRunning ? undefined : barColor,
+              transition: 'background .2s ease',
+            }}
+          />
+        </div>
+      )}
+
+      <div style={{ padding: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', background: 'var(--brand-subtle)', color: 'var(--brand-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 7h16M4 12h10M4 17h7" /></svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text-strong)' }}>Activity log</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {running ? 'Streaming live…' : logs.length ? 'Last run' : 'Nothing has run yet'}
-          </div>
-        </div>
-        {running && (
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--brand-strong)', animation: 'v3-spin 1.1s ease-in-out infinite alternate' }} />
+        {progress !== undefined ? (
+          <>
+            <span
+              style={{
+                width: 8, height: 8, borderRadius: '50%', flex: 'none', background: statusColor,
+                animation: isRunning ? 'v3-pulse 1.4s ease-in-out infinite' : undefined,
+              }}
+            />
+            <div style={{ flex: 1, fontSize: 13.5, fontWeight: 800, color: 'var(--text-strong)' }}>{currentLabel}</div>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)', background: barColor, borderRadius: 'var(--radius-pill)', padding: '3px 9px', transition: 'background .2s ease' }}>
+              {Math.round(displayPct)}%
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+              <ClockIcon />{formatElapsed(elapsedMs)}
+            </span>
+          </>
+        ) : (
+          <>
+            <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', background: 'var(--brand-subtle)', color: 'var(--brand-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 7h16M4 12h10M4 17h7" /></svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text-strong)' }}>Activity log</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nothing has run yet</div>
+            </div>
+          </>
         )}
       </div>
-
-      {progress !== undefined && (() => {
-        const pct = Math.max(0, Math.min(100, progress));
-        const stageIndex = stageIndexFor(pct);
-        const stageState = (i: number): 'done' | 'active' | 'failed' | 'upcoming' => {
-          if (jobStatus === 'succeeded') return 'done';
-          if (jobStatus === 'failed') return i < stageIndex ? 'done' : i === stageIndex ? 'failed' : 'upcoming';
-          if (i < stageIndex) return 'done';
-          if (i === stageIndex) return 'active';
-          return 'upcoming';
-        };
-        const currentLabel =
-          jobStatus === 'succeeded' ? 'Complete'
-            : jobStatus === 'failed' ? 'Failed'
-              : jobStatus === 'queued' ? 'Queued…'
-                : STAGES[stageIndex]?.label ?? 'Exporting…';
-        const statusColor = jobStatus ? STATUS_COLOR[jobStatus] : 'var(--brand-strong)';
-        const badgeColor = jobStatus === 'failed' ? 'var(--danger)' : jobStatus === 'succeeded' ? DONE_COLOR : 'var(--brand-strong)';
-        const prevAt = (i: number) => (i === 0 ? 0 : STAGES[i - 1].at);
-        // Each stage owns its own segment of the meter — fully filled once
-        // passed, proportionally filled mid-flight (so the segment currently
-        // in progress visibly grows rather than snapping straight to full),
-        // empty until reached.
-        const segmentFill = (i: number): number => {
-          if (jobStatus === 'succeeded') return 100;
-          if (i < stageIndex) return 100;
-          if (i > stageIndex) return 0;
-          const span = STAGES[i].at - prevAt(i);
-          return span <= 0 ? 100 : Math.max(0, Math.min(100, ((pct - prevAt(i)) / span) * 100));
-        };
-
-        return (
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ marginBottom: 20 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: statusColor }}>{currentLabel}</span>
-            </div>
-
-            <div
-              role="progressbar"
-              aria-label="Export progress"
-              aria-valuenow={Math.round(pct)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              style={{ position: 'relative', paddingTop: 24 }}
-            >
-              {/* percentage callout that rides along the leading edge, like a
-                  tooltip pinned to the fill — the "live" cue reads at a glance
-                  instead of a static number parked at one end. */}
-              <div
-                style={{
-                  position: 'absolute', top: 0, left: `clamp(15px, ${pct}%, calc(100% - 15px))`,
-                  transform: 'translateX(-50%)', transition: 'left .4s cubic-bezier(.4,0,.2,1)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1,
-                }}
-              >
-                <span style={{
-                  fontSize: 10.5, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-mono)',
-                  letterSpacing: '.01em', background: badgeColor, borderRadius: 6, padding: '3px 7px',
-                  boxShadow: 'var(--shadow-sm)', whiteSpace: 'nowrap', transition: 'background .25s ease',
-                }}>
-                  {Math.round(pct)}%
-                </span>
-                <span style={{ width: 7, height: 7, background: badgeColor, transform: 'rotate(45deg)', marginTop: -4, borderRadius: 1, transition: 'background .25s ease' }} />
-              </div>
-
-              {/* segmented meter — one rounded pill per real backend batch
-                  boundary, same-ramp track/fill (violet throughout). */}
-              <div role="list" aria-label="Export stages" style={{ display: 'flex', gap: 3 }}>
-                {STAGES.map((s, i) => {
-                  const state = stageState(i);
-                  const fillPct = segmentFill(i);
-                  const fillColor = state === 'failed' ? 'var(--danger)' : state === 'done' ? DONE_COLOR : 'var(--brand-strong)';
-                  return (
-                    <div
-                      key={s.label}
-                      role="listitem"
-                      aria-label={`${s.label}: ${state}`}
-                      data-state={state}
-                      title={s.label}
-                      style={{
-                        flex: 1, height: 10, borderRadius: 5, position: 'relative', overflow: 'hidden',
-                        background: 'var(--surface-sunken)',
-                      }}
-                    >
-                      <div
-                        className={state === 'active' ? 'v3-progress-fill--running' : undefined}
-                        style={{
-                          height: '100%', width: `${fillPct}%`, borderRadius: 5, position: 'relative', overflow: 'hidden',
-                          background: state === 'active' ? undefined : fillColor,
-                          boxShadow: state === 'active' ? '0 0 8px 1px color-mix(in oklch, var(--brand-strong) 55%, transparent)' : 'none',
-                          transition: 'width .4s cubic-bezier(.4,0,.2,1), background .2s ease',
-                        }}
-                      />
-                      {(state === 'done' || state === 'failed') && (
-                        <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {state === 'done' ? <CheckIcon /> : <CrossIcon />}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {logs.length > 0 && (
         <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -248,6 +275,7 @@ const ExportLogView: FC<ExportLogViewProps> = ({ logs, running, progress, jobSta
             <span style={{ flex: 1, minWidth: 0, color: 'var(--text-body)', wordBreak: 'break-word' }}>{l.msg}</span>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

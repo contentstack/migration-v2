@@ -29,18 +29,20 @@ vi.mock("../../../../v3/services/bundle.service.js", () => ({
   filterBundleBySelection: mockFilterBundle,
 }));
 
-const { mockBuildBundleZip } = vi.hoisted(() => ({
-  mockBuildBundleZip: vi.fn(() => Buffer.from("stack-zip")),
+const { mockWriteStackFolder, mockWriteUploadedFolder } = vi.hoisted(() => ({
+  mockWriteStackFolder: vi.fn(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: [] })),
+  mockWriteUploadedFolder: vi.fn(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/export", failedAssets: [] })),
 }));
 vi.mock("../../../../v3/services/bundleWriter.service.js", () => ({
-  buildStackBundleZip: mockBuildBundleZip,
+  writeStackBundleFolder: mockWriteStackFolder,
+  writeUploadedBundleFolder: mockWriteUploadedFolder,
 }));
 
-const { mockSaveToDownloads } = vi.hoisted(() => ({
-  mockSaveToDownloads: vi.fn(() => "/fake/Downloads/export.zip"),
+const { mockStackDataDir } = vi.hoisted(() => ({
+  mockStackDataDir: vi.fn((id: string) => `/fake/cmsMigrationData/${id}`),
 }));
-vi.mock("../../../../v3/utils/downloads.util.js", () => ({
-  saveBundleToDownloads: mockSaveToDownloads,
+vi.mock("../../../../v3/utils/migrationData.util.js", () => ({
+  stackDataDir: mockStackDataDir,
 }));
 
 const emptyDetails = () => ({
@@ -108,7 +110,9 @@ beforeEach(() => {
   // clearAllMocks() clears call history but NOT a per-test .mockImplementation
   // override (e.g. the "disk full" throw below) — restore the shared default
   // here so it doesn't leak into whichever test runs next.
-  mockSaveToDownloads.mockImplementation(() => "/fake/Downloads/export.zip");
+  mockWriteStackFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: [] }));
+  mockWriteUploadedFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/export", failedAssets: [] }));
+  mockStackDataDir.mockImplementation((id: string) => `/fake/cmsMigrationData/${id}`);
 });
 
 describe("v3 export.service", () => {
@@ -399,7 +403,10 @@ describe("v3 export.service", () => {
   // The actual, genuine export — writing real files to disk, not just a
   // preview. Backs the follow-up to the scope-gating fix: previously nothing
   // ever wrote real stack data anywhere; the job only ever sampled/counted.
-  it("(bundle, positive) a successful stack export fetches ALL real data and saves a real bundle to Downloads", async () => {
+  // Now writes a real FOLDER under cmsMigrationData/<stackApiKey> (not a zip
+  // in Downloads) — the same location the migration engine's import step
+  // reads from — and downloads every asset's actual bytes.
+  it("(bundle, positive) a successful stack export fetches ALL real data and saves a real folder under cmsMigrationData", async () => {
     mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
     mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 1, assets: 2, entries: 3 });
     mockGetAllGlobalFields.mockResolvedValue([{ uid: "seo", title: "SEO" }]);
@@ -417,16 +424,35 @@ describe("v3 export.service", () => {
     expect(mockGetAllGlobalFields).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
     expect(mockGetAllAssets).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
     expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", "blog");
-    expect(mockBuildBundleZip).toHaveBeenCalledWith(
+    expect(mockStackDataDir).toHaveBeenCalledWith("blt1");
+    expect(mockWriteStackFolder).toHaveBeenCalledWith(
       expect.objectContaining({
         contentTypes: [{ uid: "blog", title: "Blog Post", schema: [] }],
         globalFields: [{ uid: "seo", title: "SEO" }],
         assets: [{ uid: "a1" }, { uid: "a2" }],
         entriesByContentType: [{ ctUid: "blog", entries: [{ uid: "e1" }, { uid: "e2" }, { uid: "e3" }] }],
+        destDir: "/fake/cmsMigrationData/blt1",
       })
     );
-    expect(mockSaveToDownloads).toHaveBeenCalledWith(Buffer.from("stack-zip"), expect.stringContaining("blt1"));
-    expect(job.logs.some((l) => l.msg.includes("Export bundle saved") && l.msg.includes("/fake/Downloads/export.zip"))).toBe(true);
+    expect(job.logs.some((l) => l.msg.includes("Export data saved") && l.msg.includes("/fake/cmsMigrationData/blt1"))).toBe(true);
+  });
+
+  // A stack whose assets partly fail to download must still succeed overall
+  // — the failure is surfaced as a WARN log, not a job failure.
+  it("(bundle, negative) assets that fail to download are logged as a warning, not a job failure", async () => {
+    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
+    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 1, entries: 0 });
+    mockWriteStackFolder.mockResolvedValue({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: ["a1"] });
+
+    const jobId = startExportJob({
+      projectId: "P1",
+      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
+      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
+    } as any);
+    const job = await settle(jobId);
+
+    expect(job.status).toBe("succeeded");
+    expect(job.logs.some((l) => l.level === "WARN" && l.msg.includes("1 asset"))).toBe(true);
   });
 
   // Negative — a 'specific' scope stack export skips fetching unselected
@@ -455,7 +481,7 @@ describe("v3 export.service", () => {
   it("(bundle, negative) a bundle-save failure is logged as an error but does not fail the job", async () => {
     mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
     mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 0, entries: 0 });
-    mockSaveToDownloads.mockImplementation(() => {
+    mockWriteStackFolder.mockImplementation(() => {
       throw new Error("disk full");
     });
 
@@ -472,8 +498,10 @@ describe("v3 export.service", () => {
   });
 
   // File mode: the uploaded bundle already IS the real data, so the genuine
-  // export just repackages it by module selection — no network involved.
-  it("(bundle, positive) a file export repackages the real uploaded bundle (filtered by selection) into Downloads", async () => {
+  // export just repackages it by module selection (no network for the zip
+  // itself) and extracts it as a real folder under cmsMigrationData/,
+  // downloading every asset's actual bytes.
+  it("(bundle, positive) a file export repackages the real uploaded bundle (filtered by selection) into a real folder", async () => {
     mockGetUploadMeta.mockReturnValue({ modules: {} });
     mockParseCts.mockReturnValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
     mockParseDetails.mockReturnValue(emptyDetails());
@@ -488,8 +516,28 @@ describe("v3 export.service", () => {
 
     expect(job.status).toBe("succeeded");
     expect(mockFilterBundle).toHaveBeenCalledWith(Buffer.from("real-uploaded-zip"), ["contentTypes"]);
-    expect(mockSaveToDownloads).toHaveBeenCalledWith(Buffer.from("filtered-zip"), expect.stringContaining("my-stack"));
-    expect(job.logs.some((l) => l.msg.includes("Export bundle saved"))).toBe(true);
+    expect(mockWriteUploadedFolder).toHaveBeenCalledWith(Buffer.from("filtered-zip"), expect.stringContaining("my-stack"));
+    expect(job.logs.some((l) => l.msg.includes("Export data saved"))).toBe(true);
+  });
+
+  // A file whose name carries the source stack's real id (the shape our own
+  // stack-mode export produces, e.g. "bltXXXX-export-....zip") should be
+  // filed under that same stack id in cmsMigrationData — not a sanitized
+  // copy of the whole filename — so it lands in the SAME folder a live
+  // export of that stack would use.
+  it("(bundle, positive) a file named after its source stack id is written under that stack's folder", async () => {
+    mockGetUploadMeta.mockReturnValue({ modules: {} });
+    mockParseCts.mockReturnValue([]);
+    mockParseDetails.mockReturnValue(emptyDetails());
+
+    const jobId = startExportJob(
+      fileInput({
+        source: { mode: "file", file: { sourceId: "s1", fileName: "blt9ca028c6d54b20f5-export-2026-08-03.zip", scope: "all", selectedModules: [] } },
+      })
+    );
+    await settle(jobId);
+
+    expect(mockWriteUploadedFolder).toHaveBeenCalledWith(expect.anything(), expect.stringContaining("blt9ca028c6d54b20f5"));
   });
 
   // Regression: a real export against a live stack with many content types

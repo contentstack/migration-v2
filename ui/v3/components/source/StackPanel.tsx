@@ -79,15 +79,38 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
 
       <div>
         <label className="v3-label" htmlFor="v3-stack">Stack *</label>
-        <V3Select
-          id="v3-stack"
-          ariaLabel="Stack"
-          value={stack.stackApiKey}
-          placeholder={stack.org ? 'Select a stack…' : 'Select an organization first'}
-          options={stack.stacks}
-          disabled={!stack.org}
-          onChange={(v) => dispatch(selectStack(v))}
-        />
+        {stack.org && stack.stacksLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <span style={{ width: 13, height: 13, border: '2px solid var(--border-default)', borderTopColor: 'var(--brand-strong)', borderRadius: '50%', animation: 'v3-spin .7s linear infinite', flex: 'none' }} />
+            Loading stacks…
+          </div>
+        ) : stack.org && stack.stacksError ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, border: '1px solid var(--danger)', background: 'var(--danger-surface)', borderRadius: 'var(--radius-md)', padding: '9px 12px', fontSize: 12.5, color: 'var(--danger)' }}>
+            {stack.stacksError}
+            <button
+              type="button"
+              onClick={() => dispatch(selectOrg(stack.org))}
+              style={{ border: '1px solid var(--danger)', background: 'var(--surface-card)', borderRadius: 'var(--radius-sm)', padding: '4px 10px', fontSize: 12, fontWeight: 700, color: 'var(--danger)', cursor: 'pointer', flex: 'none' }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : stack.org && stack.stacks.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: 12.5, color: 'var(--text-muted)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flex: 'none' }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" /><path d="M9 12h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+            No stacks in this org.
+          </div>
+        ) : (
+          <V3Select
+            id="v3-stack"
+            ariaLabel="Stack"
+            value={stack.stackApiKey}
+            placeholder={stack.org ? 'Select a stack…' : 'Select an organization first'}
+            options={stack.stacks}
+            disabled={!stack.org}
+            onChange={(v) => dispatch(selectStack(v))}
+          />
+        )}
         {stack.stackApiKey && <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>All content types, entries and assets in this stack will be read.</div>}
       </div>
 

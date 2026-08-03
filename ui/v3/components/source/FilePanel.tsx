@@ -21,6 +21,12 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
     if (!f) return;
     setPicked(f);
     dispatch(sourceActions.setFileSelected({ fileName: f.name, sizeBytes: f.size }));
+    // Picking a file already flips `validated` back to false (hiding the
+    // manifest/scope UI below), but the content graph panel keys off
+    // `hasSource` (= fileName set) independent of `validated` — without this
+    // it kept showing the PREVIOUS file's graph as "Ready" the instant a new
+    // filename appeared, before Validate ever ran on the new file.
+    dispatch(sourceActions.clearExportState());
   };
   const reset = () => { dispatch(sourceActions.clearFile()); setPicked(null); if (inputRef.current) inputRef.current.value = ''; };
 

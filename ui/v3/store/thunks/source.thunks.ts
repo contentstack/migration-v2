@@ -89,6 +89,7 @@ export const selectRegion =
     dispatch(sourceActions.setStackField({ field: 'region', value: region }));
     dispatch(sourceActions.setStackField({ field: 'org', value: '' }));
     dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+    dispatch(sourceActions.clearExportState());
     await loadOrgsFor(dispatch, { region, regionUserId: st.regionAuth[region] });
   };
 
@@ -104,6 +105,7 @@ export const submitRegionLogin =
       dispatch(sourceActions.regionAuthed({ region: rl.region, userId: data.userId }));
       dispatch(sourceActions.setStackField({ field: 'org', value: '' }));
       dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+      dispatch(sourceActions.clearExportState());
       await loadOrgsFor(dispatch, { region: rl.region, regionUserId: data.userId });
     } catch (e) {
       dispatch(sourceActions.setRegionLoginError(errMsg(e)));
@@ -118,7 +120,10 @@ export const selectOrg =
   (org: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     dispatch(sourceActions.setStackField({ field: 'org', value: org }));
     dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: '' }));
+    dispatch(sourceActions.clearExportState());
     dispatch(sourceActions.setBranches([]));
+    dispatch(sourceActions.setStackField({ field: 'stacksError', value: undefined }));
+    dispatch(sourceActions.setStackField({ field: 'stacksLoading', value: true }));
     try {
       const rc = currentCredential(getState());
       const { data } = await sourceApi.getStacks(org, rc);
@@ -128,7 +133,9 @@ export const selectOrg =
         )
       );
     } catch (e) {
-      dispatch(sourceActions.setError(errMsg(e)));
+      dispatch(sourceActions.setStackField({ field: 'stacksError', value: errMsg(e) }));
+    } finally {
+      dispatch(sourceActions.setStackField({ field: 'stacksLoading', value: false }));
     }
   };
 
@@ -136,6 +143,7 @@ export const selectStack =
   (stackApiKey: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: stackApiKey }));
     dispatch(sourceActions.setStackField({ field: 'branch', value: 'main' }));
+    dispatch(sourceActions.clearExportState());
     try {
       const rc = currentCredential(getState());
       const { data } = await sourceApi.getBranches(stackApiKey, rc);
@@ -179,6 +187,7 @@ export const loadStackModules =
 export const uploadFile = (file: File) => async (dispatch: V3Dispatch) => {
   dispatch(sourceActions.setError(undefined));
   dispatch(sourceActions.setValidating(true));
+  dispatch(sourceActions.clearExportState());
   try {
     const { data } = await sourceApi.uploadBundle(file);
     dispatch(

@@ -367,6 +367,9 @@ upload-api/extracted_files*
 .cursor/rules/snyk_rules.mdc
 *extracted_files*
 *MigrationData*
+# Exceptions to *MigrationData* above — real source files, not generated data dirs.
+!api/v3/utils/migrationData.util.ts
+!api/tests/unit/v3/utils/migrationData.util.test.ts
 *.zip
 app.json
 

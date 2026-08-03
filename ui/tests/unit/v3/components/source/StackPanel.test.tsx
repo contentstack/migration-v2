@@ -60,11 +60,12 @@ describe('v3 StackPanel', () => {
     expect(screen.getByLabelText('Stack')).toBeDisabled();
   });
 
-  // Negative — once an org is chosen, the Stack select enables.
+  // Negative — once an org is chosen (with stacks loaded), the Stack select enables.
   it('TC_SRC_008 (negative): choosing an Organization enables the Stack select', () => {
     renderStack((store) => {
       store.dispatch(sourceActions.setStackField({ field: 'region', value: 'NA' }));
       store.dispatch(sourceActions.setStackField({ field: 'org', value: 'o1' }));
+      store.dispatch(sourceActions.setStacks([{ value: 'blt1', label: 'S1' }]));
     });
     expect(screen.getByLabelText('Stack')).not.toBeDisabled();
   });
@@ -142,6 +143,46 @@ describe('v3 StackPanel', () => {
       store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
     });
     expect(startBtn()).not.toBeDisabled();
+  });
+
+  // Regression: an org with zero stacks used to leave the Stack field looking
+  // broken — a select the user could open onto an empty, unexplained list.
+  it('(stacks, positive) shows "No stacks in this org" instead of an empty select when the org has none', () => {
+    renderStack((store) => {
+      store.dispatch(sourceActions.setStackField({ field: 'org', value: 'o1' }));
+    });
+    expect(screen.getByText(/No stacks in this org/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Stack')).toBeNull();
+  });
+
+  // Negative — once stacks load for that org, the normal select replaces the message.
+  it('(stacks, negative) the "No stacks" message disappears once stacks are loaded', () => {
+    renderStack((store) => {
+      store.dispatch(sourceActions.setStackField({ field: 'org', value: 'o1' }));
+      store.dispatch(sourceActions.setStacks([{ value: 'blt1', label: 'S1' }]));
+    });
+    expect(screen.queryByText(/No stacks in this org/i)).toBeNull();
+    expect(screen.getByLabelText('Stack')).toBeInTheDocument();
+  });
+
+  it('(stacks, positive) shows a loading indicator while stacksLoading is true, not the empty-org message', () => {
+    renderStack((store) => {
+      store.dispatch(sourceActions.setStackField({ field: 'org', value: 'o1' }));
+      store.dispatch(sourceActions.setStackField({ field: 'stacksLoading', value: true }));
+    });
+    expect(screen.getByText(/Loading stacks/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No stacks in this org/i)).toBeNull();
+  });
+
+  // Negative — a failed stack load shows a distinct error + Retry, not the "no stacks" message.
+  it('(stacks, negative) a stacksError shows an error message and a working Retry button', () => {
+    const store = renderStack((s) => {
+      s.dispatch(sourceActions.setStackField({ field: 'org', value: 'o1' }));
+      s.dispatch(sourceActions.setStackField({ field: 'stacksError', value: 'Contentstack API error' }));
+    });
+    expect(screen.queryByText(/No stacks in this org/i)).toBeNull();
+    expect(screen.getByText('Contentstack API error')).toBeInTheDocument();
+    expect(store.getState().source.stack.stacksError).toBe('Contentstack API error');
   });
 
   // Regression: the "Specific module" panel used to be indistinguishable

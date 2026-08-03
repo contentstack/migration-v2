@@ -49,7 +49,7 @@ const lenOf = (v: any): number =>
     : 0;
 
 /** If the whole export is nested under a single top folder, return that prefix. */
-const detectPrefix = (names: string[]): string => {
+export const detectPrefix = (names: string[]): string => {
   const atRoot =
     names.includes("export-info.json") ||
     names.some((n) => n.startsWith("content_types/"));

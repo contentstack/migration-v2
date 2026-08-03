@@ -57,6 +57,10 @@ interface StackState {
    * "still loading", "load failed", and "genuinely no modules". */
   modulesLoading: boolean;
   modulesError?: string;
+  /** Same ambiguity as modulesLoading, but for the stacks list — lets the UI
+   * tell "still fetching" apart from "this org genuinely has no stacks". */
+  stacksLoading: boolean;
+  stacksError?: string;
 }
 
 interface FileState {
@@ -131,6 +135,8 @@ const initialState: SourceState = {
     selectedModules: [],
     modulesLoading: false,
     modulesError: undefined,
+    stacksLoading: false,
+    stacksError: undefined,
   },
   file: {
     validated: false,
@@ -219,6 +225,20 @@ const sourceSlice = createSlice({
     },
     setGraph: (state, action: PayloadAction<SourceState['graph']>) => {
       state.graph = action.payload;
+    },
+    /** A different stack (or file) was selected — any previously-loaded graph
+     * and job status belong to the OLD selection, so they must be dropped
+     * here. Without this, `stackApiKey` becomes non-empty again the instant
+     * a new stack is picked, and the stale graph/badge from the prior stack
+     * keeps rendering as if it were the new stack's data. */
+    clearExportState: (state) => {
+      state.graph = undefined;
+      state.jobId = undefined;
+      state.jobStatus = undefined;
+      state.jobProgress = undefined;
+      state.jobLogs = [];
+      state.jobLiveCounts = undefined;
+      state.error = undefined;
     },
     setError: (state, action: PayloadAction<string | undefined>) => {
       state.error = action.payload;

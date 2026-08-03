@@ -4,8 +4,8 @@ import { randomUUID } from "crypto";
 import { buildGraph } from "./graph.service.js";
 import { csManagement, TokenPayload } from "./csManagement.service.js";
 import { parseBundleContentTypes, parseBundleDetails, filterBundleBySelection } from "./bundle.service.js";
-import { buildStackBundleZip } from "./bundleWriter.service.js";
-import { saveBundleToDownloads } from "../utils/downloads.util.js";
+import { writeStackBundleFolder, writeUploadedBundleFolder } from "./bundleWriter.service.js";
+import { stackDataDir } from "../utils/migrationData.util.js";
 import { getUploadMeta, getUploadZipPath } from "../models/upload.store.js";
 import { setV3Graph } from "../models/project.store.js";
 import { V3Source } from "../models/types.js";
@@ -253,10 +253,21 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
   return results;
 }
 
+/** Extracts a leading `blt...` stack id from an uploaded file's name (real CS
+ * export bundles are named after their source stack); falls back to the
+ * sanitized file name so a folder is always produced either way. */
+const stackIdFromFileName = (fileName: string): string => {
+  const m = fileName.match(/^(blt[a-z0-9]+)/i);
+  return m ? m[1] : sanitizeForFilename(fileName.replace(/\.zip$/i, "")) || "export";
+};
+
 /** Fetches EVERY real item (not the sampled preview) for the selected stack
- * modules and writes them as a genuine Contentstack export bundle to the
- * user's Downloads folder. A failure here is logged but does not fail the
- * job — the graph preview above is still valid even if the disk write isn't. */
+ * modules and writes them as a genuine Contentstack export — a real FOLDER
+ * (not a zip) under cmsMigrationData/<stackApiKey>, including every asset's
+ * actually-downloaded binary — so a later import step can read it directly,
+ * the same on-disk location the migration engine's import CLI already uses.
+ * A failure here is logged but does not fail the job — the graph preview
+ * above is still valid even if the disk write isn't. */
 async function writeStackBundle(
   jobId: string,
   tp: TokenPayload | undefined,
@@ -279,29 +290,35 @@ async function writeStackBundle(
         )
       : [];
 
-    const zipBuffer = buildStackBundleZip({ contentTypes, globalFields, assets, entriesByContentType });
-    const fileName = `${sanitizeForFilename(apiKey)}-export-${sanitizeForFilename(nowIso())}.zip`;
-    const savedPath = saveBundleToDownloads(zipBuffer, fileName);
-    pushLog(jobId, "SUCCESS", `Export bundle saved: ${savedPath}`);
+    if (assets.length) pushLog(jobId, "DEBUG", `Downloading ${assets.length} real asset file(s)…`);
+    const destDir = stackDataDir(sanitizeForFilename(apiKey));
+    const { failedAssets } = await writeStackBundleFolder({ contentTypes, globalFields, assets, entriesByContentType, destDir });
+    if (failedAssets.length) {
+      pushLog(jobId, "WARN", `${failedAssets.length} asset(s) failed to download and were skipped`);
+    }
+    pushLog(jobId, "SUCCESS", `Export data saved: ${destDir}`);
     setProgress(jobId, 80);
   } catch (e: any) {
-    pushLog(jobId, "ERROR", `Could not save the export bundle to disk: ${e?.message ?? "unknown error"}`);
+    pushLog(jobId, "ERROR", `Could not save the export data to disk: ${e?.message ?? "unknown error"}`);
   }
 }
 
 /** File-mode equivalent: the uploaded bundle already holds the real, full
  * data, so this just repackages it down to the selected modules (no
- * network/sampling involved) and writes it to Downloads. */
-function writeFileBundle(jobId: string, buffer: Buffer, selected: string[] | undefined, fileName: string): void {
+ * sampling involved) and writes it as a real folder under cmsMigrationData/,
+ * downloading every asset's actual bytes the same way stack mode does. */
+async function writeFileBundle(jobId: string, buffer: Buffer, selected: string[] | undefined, fileName: string): Promise<void> {
   try {
     const filtered = filterBundleBySelection(buffer, selected);
-    const base = sanitizeForFilename(fileName.replace(/\.zip$/i, "")) || "export";
-    const outName = `${base}-export-${sanitizeForFilename(nowIso())}.zip`;
-    const savedPath = saveBundleToDownloads(filtered, outName);
-    pushLog(jobId, "SUCCESS", `Export bundle saved: ${savedPath}`);
+    const destDir = stackDataDir(stackIdFromFileName(fileName));
+    const { failedAssets } = await writeUploadedBundleFolder(filtered, destDir);
+    if (failedAssets.length) {
+      pushLog(jobId, "WARN", `${failedAssets.length} asset(s) failed to download and were skipped`);
+    }
+    pushLog(jobId, "SUCCESS", `Export data saved: ${destDir}`);
     setProgress(jobId, 82);
   } catch (e: any) {
-    pushLog(jobId, "ERROR", `Could not save the export bundle to disk: ${e?.message ?? "unknown error"}`);
+    pushLog(jobId, "ERROR", `Could not save the export data to disk: ${e?.message ?? "unknown error"}`);
   }
 }
 
@@ -321,7 +338,7 @@ async function runExport(jobId: string, input: ExportInput): Promise<void> {
     setProgress(jobId, 15);
     const selected = selectionFor(source.file?.scope, source.file?.selectedModules);
     result = await runFileSource(jobId, buffer, selected);
-    writeFileBundle(jobId, buffer, selected, source.file?.fileName ?? "export");
+    await writeFileBundle(jobId, buffer, selected, source.file?.fileName ?? "export");
   } else {
     const apiKey = source.stack?.stackApiKey as string;
     const branch = source.stack?.branch;

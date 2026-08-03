@@ -44,48 +44,30 @@ describe('v3 ExportLogView — progress bar', () => {
 
   // Negative — contrast: a finished job freezes the bar at its final value
   // and swaps the label/color to reflect completion, rather than disappearing.
-  it('(negative) a succeeded job shows "Complete" at 100% instead of the running label', () => {
+  it('(negative) a succeeded job shows "Exported successfully" instead of the running label', () => {
     render(<ExportLogView logs={[]} running={false} progress={100} jobStatus="succeeded" />);
-    expect(screen.getByText('Complete')).toBeInTheDocument();
+    expect(screen.getByText('Exported successfully')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
     expect(screen.queryByText('Exporting…')).toBeNull();
   });
 
-  it('(negative) a failed job shows "Failed" rather than the running label', () => {
+  it('(negative) a failed job shows "Export failed" rather than the running label', () => {
     render(<ExportLogView logs={[]} running={false} progress={62} jobStatus="failed" />);
-    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('Export failed')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '62');
   });
 
-  // The stage stepper gives each real backend batch boundary its own dot —
-  // stages already passed are "done", the batch in flight is "active", and
-  // batches not yet reached are "upcoming".
-  it('(stepper, positive) stages before the current progress are marked done and the current one active', () => {
+  // Regression: the design's status row pairs the % chip with a live elapsed-
+  // time clock — this locks in that both render together once a run exists,
+  // rather than just the bare percentage.
+  it('(positive) a run in progress shows an elapsed-time clock next to the status row', () => {
     render(<ExportLogView logs={[]} running progress={45} jobStatus="running" />);
-    const stages = screen.getAllByRole('listitem');
-    expect(stages).toHaveLength(6);
-    expect(stages[0]).toHaveAttribute('data-state', 'done'); // "Connecting to source" (at 15)
-    expect(stages[1]).toHaveAttribute('data-state', 'done'); // "Reading content types" (at 40)
-    expect(stages[2]).toHaveAttribute('data-state', 'active'); // "Assets & global fields" (at 65)
-    expect(stages[3]).toHaveAttribute('data-state', 'upcoming');
+    expect(screen.getByText(/^\d+(\.\d)?s$/)).toBeInTheDocument();
   });
 
-  // Negative — contrast: a failed job marks its current stage "failed" (not
-  // "active"/"done"), while every stage genuinely completed beforehand stays
-  // "done" rather than the whole stepper flattening to an error state.
-  it('(stepper, negative) a failed job marks only the in-flight stage as failed, earlier stages stay done', () => {
-    render(<ExportLogView logs={[]} running={false} progress={70} jobStatus="failed" />);
-    const stages = screen.getAllByRole('listitem');
-    expect(stages[0]).toHaveAttribute('data-state', 'done');
-    expect(stages[1]).toHaveAttribute('data-state', 'done');
-    expect(stages[2]).toHaveAttribute('data-state', 'done');
-    expect(stages[3]).toHaveAttribute('data-state', 'failed'); // "Reading entries" (at 82) — the batch in flight at 70%
-    expect(stages[4]).toHaveAttribute('data-state', 'upcoming');
-  });
-
-  it('(stepper, positive) a succeeded job marks every stage done', () => {
-    render(<ExportLogView logs={[]} running={false} progress={100} jobStatus="succeeded" />);
-    const stages = screen.getAllByRole('listitem');
-    expect(stages.every((s) => s.getAttribute('data-state') === 'done')).toBe(true);
+  // Negative — before any run, there's no elapsed clock (nothing to time yet).
+  it('(negative) no elapsed-time clock renders before any run has happened', () => {
+    render(<ExportLogView logs={[]} running={false} />);
+    expect(screen.queryByText(/^\d+(\.\d)?s$/)).toBeNull();
   });
 });

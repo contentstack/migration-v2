@@ -155,17 +155,41 @@ describe('v3 source thunks — cascade', () => {
     expect(st.org).toBe('o1');
     expect(st.stackApiKey).toBe(''); // downstream cleared
     expect(st.stacks).toEqual([{ value: 'blt1', label: 'S1' }]);
+    expect(st.stacksLoading).toBe(false);
+    expect(st.stacksError).toBeUndefined();
   });
 
-  // Negative — taxonomy #6 (dependency failure): getStacks rejects → error, stacks empty.
-  it('TC_SRC_007 (negative): a failing stack load surfaces an error and leaves stacks empty', async () => {
+  // Negative — taxonomy #6 (dependency failure): getStacks rejects → a
+  // distinct, retryable stacksError (not the generic page-level error), so
+  // the Stack field can show its own inline message instead of leaving the
+  // panel stuck on an empty, unexplained dropdown.
+  it('TC_SRC_007 (negative): a failing stack load clears stacksLoading and sets a distinct stacksError', async () => {
     mockApi.getStacks.mockRejectedValue(new Error('network down'));
     const store = mkStore();
     await store.dispatch(selectOrg('o1') as any);
 
-    const s = store.getState().source;
-    expect(s.error).toBe('network down');
-    expect(s.stack.stacks).toEqual([]);
+    const st = store.getState().source.stack;
+    expect(st.stacksLoading).toBe(false);
+    expect(st.stacksError).toBe('network down');
+    expect(st.stacks).toEqual([]);
+  });
+
+  it('(stacks, positive) selectOrg sets stacksLoading during the fetch', async () => {
+    let resolveFetch: (v: any) => void;
+    mockApi.getStacks.mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+    const store = mkStore();
+
+    const promise = store.dispatch(selectOrg('o1') as any);
+    expect(store.getState().source.stack.stacksLoading).toBe(true);
+
+    resolveFetch!({ data: { stacks: [] } });
+    await promise;
+
+    expect(store.getState().source.stack.stacksLoading).toBe(false);
   });
 
   it('(modules, positive) loadStackModules sets modulesLoading during the fetch and populates modules on success', async () => {

@@ -31,6 +31,10 @@ import sourceReducer, { sourceActions } from '../../../../../v3/store/slice/sour
 import SourcePanel from '../../../../../v3/components/source/SourcePanel';
 
 const EMPTY = /Relationship between content types will be shown here once the export completes\./i;
+const NO_STACK = /No stack selected — choose a stack above to preview its content graph\./i;
+
+const selectStack = (store: any) =>
+  store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'my-stack' }));
 
 const renderPanel = (setup?: (store: any) => void) => {
   const store = configureStore({ reducer: { source: sourceReducer } });
@@ -42,8 +46,13 @@ const renderPanel = (setup?: (store: any) => void) => {
   );
 };
 
-const graphState = (store: any) =>
+// A graph only ever exists once a source was configured — selecting a stack
+// alongside it keeps these fixtures representative of real usage (the graph
+// column now also gates on a source being selected, see TC_SRC_031a).
+const graphState = (store: any) => {
+  store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'my-stack' }));
   store.dispatch(sourceActions.setGraph({ counts: { contentTypes: 1 }, nodes: [], edges: [] }));
+};
 
 describe('v3 SourcePanel', () => {
   it('TC_SRC_001 (positive): defaults to the stack panel', () => {
@@ -85,8 +94,8 @@ describe('v3 SourcePanel', () => {
     expect(screen.getByText(/Ready/i)).toBeInTheDocument();
   });
 
-  it('TC_SRC_031 (positive): shows the graph empty-state text before any export completes', () => {
-    renderPanel();
+  it('TC_SRC_031 (positive): shows the graph empty-state text once a stack is selected, before any export completes', () => {
+    renderPanel((store) => selectStack(store));
     expect(screen.getByText(EMPTY)).toBeInTheDocument();
     expect(screen.queryByTestId('graph-view')).toBeNull();
   });
@@ -96,6 +105,21 @@ describe('v3 SourcePanel', () => {
     renderPanel((store) => graphState(store));
     expect(screen.getByTestId('graph-view')).toBeInTheDocument();
     expect(screen.queryByText(EMPTY)).toBeNull();
+  });
+
+  // No stack chosen yet is a distinct empty state from "configured but not run
+  // yet" — the generic "once the export completes" copy doesn't apply when
+  // there isn't even a source selected.
+  it('TC_SRC_031a (positive): shows a "no stack selected" message when nothing is configured yet', () => {
+    renderPanel();
+    expect(screen.getByText(NO_STACK)).toBeInTheDocument();
+    expect(screen.queryByText(EMPTY)).toBeNull();
+  });
+
+  // Negative — once a stack is selected, the "no stack" copy is gone.
+  it('TC_SRC_031a (negative): the "no stack selected" message disappears once a stack is chosen', () => {
+    renderPanel((store) => selectStack(store));
+    expect(screen.queryByText(NO_STACK)).toBeNull();
   });
 
   it('TC_SRC_029 (positive): an upload size-limit error is surfaced in the panel', () => {
