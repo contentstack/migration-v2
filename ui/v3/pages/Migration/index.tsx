@@ -1,73 +1,50 @@
 import { FC } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 
-import { V3_BASE } from '../../constants';
-import SourcePanel from '../../components/source/SourcePanel';
 import DestinationPanel from '../../components/destination/DestinationPanel';
+import SourcePanel from '../../components/source/SourcePanel';
+import WizardChrome from '../../components/wizard/WizardChrome';
+import { stepByRouteSegment } from '../../components/wizard/steps';
 
 /**
- * v3 Migration step — hosts the Content Map & Audit panels.
+ * v3 Migration step — renders the panel for the current step inside the shared
+ * wizard chrome (migration-wizard-chrome feature.md UC-1).
  *
- * Which panel is shown is driven by `?panel=` (default: source). The step
- * tracker and cross-step navigation are shared wizard chrome owned elsewhere
- * (cs-destination-selection/feature.md §5), and the real Source → Audit →
- * Destination ordering is still an open question there (Q-1 / Q-2), so this
- * deliberately does no step-number mapping of its own.
+ * Which panel shows is driven by the `:stepId` route segment; the app bar, step
+ * tracker, footer and every step transition are owned by `WizardChrome`, and
+ * this page only chooses the body.
+ *
+ * Stage 1 wiring (prd.md §9): only Source and Destination have panels. The
+ * other five steps render a placeholder — they are real steps in the tracker
+ * and the footer, but their bodies belong to features not yet built.
  */
 const MigrationV3: FC = () => {
   const { projectId, stepId } = useParams();
   const [params] = useSearchParams();
-  const panel = params.get('panel') === 'destination' ? 'destination' : 'source';
+  const step = stepByRouteSegment(stepId);
 
-  const tab = (to: string, label: string, active: boolean) => (
-    <Link
-      to={to}
-      style={{
-        fontSize: 13,
-        fontWeight: 700,
-        padding: '5px 12px',
-        borderRadius: 'var(--radius-pill)',
-        textDecoration: 'none',
-        color: active ? 'var(--text-on-brand)' : 'var(--text-muted)',
-        background: active ? 'var(--brand-strong)' : 'var(--surface-sunken)',
-      }}
-    >
-      {label}
-    </Link>
-  );
+  /*
+    STOPGAP: `orgId` comes from `?orgId=` because the v3 route
+    (`projects/:projectId/migration/steps/:stepId`) carries no org (chrome
+    trd.md TQ-2, and the same note previously in this file). Without it the
+    Destination panel skips its mount-time reads, so resume and the
+    source-readiness gate do not load and Proceed stays disabled — it skips
+    rather than firing a request that would 404 on an empty path segment.
+  */
+  const orgId = params.get('orgId') ?? '';
 
-  const base = `${V3_BASE}/projects/${projectId}/migration/steps/${stepId}`;
-
-  return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        {tab(base, 'Source', panel === 'source')}
-        {tab(`${base}?panel=destination`, 'Destination', panel === 'destination')}
-        <Link to={`${V3_BASE}/projects`} style={{ marginLeft: 'auto', fontSize: 13 }}>
-          ← Projects
-        </Link>
+  const panel = () => {
+    if (step?.id === 'destination')
+      return <DestinationPanel orgId={orgId} projectId={projectId ?? ''} />;
+    if (step?.id === 'source') return <SourcePanel projectId={projectId ?? ''} />;
+    return (
+      <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+        The {step?.trackerLabel ?? 'requested'} step is not built yet.
       </div>
+    );
+  };
 
-      {/*
-        STOPGAP: `orgId` comes from `?orgId=` because the v3 route
-        (`projects/:projectId/migration/steps/:stepId`) carries no org, and
-        `pages/Projects` is still an explicit placeholder with no org concept.
-        The Destination panel needs one for its org-scoped read/persist
-        endpoints (trd.md API-1/API-2, `/v3/org/:orgId/project/:projectId/...`).
-
-        Consequence while that is unresolved: without `?orgId=`, the panel skips
-        its mount-time reads entirely — so resume (UC-5) and the source-readiness
-        gate (FR-6.1) do not load, and Proceed stays disabled. It skips rather
-        than firing a request that would 404 on the empty path segment. Replace
-        this with a real org from the projects UI once that exists.
-      */}
-      {panel === 'destination' ? (
-        <DestinationPanel orgId={params.get('orgId') ?? ''} projectId={projectId ?? ''} />
-      ) : (
-        <SourcePanel projectId={projectId ?? ''} />
-      )}
-    </div>
-  );
+  return <WizardChrome>{panel()}</WizardChrome>;
 };
 
 export default MigrationV3;

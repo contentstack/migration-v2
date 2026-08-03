@@ -1,4 +1,4 @@
-import { FC, useEffect } from 'react';
+import { FC, useCallback, useEffect } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
 import { canProceed, destinationActions, destStackLabel } from '../../store/slice/destination.slice';
@@ -18,6 +18,7 @@ import DestRegionLoginModal from './DestRegionLoginModal';
 import ImportAuthCards from './ImportAuthCards';
 import LanguageMapping from './LanguageMapping';
 import StackContents from './StackContents';
+import { useRegisterStepGate } from '../wizard/StepGateContext';
 // Shared themed dropdown, introduced by cs-source-selection. Reused here rather
 // than duplicated (v3-internal reuse). Worth relocating to a shared folder —
 // see tdd.md — but that touches Source's imports, so left where its owner put it.
@@ -50,6 +51,25 @@ const DestinationPanel: FC<{ orgId: string; projectId: string }> = ({ orgId, pro
 
   const stackLabel = destStackLabel(d);
   const ready = canProceed(d);
+
+  /*
+    Wizard-chrome wiring (migration-wizard-chrome trd.md TR-9). This panel
+    publishes its gate so the persistent footer's action and the in-panel button
+    below are the same decision and the same work — they cannot disagree, and
+    the shared re-entrancy guard means a double click cannot mint two management
+    tokens. Rendered outside the chrome (as in this panel's unit tests) the
+    registration is a no-op and `runProceed` calls the work directly.
+  */
+  const advance = useCallback(
+    async () => (await dispatch(proceedToContentMapping(orgId, projectId))) === true,
+    [dispatch, orgId, projectId]
+  );
+  const runProceed = useRegisterStepGate({
+    satisfied: ready && !d.saving,
+    blockedReason: !d.source.ready ? 'Prepare the source first to continue.' : undefined,
+    advance,
+  });
+
   const regionMismatch = !!d.region && !!d.source.region && d.region !== d.source.region;
   const srcRegionLabel = d.regions.find((r) => r.value === d.source.region)?.label || d.source.region;
   const destRegionLabel = d.regions.find((r) => r.value === d.region)?.label || d.region;
@@ -266,7 +286,7 @@ const DestinationPanel: FC<{ orgId: string; projectId: string }> = ({ orgId, pro
                 type="button"
                 className="v3-btn"
                 disabled={!ready || d.saving}
-                onClick={() => dispatch(proceedToContentMapping(orgId, projectId))}
+                onClick={() => runProceed()}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
                 Proceed to content mapping

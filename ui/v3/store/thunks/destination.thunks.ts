@@ -321,7 +321,9 @@ export const proceedToContentMapping =
   (orgId: string, projectId: string) =>
   async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     const d = getState().destination;
-    if (!canProceed(d)) return;
+    // Returns whether the wizard may move on. The chrome's StepGate uses this
+    // as its `advance()` and navigates only on `true` (wizard trd.md TR-9).
+    if (!canProceed(d)) return false;
 
     const rc = currentCredential(getState());
     dispatch(destinationActions.setError(undefined));
@@ -343,8 +345,10 @@ export const proceedToContentMapping =
         buildDestinationDoc(getState().destination, managementToken)
       );
       dispatch(destinationActions.setProceeded(true));
+      return true;
     } catch (e) {
       dispatch(destinationActions.setError(errMsg(e)));
+      return false;
     } finally {
       dispatch(destinationActions.setSaving(false));
     }

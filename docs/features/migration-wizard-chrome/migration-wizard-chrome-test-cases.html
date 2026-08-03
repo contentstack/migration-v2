@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Test Cases — Migration Wizard Chrome</title>
+<style>
+  :root {
+    --bg:#ffffff; --surface:#ffffff; --alt:#fafafa; --border:#e2e2e6;
+    --text:#1b1b1f; --muted:#65656d;
+    --ui:#3a5a8c; --ui-bg:#e8eef7;
+    --functional:#2f6b4f; --functional-bg:#e6f2eb;
+    --negative:#8c3a3a; --negative-bg:#f7e9e9;
+    --usability:#7a5a1e; --usability-bg:#f7f0e0;
+    --security:#5a3a7a; --security-bg:#efe8f7;
+    --performance:#1e6a70; --performance-bg:#e0f0f1;
+    --yes:#2f6b4f; --yes-bg:#e6f2eb; --no:#65656d; --no-bg:#eeeef1;
+    --status:#65656d; --status-bg:#eeeef1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#141417; --surface:#1b1b1f; --alt:#202024; --border:#33333a;
+      --text:#e8e8ea; --muted:#9a9aa2;
+      --ui:#a8c4ea; --ui-bg:#22303f;
+      --functional:#9ad9b6; --functional-bg:#1d3128;
+      --negative:#eaa8a8; --negative-bg:#3a2222;
+      --security:#c9aeea; --security-bg:#2e2440;
+      --usability:#e5cd93; --usability-bg:#3a3120;
+      --performance:#9ad6da; --performance-bg:#1c3436;
+      --yes:#9ad9b6; --yes-bg:#1d3128; --no:#9a9aa2; --no-bg:#26262b;
+      --status:#9a9aa2; --status-bg:#26262b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#141417; --surface:#1b1b1f; --alt:#202024; --border:#33333a;
+    --text:#e8e8ea; --muted:#9a9aa2;
+    --ui:#a8c4ea; --ui-bg:#22303f;
+    --functional:#9ad9b6; --functional-bg:#1d3128;
+    --negative:#eaa8a8; --negative-bg:#3a2222;
+    --security:#c9aeea; --security-bg:#2e2440;
+    --usability:#e5cd93; --usability-bg:#3a3120;
+    --performance:#9ad6da; --performance-bg:#1c3436;
+    --yes:#9ad9b6; --yes-bg:#1d3128; --no:#9a9aa2; --no-bg:#26262b;
+    --status:#9a9aa2; --status-bg:#26262b;
+  }
+  :root[data-theme="light"] {
+    --bg:#ffffff; --surface:#ffffff; --alt:#fafafa; --border:#e2e2e6;
+    --text:#1b1b1f; --muted:#65656d;
+    --ui:#3a5a8c; --ui-bg:#e8eef7;
+    --functional:#2f6b4f; --functional-bg:#e6f2eb;
+    --negative:#8c3a3a; --negative-bg:#f7e9e9;
+    --usability:#7a5a1e; --usability-bg:#f7f0e0;
+    --security:#5a3a7a; --security-bg:#efe8f7;
+    --performance:#1e6a70; --performance-bg:#e0f0f1;
+    --yes:#2f6b4f; --yes-bg:#e6f2eb; --no:#65656d; --no-bg:#eeeef1;
+    --status:#65656d; --status-bg:#eeeef1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:32px 24px 64px; background:var(--bg); color:var(--text);
+    font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width:1500px; margin:0 auto; }
+  h1 { font-size:24px; margin:0 0 6px; letter-spacing:-.01em; }
+  .meta { color:var(--muted); font-size:13.5px; margin:0 0 4px; }
+  .meta code {
+    background:var(--alt); border:1px solid var(--border); border-radius:4px;
+    padding:1px 5px; font-size:12.5px;
+  }
+  .toolbar { display:flex; align-items:center; gap:14px; margin:22px 0 14px; flex-wrap:wrap; }
+  #filter {
+    flex:1 1 340px; max-width:520px; padding:9px 12px; font-size:14px; color:var(--text);
+    background:var(--surface); border:1px solid var(--border); border-radius:7px;
+  }
+  #filter:focus { outline:2px solid var(--ui); outline-offset:1px; }
+  #count { color:var(--muted); font-size:13.5px; white-space:nowrap; }
+  .scroll { overflow-x:auto; border:1px solid var(--border); border-radius:9px; }
+  table { border-collapse:collapse; width:100%; min-width:1180px; background:var(--surface); }
+  th, td { text-align:left; padding:11px 13px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th {
+    position:sticky; top:0; background:var(--alt); font-size:11.5px; font-weight:700;
+    letter-spacing:.05em; text-transform:uppercase; color:var(--muted); z-index:1;
+  }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:var(--alt); }
+  td.id { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12.5px; color:var(--muted); white-space:nowrap; }
+  td.case, td.expected { min-width:280px; }
+  .badge {
+    display:inline-block; padding:2px 9px; border-radius:999px;
+    font-size:11.5px; font-weight:700; white-space:nowrap;
+  }
+  .b-UI { color:var(--ui); background:var(--ui-bg); }
+  .b-Functional { color:var(--functional); background:var(--functional-bg); }
+  .b-Negative { color:var(--negative); background:var(--negative-bg); }
+  .b-Usability { color:var(--usability); background:var(--usability-bg); }
+  .b-Security { color:var(--security); background:var(--security-bg); }
+  .b-Performance { color:var(--performance); background:var(--performance-bg); }
+  .b-Y { color:var(--yes); background:var(--yes-bg); }
+  .b-N { color:var(--no); background:var(--no-bg); }
+  .b-status { color:var(--status); background:var(--status-bg); }
+  .gaps { margin-top:36px; }
+  .gaps h2 { font-size:17px; margin:0 0 10px; }
+  .gaps p { color:var(--muted); font-size:13.5px; margin:0 0 12px; }
+  .gaps li { margin-bottom:9px; }
+  .empty { padding:26px; text-align:center; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Test Cases — Migration Wizard Chrome</h1>
+  <p class="meta">Source: <code>feature.md</code> + <code>prd.md</code> + <code>trd.md</code> (docs/features/migration-wizard-chrome/)</p>
+  <p class="meta">Generated from PRD/TRD only — no codebase or implementation was referenced.</p>
+
+  <div class="toolbar">
+    <input id="filter" type="text" placeholder="Filter test cases… (matches any column)" aria-label="Filter test cases" />
+    <span id="count"></span>
+  </div>
+
+  <div class="scroll">
+    <table id="tc-table">
+      <thead>
+        <tr>
+          <th>Test Case ID</th><th>Module/Scenario</th><th>Test Type</th><th>Sub-Type</th>
+          <th>Test Case</th><th>Expected Result</th><th>Automated</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tc-body"></tbody>
+    </table>
+    <div id="empty" class="empty" hidden>No test cases match that filter.</div>
+  </div>
+
+  <section class="gaps">
+    <h2>Gaps / Needs Clarification</h2>
+    <p>Points the PRD/TRD left ambiguous or unstated. No test case was invented to cover these.</p>
+    <ul>
+      <li><b>App-bar step titles for four of the seven steps:</b> the titles for Source, Destination, Migrate and Verify are undecided (feature.md FR-5.5, Q-4 / prd.md PQ-5), and the spec notes they are *not* simply the tracker labels. TC_MWC_002 therefore asserts only the &quot;Step 3 of 7 · &quot; prefix, and TC_MWC_041 covers only the three titles the design does specify. No test asserts a title for the other four steps.</li>
+      <li><b>Primary-action labels and status lines for Migrate and Verify:</b> undecided (feature.md FR-5.1, FR-5.2, Q-3 / prd.md PQ-4). TC_MWC_040 covers only the five steps whose labels are specified; no cases exist for the Migrate or Verify steps&#x27; footer copy.</li>
+      <li><b>Disabled-state explanations beyond Source and Audit:</b> feature.md FR-5.4 specifies explanation copy only for those two steps (Q-3). TC_MWC_034 tests that *an* explanation appears, but no case asserts its wording for the other five steps.</li>
+      <li><b>Unknown or not-yet-reached step in the route:</b> expected behaviour is undecided (feature.md EC-5, EC-6, Q-8 / trd.md TQ-8) — redirect to the furthest reachable step, redirect to Source, or render anyway. No test case is written until the behaviour is defined.</li>
+      <li><b>Back while a panel&#x27;s advance work is in flight:</b> expected behaviour is undecided (feature.md EC-10, Q-9 / trd.md TQ-3). TC_MWC_031 covers re-entrancy on the primary action only; the interaction between Back and an in-flight advance is untested.</li>
+      <li><b>Narrow-viewport treatment of the seven-step tracker:</b> undecided (feature.md NFR-6, EC-9, Q-7 / prd.md PQ-7); the design provides no mobile layout. TC_MWC_052 tests only the stated absolute rule (&quot;must not scroll horizontally&quot;), not any specific collapse or scroll behaviour.</li>
+      <li><b>Performance budget for the source-indicator read:</b> feature.md NFR-4 states the no-re-fetch rule but leaves the numeric budget `TBD` (Q-5 / trd.md TQ-5). TC_MWC_051 tests the no-re-fetch rule only; no case asserts a latency threshold.</li>
+      <li><b>Supported browser matrix:</b> undecided (feature.md NFR-5, Q-6 / prd.md PQ-6). No compatibility test cases are included.</li>
+      <li><b>Per-step completeness test:</b> the direction is settled (a step is complete when its own persisted document exists and is valid), but the specific test for each step is not confirmed — in particular whether Source requires a *succeeded export* rather than merely a persisted selection (feature.md Q-2 / prd.md PQ-1 / trd.md TQ-1). TC_MWC_009/010/011 assert the tracker&#x27;s rendering given a known set of complete steps; they do not assert how completeness is determined.</li>
+      <li><b>Tracker completion for unbuilt steps:</b> trd.md TRR-1 records that a step with no persisted document can never read complete, so with five of seven steps unbuilt the tracker cannot show them complete regardless of user activity. TC_MWC_011 (Verify step, six complete) is therefore only exercisable once those steps persist state, or against a synthetic completeness context.</li>
+      <li><b>Audit-step cases have no real panel:</b> TC_MWC_022, TC_MWC_023, TC_MWC_024 and TC_MWC_036 specify Audit-step behaviour, but the Audit step does not exist yet (trd.md §10). They must be driven with a synthetic Audit-shaped step context rather than a real panel.</li>
+      <li><b>Centred column width:</b> the design uses 1100px for the app bar and footer while an existing panel uses 1180px, so as-designed the footer would not align with the panel above it (feature.md A-5, Q-10 / trd.md TQ-6). No alignment test case is written until the intended width is confirmed.</li>
+      <li><b>Analytics events:</b> prd.md §10 lists three proposed events but no analytics pipeline is confirmed (PQ-2), so the metrics counters in trd.md §11 are not observable. TC_MWC_053 covers only the NFR-7 logging requirement, not metric emission.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  var DATA = [["TC_MWC_001", "App Bar", "UI", "Product identity", "Open the wizard on any step and inspect the app bar", "The app bar shows the product mark and the title \"Migrate to Contentstack\" (FR-1.1)", "Y", "Not Run"], ["TC_MWC_002", "App Bar", "UI", "Step position", "Open the wizard on the Destination step (index 3 of 7)", "The app bar shows the current position beginning \"Step 3 of 7 · \" (AC-1.1, FR-1.2)", "Y", "Not Run"], ["TC_MWC_003", "App Bar", "Functional", "Step position updates", "Navigate from the Destination step to the Content mapping step", "The app bar's position label changes from \"Step 3 of 7 · …\" to \"Step 4 of 7 · …\" (FR-1.2)", "Y", "Not Run"], ["TC_MWC_004", "App Bar", "Functional", "Source indicator", "Open the wizard for a project whose persisted source names the stack \"marketing-prod\"", "The app bar's source indicator reads \"Source: marketing-prod (Contentstack)\" (AC-2.1, FR-1.3, FR-1.4)", "Y", "Not Run"], ["TC_MWC_005", "App Bar", "Negative", "No source persisted", "Open the wizard for a project with no persisted source selection", "The source indicator reads \"Source: Not selected\" and the chrome renders normally (AC-2.2, FR-1.5, EC-1)", "Y", "Not Run"], ["TC_MWC_006", "App Bar", "Negative", "Source read failure", "Open the wizard while the persisted-source read fails or times out", "The source indicator falls back to \"Source: Not selected\" and the failure does not prevent the chrome from rendering (EC-8)", "Y", "Not Run"], ["TC_MWC_007", "App Bar", "UI", "Long name truncation", "Open the wizard for a project whose persisted source stack name is longer than the available app-bar width", "The name is truncated with an ellipsis; it does not wrap and the app bar's height is unchanged (AC-2.3, FR-1.6, EC-7)", "Y", "Not Run"], ["TC_MWC_008", "Step Tracker", "UI", "Step list", "Open the wizard on any step and read the tracker", "Exactly seven steps are listed, in the order Source, Audit, Destination, Content mapping, Preview, Migrate, Verify (AC-1.2, FR-2.1)", "Y", "Not Run"], ["TC_MWC_009", "Step Tracker", "UI", "Mixed step states", "Open the wizard on the Destination step", "Source and Audit are marked complete with a check mark, Destination is marked active, and Content mapping, Preview, Migrate and Verify are marked upcoming showing their numbers (AC-1.3, FR-2.2, FR-2.3, FR-2.4)", "Y", "Not Run"], ["TC_MWC_010", "Step Tracker", "UI", "First step", "Open the wizard on the Source step", "No step is marked complete (AC-1.4)", "Y", "Not Run"], ["TC_MWC_011", "Step Tracker", "UI", "Last step", "Open the wizard on the Verify step", "All six earlier steps are marked complete (AC-1.5)", "Y", "Not Run"], ["TC_MWC_012", "Step Tracker", "UI", "Upcoming de-emphasis", "Open the wizard on the Destination step and compare an upcoming step to the active one", "Upcoming steps are visually de-emphasised relative to the active step, and completion is not conveyed by colour alone (FR-2.4, NFR-1)", "N", "Not Run"], ["TC_MWC_013", "Step Tracker", "Functional", "Jump to completed step", "On the Destination step, click the Source step in the tracker", "The wizard navigates to the Source step (AC-5.1, FR-2.5, FR-2.6)", "Y", "Not Run"], ["TC_MWC_014", "Step Tracker", "Negative", "Upcoming step not interactive", "On the Destination step, click the Preview step in the tracker", "Nothing happens; the user remains on the Destination step (AC-5.2, FR-2.5, EC-4)", "Y", "Not Run"], ["TC_MWC_015", "Step Tracker", "Functional", "Current step is a no-op", "On the Destination step, click the Destination step in the tracker", "The user remains on the Destination step and nothing changes (AC-5.3, FR-2.7)", "Y", "Not Run"], ["TC_MWC_016", "Footer", "UI", "Footer composition", "Open the wizard on any step and inspect the footer", "The footer contains a Back button, a status line, and a primary action, in that left-to-right order (FR-3.2)", "Y", "Not Run"], ["TC_MWC_017", "Footer", "UI", "Sticky footer", "Open the wizard on a step whose panel is taller than the viewport and scroll the panel", "The footer remains visible at the bottom of the viewport while the panel scrolls (FR-3.1)", "N", "Not Run"], ["TC_MWC_018", "Footer", "UI", "Back on first step", "Open the wizard on the Source step and inspect the Back button", "Back is present and disabled (AC-4.1, FR-3.3)", "Y", "Not Run"], ["TC_MWC_019", "Footer", "Functional", "Back navigates", "On the Destination step, click Back", "The wizard navigates to the Audit step (AC-4.2, FR-3.4)", "Y", "Not Run"], ["TC_MWC_020", "Footer", "Functional", "Status line — Source", "Open the wizard on the Source step", "The footer status line reads \"Configure your source stack, then proceed to the audit.\" (AC-6.2, FR-3.5, FR-5.2)", "Y", "Not Run"], ["TC_MWC_021", "Footer", "Functional", "Status line — Destination", "Open the wizard on the Destination step", "The footer status line reads \"Configure the destination stack, then proceed to content mapping.\" (AC-6.1, FR-3.5, FR-5.2)", "Y", "Not Run"], ["TC_MWC_022", "Footer", "Functional", "Status line — Audit not ready", "Open the wizard on the Audit step while the audit is not yet ready", "The footer status line reads \"Generating audit — you can continue once it finishes\" (AC-6.3, FR-3.6, FR-5.3)", "Y", "Not Run"], ["TC_MWC_023", "Footer", "Functional", "Status line — Audit ready, nothing excluded", "Open the wizard on the Audit step with the audit ready and nothing excluded", "The footer status line reads \"Audit complete — nothing excluded\" (AC-6.4, FR-5.3)", "Y", "Not Run"], ["TC_MWC_024", "Footer", "Functional", "Status line — Audit ready, with counts", "Open the wizard on the Audit step with the audit ready, 12 items excluded and 480 to migrate", "The footer status line reads \"Audit complete — 12 excluded, 480 will migrate\" (AC-6.5, FR-5.3)", "Y", "Not Run"], ["TC_MWC_025", "Primary Action", "UI", "Enabled state and label", "Open the wizard on the Destination step with its panel reporting the gate satisfied", "The primary action is enabled and labelled \"Proceed to content mapping\" (AC-3.1, FR-4.1, FR-4.2, FR-5.1)", "Y", "Not Run"], ["TC_MWC_026", "Primary Action", "Functional", "Advance succeeds", "On the Destination step with a satisfied gate, click the primary action and have the panel's advance work report success", "The wizard navigates to the Content mapping step and Destination is marked complete in the tracker (AC-3.2, FR-4.4)", "Y", "Not Run"], ["TC_MWC_027", "Primary Action", "Negative", "Disabled when gate unsatisfied", "Open the wizard on a step whose panel reports its gate is not satisfied", "The primary action is rendered disabled (AC-3.3, FR-4.1)", "Y", "Not Run"], ["TC_MWC_028", "Primary Action", "Negative", "Disabled click does nothing", "With the primary action disabled because the gate is unsatisfied, click it", "No navigation occurs and the panel's advance work is not started (AC-3.4, EC-2)", "Y", "Not Run"], ["TC_MWC_029", "Primary Action", "Negative", "Advance work fails", "On a step with a satisfied gate, click the primary action and have the panel's advance work report failure", "The wizard does not navigate and the user remains on that step (AC-3.5, EC-3)", "Y", "Not Run"], ["TC_MWC_030", "Primary Action", "Negative", "Advance work rejects", "On a step with a satisfied gate, click the primary action and have the panel's advance work reject with an error", "The rejection is treated as failure: the wizard does not navigate and the user remains on that step (EC-3)", "Y", "Not Run"], ["TC_MWC_031", "Primary Action", "Negative", "Re-entrancy guard", "Click the primary action, then click it again while the panel's advance work is still in progress", "The advance work is not started a second time (AC-3.6, FR-4.6)", "Y", "Not Run"], ["TC_MWC_032", "Primary Action", "Functional", "No gate registered", "Open the wizard on a step whose panel publishes no gate information", "The primary action is enabled (AC-3.7, FR-6.5)", "Y", "Not Run"], ["TC_MWC_033", "Primary Action", "Functional", "Gate satisfied, no advance work", "Click the primary action on a step that reports a satisfied gate but publishes no advance work", "The wizard navigates to the next step without asking the panel to do anything (EC-11)", "Y", "Not Run"], ["TC_MWC_034", "Primary Action", "Usability", "Disabled explanation on hover", "Hover the primary action while it is disabled because the gate is unsatisfied", "A short explanation of what is missing is revealed (FR-4.3)", "N", "Not Run"], ["TC_MWC_035", "Primary Action", "Functional", "Explanation copy — Source", "On the Source step with its gate unsatisfied, inspect the disabled primary action's explanation", "The explanation reads \"Review your source, then proceed to the audit\" (AC-6.6, FR-5.4)", "Y", "Not Run"], ["TC_MWC_036", "Primary Action", "Functional", "Explanation copy — Audit", "On the Audit step with the audit not ready, inspect the disabled primary action's explanation", "The explanation reads \"Finish the audit to continue\" (AC-6.7, FR-5.4)", "Y", "Not Run"], ["TC_MWC_037", "Primary Action", "Functional", "Shared gate state", "Open a step that renders its own in-panel advance button alongside the footer's primary action, with the gate unsatisfied", "Both the footer's primary action and the in-panel button are disabled; they never show differing enabled states (FR-4.5)", "Y", "Not Run"], ["TC_MWC_038", "Primary Action", "Functional", "Shared advance action", "On a step with both a footer action and an in-panel advance button and a satisfied gate, trigger the in-panel button", "The same advance work runs as when the footer's action is used, and navigation on success is identical (FR-4.5)", "Y", "Not Run"], ["TC_MWC_039", "Primary Action", "Security", "Gate cannot be bypassed", "Attempt to trigger the advance path on a step whose gate is unsatisfied", "No navigation to the next step occurs and the panel's advance work is never invoked, so a step cannot be passed while its conditions are unmet (FR-4.4, G-4, trd.md §12)", "Y", "Not Run"], ["TC_MWC_040", "Copy", "Functional", "Primary-action labels per step", "Visit the Source, Audit, Destination, Content mapping and Preview steps in turn and read the primary action's label", "The label reads, respectively: \"Proceed to audit\"; \"Continue to content mapping\"; \"Proceed to content mapping\"; \"Continue to preview\"; \"Start migration\" (FR-5.1)", "Y", "Not Run"], ["TC_MWC_041", "Copy", "UI", "App-bar step titles", "Visit the Audit, Content mapping and Preview steps and read the app bar's step title", "The title reads, respectively: \"Audit report\"; \"Content mapping\"; \"Preview & run\" (FR-5.5)", "Y", "Not Run"], ["TC_MWC_042", "Copy", "Functional", "Status line — Content mapping", "Open the wizard on the Content mapping step", "The footer status line reads \"Select content types, then map fields or pick entries inside each type.\" (FR-5.2)", "Y", "Not Run"], ["TC_MWC_043", "Copy", "Functional", "Status line — Preview", "Open the wizard on the Preview step", "The footer status line reads \"Review the scope below, then run a test migration or start the real one.\" (FR-5.2)", "Y", "Not Run"], ["TC_MWC_044", "Navigation & Composition", "Functional", "Step derived from route", "Load the wizard directly at the Destination step's URL, then reload the page", "Both times the wizard renders the Destination step as current (AC-1.1, FR-6.2)", "Y", "Not Run"], ["TC_MWC_045", "Navigation & Composition", "UI", "Panel placement", "Open the wizard on any step and inspect the page structure", "The step's panel renders between the step tracker and the footer (FR-6.3)", "Y", "Not Run"], ["TC_MWC_046", "Navigation & Composition", "Functional", "Panels do not navigate", "Inspect a step panel rendered inside the chrome for step-to-step navigation controls of its own", "The panel exposes no controls that move between wizard steps; Back, the primary action and tracker clicks are the only step navigation (FR-6.1)", "Y", "Not Run"], ["TC_MWC_047", "Navigation & Composition", "Functional", "Backward navigation preserves state", "On the Destination step whose selection was previously persisted, navigate back to an earlier step and then forward again", "The Destination step's previously persisted selection is restored (AC-4.3, NFR-3)", "Y", "Not Run"], ["TC_MWC_048", "Non-functional", "Usability", "Tracker announced to assistive tech", "Inspect the tracker with a screen reader", "The current step is announced as the current item within a list of steps, and completion is distinguishable without relying on colour (NFR-1)", "N", "Not Run"], ["TC_MWC_049", "Non-functional", "Usability", "Keyboard operability", "Navigate the tracker's interactive steps, Back, and the primary action using only the keyboard", "Every one is reachable and operable by keyboard, and each shows a visible focus indicator (NFR-1)", "N", "Not Run"], ["TC_MWC_050", "Non-functional", "Usability", "Explanation available to assistive tech", "Inspect a disabled primary action's explanation with a screen reader", "The explanation is available to assistive technology, not only as a pointer-hover tooltip (NFR-2)", "N", "Not Run"], ["TC_MWC_051", "Non-functional", "Performance", "Source indicator not re-fetched", "Navigate between several steps within one project view and observe the persisted-source read", "The persisted-source data is read once per project view and is not re-fetched on each step change (NFR-4)", "Y", "Not Run"], ["TC_MWC_052", "Non-functional", "Usability", "No horizontal page scroll", "View the wizard at each supported viewport width with all seven tracker steps rendered", "The tracker remains readable and the page does not scroll horizontally at any supported width (NFR-6)", "N", "Not Run"], ["TC_MWC_053", "Non-functional", "Usability", "Step transitions logged", "Move between steps using Back, the primary action, and a tracker click, then inspect the logs", "Each transition is logged with the project identifier and the from/to step, and no secret values appear in the log output (NFR-7)", "N", "Not Run"]];
+  var body = document.getElementById('tc-body');
+  var countEl = document.getElementById('count');
+  var emptyEl = document.getElementById('empty');
+  var filterEl = document.getElementById('filter');
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  body.innerHTML = DATA.map(function (r) {
+    return '<tr data-search="' + esc(r.join(' ').toLowerCase()) + '">' +
+      '<td class="id">' + esc(r[0]) + '</td>' +
+      '<td>' + esc(r[1]) + '</td>' +
+      '<td><span class="badge b-' + esc(r[2]) + '">' + esc(r[2]) + '</span></td>' +
+      '<td>' + esc(r[3]) + '</td>' +
+      '<td class="case">' + esc(r[4]) + '</td>' +
+      '<td class="expected">' + esc(r[5]) + '</td>' +
+      '<td><span class="badge b-' + esc(r[6]) + '">' + esc(r[6]) + '</span></td>' +
+      '<td><span class="badge b-status">' + esc(r[7]) + '</span></td>' +
+    '</tr>';
+  }).join('');
+
+  var rows = Array.prototype.slice.call(body.querySelectorAll('tr'));
+
+  function update() {
+    var q = filterEl.value.trim().toLowerCase();
+    var shown = 0;
+    rows.forEach(function (tr) {
+      var hit = !q || tr.getAttribute('data-search').indexOf(q) !== -1;
+      tr.hidden = !hit;
+      if (hit) shown++;
+    });
+    countEl.textContent = shown + ' of ' + rows.length + ' test cases';
+    emptyEl.hidden = shown !== 0;
+  }
+
+  filterEl.addEventListener('input', update);
+  update();
+})();
+</script>
+</body>
+</html>
