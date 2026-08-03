@@ -194,11 +194,12 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
 
-    // Only inspect the tail — completion is always the terminal message. Scanning the whole
-    // array made a replayed / rehydrated "Migration Process Completed" mid-array flip the UI
-    // back to the completion view on iter 2. Also gate on migrationStarted so a rehydrated
-    // log array from a previous run doesn't trigger completion on mount.
-    const lastLog = logs?.[logs.length - 1];
+    // Look for a terminal message anywhere in `logs`. Scanning the whole array is safe here
+    // because the effect above purges `logs` back to the placeholder when migrationStarted
+    // flips false→true — anything present is from the current run, not a replay.
+    // We can't inspect only the last entry: after the CLI emits "Migration Process Completed"
+    // the backend still writes uid-mapper / "No config file generated" lines, burying the
+    // terminal message mid-array on the delta path.
     const migrationStarted = newMigrationData?.migration_execution?.migrationStarted;
     // Full/master import ends with "Migration Process Completed"; the delta update path ends
     // with "Entry Update Process Completed" — accept either as the terminal message.
@@ -206,11 +207,14 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       'Migration Process Completed',
       'Entry Update Process Completed'
     ]);
-    if (migrationStarted && lastLog) {
+    const hasTerminalMessage = logs?.some(
+      (log) => log?.message && TERMINAL_MESSAGES.has(log.message)
+    );
+    if (migrationStarted && hasTerminalMessage) {
       try {
-        const message = lastLog.message;
+        const message = 'Migration Process Completed';
 
-        if (message && TERMINAL_MESSAGES.has(message) && !hasShownCompletionNotification) {
+        if (!hasShownCompletionNotification) {
           setIsModalOpen(true);
           setHasShownCompletionNotification(true);
 
