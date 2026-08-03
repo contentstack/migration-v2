@@ -124,10 +124,14 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     }
   }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
 
-  // Reset notification flag when a new migration starts
+  // Reset notification flag AND purge stale logs when a new migration starts. Without the log
+  // purge, a replayed "Migration Process Completed" line from the previous run (on socket
+  // reconnect / late buffered emit) would slip through the completion detector below and flip
+  // the UI straight back to the iter-1 completion view.
   useEffect(() => {
     if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
       setHasShownCompletionNotification(false);
+      setLogs([{ message: 'Migration logs will appear here once the process begins.', level: '' }]);
     }
   }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
 
@@ -190,12 +194,23 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
 
-    logs?.forEach((log) => {
+    // Only inspect the tail — completion is always the terminal message. Scanning the whole
+    // array made a replayed / rehydrated "Migration Process Completed" mid-array flip the UI
+    // back to the completion view on iter 2. Also gate on migrationStarted so a rehydrated
+    // log array from a previous run doesn't trigger completion on mount.
+    const lastLog = logs?.[logs.length - 1];
+    const migrationStarted = newMigrationData?.migration_execution?.migrationStarted;
+    // Full/master import ends with "Migration Process Completed"; the delta update path ends
+    // with "Entry Update Process Completed" — accept either as the terminal message.
+    const TERMINAL_MESSAGES = new Set([
+      'Migration Process Completed',
+      'Entry Update Process Completed'
+    ]);
+    if (migrationStarted && lastLog) {
       try {
-        //const logObject = JSON.parse(log);
-        const message = log.message;
+        const message = lastLog.message;
 
-        if (message === 'Migration Process Completed' && !hasShownCompletionNotification) {
+        if (message && TERMINAL_MESSAGES.has(message) && !hasShownCompletionNotification) {
           setIsModalOpen(true);
           setHasShownCompletionNotification(true);
 
@@ -228,8 +243,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       } catch (error) {
         console.error('Invalid JSON string', error);
       }
-    });
-  }, [logs]);
+    }
+  }, [logs, newMigrationData?.migration_execution?.migrationStarted]);
 
   const navigate = useNavigate();
 
@@ -276,56 +291,57 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               transition: 'transform 0.1s ease'
             }}
           >
-            {logs.map((log, index) => {
-              try {
-                //const logObject = JSON.parse(log);
-                const { level, timestamp, message } = log;
-
-                return newMigrationData?.destination_stack?.migratedStacks?.includes(
-                  newMigrationData?.destination_stack?.selectedStack?.value
-                ) ? (
-                  <div
-                    key={`${index?.toString}`}
-                    style={logStyles[level || ''] || logStyles.info}
-                    className="log-entry text-center"
-                  >
+            {(() => {
+              // Only show the "already migrated" placeholder when the user has NOT started
+              // a new run on this screen — otherwise iter 2 (which legitimately targets the
+              // same stack) would sit behind this message. Rendering it outside the .map
+              // also fixes the previous bug where the message repeated once per log line.
+              const stackAlreadyMigrated = newMigrationData?.destination_stack?.migratedStacks?.includes(
+                newMigrationData?.destination_stack?.selectedStack?.value
+              );
+              const migrationStarted = newMigrationData?.migration_execution?.migrationStarted;
+              if (stackAlreadyMigrated && !migrationStarted) {
+                return (
+                  <div style={logStyles.info} className="log-entry text-center">
                     <div className="log-message generic-log-message">
                       Migration has already done in selected stack. Please create a new project.
                     </div>
                   </div>
-                ) : (
-                  <div
-                    key={index}
-                    // style={logStyles[level || ''] || logStyles.info}
-                    // className="log-entry logs-bg"
-                  >
-                    {message === 'Migration logs will appear here once the process begins.' ? (
-                      <div
-                        style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry text-center"
-                      >
-                        <div className="log-message generic-log-message">{message}</div>
-                      </div>
-                    ) : (
-                      <div
-                        style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry"
-                      >
-                        <div className="log-time">
-                          {timestamp
-                            ? new Date(timestamp)?.toTimeString()?.split(' ')[0]
-                            : new Date()?.toTimeString()?.split(' ')[0]}
-                        </div>
-                        <div className="log-message">{message}</div>
-                      </div>
-                    )}
-                  </div>
                 );
-              } catch (error) {
-                console.error('Invalid log format', error);
-                return null;
               }
-            })}
+              return logs.map((log, index) => {
+                try {
+                  const { level, timestamp, message } = log;
+                  return (
+                    <div key={index}>
+                      {message === 'Migration logs will appear here once the process begins.' ? (
+                        <div
+                          style={logStyles[level || ''] || logStyles.info}
+                          className="log-entry text-center"
+                        >
+                          <div className="log-message generic-log-message">{message}</div>
+                        </div>
+                      ) : (
+                        <div
+                          style={logStyles[level || ''] || logStyles.info}
+                          className="log-entry"
+                        >
+                          <div className="log-time">
+                            {timestamp
+                              ? new Date(timestamp)?.toTimeString()?.split(' ')[0]
+                              : new Date()?.toTimeString()?.split(' ')[0]}
+                          </div>
+                          <div className="log-message">{message}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } catch (error) {
+                  console.error('Invalid log format', error);
+                  return null;
+                }
+              });
+            })()}
           </div>
         )}
       </div>
