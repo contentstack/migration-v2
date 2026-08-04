@@ -122,6 +122,15 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const navigate = useNavigate();
   const filterRef = useRef<HTMLDivElement | null>(null);
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Monotonic id per fetchEntries call. Any response whose id no longer matches the
+  // latest issued call is ignored — prevents a stale in-flight fetch from a previous
+  // locale/content-type from clobbering the current view's rowIds / persistedRowIds
+  // when responses land out of order.
+  const fetchGenerationRef = useRef(0);
+  // Bumped after every successful seedSelection fetch. Used as part of the Table's
+  // `key` so the Table remounts with FRESH rowIds already committed — remounting on
+  // locale change alone was too early (rowIds was still the previous locale's).
+  const [tableRevision, setTableRevision] = useState(0);
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -176,13 +185,17 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, selectedOrganisation?.uid]);
 
-  // Refetch the entry list when the user switches locale so isUpdate reflects the per-locale flag.
+  // Fetch the entry list once both contentTypeUid AND selectedLocale are ready, and refetch
+  // whenever either changes. Depending on both handles the initial-mount race where content
+  // types load before/after the locale mapping — whichever resolves last triggers the fetch,
+  // so we never call the API without a locale filter (which would return mixed-locale rows
+  // and clobber the Venus Table's initial selection snapshot).
   useEffect(() => {
     if (contentTypeUid && selectedLocale?.value) {
       fetchEntries(contentTypeUid, searchText || '', { seedSelection: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLocale?.value]);
+  }, [selectedLocale?.value, contentTypeUid]);
 
   /********** HELPERS *************/
   /********** CONTENT TYPE LIST (left panel) *************/
@@ -200,9 +213,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle ?? '');
       setContentTypeUid(data?.contentTypes?.[0]?.id ?? '');
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid ?? '');
-      if (data?.contentTypes?.[0]?.id) {
-        fetchEntries(data?.contentTypes?.[0]?.id, searchVal ?? '', { seedSelection: true });
-      }
+      // Don't fetch entries here — the locale-effect at [selectedLocale.value] will fire
+      // once both contentTypeUid and selectedLocale are ready. Fetching now would run
+      // without a locale filter (selectedLocale is still null on initial mount), so the
+      // server would return all-locale rows and Venus's Table would snapshot that mixed
+      // selection state before the correct per-locale fetch could overwrite it.
     } catch (error) {
       setIsLoading(false);
       console.error(error);
@@ -345,10 +360,17 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     searchVal: string,
     { skip = 0, limit = 30, seedSelection = false }: { skip?: number; limit?: number; seedSelection?: boolean } = {},
   ) => {
+    const gen = ++fetchGenerationRef.current;
     try {
       setLoading(true);
 
       const { data } = await getEntryMapping(ctId || '', skip, limit, searchVal, projectId, selectedLocale?.value);
+
+      // Ignore this response entirely if the user has since triggered another fetch —
+      // e.g. quickly switched locales or content types. Without this, an earlier fetch
+      // finishing after a later one would overwrite rowIds/persistedRowIds with data
+      // for the wrong locale, silently deselecting entries the user just saved.
+      if (gen !== fetchGenerationRef.current) return;
 
       setLoading(false);
 
@@ -369,9 +391,15 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
+      // Force the Table to remount so it re-reads initialSelectedRowIds with the
+      // just-committed rowIds. Venus's InfiniteScrollTable snapshots that prop at
+      // mount and ignores subsequent updates; without a remount, switching locales
+      // shows the previous locale's checkboxes on the new data.
+      setTableRevision((r) => r + 1);
       // Reflect any pre-existing entry selections on the content type icon (green when present).
       updateContentTypeStatus(ctId, Object.keys(initialSelected ?? {}).length > 0);
     } catch (error) {
+      if (gen !== fetchGenerationRef.current) return;
       console.error('fetchEntries -> error', error);
       setLoading(false);
     }
@@ -642,7 +670,12 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                 )}
                 <div className="entry-mapper-table">
                   <InfiniteScrollTable
-                  key={contentTypeUid || 'entry-mapper-table'}
+                  // `tableRevision` bumps AFTER a seedSelection fetch commits rowIds — so
+                  // the Table remounts with the correct initial selection already in state.
+                  // Keying on selectedLocale alone would remount too early (rowIds still
+                  // holding the previous locale's data, since the new fetch is still
+                  // in flight).
+                  key={`${contentTypeUid || 'entry-mapper-table'}::${tableRevision}`}
                   loading={loading}
                   canSearch={true}
                   totalCounts={totalCounts ?? 0}
@@ -658,7 +691,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
                   v2Features={{ pagination: true, isNewEmptyState: true }}
                   rowPerPageOptions={[10, 30, 50, 100]}
                   minBatchSizeToFetch={30}
-                  initialRowSelectedData={initialRowSelectedData}
                   initialSelectedRowIds={rowIds}
                   itemSize={70}
                   getSelectedRow={handleSelectedEntries}
