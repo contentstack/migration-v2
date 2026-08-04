@@ -16,11 +16,11 @@ import WizardStepTracker from './WizardStepTracker';
  * publishes a gate and renders its own body, and does not navigate.
  */
 const WizardChrome: FC<{ children?: ReactNode }> = ({ children }) => {
-  const { activeIndex, isFirst, orgId, projectId, goTo, goBack, goNext } = useWizardNavigation();
+  const { activeIndex, isFirst, projectId, goTo, goBack, goNext } = useWizardNavigation();
 
   // Read once for the whole chrome — the app bar and the tracker share it
   // rather than fetching per region (NFR-4).
-  const { sourceName, sourceReady, destinationPersisted } = useWizardSource(orgId, projectId);
+  const { sourceName, sourceReady, destinationPersisted } = useWizardSource(projectId);
 
   const stepContext = useMemo<StepContext>(
     () => ({ sourceReady, destinationPersisted }),

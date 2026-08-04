@@ -13,15 +13,17 @@ import jwt from "jsonwebtoken";
  * Contentstack + the data layer are mocked; the routes, auth middleware and v3
  * error middleware run for real.
  */
-const { mockCs, mockGetV3Project, mockUpsertV3Destination } = vi.hoisted(() => ({
-  mockCs: {
-    createStack: vi.fn(),
-    createManagementToken: vi.fn(),
-    getStackStats: vi.fn(),
-  },
-  mockGetV3Project: vi.fn(),
-  mockUpsertV3Destination: vi.fn(),
-}));
+const { mockCs, mockGetV3Project, mockUpsertV3Destination, mockSetV3DestinationToken } =
+  vi.hoisted(() => ({
+    mockCs: {
+      createStack: vi.fn(),
+      createManagementToken: vi.fn(),
+      getStackStats: vi.fn(),
+    },
+    mockGetV3Project: vi.fn(),
+    mockUpsertV3Destination: vi.fn(),
+    mockSetV3DestinationToken: vi.fn(),
+  }));
 
 vi.mock("../../../../v3/services/csManagement.service.js", () => ({
   csManagement: mockCs,
@@ -37,6 +39,7 @@ vi.mock("../../../../v3/services/csManagement.service.js", () => ({
 vi.mock("../../../../v3/models/project.store.js", () => ({
   getV3Project: mockGetV3Project,
   upsertV3Destination: mockUpsertV3Destination,
+  setV3DestinationToken: mockSetV3DestinationToken,
   upsertV3Source: vi.fn(),
   setV3Graph: vi.fn(),
 }));
@@ -83,6 +86,15 @@ beforeEach(() => {
   Object.values(mockCs).forEach((m) => (m as any).mockReset());
   mockGetV3Project.mockReset();
   mockUpsertV3Destination.mockReset();
+  mockSetV3DestinationToken.mockReset();
+  /*
+    Re-stubbed rather than unstubbed: `tests/setup.ts` stubs APP_TOKEN_KEY in a
+    `beforeAll`, and `vi.unstubAllEnvs()` here would clear it and break the auth
+    tests above. Re-stubbing overrides whatever the previous test left behind —
+    which is what resets the deliberately-empty key set by the config test.
+  */
+  vi.stubEnv("V3_SECRET_ENCRYPT_KEY", "route-test-key");
+  vi.stubEnv("V3_SECRET_ENCRYPT_SALT", "route-test-salt");
 });
 
 describe("v3 destination routes — auth", () => {
@@ -170,8 +182,27 @@ describe("v3 destination routes — create stack (API-4)", () => {
   });
 });
 
+/**
+ * Management token (API-3).
+ *
+ * CONTRACT CHANGE, 2026-08-06. This endpoint now (a) requires `projectId` and
+ * (b) does NOT return the token secret. The secret is what the later Migrate step
+ * authenticates with, so it has to be stored — and the endpoint that receives it
+ * from Contentstack is the only place it exists. Returning it to the browser
+ * first, only for the browser to send it back on the persist call, would put a
+ * permanent write credential into Redux, a network tab and browser memory for no
+ * gain. So the server keeps it: encrypt, store against the project, return the
+ * public identity only.
+ *
+ * The four requests below therefore carry `projectId`; that is the new contract,
+ * not a relaxed assertion.
+ *
+ * `secret.util` is deliberately NOT mocked — it is pure and has no boundary of
+ * its own, so the env is stubbed instead and the stored value is asserted to
+ * actually decrypt back to what Contentstack returned.
+ */
 describe("v3 destination routes — management token (API-3)", () => {
-  it("(management-token, positive) a valid request returns 201 with the token uid, name and secret", async () => {
+  it("(management-token, positive) a valid request returns 201 with the token identity and no secret", async () => {
     const app = await makeOpenApp();
     mockCs.createManagementToken.mockResolvedValue({
       uid: "tok1",
@@ -181,10 +212,14 @@ describe("v3 destination routes — management token (API-3)", () => {
 
     const res = await request(app)
       .post("/destination/management-tokens")
-      .send({ stackApiKey: "blt1", name: "eu-marketing-import" });
+      .send({ projectId: "P1", stackApiKey: "blt1", name: "eu-marketing-import" });
 
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ uid: "tok1", name: "eu-marketing-import" });
+    expect(res.body).toEqual({ uid: "tok1", name: "eu-marketing-import" });
+    // The load-bearing assertion: the secret must not reach the client by any
+    // key name, nor anywhere else in the payload.
+    expect(res.body).not.toHaveProperty("secret");
+    expect(JSON.stringify(res.body)).not.toContain("cs-secret");
   });
 
   // Negative — taxonomy #1 (missing input): no stackApiKey → 400, no Contentstack call.
@@ -193,7 +228,7 @@ describe("v3 destination routes — management token (API-3)", () => {
 
     const res = await request(app)
       .post("/destination/management-tokens")
-      .send({ name: "eu-marketing-import" });
+      .send({ projectId: "P1", name: "eu-marketing-import" });
 
     expect(res.status).toBe(400);
     expect(res.body.error.message).toMatch(/'stackApiKey' is required/);
@@ -212,10 +247,12 @@ describe("v3 destination routes — management token (API-3)", () => {
 
     const res = await request(app)
       .post("/destination/management-tokens")
-      .send({ stackApiKey: "blt1", name: "eu-marketing-import" });
+      .send({ projectId: "P1", stackApiKey: "blt1", name: "eu-marketing-import" });
 
     expect(res.status).toBe(400);
     expect(res.body.error.message).toMatch(/already exists on this stack/);
+    // A rejected mint stores nothing — there is no secret to store.
+    expect(mockSetV3DestinationToken).not.toHaveBeenCalled();
   });
 
   // Negative — taxonomy #7 (conflict, contrast): a unique token name returns 201.
@@ -229,9 +266,103 @@ describe("v3 destination routes — management token (API-3)", () => {
 
     const res = await request(app)
       .post("/destination/management-tokens")
-      .send({ stackApiKey: "blt1", name: "eu-marketing-import-2" });
+      .send({ projectId: "P1", stackApiKey: "blt1", name: "eu-marketing-import-2" });
 
     expect(res.status).toBe(201);
+  });
+
+  it("(secret storage, positive) the secret is stored against the project as an encrypted, self-describing record", async () => {
+    const app = await makeOpenApp();
+    mockCs.createManagementToken.mockResolvedValue({
+      uid: "tok1",
+      name: "eu-marketing-import",
+      secret: "cs-secret-value",
+    });
+
+    const res = await request(app)
+      .post("/destination/management-tokens")
+      .send({ projectId: "P1", stackApiKey: "blt-dest", name: "eu-marketing-import" });
+
+    expect(res.status).toBe(201);
+    expect(mockSetV3DestinationToken).toHaveBeenCalledOnce();
+    const [projectId, stored] = mockSetV3DestinationToken.mock.calls[0];
+
+    expect(projectId).toBe("P1");
+    // `stackApiKey` makes the record self-describing: a stored secret is only
+    // usable against the stack it was minted on, and the user can still change
+    // the destination stack afterwards.
+    expect(stored).toMatchObject({
+      uid: "tok1",
+      name: "eu-marketing-import",
+      stackApiKey: "blt-dest",
+    });
+    // Stored encrypted, not in the clear — and it really is the value
+    // Contentstack returned, not a mangled one.
+    expect(stored.secretEncrypted.startsWith("enc:")).toBe(true);
+    expect(stored.secretEncrypted).not.toContain("cs-secret-value");
+    const { decryptSecret } = await import("../../../../v3/utils/secret.util.js");
+    expect(decryptSecret(stored.secretEncrypted)).toBe("cs-secret-value");
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): no `projectId` → 400 BEFORE Contentstack
+    is called.
+
+    Rejecting rather than defaulting matters because of what the alternative
+    costs. A token minted with nowhere to store its secret is a permanent
+    (`is_never_expires: true`) write credential sitting on the customer's stack
+    that nothing in this tool can use or revoke. Failing before the mint is the
+    only outcome that leaves no residue.
+  */
+  it("(secret storage, negative) a missing projectId is rejected 400 before any token is minted", async () => {
+    const app = await makeOpenApp();
+
+    const res = await request(app)
+      .post("/destination/management-tokens")
+      .send({ stackApiKey: "blt-dest", name: "eu-marketing-import" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/'projectId' is required/);
+    expect(mockCs.createManagementToken).not.toHaveBeenCalled();
+    expect(mockSetV3DestinationToken).not.toHaveBeenCalled();
+  });
+
+  it("(encryption config, positive) a server with the encryption key configured mints the token", async () => {
+    const app = await makeOpenApp();
+    mockCs.createManagementToken.mockResolvedValue({
+      uid: "tok1",
+      name: "eu-marketing-import",
+      secret: "cs-secret",
+    });
+
+    const res = await request(app)
+      .post("/destination/management-tokens")
+      .send({ projectId: "P1", stackApiKey: "blt1", name: "eu-marketing-import" });
+
+    expect(res.status).toBe(201);
+    expect(mockCs.createManagementToken).toHaveBeenCalledOnce();
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): the encryption key is not
+    configured, so the secret could not be stored even if it were minted.
+
+    The endpoint checks this FIRST and answers 500 without calling Contentstack.
+    Checking afterwards would be the worst of both worlds: an orphaned permanent
+    credential on the customer's stack plus a 500 that does not explain why.
+  */
+  it("(encryption config, negative) an unconfigured server returns 500 without minting an unstorable token", async () => {
+    const app = await makeOpenApp();
+    vi.stubEnv("V3_SECRET_ENCRYPT_KEY", "");
+
+    const res = await request(app)
+      .post("/destination/management-tokens")
+      .send({ projectId: "P1", stackApiKey: "blt1", name: "eu-marketing-import" });
+
+    expect(res.status).toBe(500);
+    expect(res.body.error.message).toMatch(/V3_SECRET_ENCRYPT_KEY/);
+    expect(mockCs.createManagementToken).not.toHaveBeenCalled();
+    expect(mockSetV3DestinationToken).not.toHaveBeenCalled();
   });
 });
 

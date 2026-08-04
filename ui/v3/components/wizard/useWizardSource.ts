@@ -21,16 +21,16 @@ export interface WizardSourceState {
  * "Not selected" and the step reads incomplete (feature.md EC-8). That is the
  * normal first-visit condition, not a fault worth surfacing in the chrome.
  */
-export const useWizardSource = (orgId: string, projectId: string): WizardSourceState => {
+export const useWizardSource = (projectId: string): WizardSourceState => {
   const [state, setState] = useState<WizardSourceState>({
     sourceReady: false,
     destinationPersisted: false,
   });
 
   useEffect(() => {
-    // Without an org the reads would 404 on an empty path segment — skip rather
-    // than fire them. See the STOPGAP note in pages/Migration (trd.md TQ-2).
-    if (!orgId || !projectId) return;
+    // A project id is all these reads need since the 2026-08-05 revision removed
+    // the organization segment from their paths (cs-project-dashboard FR-9.13).
+    if (!projectId) return;
 
     let live = true;
 
@@ -38,14 +38,15 @@ export const useWizardSource = (orgId: string, projectId: string): WizardSourceS
       let next: WizardSourceState = { sourceReady: false, destinationPersisted: false };
 
       try {
-        const { data } = await wizardApi.getSource(orgId, projectId);
+        const { data } = await wizardApi.getSource(projectId);
         const src = data?.source ?? {};
         next = {
           ...next,
-          // GAP: the persisted source carries no stack *name* (api/v3 types
-          // `V3StackSource` has region/orgId/stackApiKey/branch/scope/modules
-          // only), so a stack source can only be identified by its API key
-          // here. File sources do carry a filename. Reported, not worked around.
+          // GAP: the persisted source carries no stack *name* — `V3StackSource` has
+          // region/orgId/stackApiKey/branch/scope/modules only — so a stack source
+          // can only be identified by its API key here. File sources do carry a
+          // filename. (That `orgId` is the Contentstack SOURCE organization, not the
+          // project's; it is unaffected by this revision.) Reported, not worked around.
           sourceName: src.stack?.name ?? src.stack?.stackApiKey ?? src.file?.fileName,
           sourceReady: src.lastExport?.status === 'succeeded' || !!src.graph,
         };
@@ -54,7 +55,7 @@ export const useWizardSource = (orgId: string, projectId: string): WizardSourceS
       }
 
       try {
-        const { data } = await wizardApi.getDestination(orgId, projectId);
+        const { data } = await wizardApi.getDestination(projectId);
         next = { ...next, destinationPersisted: !!data?.destination };
       } catch {
         /* a 404 is the normal first-visit state, not an error */
@@ -66,7 +67,7 @@ export const useWizardSource = (orgId: string, projectId: string): WizardSourceS
     return () => {
       live = false;
     };
-  }, [orgId, projectId]);
+  }, [projectId]);
 
   return state;
 };

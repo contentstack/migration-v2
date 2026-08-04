@@ -36,8 +36,23 @@ export interface CreateStackBody {
 }
 
 export interface CreateManagementTokenBody {
+  /**
+   * Which project the token belongs to. Required: the server encrypts and stores
+   * the token secret against this project rather than returning it, so it has to
+   * be told where it goes. The response carries only `{ uid, name }` — the secret
+   * never reaches this client at all.
+   */
+  projectId: string;
   stackApiKey: string;
   name: string;
+  /** Optional; the server stamps a default so the customer can see its origin. */
+  description?: string;
+  /**
+   * Branch names to scope the token to. Omitted or empty → no branch scope entry
+   * at all, which is what a stack with no branches needs: naming a branch that
+   * does not exist fails the whole request.
+   */
+  branches?: string[];
 }
 
 export const destinationApi = {
@@ -51,8 +66,8 @@ export const destinationApi = {
     apiClient.get(`${sourceBase}/stacks`, { params: { orgId, ...regionParams(rc) } }),
   getBranches: (stackApiKey: string, rc?: RegionCredential) =>
     apiClient.get(`${sourceBase}/branches`, { params: { stackApiKey, ...regionParams(rc) } }),
-  getSource: (orgId: string, projectId: string) =>
-    apiClient.get(`${API_VERSION_V3}/org/${orgId}/project/${projectId}/source`),
+  getSource: (projectId: string) =>
+    apiClient.get(`${API_VERSION_V3}/project/${projectId}/source`),
 
   // ---- new to this feature ----
   getLocales: (stackApiKey: string, rc?: RegionCredential) =>
@@ -75,11 +90,11 @@ export const destinationApi = {
   getStackStats: (apiKey: string, rc?: RegionCredential) =>
     apiClient.get(`${destBase}/stacks/${apiKey}/stats`, { params: regionParams(rc) }),
 
-  persistDestination: (orgId: string, projectId: string, destination: unknown) =>
+  persistDestination: (projectId: string, destination: unknown) =>
     apiClient.put(
-      `${API_VERSION_V3}/org/${orgId}/project/${projectId}/destination`,
+      `${API_VERSION_V3}/project/${projectId}/destination`,
       destination
     ),
-  getDestination: (orgId: string, projectId: string) =>
-    apiClient.get(`${API_VERSION_V3}/org/${orgId}/project/${projectId}/destination`),
+  getDestination: (projectId: string) =>
+    apiClient.get(`${API_VERSION_V3}/project/${projectId}/destination`),
 };

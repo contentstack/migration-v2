@@ -48,7 +48,7 @@ const renderPanel = (setup?: (store: any) => void) => {
   setup?.(store);
   render(
     <Provider store={store}>
-      <DestinationPanel orgId="O1" projectId="P1" />
+      <DestinationPanel projectId="P1" />
     </Provider>
   );
   return store;
@@ -243,7 +243,7 @@ describe('v3 DestinationPanel — Region/Org/Stack selection', () => {
   it('TC_DEST_007 (negative): with every required field set the Proceed click reaches the persist thunk', async () => {
     renderPanel(seedComplete);
     await userEvent.click(proceedBtn());
-    expect(mockProceed).toHaveBeenCalledWith('O1', 'P1');
+    expect(mockProceed).toHaveBeenCalledWith('P1');
   });
 });
 

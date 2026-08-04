@@ -69,11 +69,45 @@ export interface V3DestinationStack {
  * How the later import authenticates against the destination stack. For
  * `authToken` no fields are stored — it is a deferred, per-region credential
  * lookup at migrate time (feature.md FR-3.7). For `management` only the token's
- * NAME and uid are persisted; the secret is never written here (NFR-1 / TQ-2).
+ * NAME and uid are persisted here; the secret lives in the server-owned
+ * `V3Project.destinationToken`, never in this client-supplied document.
  */
 export interface V3ImportAuth {
   method: V3ImportAuthMethod;
   managementToken?: { name: string; uid?: string };
+}
+
+/**
+ * The destination stack's management-token secret, encrypted at rest (2026-08-06).
+ *
+ * ── Why this is a top-level, server-owned field and NOT part of `destination`
+ * The token is minted BEFORE the destination document is persisted — deliberately,
+ * so that a failed mint leaves nothing persisted (cs-destination-selection
+ * FR-3.3 / AC-3.5). `upsertV3Destination` then REPLACES `destination` wholesale
+ * with the client's document. A secret stored under `destination.importAuth` would
+ * therefore be overwritten moments after being written. Keeping it out here makes
+ * that impossible by construction rather than by remembering to merge.
+ *
+ * ── Why it carries `stackApiKey`
+ * A management token is only valid against the stack it was minted on, and the
+ * user can still change the destination stack afterwards. Storing the stack makes
+ * the record self-describing, so Migrate can tell a usable secret from a stale one
+ * instead of authenticating with the wrong credential.
+ *
+ * ── Caveat worth knowing
+ * These tokens are created with `is_never_expires: true`. If this record is lost
+ * (the store is deleted, or the encryption key rotates) the token still exists on
+ * the customer's stack and can only be removed through the Contentstack UI. v3 has
+ * no revocation path yet.
+ */
+export interface V3StoredManagementToken {
+  uid: string;
+  name: string;
+  /** The stack the token is valid against — see the note above. */
+  stackApiKey: string;
+  /** `enc:<iv>:<authTag>:<ciphertext>`; see `utils/secret.util.ts`. */
+  secretEncrypted: string;
+  createdAt: string;
 }
 
 export interface V3LocaleMapping {
@@ -92,11 +126,63 @@ export interface V3Destination {
   additionalLanguageMappings: V3LocaleMapping[];
 }
 
+/**
+ * The persisted v3 project record (cs-project-dashboard trd.md DM-1).
+ *
+ * `name`, `region`, `owner` and `isDeleted` are **required, not optional**, and
+ * that is the enforcement mechanism rather than a style choice: optional fields
+ * are what previously let `upsertV3Source` bring a nameless, ownerless project
+ * into existence as a side effect. Required makes that a compile error
+ * (cs-project-dashboard FR-9.9).
+ *
+ * There is deliberately NO organization field. A project belongs to a user in a
+ * region, not to an organization (FR-9.7, 2026-08-05). The old `org_id` field was
+ * removed rather than renamed — nothing reads it, and a field nothing validates
+ * would be assumed authoritative by the next reader.
+ */
 export interface V3Project {
   id: string;
-  org_id: string;
+  /** Human-readable, supplied at creation. */
+  name: string;
+  description?: string;
+  /** The Contentstack region the project was created in. */
+  region: string;
+  /** The id of the user who created and owns it. */
+  owner: string;
+  /** Soft-delete marker; excluded from both listings and single reads when set. */
+  isDeleted: boolean;
   source?: V3Source;
   destination?: V3Destination;
+  /**
+   * Server-owned, never accepted from a client and never returned to one. Written
+   * only by `setV3DestinationToken` and read only by `getV3DestinationToken`.
+   */
+  destinationToken?: V3StoredManagementToken;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * A project as it may be sent to a client: everything except the credential.
+ *
+ * Expressed as a type rather than enforced only at runtime so that a future
+ * controller handing a listing to `res.json` cannot leak the secret even by
+ * accident — the field is not on the type it receives.
+ */
+export type V3ProjectPublic = Omit<V3Project, "destinationToken">;
+
+/**
+ * The dimensions every project read is scoped by. Both come from the verified
+ * token only, never from the request path, body or query string (FR-9.6, FR-9.11,
+ * NFR-3) — which is what makes the scope untamperable by a caller.
+ */
+export interface V3ProjectScope {
+  region: string;
+  owner: string;
+}
+
+/** The only fields a client may supply when creating a project (FR-7.8). */
+export interface V3ProjectInput {
+  name: string;
+  description?: string;
 }

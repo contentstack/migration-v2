@@ -17,7 +17,9 @@ const byId = (id: string) => WIZARD_STEPS.find((s) => s.id === id)!;
 describe('v3 wizard steps — order', () => {
   it('TC_MWC_040 (positive): each specified step carries its exact primary-action label', () => {
     expect(byId('source').actionLabel).toBe('Proceed to audit');
-    expect(byId('audit').actionLabel).toBe('Continue to content mapping');
+    // Corrected 2026-08-04 alongside feature.md FR-5.1: the previous string
+    // named the step after Destination and so skipped one.
+    expect(byId('audit').actionLabel).toBe('Continue to Destination');
     expect(byId('destination').actionLabel).toBe('Proceed to content mapping');
     expect(byId('content-mapping').actionLabel).toBe('Continue to preview');
     expect(byId('preview').actionLabel).toBe('Start migration');

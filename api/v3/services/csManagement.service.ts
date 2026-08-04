@@ -87,9 +87,21 @@ const csGet = async (url: string, headers: Record<string, string>): Promise<any>
         await sleep(delay);
         continue;
       }
-      const message =
-        e?.response?.data?.error_message ?? e?.message ?? "Contentstack API error";
-      throw new CsError(status, message);
+      /*
+        Contentstack returns a generic `error_message` alongside an `errors` object
+        carrying the field-level reason ({ scope: [...] }, { expires_on: [...] }).
+        Surfacing only the wrapper made a scope bug undiagnosable from the UI, so
+        the detail is appended when present.
+      */
+      const data = e?.response?.data;
+      const detail =
+        data?.errors && typeof data.errors === "object"
+          ? Object.entries(data.errors as Record<string, unknown>)
+              .map(([field, msgs]) => `${field}: ${[].concat(msgs as never).join(", ")}`)
+              .join("; ")
+          : "";
+      const base = data?.error_message ?? e?.message ?? "Contentstack API error";
+      throw new CsError(status, detail ? `${base} (${detail})` : base);
     }
   }
 };
@@ -112,9 +124,21 @@ const csPost = async (
         await sleep(delay);
         continue;
       }
-      const message =
-        e?.response?.data?.error_message ?? e?.message ?? "Contentstack API error";
-      throw new CsError(status, message);
+      /*
+        Contentstack returns a generic `error_message` alongside an `errors` object
+        carrying the field-level reason ({ scope: [...] }, { expires_on: [...] }).
+        Surfacing only the wrapper made a scope bug undiagnosable from the UI, so
+        the detail is appended when present.
+      */
+      const data = e?.response?.data;
+      const detail =
+        data?.errors && typeof data.errors === "object"
+          ? Object.entries(data.errors as Record<string, unknown>)
+              .map(([field, msgs]) => `${field}: ${[].concat(msgs as never).join(", ")}`)
+              .join("; ")
+          : "";
+      const base = data?.error_message ?? e?.message ?? "Contentstack API error";
+      throw new CsError(status, detail ? `${base} (${detail})` : base);
     }
   }
 };
@@ -139,6 +163,27 @@ const asArray = (value: unknown): any[] => {
 export const csManagement = {
   /** Static list of regions configured for the current environment. */
   regions: () => CS_REGIONS.map((code) => ({ value: code, label: code })),
+
+  /**
+   * The authenticated user's display identity, for the projects page avatar
+   * (cs-project-dashboard API-3 / FR-1.3).
+   *
+   * Hits the same Contentstack endpoint as `listOrgs` but returns the user fields
+   * instead of the organization list. Deliberately a separate operation rather
+   * than a widened `listOrgs`: nothing on the projects page needs the
+   * organization list, so a caller asking for a name should not receive one
+   * (trd.md TC-8).
+   */
+  getUser: async (tp: TokenPayload | undefined) => {
+    const region = tp?.region as string;
+    const headers = await authHeaders(tp);
+    const data = await csGet(`${hostFor(region)}/user`, headers);
+    return {
+      firstName: data?.user?.first_name,
+      lastName: data?.user?.last_name,
+      email: data?.user?.email,
+    };
+  },
 
   /** Organizations the user belongs to (API-4 / FR-5.3). */
   listOrgs: async (tp: TokenPayload | undefined) => {
@@ -428,16 +473,6 @@ export const csManagement = {
     return asArray(raw).map((l: any) => ({ code: l?.code, name: l?.name }));
   },
 
-  /** Modules a migration import must be able to read AND write. */
-  managementTokenModules: [
-    "content_type",
-    "entry",
-    "asset",
-    "global_field",
-    "environment",
-    "locale",
-  ],
-
   /**
    * Creates a read+write management token on the destination stack (API-3 /
    * FR-3.3). Contentstack returns the secret exactly once, at creation. A
@@ -447,17 +482,59 @@ export const csManagement = {
   createManagementToken: async (
     tp: TokenPayload | undefined,
     stackApiKey: string,
-    name: string
+    name: string,
+    opts?: { description?: string; branches?: string[] }
   ): Promise<{ uid: string; name: string; secret: string }> => {
     const region = tp?.region as string;
     const headers = { ...(await authHeaders(tp)), api_key: stackApiKey };
-    const scope = csManagement.managementTokenModules.map((module) => ({
-      module,
-      acl: { read: true, write: true },
-    }));
+
+    /*
+      The real Contentstack scope shape. `content_type` is the required entry;
+      `branch` and `branch_alias` are the only other accepted modules, and they
+      carry a named list rather than a bare ACL.
+
+      Two things this got wrong before, both worth recording so they are not
+      repeated:
+        1. It sent `entry`, `asset`, `global_field`, `environment` and `locale` as
+           scope modules. Those are not scope modules — the list was built from
+           "what does an import write to" rather than "what does this endpoint
+           accept", and Contentstack rejected the whole request.
+        2. It sent `branches: ["*"]` expecting a wildcard. There is no wildcard:
+           Contentstack read it as a literal branch name and answered
+           "* branch(es) not found."
+
+      So the branch scope is only included when the caller supplies real branch
+      names. A stack with no branches gets `content_type` alone, which is valid
+      because it is the only required module — sending a branch entry naming a
+      branch that does not exist fails the whole request.
+    */
+    const branches = (opts?.branches ?? []).filter((b) => !!b && b !== "*");
+    const body = {
+      token: {
+        name,
+        description: opts?.description ?? "Created by the Contentstack migration tool.",
+        scope: [
+          { module: "content_type", acl: { read: true, write: true } },
+          ...(branches.length
+            ? [{ module: "branch", branches, acl: { read: true } }]
+            : []),
+        ],
+        /*
+          Exactly one expiry directive is required — `expires_on` or this. A
+          migration can run days after setup, so a token that expires in between
+          would break the import silently. Confirmed decision (2026-08-05).
+
+          Consequence worth knowing: this leaves a permanent read/write credential
+          on the customer's stack, and v3 has no way to revoke it. Revocation is a
+          follow-up.
+        */
+        is_never_expires: true,
+      },
+    };
+
     const data = await csPost(
       `${hostFor(region)}/stacks/management_tokens`,
-      { token: { name, scope } },
+      body,
       headers
     );
     const token = data?.token;

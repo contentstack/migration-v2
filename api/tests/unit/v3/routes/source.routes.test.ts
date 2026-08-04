@@ -14,6 +14,9 @@ import AdmZip from "adm-zip";
 const { mockGetV3Project } = vi.hoisted(() => ({ mockGetV3Project: vi.fn() }));
 vi.mock("../../../../v3/models/project.store.js", () => ({
   getV3Project: mockGetV3Project,
+  // Added 2026-08-04: the graph handler reads through the owner-scoped variant,
+  // because its route carries no organization (cs-project-dashboard FR-9.10).
+  getV3ProjectByOwner: mockGetV3Project,
   upsertV3Source: vi.fn(),
   setV3Graph: vi.fn(),
 }));

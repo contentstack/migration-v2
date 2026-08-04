@@ -170,7 +170,7 @@ const uploadBundle = async (req: Request, res: Response) => {
 
 // ---- Async export/status (API-1, API-2 / FR-5.5) ----
 const startExport = async (req: Request, res: Response) => {
-  const { token_payload, orgId, projectId, mode, stack, file } =
+  const { token_payload, projectId, mode, stack, file } =
     (req.body ?? {}) as Record<string, any>;
 
   if (!projectId) {
@@ -203,7 +203,7 @@ const startExport = async (req: Request, res: Response) => {
       : token_payload;
 
   const source: V3Source = { mode, stack, file };
-  await upsertV3Source(orgId ?? "", projectId, source, new Date().toISOString());
+  await upsertV3Source(projectId, source, new Date().toISOString());
   const jobId = startExportJob({ projectId, source, tokenPayload: effectiveTokenPayload });
   return res.status(HTTP_CODES.ACCEPTED).json({ jobId });
 };
@@ -227,7 +227,14 @@ const getExportStatus = (req: Request, res: Response) => {
 
 // ---- Content graph (API-6 / FR-5.6) ----
 const getGraph = async (req: Request, res: Response) => {
-  const project = await getV3Project(req.params.projectId);
+  // Fully scoped, like every other project read. The asymmetry this handler used
+  // to carry — it could not apply the organization dimension because its path had
+  // no `:orgId` — disappeared when organization stopped being a scope dimension.
+  const tp = (req.body?.token_payload ?? {}) as { region?: string; user_id?: string };
+  const project = await getV3Project(req.params.projectId, {
+    region: tp.region ?? "",
+    owner: tp.user_id ?? "",
+  });
   const graph = project?.source?.graph;
   if (!graph) {
     return res
@@ -239,7 +246,7 @@ const getGraph = async (req: Request, res: Response) => {
 
 // ---- Persist / read source selection (API-7 / FR-5.2) ----
 const persistSource = async (req: Request, res: Response) => {
-  const { orgId, projectId } = req.params as { orgId: string; projectId: string };
+  const { projectId } = req.params as { projectId: string };
   const { token_payload, ...rest } = (req.body ?? {}) as Record<string, any>;
   const source = rest as V3Source;
 
@@ -248,13 +255,17 @@ const persistSource = async (req: Request, res: Response) => {
       .status(HTTP_CODES.BAD_REQUEST)
       .json({ status: HTTP_CODES.BAD_REQUEST, message: "Invalid source: 'mode' must be 'stack' or 'file'." });
   }
-  const saved = await upsertV3Source(orgId, projectId, source, new Date().toISOString());
+  const saved = await upsertV3Source(projectId, source, new Date().toISOString());
   return res.status(HTTP_CODES.OK).json({ source: saved });
 };
 
 const getSource = async (req: Request, res: Response) => {
   const { projectId } = req.params as { projectId: string };
-  const project = await getV3Project(projectId);
+  const tp = (req.body?.token_payload ?? {}) as { region?: string; user_id?: string };
+  const project = await getV3Project(projectId, {
+    region: tp.region ?? "",
+    owner: tp.user_id ?? "",
+  });
   if (!project || !project.source) {
     return res
       .status(HTTP_CODES.NOT_FOUND)

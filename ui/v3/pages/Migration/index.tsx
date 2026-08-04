@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import DestinationPanel from '../../components/destination/DestinationPanel';
 import SourcePanel from '../../components/source/SourcePanel';
@@ -20,22 +20,10 @@ import { stepByRouteSegment } from '../../components/wizard/steps';
  */
 const MigrationV3: FC = () => {
   const { projectId, stepId } = useParams();
-  const [params] = useSearchParams();
   const step = stepByRouteSegment(stepId);
 
-  /*
-    STOPGAP: `orgId` comes from `?orgId=` because the v3 route
-    (`projects/:projectId/migration/steps/:stepId`) carries no org (chrome
-    trd.md TQ-2, and the same note previously in this file). Without it the
-    Destination panel skips its mount-time reads, so resume and the
-    source-readiness gate do not load and Proceed stays disabled — it skips
-    rather than firing a request that would 404 on an empty path segment.
-  */
-  const orgId = params.get('orgId') ?? '';
-
   const panel = () => {
-    if (step?.id === 'destination')
-      return <DestinationPanel orgId={orgId} projectId={projectId ?? ''} />;
+    if (step?.id === 'destination') return <DestinationPanel projectId={projectId ?? ''} />;
     if (step?.id === 'source') return <SourcePanel projectId={projectId ?? ''} />;
     return (
       <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>

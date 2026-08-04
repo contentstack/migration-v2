@@ -54,8 +54,8 @@ export const sourceApi = {
   getExportStatus: (jobId: string) => apiClient.get(`${base}/export/${jobId}`),
   getGraph: (projectId: string) => apiClient.get(`${base}/${projectId}/graph`),
 
-  persistSource: (orgId: string, projectId: string, source: unknown) =>
-    apiClient.put(`${API_VERSION_V3}/org/${orgId}/project/${projectId}/source`, source),
-  getSource: (orgId: string, projectId: string) =>
-    apiClient.get(`${API_VERSION_V3}/org/${orgId}/project/${projectId}/source`),
+  persistSource: (projectId: string, source: unknown) =>
+    apiClient.put(`${API_VERSION_V3}/project/${projectId}/source`, source),
+  getSource: (projectId: string) =>
+    apiClient.get(`${API_VERSION_V3}/project/${projectId}/source`),
 };

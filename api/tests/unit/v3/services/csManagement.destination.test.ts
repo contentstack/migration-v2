@@ -84,28 +84,71 @@ describe("v3 csManagement.createManagementToken", () => {
       data: { token: { uid: "tok1", name: "eu-marketing-import", token: "cs-secret-value" } },
     });
 
-    const token = await csManagement.createManagementToken(TP, "blt1", "eu-marketing-import");
+    const token = await csManagement.createManagementToken(TP, "blt1", "eu-marketing-import", {
+      branches: ["main"],
+    });
 
     expect(token).toEqual({
       uid: "tok1",
       name: "eu-marketing-import",
       secret: "cs-secret-value",
     });
-    // Scoped read AND write on the destination stack (feature.md FR-3.3).
-    expect(mockPost).toHaveBeenCalledWith(
-      expect.stringContaining("/v3/stacks/management_tokens"),
-      expect.objectContaining({
-        token: expect.objectContaining({
-          name: "eu-marketing-import",
-          scope: expect.arrayContaining([
-            expect.objectContaining({ module: "content_type", acl: { read: true, write: true } }),
-          ]),
-        }),
-      }),
-      expect.objectContaining({
-        headers: expect.objectContaining({ authtoken: "tok", api_key: "blt1" }),
-      })
-    );
+    /*
+      Scoped read AND write on the destination stack (feature.md FR-3.3).
+
+      STRENGTHENED 2026-08-05. The previous version asserted only that
+      `content_type` was PRESENT, which let a payload ship containing five invalid
+      scope modules and no expiry directive — Contentstack rejected every request
+      and the test stayed green. The assertions below pin the exact payload,
+      including the absence of the invalid modules.
+    */
+    const [url, body, config] = mockPost.mock.calls[0];
+    expect(url).toContain("/v3/stacks/management_tokens");
+    expect(config.headers).toMatchObject({ authtoken: "tok", api_key: "blt1" });
+
+    expect(body.token.name).toBe("eu-marketing-import");
+    // Exactly one expiry directive is required; we use the never-expires form.
+    expect(body.token.is_never_expires).toBe(true);
+    expect(body.token).not.toHaveProperty("expires_on");
+    // Not sent: we create this token programmatically, so notifying the org owner
+    // about a token they did not make by hand would be noise.
+    expect(body.token).not.toHaveProperty("is_email_notification_enabled");
+
+    // `content_type` is the required module; `branch` carries the real branch
+    // name(s) supplied by the caller. There is no wildcard form — Contentstack
+    // read an earlier `["*"]` as a literal name and answered
+    // "* branch(es) not found."
+    expect(body.token.scope).toEqual([
+      { module: "content_type", acl: { read: true, write: true } },
+      { module: "branch", branches: ["main"], acl: { read: true } },
+    ]);
+
+    // The regression guard that matters: none of the modules that are NOT valid
+    // scope modules may reappear. Each of these caused Contentstack to reject the
+    // whole request.
+    const modules = body.token.scope.map((entry: any) => entry.module);
+    for (const invalid of ["entry", "asset", "global_field", "environment", "locale"]) {
+      expect(modules).not.toContain(invalid);
+    }
+
+    /*
+      And with no branches supplied — a stack that has none — the branch entry is
+      omitted entirely rather than sent empty or wildcarded. `content_type` alone
+      is valid because it is the only required module, whereas a branch entry
+      naming something that does not exist fails the whole request.
+    */
+    mockPost.mockClear();
+    await csManagement.createManagementToken(TP, "blt1", "no-branch-token");
+    expect(mockPost.mock.calls[0][1].token.scope).toEqual([
+      { module: "content_type", acl: { read: true, write: true } },
+    ]);
+
+    // A caller passing the old wildcard is treated as "no branches", not sent on.
+    mockPost.mockClear();
+    await csManagement.createManagementToken(TP, "blt1", "wildcard-token", { branches: ["*"] });
+    expect(mockPost.mock.calls[0][1].token.scope).toEqual([
+      { module: "content_type", acl: { read: true, write: true } },
+    ]);
   });
 
   // Negative — taxonomy #7 (conflict): a duplicate token name surfaces as a

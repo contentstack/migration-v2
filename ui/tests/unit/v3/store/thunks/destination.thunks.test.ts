@@ -368,9 +368,13 @@ describe('v3 destination thunks — Proceed', () => {
     });
     mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
+    // `projectId` is part of the request as of 2026-08-06: the server encrypts and
+    // stores the token secret against the project rather than returning it, so it
+    // has to be told which project the token belongs to.
     expect(mockApi.createManagementToken).toHaveBeenCalledWith({
+      projectId: 'P1',
       stackApiKey: 'blt1',
       name: 'eu-marketing-import',
     });
@@ -388,7 +392,7 @@ describe('v3 destination thunks — Proceed', () => {
     seedReady(store); // authToken
     mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     expect(mockApi.createManagementToken).not.toHaveBeenCalled();
     expect(mockApi.persistDestination).toHaveBeenCalled();
@@ -403,7 +407,7 @@ describe('v3 destination thunks — Proceed', () => {
       httpError(400, "A management token named 'eu-marketing-import' already exists on this stack.")
     );
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     const st = store.getState().destination;
     expect(st.error).toBe(
@@ -426,11 +430,58 @@ describe('v3 destination thunks — Proceed', () => {
     });
     mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     const st = store.getState().destination;
     expect(st.error).toBeUndefined();
     expect(st.proceeded).toBe(true);
+  });
+
+  it('(token secret, positive) the persisted document carries only the token name and uid', async () => {
+    const store = mkStore();
+    seedReady(store);
+    store.dispatch(destinationActions.setImportMethod('management'));
+    store.dispatch(destinationActions.setManagementTokenName('eu-marketing-import'));
+    mockApi.createManagementToken.mockResolvedValue({
+      data: { uid: 'tok1', name: 'eu-marketing-import' },
+    });
+    mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
+
+    await store.dispatch(proceedToContentMapping('P1') as any);
+
+    const [, doc] = mockApi.persistDestination.mock.calls[0];
+    expect(doc.importAuth.managementToken).toEqual({
+      name: 'eu-marketing-import',
+      uid: 'tok1',
+    });
+  });
+
+  /*
+    Negative — taxonomy #2 (unexpected shape): a secret in the response is
+    discarded, not stored and not persisted.
+
+    The current server does not return one — that is the whole point of the
+    2026-08-06 change. This test exists because the failure it guards against is
+    invisible: reintroducing the round-trip would keep every other test green
+    while putting a permanent write credential into Redux and into the persisted
+    document. The client must be incapable of relaying it even when handed one.
+  */
+  it('(token secret, negative) a secret returned by the endpoint is neither stored nor persisted', async () => {
+    const store = mkStore();
+    seedReady(store);
+    store.dispatch(destinationActions.setImportMethod('management'));
+    store.dispatch(destinationActions.setManagementTokenName('eu-marketing-import'));
+    mockApi.createManagementToken.mockResolvedValue({
+      data: { uid: 'tok1', name: 'eu-marketing-import', secret: 'cs-secret-value' },
+    });
+    mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
+
+    await store.dispatch(proceedToContentMapping('P1') as any);
+
+    const [, doc] = mockApi.persistDestination.mock.calls[0];
+    expect(JSON.stringify(doc)).not.toContain('cs-secret-value');
+    expect(doc.importAuth.managementToken).not.toHaveProperty('secret');
+    expect(JSON.stringify(store.getState().destination)).not.toContain('cs-secret-value');
   });
 
   it('TC_DEST_041 (positive): the happy path persists the full destination selection and advances', async () => {
@@ -440,10 +491,9 @@ describe('v3 destination thunks — Proceed', () => {
     store.dispatch(destinationActions.setDestMasterLocale('en-gb'));
     mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     expect(mockApi.persistDestination).toHaveBeenCalledWith(
-      'O1',
       'P1',
       expect.objectContaining({
         region: 'NA',
@@ -466,7 +516,7 @@ describe('v3 destination thunks — Proceed', () => {
       destinationActions.setSourceContext({ ready: false, region: 'NA', branch: 'main', masterLocale: 'en-us' })
     );
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     expect(mockApi.persistDestination).not.toHaveBeenCalled();
     expect(store.getState().destination.proceeded).toBe(false);
@@ -477,7 +527,7 @@ describe('v3 destination thunks — Proceed', () => {
     seedReady(store);
     mockApi.persistDestination.mockRejectedValue(httpError(500, 'Could not save the destination.'));
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     const st = store.getState().destination;
     expect(st.error).toBe('Could not save the destination.');
@@ -496,7 +546,7 @@ describe('v3 destination thunks — Proceed', () => {
     store.dispatch(destinationActions.setError('previous failure'));
     mockApi.persistDestination.mockResolvedValue({ data: { destination: {} } });
 
-    await store.dispatch(proceedToContentMapping('O1', 'P1') as any);
+    await store.dispatch(proceedToContentMapping('P1') as any);
 
     const st = store.getState().destination;
     expect(st.error).toBeUndefined();
@@ -521,7 +571,7 @@ describe('v3 destination thunks — resume', () => {
       },
     });
 
-    await store.dispatch(loadPersistedDestination('O1', 'P1') as any);
+    await store.dispatch(loadPersistedDestination('P1') as any);
 
     const st = store.getState().destination;
     expect(st.region).toBe('EU');
@@ -541,7 +591,7 @@ describe('v3 destination thunks — resume', () => {
     const store = mkStore();
     mockApi.getDestination.mockRejectedValue(httpError(404, 'No destination selection found.'));
 
-    await store.dispatch(loadPersistedDestination('O1', 'P1') as any);
+    await store.dispatch(loadPersistedDestination('P1') as any);
 
     const st = store.getState().destination;
     expect(st.error).toBeUndefined();

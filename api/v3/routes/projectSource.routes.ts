@@ -5,7 +5,7 @@ import { sourceController } from "../controllers/source.controller.js";
 
 /**
  * v3 project-scoped source persistence — mounted at
- * `/v3/org/:orgId/project/:projectId/source` (auth applied at the mount point
+ * `/v3/project/:projectId/source` (auth applied at the mount point
  * in ../index.ts). Follows trd.md API-7 / FR-5.2.
  */
 const router = express.Router({ mergeParams: true });

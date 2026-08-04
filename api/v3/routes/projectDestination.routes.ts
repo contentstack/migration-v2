@@ -5,7 +5,7 @@ import { destinationController } from "../controllers/destination.controller.js"
 
 /**
  * v3 project-scoped destination persistence — mounted at
- * `/v3/org/:orgId/project/:projectId/destination` (auth applied at the mount
+ * `/v3/project/:projectId/destination` (auth applied at the mount
  * point in ../index.ts). Follows trd.md API-1 / API-2 / FR-8.2.
  */
 const router = express.Router({ mergeParams: true });

@@ -36,15 +36,17 @@ const CREATE_SENTINEL = '__create__';
  * live so a source that becomes ready while this panel is open enables Proceed
  * without a reload (EC-6).
  */
-const DestinationPanel: FC<{ orgId: string; projectId: string }> = ({ orgId, projectId }) => {
+const DestinationPanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
   const d = useV3Selector((s) => s.destination);
 
   useEffect(() => {
     if (!d.regions.length) dispatch(loadDestRegions());
-    if (orgId && projectId) {
-      dispatch(loadSourceContext(orgId, projectId));
-      dispatch(loadPersistedDestination(orgId, projectId));
+    // A project id is all these reads need since the organization segment left
+    // their paths (cs-project-dashboard FR-9.13).
+    if (projectId) {
+      dispatch(loadSourceContext(projectId));
+      dispatch(loadPersistedDestination(projectId));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -61,8 +63,8 @@ const DestinationPanel: FC<{ orgId: string; projectId: string }> = ({ orgId, pro
     registration is a no-op and `runProceed` calls the work directly.
   */
   const advance = useCallback(
-    async () => (await dispatch(proceedToContentMapping(orgId, projectId))) === true,
-    [dispatch, orgId, projectId]
+    async () => (await dispatch(proceedToContentMapping(projectId))) === true,
+    [dispatch, projectId]
   );
   const runProceed = useRegisterStepGate({
     satisfied: ready && !d.saving,

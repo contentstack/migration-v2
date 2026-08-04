@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Provider } from 'react-redux';
 
 /**
  * TDD — v3 WizardChrome: composition and navigation ownership. Backs
@@ -34,10 +35,21 @@ vi.mock('../../../../../v3/components/wizard/useWizardSource', () => ({
 }));
 
 import WizardChrome from '../../../../../v3/components/wizard/WizardChrome';
+import { v3Store } from '../../../../../v3/store';
 
+/*
+  Wrapped in the v3 Provider from 2026-08-04: `useWizardNavigation` now reads the
+  selected organization from the session slice (cs-project-dashboard TR-17), and
+  the chrome always mounts inside V3App's Provider in the real app. No assertion
+  below changed — only the surrounding context.
+*/
 const renderChrome = (stepId = 'destination', children: React.ReactNode = <div>panel body</div>) => {
   mockParams.current = { projectId: 'P1', stepId };
-  return render(<WizardChrome>{children}</WizardChrome>);
+  return render(
+    <Provider store={v3Store}>
+      <WizardChrome>{children}</WizardChrome>
+    </Provider>
+  );
 };
 
 beforeEach(() => {
@@ -140,7 +152,11 @@ describe('v3 WizardChrome — source read', () => {
     const { rerender } = renderChrome('destination');
     mockLoadSource.mockClear();
 
-    rerender(<WizardChrome><div>panel body</div></WizardChrome>);
+    rerender(
+      <Provider store={v3Store}>
+        <WizardChrome><div>panel body</div></WizardChrome>
+      </Provider>
+    );
 
     expect(mockLoadSource).toHaveBeenCalledOnce();
   });

@@ -6,6 +6,8 @@ import sourceRoutes from "./routes/source.routes.js";
 import projectSourceRoutes from "./routes/projectSource.routes.js";
 import destinationRoutes from "./routes/destination.routes.js";
 import projectDestinationRoutes from "./routes/projectDestination.routes.js";
+import projectRoutes from "./routes/project.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
 /**
  * v3 API router — fully standalone. Composed here and mounted once at `/v3`
@@ -21,19 +23,29 @@ v3.get("/health", (_req: Request, res: Response) => {
 
 // Source panel (Content Map & Audit) — all endpoints require the app_token JWT.
 v3.use("/source", authenticateV3User, sourceRoutes);
-v3.use(
-  "/org/:orgId/project/:projectId/source",
-  authenticateV3User,
-  projectSourceRoutes
-);
+v3.use("/project/:projectId/source", authenticateV3User, projectSourceRoutes);
 
 // Destination panel (Content Map & Audit) — all endpoints require the app_token JWT.
 v3.use("/destination", authenticateV3User, destinationRoutes);
 v3.use(
-  "/org/:orgId/project/:projectId/destination",
+  "/project/:projectId/destination",
   authenticateV3User,
   projectDestinationRoutes
 );
+
+/*
+  Project list + create (cs-project-dashboard). Mounted AFTER the two
+  `/project/:projectId/*` routers above, which is required rather than incidental:
+  this router's own paths are `/` under `/project`, and keeping the more specific
+  `:projectId` prefixes first avoids depending on Express's prefix-matching order.
+
+  No `/org/:orgId` segment: a project is not organization-specific, so nothing
+  identifies it but its id (cs-project-dashboard FR-9.13).
+*/
+v3.use("/project", authenticateV3User, projectRoutes);
+
+// The authenticated user's display identity, for the projects page avatar (API-3).
+v3.use("/user", authenticateV3User, userRoutes);
 
 // v3-local error handler (mounted last).
 v3.use(v3ErrorMiddleware);

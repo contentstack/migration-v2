@@ -259,9 +259,9 @@ export const loadContentstackLocales =
 
 /** Read the persisted source this panel depends on (FR-8.3 / DEP-1). */
 export const loadSourceContext =
-  (orgId: string, projectId: string) => async (dispatch: V3Dispatch) => {
+  (projectId: string) => async (dispatch: V3Dispatch) => {
     try {
-      const { data } = await destinationApi.getSource(orgId, projectId);
+      const { data } = await destinationApi.getSource(projectId);
       const src = data.source ?? {};
       dispatch(
         destinationActions.setSourceContext({
@@ -278,9 +278,9 @@ export const loadSourceContext =
 
 /** Restore a previously persisted destination selection (UC-5 / AC-5.1). */
 export const loadPersistedDestination =
-  (orgId: string, projectId: string) => async (dispatch: V3Dispatch) => {
+  (projectId: string) => async (dispatch: V3Dispatch) => {
     try {
-      const { data } = await destinationApi.getDestination(orgId, projectId);
+      const { data } = await destinationApi.getDestination(projectId);
       if (data?.destination) dispatch(destinationActions.hydrate(data.destination));
     } catch {
       // A 404 is the normal first-visit state, not an error (AC-5.1's negative).
@@ -318,7 +318,7 @@ const buildDestinationDoc = (
  * nothing persisted.
  */
 export const proceedToContentMapping =
-  (orgId: string, projectId: string) =>
+  (projectId: string) =>
   async (dispatch: V3Dispatch, getState: () => V3RootState) => {
     const d = getState().destination;
     // Returns whether the wizard may move on. The chrome's StepGate uses this
@@ -331,16 +331,29 @@ export const proceedToContentMapping =
     try {
       let managementToken: { name: string; uid?: string } | undefined;
       if (d.importAuth.method === 'management') {
+        /*
+          Scope the token to the destination branch the user actually mapped to.
+          Sent as a list because Contentstack's branch scope takes one — there is
+          no wildcard form; `["*"]` is read as a literal name and rejected.
+        */
+        const destBranch = d.branchMapping.destBranch?.trim();
         const { data } = await destinationApi.createManagementToken({
+          projectId,
           stackApiKey: d.stackApiKey,
           name: d.importAuth.managementTokenName.trim(),
+          ...(destBranch ? { branches: [destBranch] } : {}),
           ...rc,
         });
+        /*
+          Only the public identity is read off the response, and only the public
+          identity is persisted. The secret is stored server-side against the
+          project — it is deliberately never available here, so it cannot end up
+          in Redux, in a network tab, or in the persisted destination document.
+        */
         managementToken = { name: data.name, uid: data.uid };
       }
 
       await destinationApi.persistDestination(
-        orgId,
         projectId,
         buildDestinationDoc(getState().destination, managementToken)
       );
