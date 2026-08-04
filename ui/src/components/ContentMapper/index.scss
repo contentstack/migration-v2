@@ -523,6 +523,31 @@ div .table-row {
   padding-bottom: 6rem;
 }
 
+// Asset mapper search-empty state — mirror the entry-mapper-container pattern:
+// give the .Table explicit height when it contains an .EmptyState (Venus's measured
+// tableHeight collapses to ~56px on empty results, so the centered empty state has
+// no room to display). Then make .Table__body a flex column and center the
+// .Table__centerWrapper Venus renders around the customEmptyState.
+.asset-mapper-table .Table:has(.EmptyState) {
+  height: calc(100vh - 22rem) !important;
+}
+
+.asset-mapper-table .Table:has(.Table__centerWrapper) .Table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.asset-mapper-table .Table__centerWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 300px;
+  padding-bottom: 2rem;
+}
+
 // Field mapping table (Map Content Fields step): center the search-empty state. Anchor on
 // the venus .Table and take .Table__centerWrapper out of flow (position: absolute) so it
 // overlays the full table area and centers, instead of stacking under the header rows.
