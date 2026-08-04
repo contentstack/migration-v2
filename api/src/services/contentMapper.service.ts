@@ -469,15 +469,29 @@ const getContentTypes = async (req: Request) => {
     );
 
     // Delta migration: from iteration 2 onwards, split content types into new vs old
-    // relative to the previous iteration so Step 3 (field mapping) shows only new types
-    // and Step 4 (entry mapping) shows only already-migrated types. Iteration 1 is untouched.
+    // relative to EVERY prior iteration (1..N-1) so Step 3 (field mapping) shows only
+    // genuinely-never-seen types and Step 4 (entry mapping) shows every already-migrated
+    // type. Comparing only against iteration N-1 misclassified any content type that
+    // was migrated in iteration 1 but absent from the iteration-2 source as "new" on
+    // iteration 3 — sending already-migrated types back to Map Content Fields and
+    // hiding them from Map Entry. Iteration 1 is untouched.
     if (iteration > 1) {
-      const PrevContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration - 1);
-      await PrevContentTypesMapperModelLowdb.read();
-      const prevContentMapper =
-        PrevContentTypesMapperModelLowdb.chain.get('ContentTypesMappers').value() ?? [];
+      const seenPrevCts: ContentTypesMapper[] = [];
+      const seenPrevUids = new Set<string>();
+      for (let i = 1; i < iteration; i++) {
+        const priorModel = getContentTypesMapperDb(projectId, i);
+        await priorModel.read();
+        const cts = priorModel.chain.get('ContentTypesMappers').value() ?? [];
+        for (const ct of cts) {
+          const uid = ct?.otherCmsUid;
+          if (uid && !seenPrevUids.has(uid)) {
+            seenPrevUids.add(uid);
+            seenPrevCts.push(ct);
+          }
+        }
+      }
 
-      const filtered = filterContentTypesByIteration(content_mapper, prevContentMapper, filter);
+      const filtered = filterContentTypesByIteration(content_mapper, seenPrevCts, filter);
       content_mapper.length = 0;
       content_mapper.push(...filtered);
 
@@ -1971,7 +1985,7 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
 
 const updateEntryStatus = async (req: Request) => {
   const { projectId } = req?.params;
-  const { ids } = req?.body;
+  const { ids, locale } = req?.body;
   const validatedUids: string[] = Array.isArray(ids) ? ids : [];
   const srcFunc = "updateEntryMapping";
   if (isEmpty(validatedUids)) {
@@ -1998,14 +2012,19 @@ const updateEntryStatus = async (req: Request) => {
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
     const foundEntry: EntryMapper[] = [];
-    // Rows in entry_mapper are already per-(entry × source-locale), so each id uniquely
-    // identifies one locale variant; toggling isUpdate directly is correct.
+    // Rows in entry_mapper are per-(entry × source-locale); each id is unique per row.
+    // Also scope the toggle by source-locale as a safety net so a same-id collision
+    // (if it ever happens) can't flip a sibling locale's row and clobber the user's
+    // selection state on the other locale.
+    const sourceLocale = locale
+      ? getSourceLocaleForDestination(projectData ?? {}, locale)
+      : null;
     await EntryMapperModel.update((data: any) => {
       data?.entry_mapper?.forEach((entry: any) => {
-        if (validatedUids.includes(entry?.id)) {
-          entry.isUpdate = !entry.isUpdate;
-          foundEntry.push(entry);
-        }
+        if (!validatedUids.includes(entry?.id)) return;
+        if (sourceLocale && (entry?.language ?? '') !== sourceLocale) return;
+        entry.isUpdate = !entry.isUpdate;
+        foundEntry.push(entry);
       });
     });
 

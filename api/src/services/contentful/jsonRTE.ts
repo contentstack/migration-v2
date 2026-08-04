@@ -385,34 +385,61 @@ function parseHeading6(obj: any): any {
   };
 }
 
+// Contentstack JSON RTE uses:
+//   - plain hyperlink            → type: 'a',        attrs.url
+//   - entry hyperlink (link ref) → type: 'reference', display-type: 'link', type: 'entry'
+//   - asset hyperlink (link ref) → type: 'reference', display-type: 'link', type: 'asset'
+// The previous implementation used non-standard types ('hyperlink', 'entry-hyperlink',
+// 'asset-hyperlink') that Contentstack's JSON RTE reader silently dropped, so URLs
+// vanished in the destination stack even though the surrounding text migrated.
+
 function parseEntryHyperlink(obj: any, lang?: LangType): any {
+  const targetSys = obj?.data?.target?.sys ?? {};
+  const entryUid = targetSys?.id ?? '';
+  const contentTypeUid = targetSys?.contentType?.sys?.id ?? '';
+  // Prefer the anchor text from `obj.content` (Contentful nests the link label
+  // as a text child); fall back to a stale `target.title` if present.
+  const text = obj?.content?.[0]?.value ?? obj?.data?.target?.title ?? '';
   return {
-    type: 'entry-hyperlink',
-    attrs: { href: `/${lang}/${obj.data.uri}` },
-    uid: generateUID('entry-hyperlink'),
-    children: [{ text: obj.data.target.title }],
+    type: 'reference',
+    attrs: {
+      type: 'entry',
+      'entry-uid': entryUid,
+      'content-type-uid': contentTypeUid,
+      'display-type': 'link',
+      locale: lang,
+      style: {},
+    },
+    uid: generateUID('reference'),
+    children: [{ text }],
   };
 }
 
 function parseAssetHyperlink(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const assetId = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, ASSETS_DIR_NAME, ASSETS_SCHEMA_FILE));
-  const asset = assetId[obj.data.target.sys.id];
-  if (asset) {
-    return {
-      type: 'asset-hyperlink',
-      attrs: { href: asset.url },
-      uid: generateUID('asset-hyperlink'),
-      children: [{ text: asset.title }],
-    };
-  }
-  return null;
+  const asset = assetId?.[obj?.data?.target?.sys?.id];
+  if (!asset) return null;
+  return {
+    type: 'reference',
+    attrs: {
+      type: 'asset',
+      'asset-uid': asset.uid,
+      'asset-link': asset.url,
+      'asset-name': asset.filename ?? asset.title,
+      'asset-type': asset.content_type ?? asset.contentType ?? '',
+      'content-type-uid': 'sys_assets',
+      'display-type': 'link',
+    },
+    uid: generateUID('reference'),
+    children: [{ text: obj?.content?.[0]?.value ?? asset.title ?? '' }],
+  };
 }
 
 function parseHyperlink(obj: any): any {
   return {
-    type: 'hyperlink',
-    attrs: { href: obj.data.uri },
-    uid: generateUID('hyperlink'),
-    children: [{ text: obj.content[0].value }],
+    type: 'a',
+    attrs: { url: obj?.data?.uri ?? '' },
+    uid: generateUID('a'),
+    children: [{ text: obj?.content?.[0]?.value ?? '' }],
   };
 }
