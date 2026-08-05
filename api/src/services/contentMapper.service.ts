@@ -2405,17 +2405,30 @@ const getAssetMapping = async (req: Request) => {
       return resolved ? { ...item, contentstackAssetUid: resolved } : item;
     });
 
-    if (!isEmpty(enrichedMapping)) {
+    // Delta migration intent: on iteration 2+ the Assets tab lists ONLY assets that
+    // were already migrated in a prior iteration — i.e. those with a Contentstack
+    // uid. The user selects which of those to update with the current file's newer
+    // version. Brand-new assets in this iteration have no prior uid; they upload
+    // automatically during the run and don't need a Map Entry row (nothing to
+    // select or update yet). Iteration 1 is untouched — everything is new then.
+    const displayMapping = iteration > 1
+      ? enrichedMapping.filter((item: any) => {
+          const uid = item?.contentstackAssetUid;
+          return uid != null && String(uid).trim() !== '';
+        })
+      : enrichedMapping;
+
+    if (!isEmpty(displayMapping)) {
       if (search) {
-        filteredResult = enrichedMapping?.filter?.((item: any) =>
+        filteredResult = displayMapping?.filter?.((item: any) =>
           item?.filename?.toLowerCase().includes(search) ||
           item?.title?.toLowerCase().includes(search)
         );
         totalCount = filteredResult?.length;
         result = filteredResult?.slice(skip, Number(skip) + Number(limit));
       } else {
-        totalCount = enrichedMapping?.length;
-        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
+        totalCount = displayMapping?.length;
+        result = displayMapping?.slice(skip, Number(skip) + Number(limit));
       }
     }
     return {

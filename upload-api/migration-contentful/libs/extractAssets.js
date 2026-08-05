@@ -71,15 +71,27 @@ const extractAssets = (cleanLocalPath) => {
       const titleValue = pickLocalized(asset?.fields?.title);
       const title = typeof titleValue === 'string' ? titleValue : '';
 
+      // Contentful serves processed assets from a protocol-relative CDN URL ("//...")
+      // in `.url`. Freshly-added, not-yet-processed assets only have `.upload`, an
+      // absolute fetch URL. Prefer `.url` (with https normalization) and fall back
+      // to `.upload` so newly-added assets aren't dropped from Map Entry.
+      let assetPath = '';
+      if (typeof file?.url === 'string' && file.url) {
+        assetPath = file.url.startsWith('//') ? `https:${file.url}` : file.url;
+      } else if (typeof file?.upload === 'string' && file.upload) {
+        assetPath = file.upload;
+      }
+
+      // Skip assets that have no downloadable source at all — they'd only confuse
+      // the user on Map Entry (nothing to select for something the migration
+      // can't upload anyway).
+      if (!assetPath) {
+        continue;
+      }
+
       const filename =
         (typeof file?.fileName === 'string' && file?.fileName) || title || '';
       const fileSize = file?.details?.size ?? '';
-      // Contentful serves assets from a protocol-relative CDN URL ("//...");
-      // normalize to https so downstream consumers get an absolute URL.
-      let assetPath = typeof file?.url === 'string' ? file?.url : '';
-      if (assetPath.startsWith('//')) {
-        assetPath = `https:${assetPath}`;
-      }
 
       seenIds.add(id);
 
