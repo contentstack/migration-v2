@@ -662,8 +662,28 @@ const saveAsset = async (
         }
       });
 
-      const fileUrl = `https:${(Object.values(assets?.fields?.file)[0] as { url: string }).url
-        }`;
+      // Contentful emits `fields.file[locale].url` (CDN-processed path, starts with "//") for
+      // assets whose CDN entry is ready, and `fields.file[locale].upload` (absolute fetch URL)
+      // for assets that were just added to the space but not yet processed. Real deltas hit
+      // the second shape on "newly added asset" exports; reading only `.url` silently drops
+      // those (see CMG-1106). Prefer `.url`, fall back to `.upload`, skip if neither exists.
+      const fileMeta = Object.values(assets?.fields?.file)[0] as { url?: string; upload?: string; contentType?: string; details?: { size?: string }; fileName?: string };
+      let fileUrl = '';
+      if (typeof fileMeta?.url === 'string' && fileMeta.url) {
+        fileUrl = fileMeta.url.startsWith('//') ? `https:${fileMeta.url}` : fileMeta.url;
+      } else if (typeof fileMeta?.upload === 'string' && fileMeta.upload) {
+        fileUrl = fileMeta.upload;
+      } else {
+        // No downloadable source — record and continue so the run doesn't hit axios on `https:undefined`.
+        failedJSON[assets.sys.id] = {
+          failedUid: assets.sys.id,
+          name: Object.values(assets?.fields?.title ?? {})[0],
+          url: '',
+          file_size: `${fileMeta?.details?.size ?? ''}`,
+          reason_for_error: 'Asset has no file.url or file.upload — nothing to download',
+        };
+        return assets.sys.id;
+      }
       const assetTitle = Object.values(assets?.fields?.title)[0];
       const fileName = path.basename(
         (Object.values(assets?.fields?.file)[0] as { fileName: string })
