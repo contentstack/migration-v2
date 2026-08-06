@@ -8,23 +8,26 @@ import projectModelLowdb from "../models/project-lowdb";
 /**
  * Normalises a uid map that may be either flat `{ sourceUid: destUid }` or nested
  * per-content-type `{ [ctUid]: { sourceUid: destUid } }` into a single flat map.
- * If ANY top-level value is a non-array object, we treat the whole map as nested
- * and merge the second-level objects; otherwise the input is passed through.
+ * Checked per-key rather than all-or-nothing, so a MIXED map (some flat string
+ * values, some nested objects — which mergeUidMaps below can produce when a prior
+ * iteration stored the flat shape and the current run wrote the nested one) is
+ * handled correctly: nested keys get unpacked, flat keys pass through as-is.
  * Kept in this module so both entry-mapping consumers (`contentMapper.service`
  * and `entry-update.utils`) share one authoritative implementation.
  */
 export const flattenNestedUidMap = (raw: Record<string, any> | undefined | null): Record<string, any> => {
   const keys = Object?.keys(raw ?? {});
   if (keys?.length === 0) return {};
-  const nested = keys?.every((k) => {
+  const out: Record<string, any> = {};
+  for (const k of keys) {
     const v = (raw as Record<string, any>)[k];
-    return v != null && typeof v === 'object' && !Array.isArray(v);
-  });
-  if (!nested) return { ...(raw as Record<string, any>) };
-  return keys.reduce<Record<string, any>>(
-    (acc, k) => ({ ...acc, ...(raw as Record<string, any>)[k] }),
-    {},
-  );
+    if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+      Object.assign(out, v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
 };
 
 /**

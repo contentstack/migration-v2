@@ -393,18 +393,33 @@ function parseHeading6(obj: any): any {
 // 'asset-hyperlink') that Contentstack's JSON RTE reader silently dropped, so URLs
 // vanished in the destination stack even though the surrounding text migrated.
 
-function parseEntryHyperlink(obj: any, lang?: LangType): any {
-  const targetSys = obj?.data?.target?.sys ?? {};
-  const entryUid = targetSys?.id ?? '';
-  const contentTypeUid = targetSys?.contentType?.sys?.id ?? '';
+function parseEntryHyperlink(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const targetId = obj?.data?.target?.sys?.id ?? '';
   // Prefer the anchor text from `obj.content` (Contentful nests the link label
   // as a text child); fall back to a stale `target.title` if present.
   const text = obj?.content?.[0]?.value ?? obj?.data?.target?.title ?? '';
+
+  // A Contentful export's entry-hyperlink target is an unresolved Link — it never
+  // carries `sys.contentType`. The destination content-type uid has to come from
+  // the rte-references file (the same source parseBlockReference/parseInlineReference
+  // use), keyed by locale then by target entry id.
+  const rteRefs: { [key: string]: any } | undefined =
+    destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, RTE_REFERENCES_DIR_NAME, RTE_REFERENCES_FILE_NAME));
+  const entry = rteRefs && Object.entries(rteRefs).find(([arrayKey, arrayValue]) => arrayKey === lang && arrayValue?.[targetId]);
+  const contentTypeUid = entry?.[1]?.[targetId]?._content_type_uid;
+
+  if (!targetId || !contentTypeUid) {
+    // Can't resolve a destination content type for this entry — emit plain text
+    // so the anchor label still survives, instead of a reference node that can
+    // never resolve on the destination stack.
+    return { text };
+  }
+
   return {
     type: 'reference',
     attrs: {
       type: 'entry',
-      'entry-uid': entryUid,
+      'entry-uid': targetId,
       'content-type-uid': contentTypeUid,
       'display-type': 'link',
       locale: lang,

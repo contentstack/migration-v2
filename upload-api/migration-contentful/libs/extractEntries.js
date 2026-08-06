@@ -29,8 +29,12 @@ const pickEntryTitle = (entry, locale, displayField) => {
   for (const val of Object.values(fields)) {
     if (val == null || typeof val !== 'object') continue;
     if (!(locale in val)) continue;
-    hasAnyLocaleContent = true;
     const localized = val[locale];
+    // Key presence alone isn't "content" — Contentful can serialize a field as
+    // `{ "en-US": "" }` or `{ "en-US": null }` for a locale the entry isn't really
+    // localized to. Only count it once we see an actual non-empty value.
+    if (localized === null || localized === undefined || localized === '') continue;
+    hasAnyLocaleContent = true;
     if (typeof localized === 'string' && localized.trim()) return localized;
   }
   return hasAnyLocaleContent ? entry?.sys?.id : null;

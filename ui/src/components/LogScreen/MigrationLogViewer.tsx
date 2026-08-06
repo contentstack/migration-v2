@@ -124,10 +124,12 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     }
   }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
 
-  // Reset notification flag AND purge stale logs when a new migration starts. Without the log
-  // purge, a replayed "Migration Process Completed" line from the previous run (on socket
-  // reconnect / late buffered emit) would slip through the completion detector below and flip
-  // the UI straight back to the iter-1 completion view.
+  // Reset notification flag AND purge stale logs when a new migration starts. The server
+  // streams from a monotonic file offset (server.ts) so a normal socket reconnect never
+  // replays old lines — but an API restart resets that offset to 0 and re-emits the whole
+  // log file to every client. Without this purge, a prior run's terminal message surviving
+  // in `logs` after an API restart would slip through the completion detector below and
+  // flip the UI straight back to the previous run's completion view.
   useEffect(() => {
     if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
       setHasShownCompletionNotification(false);
@@ -201,14 +203,18 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     // the backend still writes uid-mapper / "No config file generated" lines, burying the
     // terminal message mid-array on the delta path.
     const migrationStarted = newMigrationData?.migration_execution?.migrationStarted;
-    // Full/master import ends with "Migration Process Completed"; the delta update path ends
-    // with "Entry Update Process Completed" — accept either as the terminal message.
-    const TERMINAL_MESSAGES = new Set([
-      'Migration Process Completed',
-      'Entry Update Process Completed'
-    ]);
+    // On iteration 1 there's only a bulk import — "Migration Process Completed" IS terminal.
+    // On iteration 2+ (delta) that message only marks the bulk-import phase; the run isn't
+    // actually done until the update/localize CLI finishes and writes
+    // "Entry Update Process Completed" afterward. Treating either as terminal on a delta run
+    // would fire the completion modal early, hiding the still-streaming localize pass (and any
+    // "Failed to update entries" error in it) behind the completion view.
+    const isDeltaIteration = (newMigrationData?.iteration ?? 1) > 1;
+    const requiredTerminalMessage = isDeltaIteration
+      ? 'Entry Update Process Completed'
+      : 'Migration Process Completed';
     const hasTerminalMessage = logs?.some(
-      (log) => log?.message && TERMINAL_MESSAGES.has(log.message)
+      (log) => log?.message === requiredTerminalMessage
     );
     if (migrationStarted && hasTerminalMessage) {
       try {
@@ -248,7 +254,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
         console.error('Invalid JSON string', error);
       }
     }
-  }, [logs, newMigrationData?.migration_execution?.migrationStarted]);
+  }, [logs, newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.iteration]);
 
   const navigate = useNavigate();
 
