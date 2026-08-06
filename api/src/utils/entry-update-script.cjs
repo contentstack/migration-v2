@@ -70,6 +70,32 @@ const resolveReferenceField = (fieldName, entryUid, value, locale, entryMapping)
     return value;
 };
 
+/**
+ * Recursively walks a field value and resolves any reference shape found at any
+ * depth — group and modular-block fields nest references one or more levels deep
+ * (see processField's 'group' branch and processArrayFields in contentful.service.ts),
+ * so a shallow top-level-only check misses them and they keep their source-CMS uid on
+ * the delta/localize path. Asset field objects are left untouched (they need
+ * resolveAssetField's 3-way stack comparison, not a uid remap) so this only ever
+ * rewrites reference shapes, nothing else.
+ */
+const resolveReferencesDeep = (fieldName, entryUid, value, locale, entryMapping) => {
+    if (isReferenceValue(value) || isReferenceArray(value)) {
+        return resolveReferenceField(fieldName, entryUid, value, locale, entryMapping);
+    }
+    if (Array.isArray(value)) {
+        return value.map((item) => resolveReferencesDeep(fieldName, entryUid, item, locale, entryMapping));
+    }
+    if (value && typeof value === 'object' && !isAssetField(value)) {
+        const out = {};
+        for (const [key, val] of Object.entries(value)) {
+            out[key] = resolveReferencesDeep(`${fieldName}.${key}`, entryUid, val, locale, entryMapping);
+        }
+        return out;
+    }
+    return value;
+};
+
 /** Export JSON metadata — not Contentstack content-type field UIDs (WordPress entries are flat). */
 const FLAT_PAYLOAD_SKIP = new Set([
     'uid',
@@ -155,8 +181,8 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
                 oldMapping,
                 newMapping
             );
-        } else if (isReferenceValue(nextVal) || isReferenceArray(nextVal)) {
-            nextVal = resolveReferenceField(field, entryUid, nextVal, locale, entryMapping);
+        } else {
+            nextVal = resolveReferencesDeep(field, entryUid, nextVal, locale, entryMapping);
         }
         entry.content[field] = nextVal;
     }
@@ -259,8 +285,8 @@ module.exports = async ({
                                             oldMapping,
                                             newMapping
                                         );
-                                    } else if (isReferenceValue(updateData?.content[field]) || isReferenceArray(updateData?.content[field])) {
-                                        updateData.content[field] = resolveReferenceField(
+                                    } else {
+                                        updateData.content[field] = resolveReferencesDeep(
                                             field,
                                             entryUid,
                                             updateData?.content[field],
@@ -286,8 +312,8 @@ module.exports = async ({
                                                 oldMapping,
                                                 newMapping
                                             );
-                                        } else if (isReferenceValue(updateData[field]) || isReferenceArray(updateData[field])) {
-                                            updateData[field] = resolveReferenceField(
+                                        } else {
+                                            updateData[field] = resolveReferencesDeep(
                                                 field,
                                                 entryUid,
                                                 updateData[field],
@@ -329,3 +355,4 @@ module.exports.isReferenceValue = isReferenceValue;
 module.exports.isReferenceArray = isReferenceArray;
 module.exports.resolveReferenceUid = resolveReferenceUid;
 module.exports.resolveReferenceField = resolveReferenceField;
+module.exports.resolveReferencesDeep = resolveReferencesDeep;

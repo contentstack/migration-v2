@@ -116,6 +116,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   // user's configured mapping regardless of redux hydration timing on restart.
   const [localeOptions, setLocaleOptions] = useState<{ label: string; value: string }[]>([]);
   const [selectedLocale, setSelectedLocale] = useState<{ label: string; value: string } | null>(null);
+  // True once the locale-fetch effect below has settled (success or failure). Used as a
+  // safety net: if getProject fails, or the project has no master_locale/locales at all,
+  // selectedLocale stays null forever and the entries-fetch effect (keyed on
+  // contentTypeUid && selectedLocale) would never fire — leaving Map Entry on an empty
+  // table with no spinner and no error. Once resolution has settled with no options, fall
+  // back to the unfiltered fetch (server-side getEntryMapping already falls open when no
+  // locale is provided).
+  const [localesResolved, setLocalesResolved] = useState(false);
 
   /** ALL HOOKS HERE */
   const { projectId = '' } = useParams<{ projectId: string }>();
@@ -180,6 +188,8 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
         if (opts?.length > 0) setSelectedLocale(opts[0]);
       } catch (err) {
         console.error('Failed to load project locales', err);
+      } finally {
+        setLocalesResolved(true);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,6 +206,16 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocale?.value, contentTypeUid]);
+
+  // Safety net: locale resolution settled (getProject failed, or the project has no
+  // master_locale/locales at all) with nothing selected — fall back to the unfiltered
+  // fetch instead of leaving the table empty forever with no spinner and no error.
+  useEffect(() => {
+    if (contentTypeUid && localesResolved && !selectedLocale?.value) {
+      fetchEntries(contentTypeUid, searchText || '', { seedSelection: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentTypeUid, localesResolved]);
 
   /********** HELPERS *************/
   /********** CONTENT TYPE LIST (left panel) *************/
@@ -271,11 +291,10 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     setActive(i);
     const ct = filteredContentTypes?.[i];
     setOtherCmsTitle(ct?.otherCmsTitle ?? '');
-    setContentTypeUid(ct?.id ?? '');
     setOtherCmsUid(ct?.otherCmsUid ?? '');
-    if (ct?.id) {
-      fetchEntries(ct.id, searchText || '', { seedSelection: true });
-    }
+    // setContentTypeUid alone re-triggers the [contentTypeUid, selectedLocale] data-load
+    // effect above — calling fetchEntries directly here too would double the request.
+    setContentTypeUid(ct?.id ?? '');
   };
 
   const handleSchemaPreview = async (title: string, ctId: string) => {
@@ -331,11 +350,9 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       const first = nextList[0];
       setActive(0);
       setOtherCmsTitle(first?.otherCmsTitle ?? '');
-      setContentTypeUid(first?.id ?? '');
       setOtherCmsUid(first?.otherCmsUid ?? '');
-      if (first?.id) {
-        fetchEntries(first.id, searchText || '', { seedSelection: true });
-      }
+      // setContentTypeUid alone re-triggers the data-load effect — see handleOpenContentType.
+      setContentTypeUid(first?.id ?? '');
     }
     setShowFilter(false);
   };

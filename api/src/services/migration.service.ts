@@ -1289,56 +1289,87 @@ const startMigration = async (req: Request): Promise<any> => {
       // locales before this step wrote them, so a silent failure here (updateEntryCli
       // swallows errors — see updateEntryCli.service.ts:240-249) would permanently skip the
       // affected locales on every future restart.
-      //
-      // The union of three sources covers everything this iteration actually touched:
-      //   1. master locale — always considered migrated on any successful run.
-      //   2. Locales present in updated-entries.json — entries the update CLI just localized.
-      //   3. Locales present in this iteration's uid-mapper `entryByLocale` — brand-new
-      //      entries created by runCli's bulk import. Without this, a locale whose entries
-      //      were ALL new (no prior csEntryUid) would never appear in updated-entries.json,
-      //      and would then be routed through the localize path on every subsequent restart
-      //      forever.
-      try {
-        const proj: any = project;
-        const dbBase = path.resolve(process.cwd(), DATABASE_FILES.DIRECTORY);
-        let updateConfig: Record<string, any> | null = null;
-        try {
-          // configFilePath came from removeEntriesFromDatabase / ensureUpdateConfigFile
-          // (path.join'd against safePid + iteration) — re-assert it resolves under the
-          // database dir before reading, so Snyk sees an explicit sink check.
-          assertResolvedPathUnderBase(dbBase, configFilePath);
-          updateConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
-        } catch {
-          updateConfig = null;
-        }
-        let entryByLocaleKeys: string[] = [];
-        try {
-          // Read via the lowdb model rather than raw fs — the same read path
-          // used by writeUidMapping / writePerLocaleEntryUidMapping. Keeps the
-          // taint out of a direct readFileSync sink so Snyk's SAST stays clean.
-          const UidMapperModelLowdb = getUidMapperDb(safePid, iteration);
-          await UidMapperModelLowdb.read();
-          entryByLocaleKeys = Object.keys(
-            (UidMapperModelLowdb.data as any)?.entryByLocale ?? {}
-          );
-        } catch (err) {
-          await customLogger(projectId, destinationStackId, 'warn', `Failed to read uid-mapper for locale recording: ${(err as Error)?.message}`);
-        }
-        const ranLocales = Array.from(
-          new Set([
-            ...Object.keys(proj?.master_locale ?? {}),
-            ...extractLocalesFromUpdateConfig(updateConfig),
-            ...entryByLocaleKeys,
-          ]),
-        );
-        await recordMigratedLocales(projectId, ranLocales);
-      } catch (err) {
-        await customLogger(projectId, destinationStackId, 'warn', `Failed to record migrated locales: ${(err as Error)?.message}`);
-      }
+      await recordDeltaMigratedLocales(
+        projectId,
+        safePid,
+        iteration,
+        project,
+        destinationStackId,
+        configFilePath,
+      );
     }
     else{
       await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
+      // No update CLI ran (nothing to localize/update this iteration), but runCli's bulk
+      // import above may still have created brand-new locales/entries. Record those too —
+      // otherwise this locale never appears in migrated_locales, isFullMigrationForLocale
+      // keeps returning true for it, and every later restart re-routes its entries through
+      // the localize path forever (same failure class this PR fixes via other triggers).
+      await recordDeltaMigratedLocales(
+        projectId,
+        safePid,
+        iteration,
+        project,
+        destinationStackId,
+        null,
+      );
     }
+  }
+};
+
+/**
+ * Records every locale that actually ran in this delta iteration — union of master
+ * locale, locales present in the update config (entries the update CLI just localized),
+ * and locales present in this iteration's uid-mapper `entryByLocale` (brand-new entries
+ * created by runCli's bulk import, which never appear in the update config since they
+ * have no prior csEntryUid to localize).
+ */
+const recordDeltaMigratedLocales = async (
+  projectId: string,
+  safePid: string,
+  iteration: number,
+  project: any,
+  destinationStackId: string,
+  configFilePath: string | null,
+): Promise<void> => {
+  try {
+    const dbBase = path.resolve(process.cwd(), DATABASE_FILES.DIRECTORY);
+    let updateConfig: Record<string, any> | null = null;
+    if (configFilePath) {
+      try {
+        // configFilePath came from removeEntriesFromDatabase / ensureUpdateConfigFile
+        // (path.join'd against safePid + iteration) — re-assert it resolves under the
+        // database dir before reading, so Snyk sees an explicit sink check.
+        assertResolvedPathUnderBase(dbBase, configFilePath);
+        updateConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+      } catch (err) {
+        updateConfig = null;
+        await customLogger(projectId, destinationStackId, 'warn', `Failed to read update config for locale recording: ${(err as Error)?.message}`);
+      }
+    }
+    let entryByLocaleKeys: string[] = [];
+    try {
+      // Read via the lowdb model rather than raw fs — the same read path
+      // used by writeUidMapping / writePerLocaleEntryUidMapping. Keeps the
+      // taint out of a direct readFileSync sink so Snyk's SAST stays clean.
+      const UidMapperModelLowdb = getUidMapperDb(safePid, iteration);
+      await UidMapperModelLowdb.read();
+      entryByLocaleKeys = Object.keys(
+        (UidMapperModelLowdb.data as any)?.entryByLocale ?? {}
+      );
+    } catch (err) {
+      await customLogger(projectId, destinationStackId, 'warn', `Failed to read uid-mapper for locale recording: ${(err as Error)?.message}`);
+    }
+    const ranLocales = Array.from(
+      new Set([
+        ...Object.keys(project?.master_locale ?? {}),
+        ...extractLocalesFromUpdateConfig(updateConfig),
+        ...entryByLocaleKeys,
+      ]),
+    );
+    await recordMigratedLocales(projectId, ranLocales);
+  } catch (err) {
+    await customLogger(projectId, destinationStackId, 'warn', `Failed to record migrated locales: ${(err as Error)?.message}`);
   }
 };
 const getAuditData = async (req: Request): Promise<any> => {

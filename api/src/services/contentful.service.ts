@@ -685,10 +685,16 @@ const saveAsset = async (
         return assets.sys.id;
       }
       const assetTitle = Object.values(assets?.fields?.title)[0];
-      const fileName = path.basename(
-        (Object.values(assets?.fields?.file)[0] as { fileName: string })
-          .fileName
-      );
+      // Assets that only have `.upload` (not yet CDN-processed) often have no `fileName`
+      // or `details` yet — Contentful only populates those after processing. Fall back to
+      // the asset's sys.id so path.basename never throws, and derive size/content-type
+      // defensively so a still-processing asset doesn't crash mid-download.
+      const rawFileName = typeof fileMeta?.fileName === 'string' && fileMeta.fileName
+        ? fileMeta.fileName
+        : `${assets.sys.id}`;
+      const fileName = path.basename(rawFileName);
+      const fileSize = `${fileMeta?.details?.size ?? ''}`;
+      const fileContentType = fileMeta?.contentType ?? '';
       const description = Object.values(
         assets?.fields as { [key: string]: unknown }
       )
@@ -715,15 +721,8 @@ const saveAsset = async (
           uid: assets.sys.id,
           urlPath: `/assets/${assets.sys.id}`,
           status: true,
-          content_type: (
-            Object.values(assets?.fields?.file)[0] as { contentType: string }
-          ).contentType,
-          file_size: `${(
-            Object.values(assets?.fields?.file)[0] as {
-              details: { size: string };
-            }
-          )?.details.size
-            }`,
+          content_type: fileContentType,
+          file_size: fileSize,
           tag: assets?.metadata?.tags,
           filename: fileName,
           url: fileUrl,
@@ -752,12 +751,7 @@ const saveAsset = async (
             failedUid: assets.sys.id,
             name: assetTitle,
             url: fileUrl,
-            file_size: `${(
-              Object.values(assets?.fields?.file)[0] as {
-                details: { size: string };
-              }
-            ).details.size
-              }`,
+            file_size: fileSize,
             reason_for_error: err?.message,
           };
         } else {

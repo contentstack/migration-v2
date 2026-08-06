@@ -2028,7 +2028,7 @@ const updateEntryStatus = async (req: Request) => {
       });
     });
 
-    if (foundEntry) {
+    if (foundEntry.length) {
       return {
         status: HTTP_CODES?.OK,
         data: foundEntry
