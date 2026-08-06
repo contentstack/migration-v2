@@ -315,8 +315,14 @@ function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: Stack
 }
 
 
-function parseBlockquote(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+// lang/destination_stack_id are forwarded (not just obj) so a hyperlink nested inside a
+// blockquote or heading — entry-hyperlink, asset-hyperlink, or plain hyperlink — can still
+// resolve. Every sibling container (parseDocument, parseParagraph, parseLI, table parsers)
+// already does this; these seven were missed, silently degrading CMG-1103's fix for that
+// specific nesting (entry-hyperlink falls back to plain text, asset-hyperlink drops the
+// node entirely since its null return gets filtered out by the caller).
+function parseBlockquote(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'blockquote',
     attrs: {},
@@ -325,8 +331,8 @@ function parseBlockquote(obj: any): any {
   };
 }
 
-function parseHeading1(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading1(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 1 },
@@ -335,8 +341,8 @@ function parseHeading1(obj: any): any {
   };
 }
 
-function parseHeading2(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading2(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 2 },
@@ -345,8 +351,8 @@ function parseHeading2(obj: any): any {
   };
 }
 
-function parseHeading3(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading3(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 3 },
@@ -355,8 +361,8 @@ function parseHeading3(obj: any): any {
   };
 }
 
-function parseHeading4(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading4(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 4 },
@@ -365,8 +371,8 @@ function parseHeading4(obj: any): any {
   };
 }
 
-function parseHeading5(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading5(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 5 },
@@ -375,8 +381,8 @@ function parseHeading5(obj: any): any {
   };
 }
 
-function parseHeading6(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading6(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 6 },
@@ -385,34 +391,76 @@ function parseHeading6(obj: any): any {
   };
 }
 
-function parseEntryHyperlink(obj: any, lang?: LangType): any {
+// Contentstack JSON RTE uses:
+//   - plain hyperlink            → type: 'a',        attrs.url
+//   - entry hyperlink (link ref) → type: 'reference', display-type: 'link', type: 'entry'
+//   - asset hyperlink (link ref) → type: 'reference', display-type: 'link', type: 'asset'
+// The previous implementation used non-standard types ('hyperlink', 'entry-hyperlink',
+// 'asset-hyperlink') that Contentstack's JSON RTE reader silently dropped, so URLs
+// vanished in the destination stack even though the surrounding text migrated.
+
+function parseEntryHyperlink(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const targetId = obj?.data?.target?.sys?.id ?? '';
+  // Prefer the anchor text from `obj.content` (Contentful nests the link label
+  // as a text child); fall back to a stale `target.title` if present.
+  const text = obj?.content?.[0]?.value ?? obj?.data?.target?.title ?? '';
+
+  // A Contentful export's entry-hyperlink target is an unresolved Link — it never
+  // carries `sys.contentType`. The destination content-type uid has to come from
+  // the rte-references file (the same source parseBlockReference/parseInlineReference
+  // use), keyed by locale then by target entry id.
+  const rteRefs: { [key: string]: any } | undefined =
+    destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, RTE_REFERENCES_DIR_NAME, RTE_REFERENCES_FILE_NAME));
+  const entry = rteRefs && Object.entries(rteRefs).find(([arrayKey, arrayValue]) => arrayKey === lang && arrayValue?.[targetId]);
+  const contentTypeUid = entry?.[1]?.[targetId]?._content_type_uid;
+
+  if (!targetId || !contentTypeUid) {
+    // Can't resolve a destination content type for this entry — emit plain text
+    // so the anchor label still survives, instead of a reference node that can
+    // never resolve on the destination stack.
+    return { text };
+  }
+
   return {
-    type: 'entry-hyperlink',
-    attrs: { href: `/${lang}/${obj.data.uri}` },
-    uid: generateUID('entry-hyperlink'),
-    children: [{ text: obj.data.target.title }],
+    type: 'reference',
+    attrs: {
+      type: 'entry',
+      'entry-uid': targetId,
+      'content-type-uid': contentTypeUid,
+      'display-type': 'link',
+      locale: lang,
+      style: {},
+    },
+    uid: generateUID('reference'),
+    children: [{ text }],
   };
 }
 
 function parseAssetHyperlink(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const assetId = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, ASSETS_DIR_NAME, ASSETS_SCHEMA_FILE));
-  const asset = assetId[obj.data.target.sys.id];
-  if (asset) {
-    return {
-      type: 'asset-hyperlink',
-      attrs: { href: asset.url },
-      uid: generateUID('asset-hyperlink'),
-      children: [{ text: asset.title }],
-    };
-  }
-  return null;
+  const asset = assetId?.[obj?.data?.target?.sys?.id];
+  if (!asset) return null;
+  return {
+    type: 'reference',
+    attrs: {
+      type: 'asset',
+      'asset-uid': asset.uid,
+      'asset-link': asset.url,
+      'asset-name': asset.filename ?? asset.title,
+      'asset-type': asset.content_type ?? asset.contentType ?? '',
+      'content-type-uid': 'sys_assets',
+      'display-type': 'link',
+    },
+    uid: generateUID('reference'),
+    children: [{ text: obj?.content?.[0]?.value ?? asset.title ?? '' }],
+  };
 }
 
 function parseHyperlink(obj: any): any {
   return {
-    type: 'hyperlink',
-    attrs: { href: obj.data.uri },
-    uid: generateUID('hyperlink'),
-    children: [{ text: obj.content[0].value }],
+    type: 'a',
+    attrs: { url: obj?.data?.uri ?? '' },
+    uid: generateUID('a'),
+    children: [{ text: obj?.content?.[0]?.value ?? '' }],
   };
 }

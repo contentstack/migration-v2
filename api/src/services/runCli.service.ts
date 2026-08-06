@@ -20,6 +20,7 @@ interface TestStack {
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
 import writeUidMapping, { writePerLocaleEntryUidMapping } from '../utils/uid-mapper.utils.js';
+import { recordMigratedLocales } from '../utils/locale-migration.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -322,20 +323,27 @@ export const runCli = async (
         ProjectModelLowdb.data.projects[projectIndex].current_step =
           getStepperSteps(ProjectModelLowdb.data.projects[projectIndex]?.iteration).MIGRATION;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
-        // Record every locale that just successfully migrated so the next delta restart can
-        // tell which locales need a full pass vs delta. Set-union with prior value.
-        const proj: any = ProjectModelLowdb.data.projects[projectIndex];
-        const ranLocales = Array.from(
-          new Set([
-            ...Object.keys(proj?.master_locale ?? {}),
-            ...Object.keys(proj?.locales ?? {}),
-          ]),
-        );
-        const existing: string[] = Array.isArray(proj?.migrated_locales)
-          ? proj.migrated_locales
-          : [];
-        proj.migrated_locales = Array.from(new Set([...existing, ...ranLocales]));
         await ProjectModelLowdb.write();
+
+        // On iteration 1 the full configured locale set genuinely gets migrated in a single
+        // bulk import — this CLI IS the terminal step, so recording here is safe.
+        // For iteration 2+, recording is deliberately deferred to migration.service.ts, AFTER
+        // the update/localize CLI (`utilsUpdateCli.updateEntryCli`) actually completes. If we
+        // recorded here, a locale queued in updated-entries.json would be marked migrated
+        // even when the subsequent update CLI never wrote it (it swallows failures — see
+        // updateEntryCli.service.ts:240-249), and would then be silently skipped on the next
+        // restart — the very bug this PR fixes, just via a different trigger.
+        const proj: any = ProjectModelLowdb.data.projects[projectIndex];
+        const currentIteration = proj?.iteration || 1;
+        if (currentIteration <= 1) {
+          const ranLocales = Array.from(
+            new Set([
+              ...Object.keys(proj?.master_locale ?? {}),
+              ...Object.keys(proj?.locales ?? {}),
+            ]),
+          );
+          await recordMigratedLocales(projectId, ranLocales);
+        }
       }
     } else {
       console.info('User not found.');

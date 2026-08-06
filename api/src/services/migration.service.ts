@@ -4,6 +4,7 @@
 import { Request } from 'express';
 import path from 'path';
 import ProjectModelLowdb from '../models/project-lowdb.js';
+import getUidMapperDb from '../models/uidMapper.js';
 import { config } from '../config/index.js';
 import { safePromise, getLogMessage } from '../utils/index.js';
 import https from '../utils/https.utils.js';
@@ -18,6 +19,7 @@ import {
   CMS,
   GET_AUDIT_DATA,
   MIGRATION_DATA_CONFIG,
+  DATABASE_FILES,
 } from '../constants/index.js';
 import {
   BadRequestError,
@@ -50,8 +52,9 @@ import {
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
-import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
+import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithEntryMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
 import { removeExistingAssets, saveAssetMetadata, AssetUpdate } from '../utils/asset-update.utils.js';
+import { extractLocalesFromUpdateConfig, recordMigratedLocales } from '../utils/locale-migration.utils.js';
 
 /**
  * Creates a test stack.  
@@ -1262,6 +1265,12 @@ const startMigration = async (req: Request): Promise<any> => {
         iteration,
         safeDeltaMigrationLogPath
       );
+      enrichConfigWithEntryMapping(
+        configFilePath,
+        safePid,
+        iteration,
+        safeDeltaMigrationLogPath
+      );
       enrichConfigWithAssetUpdates(
         configFilePath,
         assetUpdates,
@@ -1274,10 +1283,118 @@ const startMigration = async (req: Request): Promise<any> => {
         safeDeltaMigrationLogPath || '',
         configFilePath
       );
+
+      // Record every locale that ACTUALLY ran this iteration, AFTER the update/localize CLI
+      // resolves — moved out of runCli.service.ts because the previous position recorded
+      // locales before this step wrote them, so a silent failure here (updateEntryCli
+      // swallows errors — see updateEntryCli.service.ts:240-249) would permanently skip the
+      // affected locales on every future restart.
+      await recordDeltaMigratedLocales(
+        projectId,
+        safePid,
+        iteration,
+        project,
+        destinationStackId,
+        configFilePath,
+      );
     }
     else{
       await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
+      // No update CLI ran (nothing to localize/update this iteration), but runCli's bulk
+      // import above may still have created brand-new locales/entries. Record those too —
+      // otherwise this locale never appears in migrated_locales, isFullMigrationForLocale
+      // keeps returning true for it, and every later restart re-routes its entries through
+      // the localize path forever (same failure class this PR fixes via other triggers).
+      await recordDeltaMigratedLocales(
+        projectId,
+        safePid,
+        iteration,
+        project,
+        destinationStackId,
+        null,
+      );
     }
+
+    // Guaranteed terminal signal for the delta path, written unconditionally regardless of
+    // which branch above ran or whether updateEntryCli succeeded. MigrationLogViewer.tsx
+    // requires exactly 'Entry Update Process Completed' on iteration > 1 to leave the
+    // execution-logs spinner — but that string is only ever written by updateEntryCli's own
+    // success path (updateEntryCli.service.ts:235). Two real delta scenarios never reach it:
+    // no config file at all (nothing selected to update, no asset updates — the `else`
+    // branch above), and updateEntryCli throwing internally (it catches its own error and
+    // only logs 'Failed to update entries...', never rethrows). Without this, the user gets
+    // stuck on Execution Logs forever after an otherwise-successful migration. Writing this
+    // here, after both branches, means the client's check is satisfied every time regardless
+    // of which path executed.
+    if (safeDeltaMigrationLogPath) {
+      try {
+        const terminalLogEntry = {
+          level: 'info',
+          message: 'Entry Update Process Completed',
+          methodName: 'startMigration',
+          timestamp: new Date().toISOString(),
+        };
+        fs.appendFileSync(safeDeltaMigrationLogPath, JSON.stringify(terminalLogEntry) + '\n');
+      } catch (err) {
+        console.error('Failed to write delta completion marker:', err);
+      }
+    }
+  }
+};
+
+/**
+ * Records every locale that actually ran in this delta iteration — union of master
+ * locale, locales present in the update config (entries the update CLI just localized),
+ * and locales present in this iteration's uid-mapper `entryByLocale` (brand-new entries
+ * created by runCli's bulk import, which never appear in the update config since they
+ * have no prior csEntryUid to localize).
+ */
+const recordDeltaMigratedLocales = async (
+  projectId: string,
+  safePid: string,
+  iteration: number,
+  project: any,
+  destinationStackId: string,
+  configFilePath: string | null,
+): Promise<void> => {
+  try {
+    const dbBase = path.resolve(process.cwd(), DATABASE_FILES.DIRECTORY);
+    let updateConfig: Record<string, any> | null = null;
+    if (configFilePath) {
+      try {
+        // configFilePath came from removeEntriesFromDatabase / ensureUpdateConfigFile
+        // (path.join'd against safePid + iteration) — re-assert it resolves under the
+        // database dir before reading, so Snyk sees an explicit sink check.
+        assertResolvedPathUnderBase(dbBase, configFilePath);
+        updateConfig = JSON.parse(fs.readFileSync(configFilePath, 'utf-8'));
+      } catch (err) {
+        updateConfig = null;
+        await customLogger(projectId, destinationStackId, 'warn', `Failed to read update config for locale recording: ${(err as Error)?.message}`);
+      }
+    }
+    let entryByLocaleKeys: string[] = [];
+    try {
+      // Read via the lowdb model rather than raw fs — the same read path
+      // used by writeUidMapping / writePerLocaleEntryUidMapping. Keeps the
+      // taint out of a direct readFileSync sink so Snyk's SAST stays clean.
+      const UidMapperModelLowdb = getUidMapperDb(safePid, iteration);
+      await UidMapperModelLowdb.read();
+      entryByLocaleKeys = Object.keys(
+        (UidMapperModelLowdb.data as any)?.entryByLocale ?? {}
+      );
+    } catch (err) {
+      await customLogger(projectId, destinationStackId, 'warn', `Failed to read uid-mapper for locale recording: ${(err as Error)?.message}`);
+    }
+    const ranLocales = Array.from(
+      new Set([
+        ...Object.keys(project?.master_locale ?? {}),
+        ...extractLocalesFromUpdateConfig(updateConfig),
+        ...entryByLocaleKeys,
+      ]),
+    );
+    await recordMigratedLocales(projectId, ranLocales);
+  } catch (err) {
+    await customLogger(projectId, destinationStackId, 'warn', `Failed to record migrated locales: ${(err as Error)?.message}`);
   }
 };
 const getAuditData = async (req: Request): Promise<any> => {

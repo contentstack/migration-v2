@@ -64,6 +64,21 @@
 .asset-mapper-table .Table__body__column {
   min-width: 0 !important;
 }
+// Belt-and-braces: clip anything that still doesn't shrink to its column's share
+// instead of visually bleeding into the next column.
+.asset-mapper-table .Table__body__column {
+  overflow: hidden;
+}
+// The header row sizes itself to its (single-line) content rather than a fixed height,
+// but the body below it starts at a fixed offset computed for that single line. A header
+// label too long for its column wraps to a 2nd line that the fixed offset doesn't account
+// for, so it spills down and gets covered by row 1. Force header labels to a single,
+// ellipsized line instead of wrapping.
+.asset-mapper-table .Table__head__column {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 .table-wrapper .Table__body__column .d-flex,
 .asset-mapper-table .Table__body__column .d-flex {
   min-width: 0;
@@ -78,13 +93,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+// Venus's Table row is a fixed 60px (.Table__body__row { height: 60px }) — it does not
+// grow with content, and that's too tight to reliably fit 2 wrapped lines (2 × the
+// column's 1.5rem line-height already exceeds the ~44px available after padding), which
+// bled the cell into the row below/the header above. Truncate to a single line with an
+// ellipsis instead — same pattern as the non-wrap `.cms-field` columns — and rely on the
+// native `title` attribute for the full value on hover.
 .asset-mapper-table .cms-field--wrap {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  -webkit-line-clamp: unset;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-all;
@@ -523,6 +546,31 @@ div .table-row {
   padding-bottom: 6rem;
 }
 
+// Asset mapper search-empty state — mirror the entry-mapper-container pattern:
+// give the .Table explicit height when it contains an .EmptyState (Venus's measured
+// tableHeight collapses to ~56px on empty results, so the centered empty state has
+// no room to display). Then make .Table__body a flex column and center the
+// .Table__centerWrapper Venus renders around the customEmptyState.
+.asset-mapper-table .Table:has(.EmptyState) {
+  height: calc(100vh - 22rem) !important;
+}
+
+.asset-mapper-table .Table:has(.Table__centerWrapper) .Table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.asset-mapper-table .Table__centerWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 300px;
+  padding-bottom: 2rem;
+}
+
 // Field mapping table (Map Content Fields step): center the search-empty state. Anchor on
 // the venus .Table and take .Table__centerWrapper out of flow (position: absolute) so it
 // overlays the full table area and centers, instead of stacking under the header rows.
@@ -878,5 +926,109 @@ div .table-row {
   .mapper-footer {
     flex: 0 0 auto;
     position: static;
+  }
+}
+
+// Asset status column badges (Map Entry Assets tab): 'ok' (ready to migrate), 'missing'
+// (no source at all, nothing to retry) vs 'failed' (had a source, last migration run's
+// download attempt threw — shown with a Retry button).
+.asset-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+
+  svg,
+  img {
+    flex: 0 0 auto;
+  }
+
+  &--ok {
+    background-color: #e8f6ee;
+    color: #1a8245;
+    border-color: rgba(26, 130, 69, 0.2);
+  }
+
+  &--missing {
+    background-color: #f1f2f5;
+    color: #647696;
+    border-color: rgba(100, 118, 150, 0.2);
+    cursor: help;
+  }
+
+  &--failed {
+    background-color: #fdecea;
+    color: #c0392b;
+    border-color: rgba(192, 57, 43, 0.2);
+    cursor: help;
+  }
+
+  &--failed-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    padding: 0;
+    border: none;
+  }
+}
+
+.asset-retry-button {
+  padding: 0 10px !important;
+  font-weight: 600 !important;
+}
+
+// Toolbar above the asset table: broken-asset count banner (left) + status filter (right).
+.asset-mapper-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid #e6e9ef;
+  background-color: #fbfbfc;
+}
+
+.asset-broken-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #92400e;
+  background-color: #fef3e2;
+  border: 1px solid rgba(146, 64, 14, 0.2);
+  padding: 6px 12px;
+  border-radius: 6px;
+  line-height: 1.35;
+
+  svg,
+  img {
+    flex: 0 0 auto;
+    color: #b45309;
+  }
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.asset-status-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
+
+  &__label {
+    font-size: 0.8125rem;
+    color: #647696;
+    white-space: nowrap;
   }
 }

@@ -373,3 +373,6 @@ app.json
 # Test coverage (global)
 coverage/
 export-stack/
+allien/
+aem_data_structure/
+.claude/
