@@ -65,6 +65,38 @@ export const isFullMigrationForLocale = (
 };
 
 /**
+ * Extracts destination locale codes that were ACTUALLY targeted by a delta
+ * run, from an `updated-entries.json` config object.
+ *
+ * Per-entry keys in that config are `${csUid}::${localeCode}` (see
+ * `removeEntriesFromDatabase` in entry-update.utils.ts) — this reads the
+ * locale suffix back out. Bookkeeping keys added by the enrich* helpers
+ * (`__assetMapping__`, `__entryMapping__`, `__assetUpdates__`) are skipped.
+ *
+ * This exists to fix a bug where a locale got marked "migrated" as soon as
+ * ANY locale finished a delta run, instead of only the locale(s) that run
+ * actually processed — which permanently skipped locales configured ahead of
+ * when they were meant to be migrated (see `runCli.service.ts`).
+ */
+export const extractLocalesFromUpdateConfig = (
+  config: Record<string, any> | null | undefined,
+): string[] => {
+  if (!config || typeof config !== 'object') return [];
+  const locales = new Set<string>();
+  for (const [ctKey, entries] of Object.entries(config)) {
+    if (ctKey.startsWith('__')) continue;
+    if (!entries || typeof entries !== 'object') continue;
+    for (const entryKey of Object.keys(entries)) {
+      const sep = entryKey.lastIndexOf('::');
+      if (sep === -1) continue;
+      const locale = entryKey.slice(sep + 2);
+      if (locale) locales.add(locale);
+    }
+  }
+  return Array.from(locales);
+};
+
+/**
  * Set-union the given locales into project.migrated_locales and persist.
  * Idempotent.
  */

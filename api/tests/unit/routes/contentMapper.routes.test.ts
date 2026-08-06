@@ -18,6 +18,7 @@ vi.mock('../../../src/controllers/projects.contentMapper.controller.js', () => (
     getSingleGlobalField: vi.fn((_req: any, res: any) => res.status(200).json({})),
     getAssetMapping: vi.fn((_req: any, res: any) => res.status(200).json({})),
     updateAssetStatus: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    retryAssetDownload: vi.fn((_req: any, res: any) => res.status(200).json({})),
   },
 }));
 

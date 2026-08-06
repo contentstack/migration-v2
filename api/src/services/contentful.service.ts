@@ -436,7 +436,7 @@ const processField = (
         return refs;
       }
       const id = lang_value?.sys?.id;
-      if(Array?.isArray(entryId?.id)){
+      if(Array.isArray(entryId?.[id])){
         return entryId?.[id];
       }
       else{
@@ -662,13 +662,39 @@ const saveAsset = async (
         }
       });
 
-      const fileUrl = `https:${(Object.values(assets?.fields?.file)[0] as { url: string }).url
-        }`;
+      // Contentful emits `fields.file[locale].url` (CDN-processed path, starts with "//") for
+      // assets whose CDN entry is ready, and `fields.file[locale].upload` (absolute fetch URL)
+      // for assets that were just added to the space but not yet processed. Real deltas hit
+      // the second shape on "newly added asset" exports; reading only `.url` silently drops
+      // those (see CMG-1106). Prefer `.url`, fall back to `.upload`, skip if neither exists.
+      const fileMeta = Object.values(assets?.fields?.file)[0] as { url?: string; upload?: string; contentType?: string; details?: { size?: string }; fileName?: string };
+      let fileUrl = '';
+      if (typeof fileMeta?.url === 'string' && fileMeta.url) {
+        fileUrl = fileMeta.url.startsWith('//') ? `https:${fileMeta.url}` : fileMeta.url;
+      } else if (typeof fileMeta?.upload === 'string' && fileMeta.upload) {
+        fileUrl = fileMeta.upload;
+      } else {
+        // No downloadable source — record and continue so the run doesn't hit axios on `https:undefined`.
+        failedJSON[assets.sys.id] = {
+          failedUid: assets.sys.id,
+          name: Object.values(assets?.fields?.title ?? {})[0],
+          url: '',
+          file_size: `${fileMeta?.details?.size ?? ''}`,
+          reason_for_error: 'Asset has no file.url or file.upload — nothing to download',
+        };
+        return assets.sys.id;
+      }
       const assetTitle = Object.values(assets?.fields?.title)[0];
-      const fileName = path.basename(
-        (Object.values(assets?.fields?.file)[0] as { fileName: string })
-          .fileName
-      );
+      // Assets that only have `.upload` (not yet CDN-processed) often have no `fileName`
+      // or `details` yet — Contentful only populates those after processing. Fall back to
+      // the asset's sys.id so path.basename never throws, and derive size/content-type
+      // defensively so a still-processing asset doesn't crash mid-download.
+      const rawFileName = typeof fileMeta?.fileName === 'string' && fileMeta.fileName
+        ? fileMeta.fileName
+        : `${assets.sys.id}`;
+      const fileName = path.basename(rawFileName);
+      const fileSize = `${fileMeta?.details?.size ?? ''}`;
+      const fileContentType = fileMeta?.contentType ?? '';
       const description = Object.values(
         assets?.fields as { [key: string]: unknown }
       )
@@ -695,15 +721,8 @@ const saveAsset = async (
           uid: assets.sys.id,
           urlPath: `/assets/${assets.sys.id}`,
           status: true,
-          content_type: (
-            Object.values(assets?.fields?.file)[0] as { contentType: string }
-          ).contentType,
-          file_size: `${(
-            Object.values(assets?.fields?.file)[0] as {
-              details: { size: string };
-            }
-          )?.details.size
-            }`,
+          content_type: fileContentType,
+          file_size: fileSize,
           tag: assets?.metadata?.tags,
           filename: fileName,
           url: fileUrl,
@@ -732,12 +751,7 @@ const saveAsset = async (
             failedUid: assets.sys.id,
             name: assetTitle,
             url: fileUrl,
-            file_size: `${(
-              Object.values(assets?.fields?.file)[0] as {
-                details: { size: string };
-              }
-            ).details.size
-              }`,
+            file_size: fileSize,
             reason_for_error: err?.message,
           };
         } else {
@@ -795,7 +809,6 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
 
       await Promise.all(tasks);
       await fs.promises.mkdir(assetsSave, { recursive: true });
-      const assetMasterFolderPath = path.join(assetsSave, ASSETS_FAILED_FILE);
 
       await writeOneFile(path.join(assetsSave, ASSETS_SCHEMA_FILE), assetData);
       // This code is intentionally commented out
@@ -813,7 +826,11 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
 
       await writeOneFile(path.join(assetsSave, ASSETS_FILE_NAME), fileMeta);
       // await writeOneFile(path.join(assetsSave, ASSETS_METADATA_FILE), metadata);
-      failedJSON && await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
+      // Was double-joining ASSETS_FAILED_FILE (writeFile already appends the filename to its
+      // dirPath arg), which wrote to `<assetsSave>/cs_failed.json/cs_failed.json` — a directory
+      // named cs_failed.json containing a file of the same name — instead of the intended
+      // `<assetsSave>/cs_failed.json`. Pass the directory alone.
+      failedJSON && await writeFile(assetsSave, ASSETS_FAILED_FILE, failedJSON);
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -831,6 +848,84 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
     )
     await customLogger(projectId, destination_stack_id, 'error', message);
     throw err;
+  }
+};
+
+/**
+ * Re-attempts the download for a single asset that failed during the last migration run
+ * (recorded in `cs_failed.json` by `saveAsset` above). Reads the current on-disk asset
+ * index + failed-assets file, re-runs the same `saveAsset` download for just this one
+ * source asset id, and persists the result back to both files.
+ *
+ * This only re-stages the asset locally (downloads the binary, updates index.json) — it
+ * does not push to the destination Contentstack stack directly. Like every other asset in
+ * this connector, it lands in the stack the next time the CLI import runs (Start Migration
+ * on this or a later iteration), since assets are only pushed via that CLI import step.
+ *
+ * @returns `success: true` once the asset re-downloads (message notes it needs a migration
+ * run to land in the stack); `success: false` with the failure reason if it fails again.
+ */
+const retryFailedAsset = async (
+  packagePath: string,
+  destination_stack_id: string,
+  projectId: string,
+  assetSourceId: string,
+): Promise<{ success: boolean; message: string }> => {
+  const srcFunc = 'retryFailedAsset';
+  try {
+    const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
+    const failedPath = path.join(assetsSave, ASSETS_FAILED_FILE);
+    const indexPath = path.join(assetsSave, ASSETS_SCHEMA_FILE);
+
+    const packageData = await fs.promises.readFile(packagePath, 'utf8');
+    const sourceAssets = JSON.parse(packageData)?.assets ?? [];
+    const targetAsset = sourceAssets.find((a: any) => a?.sys?.id === assetSourceId);
+    if (!targetAsset) {
+      return { success: false, message: 'Asset not found in the source export.' };
+    }
+
+    let failedJSON: Record<string, any> = {};
+    if (fs.existsSync(failedPath)) {
+      try {
+        failedJSON = JSON.parse(await fs.promises.readFile(failedPath, 'utf8')) || {};
+      } catch {
+        failedJSON = {};
+      }
+    }
+    let assetData: Record<string, any> = {};
+    if (fs.existsSync(indexPath)) {
+      try {
+        assetData = JSON.parse(await fs.promises.readFile(indexPath, 'utf8')) || {};
+      } catch {
+        assetData = {};
+      }
+    }
+
+    await saveAsset(targetAsset, failedJSON, assetData, [], projectId, destination_stack_id, 0);
+
+    await fs.promises.mkdir(assetsSave, { recursive: true });
+    await writeOneFile(indexPath, assetData);
+    await writeFile(assetsSave, ASSETS_FAILED_FILE, failedJSON);
+
+    if (failedJSON[assetSourceId]) {
+      return {
+        success: false,
+        message: failedJSON[assetSourceId]?.reason_for_error || 'Retry failed.',
+      };
+    }
+    return {
+      success: true,
+      message: 'Asset downloaded successfully. It will be included in the next migration run.',
+    };
+  } catch (error: any) {
+    const message = getLogMessage(
+      srcFunc,
+      `Error retrying asset "${assetSourceId}".`,
+      {},
+      error,
+    );
+    await customLogger(projectId, destination_stack_id, 'error', message);
+    return { success: false, message: error?.message || 'Retry failed.' };
   }
 };
 
@@ -1658,4 +1753,5 @@ export const contentfulService = {
   createWebhooks,
   createVersionFile,
   createTaxonomy: createContentfulTaxonomyFromExport,
+  retryFailedAsset,
 };

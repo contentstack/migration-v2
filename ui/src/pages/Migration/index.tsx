@@ -907,11 +907,15 @@ const Migration = () => {
         );
 
         if (migrationRes?.status === 200) {
+          // Explicitly clear migrationCompleted here — otherwise a stale flag carried over
+          // from iter 1 (via fetchProjectData rehydration) leaves the completion view rendered
+          // on iter 2 until the next state change.
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
             migration_execution: {
               ...newMigrationData?.migration_execution,
-              migrationStarted: true
+              migrationStarted: true,
+              migrationCompleted: false
             }
           };
           dispatch(updateNewMigrationData(newMigrationDataObj));

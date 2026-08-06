@@ -9,6 +9,7 @@ import {
     getSourceLocaleForDestination,
 } from "./locale-migration.utils.js";
 import type { AssetUpdate } from "./asset-update.utils.js";
+import { flattenNestedUidMap } from "./uid-mapper.utils.js";
 
 /**
  * Helper function to write log entries to file
@@ -295,6 +296,74 @@ export const enrichConfigWithAssetMapping = (
     writeLogEntry(`Asset mapping enriched into config: old=${Object?.keys(oldAssetMapping)?.length} keys, new=${Object?.keys(newAssetMapping)?.length} keys`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset mapping configuration has been enriched for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset references will be resolved using combined old and new mappings`, "enrichConfigWithAssetMapping", loggerPath);
+};
+
+/**
+ * Reads old (previous iteration) and new (current iteration) entry uid mappings
+ * — both the flat source→dest map and the per-locale map written by
+ * `writePerLocaleEntryUidMapping` — and merges them into the updated-entries
+ * config file under `__entryMapping__`.
+ *
+ * This lets the entry-update-script resolve Link(Entry)/reference field values
+ * to their real Contentstack destination uid before writing them onto a
+ * localized (non-master) copy of an entry. Without this, reference fields
+ * written during a locale-add restart keep the export's source-side uid,
+ * which only happens to work when source and destination uids are identical —
+ * the master-locale bulk import resolves this correctly via the Contentstack
+ * CLI's own reference pass, but this update path does not, unless we prime it
+ * with the same uid-mapper data (mirrors `enrichConfigWithAssetMapping`).
+ */
+export const enrichConfigWithEntryMapping = (
+    configFilePath: string,
+    projectId: string,
+    iteration: number,
+    loggerPath?: string
+): void => {
+    const dbBase = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId);
+
+    const readEntryMapper = (iter: number): { flat: Record<string, string>; byLocale: Record<string, Record<string, string>> } => {
+        const p = path.join(dbBase, iter.toString(), DATABASE_FILES.UID_MAPPER);
+        if (!fs.existsSync(p)) return { flat: {}, byLocale: {} };
+        try {
+            const data = JSON.parse(fs.readFileSync(p, "utf-8"));
+            // Uid-mapper's `entry` key can be either the flat `{ sourceUid: destUid }` shape
+            // or the nested `{ [ctUid]: { sourceUid: destUid } }` shape (see
+            // uid-mapper.utils.ts:mergeUidMaps). contentMapper.service also merges in an
+            // `entryUid` variant — do the same here so both readers stay in sync and the
+            // resolver never silently falls through to the identity fallback.
+            const fromEntry = flattenNestedUidMap(data?.entry);
+            const fromEntryUid = flattenNestedUidMap(data?.entryUid);
+            return {
+                flat: { ...fromEntry, ...fromEntryUid },
+                byLocale: data?.entryByLocale || {},
+            };
+        } catch (err) {
+            console.error(`Failed to read uid-mapper for iteration ${iter}:`, err);
+            return { flat: {}, byLocale: {} };
+        }
+    };
+
+    const oldEntryMapping = iteration > 1 ? readEntryMapper(iteration - 1) : { flat: {}, byLocale: {} };
+    const newEntryMapping = readEntryMapper(iteration);
+
+    writeLogEntry(
+        `Loaded entry uid mappings — old: ${Object.keys(oldEntryMapping.flat).length} flat / ${Object.keys(oldEntryMapping.byLocale).length} locales, ` +
+        `new: ${Object.keys(newEntryMapping.flat).length} flat / ${Object.keys(newEntryMapping.byLocale).length} locales`,
+        "enrichConfigWithEntryMapping",
+        loggerPath,
+    );
+
+    try {
+        const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+        config.__entryMapping__ = { old: oldEntryMapping, new: newEntryMapping };
+        fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+    } catch (err) {
+        console.error("Failed to write entry mapping into update config:", err);
+        writeLogEntry(`Failed to write __entryMapping__ into ${configFilePath}: ${(err as Error)?.message}`, "enrichConfigWithEntryMapping", loggerPath);
+        return;
+    }
+
+    writeLogEntry(`Entry mapping enriched into config for iteration ${iteration}`, "enrichConfigWithEntryMapping", loggerPath);
 };
 
 /**
