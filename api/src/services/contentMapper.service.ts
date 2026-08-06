@@ -37,6 +37,7 @@ import { getSourceLocaleForDestination } from '../utils/locale-migration.utils.j
 import { loadPreviousAssetMetadata } from '../utils/asset-update.utils.js';
 import { flattenNestedUidMap } from '../utils/uid-mapper.utils.js';
 import { contentfulService } from './contentful.service.js';
+import { sanitizeStackId, assertResolvedPathUnderBase } from '../utils/sanitize-path.utils.js';
 
 
 const idCorrector = ({ id }: { id: string }) => {
@@ -2527,14 +2528,22 @@ const getAssetMapping = async (req: Request) => {
     // after an actual migration run, so it's absent (empty status) before that.
     let failedAssets: Record<string, any> = {};
     const destinationStackId = projectData?.destination_stack_id;
-    if (destinationStackId) {
-      const failedPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME, MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE);
-      if (fs.existsSync(failedPath)) {
-        try {
+    // destination_stack_id is DB-stored, but Snyk's taint tracker still traces it back to
+    // the HTTP projectId param via the lowdb lookup above — sanitize it the same way the
+    // rest of this codebase does (sanitizeStackId strips it to an allowlisted charset,
+    // assertResolvedPathUnderBase re-confirms the joined path can't escape the data dir)
+    // before it reaches a readFileSync sink.
+    const safeDestinationStackId = sanitizeStackId(destinationStackId);
+    if (safeDestinationStackId) {
+      const assetsBase = path.resolve(MIGRATION_DATA_CONFIG.DATA);
+      const failedPath = path.join(assetsBase, safeDestinationStackId, MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME, MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE);
+      try {
+        assertResolvedPathUnderBase(assetsBase, failedPath);
+        if (fs.existsSync(failedPath)) {
           failedAssets = JSON.parse(fs.readFileSync(failedPath, 'utf-8')) || {};
-        } catch {
-          failedAssets = {};
         }
+      } catch {
+        failedAssets = {};
       }
     }
     const enrichedMapping = uidEnriched.map((item: any) => {
