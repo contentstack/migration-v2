@@ -80,9 +80,15 @@ const resolveReferenceField = (fieldName, entryUid, value, locale, entryMapping)
  * rewrites reference shapes, nothing else.
  */
 const resolveReferencesDeep = (fieldName, entryUid, value, locale, entryMapping) => {
-    if (isReferenceValue(value) || isReferenceArray(value)) {
+    if (isReferenceValue(value)) {
         return resolveReferenceField(fieldName, entryUid, value, locale, entryMapping);
     }
+    // Recurse per-element rather than delegating the whole array to isReferenceArray +
+    // resolveReferenceField's shallow array handling. That shallow path only remaps
+    // elements matching isReferenceValue and passes everything else through byte-for-byte
+    // — so a MIXED array (a bare reference next to an object with a reference nested
+    // inside, e.g. a modular-block array) would leave the nested one unresolved. Recursing
+    // into every element here — reference, container, or scalar — covers that case too.
     if (Array.isArray(value)) {
         return value.map((item) => resolveReferencesDeep(fieldName, entryUid, item, locale, entryMapping));
     }

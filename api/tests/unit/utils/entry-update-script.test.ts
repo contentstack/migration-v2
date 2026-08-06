@@ -15,6 +15,7 @@ const {
   isReferenceArray,
   resolveReferenceUid,
   resolveReferenceField,
+  resolveReferencesDeep,
 } = script;
 
 describe('entry-update-script — isAssetField', () => {
@@ -130,6 +131,53 @@ describe('entry-update-script — resolveReferenceUid', () => {
 
   it('handles a missing/undefined entryMapping gracefully', () => {
     expect(resolveReferenceUid('src-1', locale, undefined)).toBe('src-1');
+  });
+});
+
+describe('entry-update-script — resolveReferencesDeep', () => {
+  const locale = 'en-in';
+  const entryMapping = {
+    old: { flat: {}, byLocale: {} },
+    new: { flat: { 'src-1': 'cs-1', 'src-2': 'cs-2' }, byLocale: {} },
+  };
+
+  it('resolves a top-level reference value', () => {
+    const out = resolveReferencesDeep('field', 'entry-1', { uid: 'src-1', _content_type_uid: 'author' }, locale, entryMapping);
+    expect(out).toEqual({ uid: 'cs-1', _content_type_uid: 'author' });
+  });
+
+  it('resolves every reference nested inside a plain object (group field)', () => {
+    const value = { heroBlock: { author: { uid: 'src-1', _content_type_uid: 'author' } } };
+    const out = resolveReferencesDeep('field', 'entry-1', value, locale, entryMapping);
+    expect(out).toEqual({ heroBlock: { author: { uid: 'cs-1', _content_type_uid: 'author' } } });
+  });
+
+  it('resolves a MIXED array — a bare reference alongside an object with a reference nested inside', () => {
+    // Regression case: isReferenceArray's .some() used to route the whole array through
+    // resolveReferenceField's shallow per-item remap, which passes non-reference-shaped
+    // items through untouched — so the nested reference inside the block object never got
+    // resolved. resolveReferencesDeep must recurse into every element instead.
+    const value = [
+      { uid: 'src-1', _content_type_uid: 'author' },
+      { heroBlock: { uid: 'src-2', _content_type_uid: 'category' } },
+    ];
+    const out = resolveReferencesDeep('field', 'entry-1', value, locale, entryMapping);
+    expect(out).toEqual([
+      { uid: 'cs-1', _content_type_uid: 'author' },
+      { heroBlock: { uid: 'cs-2', _content_type_uid: 'category' } },
+    ]);
+  });
+
+  it('leaves asset field objects untouched (they need resolveAssetField, not a uid remap)', () => {
+    const value = { urlPath: '/assets/1', filename: 'f.jpg', uid: 'src-1' };
+    const out = resolveReferencesDeep('field', 'entry-1', value, locale, entryMapping);
+    expect(out).toBe(value);
+  });
+
+  it('passes scalars and unresolvable shapes through unchanged', () => {
+    expect(resolveReferencesDeep('field', 'entry-1', 'plain-string', locale, entryMapping)).toBe('plain-string');
+    expect(resolveReferencesDeep('field', 'entry-1', null, locale, entryMapping)).toBe(null);
+    expect(resolveReferencesDeep('field', 'entry-1', 42, locale, entryMapping)).toBe(42);
   });
 });
 
