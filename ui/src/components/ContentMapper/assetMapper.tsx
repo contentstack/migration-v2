@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import {
   Button,
+  Icon,
   InfiniteScrollTable,
   Notification,
   EmptyState,
@@ -279,11 +280,12 @@ const AssetMapper = ({
   };
 
   const accessorAssetName = (data: AssetMapperType) => {
+    const name = data?.filename || data?.title || '-';
     return (
       <div>
         <div className='d-flex align-items-center'>
-          <div className={'cms-field cms-field--wrap'}>
-            {data?.filename || data?.title || '-'}
+          <div className={'cms-field cms-field--wrap'} title={name}>
+            {name}
           </div>
         </div>
       </div>
@@ -291,11 +293,12 @@ const AssetMapper = ({
   };
 
   const accessorAssetPath = (data: AssetMapperType) => {
+    const assetPath = data?.assetPath || '-';
     return (
       <div>
         <div className='d-flex align-items-center'>
-          <div className={'cms-field cms-field--wrap'}>
-            {data?.assetPath || '-'}
+          <div className={'cms-field cms-field--wrap'} title={assetPath}>
+            {assetPath}
           </div>
         </div>
       </div>
@@ -315,11 +318,12 @@ const AssetMapper = ({
   };
 
   const accessorContentstackUid = (data: AssetMapperType) => {
+    const uid = data?.contentstackAssetUid ? data?.contentstackAssetUid : '-';
     return (
       <div>
         <div className='d-flex align-items-center'>
-          <div className={'cms-field'}>
-            {data?.contentstackAssetUid ? data?.contentstackAssetUid : '-'}
+          <div className={'cms-field'} title={uid}>
+            {uid}
           </div>
         </div>
       </div>
@@ -334,7 +338,8 @@ const AssetMapper = ({
           className="asset-status-badge asset-status-badge--missing"
           title={data?.errorMessage || 'No source file found for this asset.'}
         >
-          No source
+          <Icon icon="InformationCircle" version="v2" size="tiny" />
+          <span>No source</span>
         </div>
       );
     }
@@ -345,13 +350,15 @@ const AssetMapper = ({
             className="asset-status-badge asset-status-badge--failed"
             title={data?.errorMessage || 'Failed to download this asset.'}
           >
-            Failed
+            <Icon icon="WarningBold" version="v2" size="tiny" />
+            <span>Failed</span>
           </span>
           <Button
             className="asset-retry-button"
             version="v2"
             buttonType="tertiary"
             size="small"
+            icon="Refresh"
             isLoading={!!retryingIds[sourceUid]}
             onClick={() => handleRetryAsset(data)}
           >
@@ -360,7 +367,12 @@ const AssetMapper = ({
         </div>
       );
     }
-    return null;
+    return (
+      <div className="asset-status-badge asset-status-badge--ok">
+        <Icon icon="CheckCircle" version="v2" size="tiny" />
+        <span>Ready</span>
+      </div>
+    );
   };
 
   const columns = [
@@ -373,14 +385,14 @@ const AssetMapper = ({
       ),
       accessor: accessorAssetName,
       id: 'uuid',
-      width: '400px',
+      width: '260px',
     },
     {
       disableSortBy: true,
       Header: (<span>{'Path:'}</span>),
       accessor: accessorAssetPath,
       id: '1',
-      width: '550px',
+      width: '480px',
     },
     {
       disableSortBy: true,
@@ -394,13 +406,14 @@ const AssetMapper = ({
       Header: (<span>{'Contentstack UIDs:'}</span>),
       accessor: accessorContentstackUid,
       id: '3',
+      width: '280px',
     },
     {
       disableSortBy: true,
       Header: (<span>{'Status:'}</span>),
       accessor: accessorAssetStatus,
       id: '4',
-      width: '160px',
+      width: '200px',
     }
   ];
 
@@ -424,21 +437,30 @@ const AssetMapper = ({
         /> :
         <div className="asset-mapper-table" ref={tableWrapperRef}>
           <div className="asset-mapper-toolbar">
-            {brokenAssetCount > 0 && (
+            {brokenAssetCount > 0 ? (
               <div className="asset-broken-banner">
-                {brokenAssetCount} asset{brokenAssetCount === 1 ? '' : 's'} will not be migrated due to a broken or missing source file.
+                <Icon icon="WarningBold" version="v2" size="small" />
+                <span>
+                  <strong>{brokenAssetCount}</strong>{' '}
+                  {`asset${brokenAssetCount === 1 ? '' : 's'} won't be migrated because the source file is broken or missing.`}
+                </span>
               </div>
+            ) : (
+              <span />
             )}
-            <Select
-              className="asset-status-select"
-              value={statusFilter}
-              options={statusFilterOptions}
-              onChange={(opt: { label: string; value: string }) => setStatusFilter(opt)}
-              isSearchable={false}
-              isClearable={false}
-              width="200px"
-              version="v2"
-            />
+            <div className="asset-status-filter">
+              <span className="asset-status-filter__label">Filter by status</span>
+              <Select
+                className="asset-status-select"
+                value={statusFilter}
+                options={statusFilterOptions}
+                onChange={(opt: { label: string; value: string }) => setStatusFilter(opt)}
+                isSearchable={false}
+                isClearable={false}
+                width="180px"
+                version="v2"
+              />
+            </div>
           </div>
           <InfiniteScrollTable
             key={'asset-mapper-table'}
