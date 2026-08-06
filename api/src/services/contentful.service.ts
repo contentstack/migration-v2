@@ -809,7 +809,6 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
 
       await Promise.all(tasks);
       await fs.promises.mkdir(assetsSave, { recursive: true });
-      const assetMasterFolderPath = path.join(assetsSave, ASSETS_FAILED_FILE);
 
       await writeOneFile(path.join(assetsSave, ASSETS_SCHEMA_FILE), assetData);
       // This code is intentionally commented out
@@ -827,7 +826,11 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
 
       await writeOneFile(path.join(assetsSave, ASSETS_FILE_NAME), fileMeta);
       // await writeOneFile(path.join(assetsSave, ASSETS_METADATA_FILE), metadata);
-      failedJSON && await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
+      // Was double-joining ASSETS_FAILED_FILE (writeFile already appends the filename to its
+      // dirPath arg), which wrote to `<assetsSave>/cs_failed.json/cs_failed.json` — a directory
+      // named cs_failed.json containing a file of the same name — instead of the intended
+      // `<assetsSave>/cs_failed.json`. Pass the directory alone.
+      failedJSON && await writeFile(assetsSave, ASSETS_FAILED_FILE, failedJSON);
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -845,6 +848,84 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
     )
     await customLogger(projectId, destination_stack_id, 'error', message);
     throw err;
+  }
+};
+
+/**
+ * Re-attempts the download for a single asset that failed during the last migration run
+ * (recorded in `cs_failed.json` by `saveAsset` above). Reads the current on-disk asset
+ * index + failed-assets file, re-runs the same `saveAsset` download for just this one
+ * source asset id, and persists the result back to both files.
+ *
+ * This only re-stages the asset locally (downloads the binary, updates index.json) — it
+ * does not push to the destination Contentstack stack directly. Like every other asset in
+ * this connector, it lands in the stack the next time the CLI import runs (Start Migration
+ * on this or a later iteration), since assets are only pushed via that CLI import step.
+ *
+ * @returns `success: true` once the asset re-downloads (message notes it needs a migration
+ * run to land in the stack); `success: false` with the failure reason if it fails again.
+ */
+const retryFailedAsset = async (
+  packagePath: string,
+  destination_stack_id: string,
+  projectId: string,
+  assetSourceId: string,
+): Promise<{ success: boolean; message: string }> => {
+  const srcFunc = 'retryFailedAsset';
+  try {
+    const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
+    const failedPath = path.join(assetsSave, ASSETS_FAILED_FILE);
+    const indexPath = path.join(assetsSave, ASSETS_SCHEMA_FILE);
+
+    const packageData = await fs.promises.readFile(packagePath, 'utf8');
+    const sourceAssets = JSON.parse(packageData)?.assets ?? [];
+    const targetAsset = sourceAssets.find((a: any) => a?.sys?.id === assetSourceId);
+    if (!targetAsset) {
+      return { success: false, message: 'Asset not found in the source export.' };
+    }
+
+    let failedJSON: Record<string, any> = {};
+    if (fs.existsSync(failedPath)) {
+      try {
+        failedJSON = JSON.parse(await fs.promises.readFile(failedPath, 'utf8')) || {};
+      } catch {
+        failedJSON = {};
+      }
+    }
+    let assetData: Record<string, any> = {};
+    if (fs.existsSync(indexPath)) {
+      try {
+        assetData = JSON.parse(await fs.promises.readFile(indexPath, 'utf8')) || {};
+      } catch {
+        assetData = {};
+      }
+    }
+
+    await saveAsset(targetAsset, failedJSON, assetData, [], projectId, destination_stack_id, 0);
+
+    await fs.promises.mkdir(assetsSave, { recursive: true });
+    await writeOneFile(indexPath, assetData);
+    await writeFile(assetsSave, ASSETS_FAILED_FILE, failedJSON);
+
+    if (failedJSON[assetSourceId]) {
+      return {
+        success: false,
+        message: failedJSON[assetSourceId]?.reason_for_error || 'Retry failed.',
+      };
+    }
+    return {
+      success: true,
+      message: 'Asset downloaded successfully. It will be included in the next migration run.',
+    };
+  } catch (error: any) {
+    const message = getLogMessage(
+      srcFunc,
+      `Error retrying asset "${assetSourceId}".`,
+      {},
+      error,
+    );
+    await customLogger(projectId, destination_stack_id, 'error', message);
+    return { success: false, message: error?.message || 'Retry failed.' };
   }
 };
 
@@ -1672,4 +1753,5 @@ export const contentfulService = {
   createWebhooks,
   createVersionFile,
   createTaxonomy: createContentfulTaxonomyFromExport,
+  retryFailedAsset,
 };

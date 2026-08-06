@@ -7,12 +7,14 @@ import {
   InfiniteScrollTable,
   Notification,
   EmptyState,
+  Select,
 } from '@contentstack/venus-components';
 
 // Services
 import {
   getAssetMapping,
   updateAssetMapper,
+  retryAssetDownload,
 } from '../../services/api/migration.service';
 
 // Redux
@@ -59,6 +61,8 @@ const AssetMapper = ({
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [persistedRowIds, setPersistedRowIds] = useState<Record<string, boolean>>({});
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
+  // Tracks in-flight retry calls per asset id so only that row's button shows a spinner.
+  const [retryingIds, setRetryingIds] = useState<Record<string, boolean>>({});
   // True once the initial fetch has settled — used to gate the empty state so it
   // doesn't flash before assets have loaded.
   const [hasFetched, setHasFetched] = useState<boolean>(false);
@@ -66,12 +70,35 @@ const AssetMapper = ({
   // table (and its search box) mounted even on 0 results, otherwise the user is
   // stranded on the full-page empty state with no way to clear the search.
   const [searchText, setSearchText] = useState<string>('');
+  // Status filter dropdown: 'all' | 'ok' | 'missing' | 'failed'.
+  const [statusFilter, setStatusFilter] = useState<{ label: string; value: string }>({
+    label: 'All statuses',
+    value: 'all',
+  });
+  // Aggregate counts across the FULL visible set (server-computed, unaffected by
+  // pagination/search/status-filter) — drives the "N assets won't be migrated" banner.
+  const [missingCount, setMissingCount] = useState<number>(0);
+  const [failedCount, setFailedCount] = useState<number>(0);
+
+  const statusFilterOptions = [
+    { label: 'All statuses', value: 'all' },
+    { label: 'Failed', value: 'failed' },
+    { label: 'No source', value: 'missing' },
+  ];
 
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Guards against a duplicate fetch when the mount-fetch and the
+  // status-filter-change-fetch would otherwise both fire on initial render.
+  const isFirstFetchRef = useRef(true);
 
+  // Fetch on mount, and refetch whenever the status filter changes (reset to page 1).
+  // Only the very first fetch seeds rowIds/persistedRowIds from the server.
   useEffect(() => {
-    fetchAssets('', { seedSelection: true });
-  }, []);
+    const seedSelection = isFirstFetchRef.current;
+    isFirstFetchRef.current = false;
+    fetchAssets(searchText, { seedSelection });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter?.value]);
 
   // Responsive table height for the asset mapper — see useMeasuredTableHeight for the why.
   const tableHeight = useMeasuredTableHeight(tableWrapperRef, [tableData?.length], {
@@ -93,7 +120,8 @@ const AssetMapper = ({
     try {
       setLoading(true);
 
-      const { data } = await getAssetMapping(skip, limit, searchVal ?? '', projectId);
+      const statusParam = statusFilter?.value && statusFilter.value !== 'all' ? statusFilter.value : undefined;
+      const { data } = await getAssetMapping(skip, limit, searchVal ?? '', projectId, statusParam);
 
       setLoading(false);
 
@@ -106,6 +134,10 @@ const AssetMapper = ({
       setTotalCounts(total);
       onCountChange?.(total);
       setHasFetched(true);
+      // Aggregate counts (missing/failed) are computed server-side across the full
+      // visible set, unaffected by pagination/search/status-filter — used for the banner.
+      setMissingCount(data?.missingCount ?? 0);
+      setFailedCount(data?.failedCount ?? 0);
 
       if (!seedSelection) {
         // Re-apply the user's current selection onto the freshly fetched page;
@@ -190,6 +222,62 @@ const AssetMapper = ({
     }
   };
 
+  /**
+   * Re-attempts the download for one asset that failed during the last migration run.
+   * Only re-stages the file locally — it lands in the destination stack on the next
+   * migration run, so success here just clears the "failed" status, it doesn't create
+   * the asset in Contentstack immediately.
+   */
+  const handleRetryAsset = async (asset: AssetMapperType) => {
+    const sourceUid = asset?.otherCmsAssetUid || asset?.id;
+    if (!sourceUid || retryingIds[sourceUid]) return;
+
+    setRetryingIds((prev) => ({ ...prev, [sourceUid]: true }));
+    try {
+      const { data } = await retryAssetDownload(projectId, sourceUid);
+      if (data?.success) {
+        setTableData((prev) =>
+          prev.map((row) =>
+            row.otherCmsAssetUid === sourceUid
+              ? { ...row, status: 'ok', errorMessage: undefined }
+              : row
+          )
+        );
+        Notification({
+          notificationContent: { text: data?.message || 'Asset downloaded successfully.' },
+          notificationProps: { position: 'bottom-center', hideProgressBar: true },
+          type: 'success',
+        });
+      } else {
+        setTableData((prev) =>
+          prev.map((row) =>
+            row.otherCmsAssetUid === sourceUid
+              ? { ...row, status: 'failed', errorMessage: data?.message }
+              : row
+          )
+        );
+        Notification({
+          notificationContent: { text: data?.message || 'Retry failed.' },
+          notificationProps: { position: 'bottom-center', hideProgressBar: true },
+          type: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('handleRetryAsset -> error', error);
+      Notification({
+        notificationContent: { text: 'Retry failed.' },
+        notificationProps: { position: 'bottom-center', hideProgressBar: true },
+        type: 'error',
+      });
+    } finally {
+      setRetryingIds((prev) => {
+        const next = { ...prev };
+        delete next[sourceUid];
+        return next;
+      });
+    }
+  };
+
   const accessorAssetName = (data: AssetMapperType) => {
     return (
       <div>
@@ -238,6 +326,43 @@ const AssetMapper = ({
     );
   };
 
+  const accessorAssetStatus = (data: AssetMapperType) => {
+    const sourceUid = data?.otherCmsAssetUid || data?.id;
+    if (data?.status === 'missing') {
+      return (
+        <div
+          className="asset-status-badge asset-status-badge--missing"
+          title={data?.errorMessage || 'No source file found for this asset.'}
+        >
+          No source
+        </div>
+      );
+    }
+    if (data?.status === 'failed') {
+      return (
+        <div className="asset-status-badge asset-status-badge--failed-wrapper">
+          <span
+            className="asset-status-badge asset-status-badge--failed"
+            title={data?.errorMessage || 'Failed to download this asset.'}
+          >
+            Failed
+          </span>
+          <Button
+            className="asset-retry-button"
+            version="v2"
+            buttonType="tertiary"
+            size="small"
+            isLoading={!!retryingIds[sourceUid]}
+            onClick={() => handleRetryAsset(data)}
+          >
+            Retry
+          </Button>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const columns = [
     {
       disableSortBy: true,
@@ -269,12 +394,21 @@ const AssetMapper = ({
       Header: (<span>{'Contentstack UIDs:'}</span>),
       accessor: accessorContentstackUid,
       id: '3',
+    },
+    {
+      disableSortBy: true,
+      Header: (<span>{'Status:'}</span>),
+      accessor: accessorAssetStatus,
+      id: '4',
+      width: '160px',
     }
   ];
 
+  const brokenAssetCount = missingCount + failedCount;
+
   return (
     <div className="step-container">
-      {(hasFetched && !loading && totalCounts === 0 && !searchText) ?
+      {(hasFetched && !loading && totalCounts === 0 && !searchText && statusFilter?.value === 'all') ?
         <EmptyState
           forPage="emptyStateV2"
           heading={<div className="empty_search_heading">{ASSET_MAPPER_EMPTY_STATE.NO_ASSETS_HEADING}</div>}
@@ -289,6 +423,23 @@ const AssetMapper = ({
           testId="no-results-found-page"
         /> :
         <div className="asset-mapper-table" ref={tableWrapperRef}>
+          <div className="asset-mapper-toolbar">
+            {brokenAssetCount > 0 && (
+              <div className="asset-broken-banner">
+                {brokenAssetCount} asset{brokenAssetCount === 1 ? '' : 's'} will not be migrated due to a broken or missing source file.
+              </div>
+            )}
+            <Select
+              className="asset-status-select"
+              value={statusFilter}
+              options={statusFilterOptions}
+              onChange={(opt: { label: string; value: string }) => setStatusFilter(opt)}
+              isSearchable={false}
+              isClearable={false}
+              width="200px"
+              version="v2"
+            />
+          </div>
           <InfiniteScrollTable
             key={'asset-mapper-table'}
             loading={loading}
