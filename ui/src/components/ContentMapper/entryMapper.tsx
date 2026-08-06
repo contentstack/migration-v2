@@ -52,7 +52,6 @@ import {
   mapEntriesToRows,
   buildSelectedEntryRowIds,
   applySelectionToEntries,
-  selectableInitialRows,
   filterContentTypesByStatus,
   applyContentTypeStatus,
 } from './entryMapper.utils';
@@ -110,7 +109,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [persistedRowIds, setPersistedRowIds] = useState<Record<string, boolean>>({});
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
-  const [initialRowSelectedData, setInitialRowSelectedData] = useState<EntryMapperType[]>([]);
 
   // Locale dropdown — sourced from project.json (master_locale + locales) so it reflects the
   // user's configured mapping regardless of redux hydration timing on restart.
@@ -252,7 +250,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     setTotalCounts(0);
     setRowIds({});
     setPersistedRowIds({});
-    setInitialRowSelectedData([]);
     setOtherCmsTitle('');
     setContentTypeUid('');
     setOtherCmsUid('');
@@ -395,7 +392,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       const total = data?.count ?? validTableData?.length ?? 0;
 
       setTotalCounts(total);
-      setInitialRowSelectedData(selectableInitialRows(validTableData));
 
       if (!seedSelection) {
         // Re-apply the user's current selection onto the freshly fetched page;

@@ -1314,6 +1314,31 @@ const startMigration = async (req: Request): Promise<any> => {
         null,
       );
     }
+
+    // Guaranteed terminal signal for the delta path, written unconditionally regardless of
+    // which branch above ran or whether updateEntryCli succeeded. MigrationLogViewer.tsx
+    // requires exactly 'Entry Update Process Completed' on iteration > 1 to leave the
+    // execution-logs spinner — but that string is only ever written by updateEntryCli's own
+    // success path (updateEntryCli.service.ts:235). Two real delta scenarios never reach it:
+    // no config file at all (nothing selected to update, no asset updates — the `else`
+    // branch above), and updateEntryCli throwing internally (it catches its own error and
+    // only logs 'Failed to update entries...', never rethrows). Without this, the user gets
+    // stuck on Execution Logs forever after an otherwise-successful migration. Writing this
+    // here, after both branches, means the client's check is satisfied every time regardless
+    // of which path executed.
+    if (safeDeltaMigrationLogPath) {
+      try {
+        const terminalLogEntry = {
+          level: 'info',
+          message: 'Entry Update Process Completed',
+          methodName: 'startMigration',
+          timestamp: new Date().toISOString(),
+        };
+        fs.appendFileSync(safeDeltaMigrationLogPath, JSON.stringify(terminalLogEntry) + '\n');
+      } catch (err) {
+        console.error('Failed to write delta completion marker:', err);
+      }
+    }
   }
 };
 

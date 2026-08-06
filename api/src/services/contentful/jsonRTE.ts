@@ -315,8 +315,14 @@ function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: Stack
 }
 
 
-function parseBlockquote(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+// lang/destination_stack_id are forwarded (not just obj) so a hyperlink nested inside a
+// blockquote or heading — entry-hyperlink, asset-hyperlink, or plain hyperlink — can still
+// resolve. Every sibling container (parseDocument, parseParagraph, parseLI, table parsers)
+// already does this; these seven were missed, silently degrading CMG-1103's fix for that
+// specific nesting (entry-hyperlink falls back to plain text, asset-hyperlink drops the
+// node entirely since its null return gets filtered out by the caller).
+function parseBlockquote(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'blockquote',
     attrs: {},
@@ -325,8 +331,8 @@ function parseBlockquote(obj: any): any {
   };
 }
 
-function parseHeading1(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading1(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 1 },
@@ -335,8 +341,8 @@ function parseHeading1(obj: any): any {
   };
 }
 
-function parseHeading2(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading2(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 2 },
@@ -345,8 +351,8 @@ function parseHeading2(obj: any): any {
   };
 }
 
-function parseHeading3(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading3(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 3 },
@@ -355,8 +361,8 @@ function parseHeading3(obj: any): any {
   };
 }
 
-function parseHeading4(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading4(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 4 },
@@ -365,8 +371,8 @@ function parseHeading4(obj: any): any {
   };
 }
 
-function parseHeading5(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading5(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 5 },
@@ -375,8 +381,8 @@ function parseHeading5(obj: any): any {
   };
 }
 
-function parseHeading6(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeading6(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'heading',
     attrs: { level: 6 },
