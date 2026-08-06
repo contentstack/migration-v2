@@ -33,7 +33,7 @@ const { readFile } = require('../utils/helper');
  * matching the AEM/Sitecore AssetMappingRow shape.
  *
  * @param {string} cleanLocalPath - Path to the Contentful export JSON file.
- * @returns {Array<{id:string,otherCmsAssetUid:string,filename:string,title:string,file_size:(number|string),assetPath:string,isUpdate:boolean}>}
+ * @returns {Array<{id:string,otherCmsAssetUid:string,filename:string,title:string,file_size:(number|string),assetPath:string,isUpdate:boolean,hasSource:boolean}>}
  */
 const extractAssets = (cleanLocalPath) => {
   try {
@@ -82,13 +82,6 @@ const extractAssets = (cleanLocalPath) => {
         assetPath = file.upload;
       }
 
-      // Skip assets that have no downloadable source at all — they'd only confuse
-      // the user on Map Entry (nothing to select for something the migration
-      // can't upload anyway).
-      if (!assetPath) {
-        continue;
-      }
-
       const filename =
         (typeof file?.fileName === 'string' && file?.fileName) || title || '';
       const fileSize = file?.details?.size ?? '';
@@ -103,6 +96,11 @@ const extractAssets = (cleanLocalPath) => {
         file_size: fileSize,
         assetPath,
         isUpdate: false,
+        // No `.url` and no `.upload` at all — nothing the migration can ever download for
+        // this asset. Still emit the row (rather than silently dropping it) so the user sees
+        // *why* it's missing instead of the asset count on Map Entry mysteriously not
+        // matching the source export. `hasSource: false` rows are always non-selectable.
+        hasSource: Boolean(assetPath),
       });
     }
 
