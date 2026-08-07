@@ -110,11 +110,15 @@ describe('updateEntryCli.service', () => {
     expect(written.some((l) => l.includes('stack API key missing'))).toBe(true);
   });
 
-  it('catches errors when the user has no authentication token', async () => {
+  it('logs then rethrows when the user has no authentication token', async () => {
     setUser({ email: 'u@x.com', region: 'NA', user_id: 'u1' }); // no authtoken/access_token
-    await updateEntryCli('NA', 'u1', 'stackKey', '/tmp/log', '/tmp/config.json');
 
-    // first command runs, then the missing-auth throw is caught and logged
+    // first command runs, then the missing-auth throw is logged and rethrown — the caller
+    // (migration.service.ts) relies on this rejecting to know the run didn't succeed
+    await expect(
+      updateEntryCli('NA', 'u1', 'stackKey', '/tmp/log', '/tmp/config.json')
+    ).rejects.toThrow('No authentication token found');
+
     const written = mockAppendFileSync.mock.calls.map((c) => String(c[1]));
     expect(written.some((l) => l.includes('Failed to update entries'))).toBe(true);
   });
@@ -144,10 +148,12 @@ describe('updateEntryCli.service', () => {
     expect(entries.some((e) => e.level === 'info' && e.message === 'all good')).toBe(true);
   });
 
-  it('rejects/handles a non-zero exit code from a spawned command', async () => {
+  it('rejects with the underlying error when a spawned command exits non-zero', async () => {
     mockSpawn.mockImplementationOnce(() => makeChild(1)); // first command fails
 
-    await updateEntryCli('NA', 'u1', 'stackKey', '/tmp/log', '/tmp/config.json');
+    await expect(
+      updateEntryCli('NA', 'u1', 'stackKey', '/tmp/log', '/tmp/config.json')
+    ).rejects.toThrow('Command failed with exit code 1');
 
     const entries = mockAppendFileSync.mock.calls
       .map((c) => {
@@ -159,7 +165,7 @@ describe('updateEntryCli.service', () => {
       })
       .filter(Boolean);
     expect(entries.some((e) => e.message?.includes('Command failed with exit code 1'))).toBe(true);
-    // the failed command bubbles into the catch block
+    // the failed command bubbles into the catch block, which logs before rethrowing
     const written = mockAppendFileSync.mock.calls.map((c) => String(c[1]));
     expect(written.some((l) => l.includes('Failed to update entries'))).toBe(true);
   });

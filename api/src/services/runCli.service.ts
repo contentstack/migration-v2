@@ -145,8 +145,7 @@ const runCommand = (
 const writeFailureMarker = async (
   isTest: boolean,
   projectId: string,
-  transformePath: string,
-  loggerPath?: string
+  transformePath: string
 ): Promise<void> => {
   try {
     const failureLogEntry = {
@@ -155,9 +154,6 @@ const writeFailureMarker = async (
       timestamp: new Date().toISOString(),
     };
     fs.appendFileSync(transformePath, JSON.stringify(failureLogEntry) + '\n');
-    if (loggerPath && loggerPath !== transformePath) {
-      fs.appendFileSync(loggerPath, JSON.stringify(failureLogEntry) + '\n');
-    }
   } catch (logErr) {
     console.error('Error writing failure marker to log file:', logErr);
   }
@@ -291,52 +287,15 @@ export const runCli = async (
       // the rest of the migration. Only a non-zero exit (handled below, in the catch block)
       // means nothing happened and the run needs a full retry.
 
-      // Write the completion message ONCE in the format the UI expects
-      if (isTest) {
-        const directLogEntry = {
-          level: 'info',
-          message: 'Test Migration Process Completed',
-          timestamp: new Date().toISOString(),
-        };
-
-        // Write to the transform path (main log file) - ONLY ONCE
-        fs.appendFileSync(
-          transformePath,
-          JSON.stringify(directLogEntry) + '\n'
-        );
-
-        // Also write to backup log path if different
-        if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
-        }
-      } else {
-        const directLogEntry = {
-          level: 'info',
-          message: 'Migration Process Completed',
-          timestamp: new Date().toISOString(),
-        };
-
-        // Write to the transform path (main log file) - ONLY ONCE
-        fs.appendFileSync(
-          transformePath,
-          JSON.stringify(directLogEntry) + '\n'
-        );
-
-        // Also write to backup log path if different
-        if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
-        }
-        await ProjectModelLowdb.read();
-        const projectData = ProjectModelLowdb.chain
-          .get("projects")
-          .find({ id: projectId })
-          .value();
-        const iteration = projectData?.iteration || 1;
-        await writeUidMapping(backupPath, projectId, iteration);
-        await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
-      }
-
-      // Make sure we have the latest data
+      // Do all post-import bookkeeping BEFORE writing the completion marker. If any of it
+      // throws, execution falls straight to the catch block below, which is then the only
+      // thing that ever writes a terminal marker for this run — so the log can never end up
+      // with both 'Completed' and 'Failed' for the same run. (It used to: the marker was
+      // written first, so a later throw here — e.g. from writeUidMapping or a lowdb write —
+      // would append 'Failed' after 'Completed' was already there, and
+      // MigrationLogViewer.tsx fires both its success and failure effects in the same pass,
+      // leaving migrationCompleted's final value dependent on dispatch order even though the
+      // backend had already persisted `isMigrationCompleted: true`.)
       await ProjectModelLowdb.read();
       const projectIndex = ProjectModelLowdb.chain
         .get('projects')
@@ -364,6 +323,10 @@ export const runCli = async (
 
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
+        const iteration = ProjectModelLowdb.data.projects[projectIndex]?.iteration || 1;
+        await writeUidMapping(backupPath, projectId, iteration);
+        await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
+
         // Direct modification might be more reliable
         ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
           true;
@@ -394,6 +357,18 @@ export const runCli = async (
           );
           await recordMigratedLocales(projectId, ranLocales);
         }
+      }
+
+      // Write the completion message ONCE, in the format the UI expects, only now that
+      // every side effect above has actually succeeded.
+      const directLogEntry = {
+        level: 'info',
+        message: isTest ? 'Test Migration Process Completed' : 'Migration Process Completed',
+        timestamp: new Date().toISOString(),
+      };
+      fs.appendFileSync(transformePath, JSON.stringify(directLogEntry) + '\n');
+      if (loggerPath && loggerPath !== transformePath) {
+        fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
       }
     } else {
       console.info('User not found.');

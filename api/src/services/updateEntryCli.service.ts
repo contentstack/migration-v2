@@ -246,6 +246,13 @@ export const updateEntryCli = async (
       timestamp: new Date().toISOString(),
     };
     fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry8) + '\n');
+    // Rethrow instead of swallowing: migration.service.ts relies on this call resolving
+    // only on genuine success to decide whether it's safe to call
+    // recordDeltaMigratedLocales. Swallowing here made that call unconditional — every
+    // failure (auth, stack import, or now a summarized "N entries failed to update" from
+    // entry-update-script.cjs) still got recorded as migrated, silently skipping the
+    // affected locales on every future restart.
+    throw error;
   }
 };
 

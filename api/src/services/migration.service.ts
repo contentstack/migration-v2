@@ -1258,6 +1258,10 @@ const startMigration = async (req: Request): Promise<any> => {
       configFilePath = ensureUpdateConfigFile(safePid, iteration);
     }
 
+    // Tracks whether updateEntryCli actually succeeded, so recordDeltaMigratedLocales and
+    // the terminal marker below reflect what really happened rather than assuming success.
+    let updateEntryCliFailed = false;
+
     if (configFilePath) {
       enrichConfigWithAssetMapping(
         configFilePath,
@@ -1276,27 +1280,43 @@ const startMigration = async (req: Request): Promise<any> => {
         assetUpdates,
         safeDeltaMigrationLogPath
       );
-      await utilsUpdateCli?.updateEntryCli(
-        region,
-        user_id,
-        project?.destination_stack_id,
-        safeDeltaMigrationLogPath || '',
-        configFilePath
-      );
+      try {
+        await utilsUpdateCli?.updateEntryCli(
+          region,
+          user_id,
+          project?.destination_stack_id,
+          safeDeltaMigrationLogPath || '',
+          configFilePath
+        );
+      } catch (error) {
+        // updateEntryCli now rethrows instead of swallowing (see
+        // updateEntryCli.service.ts) — catch it here specifically so a failure can't skip
+        // the terminal-marker write below and leave the UI stuck, while still preventing
+        // recordDeltaMigratedLocales from running on a run that didn't actually succeed.
+        updateEntryCliFailed = true;
+        await customLogger(
+          projectId,
+          destinationStackId,
+          'error',
+          `Entry update/localize CLI failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
 
       // Record every locale that ACTUALLY ran this iteration, AFTER the update/localize CLI
       // resolves — moved out of runCli.service.ts because the previous position recorded
-      // locales before this step wrote them, so a silent failure here (updateEntryCli
-      // swallows errors — see updateEntryCli.service.ts:240-249) would permanently skip the
-      // affected locales on every future restart.
-      await recordDeltaMigratedLocales(
-        projectId,
-        safePid,
-        iteration,
-        project,
-        destinationStackId,
-        configFilePath,
-      );
+      // locales before this step wrote them. Skipped entirely when the update CLI failed:
+      // recording it anyway would mark locales migrated that were never actually localized,
+      // silently skipping them on every future restart.
+      if (!updateEntryCliFailed) {
+        await recordDeltaMigratedLocales(
+          projectId,
+          safePid,
+          iteration,
+          project,
+          destinationStackId,
+          configFilePath,
+        );
+      }
     }
     else{
       await customLogger(projectId, destinationStackId, 'warn', 'No config file generated for delta migration; skipping update CLI step.');
@@ -1316,21 +1336,18 @@ const startMigration = async (req: Request): Promise<any> => {
     }
 
     // Guaranteed terminal signal for the delta path, written unconditionally regardless of
-    // which branch above ran or whether updateEntryCli succeeded. MigrationLogViewer.tsx
-    // requires exactly 'Entry Update Process Completed' on iteration > 1 to leave the
-    // execution-logs spinner — but that string is only ever written by updateEntryCli's own
-    // success path (updateEntryCli.service.ts:235). Two real delta scenarios never reach it:
-    // no config file at all (nothing selected to update, no asset updates — the `else`
-    // branch above), and updateEntryCli throwing internally (it catches its own error and
-    // only logs 'Failed to update entries...', never rethrows). Without this, the user gets
-    // stuck on Execution Logs forever after an otherwise-successful migration. Writing this
-    // here, after both branches, means the client's check is satisfied every time regardless
-    // of which path executed.
+    // which branch above ran, so the user never gets stuck on Execution Logs forever with no
+    // signal either way. MigrationLogViewer.tsx requires exactly 'Entry Update Process
+    // Completed' on iteration > 1 to leave the execution-logs spinner and show success — but
+    // it now also recognizes 'Entry Update Process Failed' as an equally terminal (but
+    // failing) signal, mirroring runCli.service.ts's non-delta 'Migration Process Failed'.
+    // Reflects updateEntryCliFailed (set above) rather than assuming success, since
+    // updateEntryCli no longer swallows its own failures.
     if (safeDeltaMigrationLogPath) {
       try {
         const terminalLogEntry = {
-          level: 'info',
-          message: 'Entry Update Process Completed',
+          level: updateEntryCliFailed ? 'error' : 'info',
+          message: updateEntryCliFailed ? 'Entry Update Process Failed' : 'Entry Update Process Completed',
           methodName: 'startMigration',
           timestamp: new Date().toISOString(),
         };
