@@ -53,6 +53,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hasShownCompletionNotification, setHasShownCompletionNotification] = useState(false);
+  const [hasShownFailureNotification, setHasShownFailureNotification] = useState(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector(
@@ -133,6 +134,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   useEffect(() => {
     if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
       setHasShownCompletionNotification(false);
+      setHasShownFailureNotification(false);
       setLogs([{ message: 'Migration logs will appear here once the process begins.', level: '' }]);
     }
   }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
@@ -253,6 +255,40 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       } catch (error) {
         console.error('Invalid JSON string', error);
       }
+    }
+
+    // The bulk-import CLI can hard-fail instead of completing — runCli.service.ts writes
+    // 'Migration Process Failed' in that case. Without this check the UI would otherwise
+    // wait forever for a completion message that will never arrive (see runCli.service.ts's
+    // catch block). Reset migrationStarted so "Execute Migration" becomes clickable again
+    // instead of leaving the run permanently stuck on the spinner.
+    const hasFailureMessage = logs?.some(
+      (log) => log?.message === 'Migration Process Failed'
+    );
+    if (migrationStarted && hasFailureMessage && !hasShownFailureNotification) {
+      setHasShownFailureNotification(true);
+
+      dispatch(
+        updateNewMigrationData({
+          ...newMigrationData,
+          migration_execution: {
+            ...newMigrationData?.migration_execution,
+            migrationStarted: false,
+            migrationCompleted: false
+          }
+        })
+      );
+
+      Notification({
+        notificationContent: {
+          text: 'Migration failed. Check the execution logs above for details, then try again.'
+        },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'error'
+      });
     }
   }, [logs, newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.iteration]);
 
