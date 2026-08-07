@@ -29,8 +29,13 @@ const useMeasuredBoxHeight = (ref: React.RefObject<HTMLElement | null>): number 
     };
 
     measure();
+    // Observing the box itself only reports when ITS OWN size changes — but since we're the
+    // ones setting that size, it won't fire when the chrome ABOVE the box (stepper, project
+    // title) grows or shrinks and shifts the box's `top` without changing the box's own
+    // dimensions. Observe `document.body` instead: any reflow above this box changes body's
+    // rendered size too, which is exactly the drift this hook exists to react to.
     const ro = new ResizeObserver(measure);
-    if (ref.current) ro.observe(ref.current);
+    ro.observe(document.body);
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();

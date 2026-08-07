@@ -223,6 +223,41 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
           };
 
           dispatch(updateNewMigrationData(newMigrationObj));
+        } else if (message === 'Test Migration Process Failed') {
+          // runCli.service.ts writes this when the test-migration CLI import hard-fails
+          // (bad auth, stack not found, etc.) instead of completing. Without handling it
+          // here this component only ever recognizes the *Completed* string, so a failed
+          // test migration would spin forever and leave isTestMigrationStarted: true in
+          // local storage across reloads with no way to retry.
+          setisLogsLoading(false);
+
+          saveStateToLocalStorage(`testmigration_${projectId}`, {
+            isTestMigrationCompleted: false,
+            isTestMigrationStarted: false
+          });
+
+          Notification({
+            notificationContent: {
+              text: 'Test migration failed. Check the execution logs above for details, then try again.'
+            },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'error'
+          });
+          sendDataToParent?.(false);
+
+          dispatch(
+            updateNewMigrationData({
+              ...newMigrationData,
+              test_migration: {
+                ...newMigrationData?.test_migration,
+                isMigrationComplete: false,
+                isMigrationStarted: false
+              }
+            })
+          );
         }
       } catch (error) {
         console.error('Invalid JSON string', error);

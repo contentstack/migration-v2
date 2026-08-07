@@ -215,10 +215,21 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     const requiredTerminalMessage = isDeltaIteration
       ? 'Entry Update Process Completed'
       : 'Migration Process Completed';
+    const requiredFailureMessage = isDeltaIteration
+      ? 'Entry Update Process Failed'
+      : 'Migration Process Failed';
     const hasTerminalMessage = logs?.some(
       (log) => log?.message === requiredTerminalMessage
     );
-    if (migrationStarted && hasTerminalMessage) {
+    // Mutually exclusive with the failure branch below: the backend now writes the
+    // completion marker only after every prior step actually succeeded (see
+    // runCli.service.ts / migration.service.ts), so a run's log should never carry both —
+    // but checking here too means a single pass never fires both notifications even if it
+    // somehow did.
+    const hasFailureMessage = logs?.some(
+      (log) => log?.message === requiredFailureMessage
+    );
+    if (migrationStarted && hasTerminalMessage && !hasFailureMessage) {
       try {
         const message = 'Migration Process Completed';
 
@@ -257,14 +268,12 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       }
     }
 
-    // The bulk-import CLI can hard-fail instead of completing — runCli.service.ts writes
-    // 'Migration Process Failed' in that case. Without this check the UI would otherwise
-    // wait forever for a completion message that will never arrive (see runCli.service.ts's
-    // catch block). Reset migrationStarted so "Execute Migration" becomes clickable again
-    // instead of leaving the run permanently stuck on the spinner.
-    const hasFailureMessage = logs?.some(
-      (log) => log?.message === 'Migration Process Failed'
-    );
+    // The bulk-import CLI (non-delta) or the update/localize CLI (delta) can hard-fail
+    // instead of completing — runCli.service.ts / migration.service.ts write
+    // 'Migration Process Failed' / 'Entry Update Process Failed' respectively in that case.
+    // Without this check the UI would otherwise wait forever for a completion message that
+    // will never arrive. Reset migrationStarted so "Execute Migration" becomes clickable
+    // again instead of leaving the run permanently stuck on the spinner.
     if (migrationStarted && hasFailureMessage && !hasShownFailureNotification) {
       setHasShownFailureNotification(true);
 
