@@ -28,6 +28,22 @@ export interface StepGate {
   blockedReason?: string;
   /** The panel's own work. Resolve `true` to allow the wizard to move on. */
   advance?: () => Promise<boolean>;
+  /**
+   * A status line the panel resolved itself, overriding the chrome's.
+   *
+   * The chrome builds its own from `statusLineFor(step, stepContext)`, and that
+   * context is assembled by `WizardChrome` from the *persisted* project — which
+   * cannot describe live in-panel state. The audit step's copy depends on the
+   * running scan and the user's unsaved exclusions, so only the panel can
+   * resolve it. Deliberately the finished string rather than a context object:
+   * a string is a primitive and re-registers correctly through the dependency
+   * list below, where an object literal would change identity every render.
+   *
+   * Panels must still resolve it via `statusLineFor` so the copy keeps coming
+   * from the shared step definition — this channel decides *who computes it*,
+   * not who owns the wording.
+   */
+  statusLine?: string;
 }
 
 /** A step that registers nothing is treated as satisfied (FR-6.5). */
@@ -102,13 +118,13 @@ export const StepGateProvider: FC<{ onAdvanced: () => void; children: ReactNode 
 export const useRegisterStepGate = (gate: StepGate): (() => Promise<void>) => {
   const ctx = useContext(StepGateContext);
   const register = ctx?.registerGate;
-  const { satisfied, blockedReason, advance } = gate;
+  const { satisfied, blockedReason, advance, statusLine } = gate;
 
   useEffect(() => {
     if (!register) return;
-    register({ satisfied, blockedReason, advance });
+    register({ satisfied, blockedReason, advance, statusLine });
     return () => register(null);
-  }, [register, satisfied, blockedReason, advance]);
+  }, [register, satisfied, blockedReason, advance, statusLine]);
 
   const runLocally = useCallback(async () => {
     if (!satisfied || !advance) return;

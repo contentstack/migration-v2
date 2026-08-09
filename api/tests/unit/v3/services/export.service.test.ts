@@ -58,12 +58,20 @@ vi.mock("../../../../v3/models/project.store.js", () => ({
   setV3Graph: mockSetGraph,
 }));
 
-const { mockGetCts, mockGetCounts, mockGetAllGlobalFields, mockGetAllAssets, mockGetAllEntries } = vi.hoisted(() => ({
+const {
+  mockGetCts,
+  mockGetCounts,
+  mockGetAllGlobalFields,
+  mockGetAllAssets,
+  mockGetAllEntries,
+  mockGetAllLocales,
+} = vi.hoisted(() => ({
   mockGetCts: vi.fn(),
   mockGetCounts: vi.fn(),
   mockGetAllGlobalFields: vi.fn(() => Promise.resolve([])),
   mockGetAllAssets: vi.fn(() => Promise.resolve([])),
   mockGetAllEntries: vi.fn(() => Promise.resolve([])),
+  mockGetAllLocales: vi.fn(() => Promise.resolve([{ uid: "lm", code: "en-us", fallback_locale: null }])),
 }));
 vi.mock("../../../../v3/services/csManagement.service.js", () => ({
   csManagement: {
@@ -72,6 +80,7 @@ vi.mock("../../../../v3/services/csManagement.service.js", () => ({
     getAllGlobalFields: mockGetAllGlobalFields,
     getAllAssets: mockGetAllAssets,
     getAllEntries: mockGetAllEntries,
+    getAllLocales: mockGetAllLocales,
   },
 }));
 
@@ -113,6 +122,10 @@ beforeEach(() => {
   mockWriteStackFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: [] }));
   mockWriteUploadedFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/export", failedAssets: [] }));
   mockStackDataDir.mockImplementation((id: string) => `/fake/cmsMigrationData/${id}`);
+  // Single-locale stack by default; the multi-locale pair overrides this.
+  mockGetAllLocales.mockImplementation(() =>
+    Promise.resolve([{ uid: "lm", code: "en-us", fallback_locale: null }])
+  );
 });
 
 describe("v3 export.service", () => {
@@ -423,18 +436,104 @@ describe("v3 export.service", () => {
     expect(job.status).toBe("succeeded");
     expect(mockGetAllGlobalFields).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
     expect(mockGetAllAssets).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
-    expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", "blog");
+    expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", "blog", "en-us");
     expect(mockStackDataDir).toHaveBeenCalledWith("blt1");
     expect(mockWriteStackFolder).toHaveBeenCalledWith(
       expect.objectContaining({
         contentTypes: [{ uid: "blog", title: "Blog Post", schema: [] }],
         globalFields: [{ uid: "seo", title: "SEO" }],
         assets: [{ uid: "a1" }, { uid: "a2" }],
-        entriesByContentType: [{ ctUid: "blog", entries: [{ uid: "e1" }, { uid: "e2" }, { uid: "e3" }] }],
+        // 2026-08-05: locale-tagged groups, plus the real locale objects.
+        entryGroups: [
+          { ctUid: "blog", locale: "en-us", entries: [{ uid: "e1" }, { uid: "e2" }, { uid: "e3" }] },
+        ],
+        locales: [{ uid: "lm", code: "en-us", fallback_locale: null }],
         destDir: "/fake/cmsMigrationData/blt1",
       })
     );
     expect(job.logs.some((l) => l.msg.includes("Export data saved") && l.msg.includes("/fake/cmsMigrationData/blt1"))).toBe(true);
+  });
+
+  /*
+    2026-08-05 — every locale, not just the master.
+
+    Measured against a Contentstack CLI export of the same stack: the CLI captured
+    28 entries across de(9) / fr(9) / en-us(10); our export captured 10 — en-us
+    only. `getAllEntries` defaults its `locale` argument and the export never
+    passed one, so every non-master-locale entry was dropped silently. A migration
+    would have reported success while leaving 64% of the content behind, with
+    nothing in the UI to hint at it.
+  */
+  it("(locales, positive) entries are fetched for every locale of the stack, not just the master", async () => {
+    mockGetCts.mockResolvedValue([
+      { uid: "blog", title: "Blog Post", schema: [] },
+      { uid: "author", title: "Author", schema: [] },
+    ]);
+    mockGetCounts.mockResolvedValue({ contentTypes: 2, globalFields: 0, assets: 0, entries: 6 });
+    mockGetAllLocales.mockResolvedValue([
+      { uid: "lm", code: "en-us", fallback_locale: null },
+      { uid: "ld", code: "de", fallback_locale: "en-us" },
+      { uid: "lf", code: "fr", fallback_locale: "en-us" },
+    ]);
+    mockGetAllEntries.mockImplementation((_tp: any, _k: string, _b: string, ctUid: string, locale: string) =>
+      Promise.resolve([{ uid: `${ctUid}-${locale}` }])
+    );
+
+    const jobId = startExportJob({
+      projectId: "P1",
+      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main", scope: "whole", selectedModules: [] } },
+      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
+    } as any);
+    const job = await settle(jobId);
+
+    expect(job.status).toBe("succeeded");
+    // Two content types × three locales — every combination, none skipped.
+    expect(mockGetAllEntries).toHaveBeenCalledTimes(6);
+    for (const ct of ["blog", "author"]) {
+      for (const locale of ["en-us", "de", "fr"]) {
+        expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", ct, locale);
+      }
+    }
+    // The locale is carried through to the writer, so each group lands in its own
+    // entries/<ct>/<locale>/ folder rather than all collapsing into one.
+    const { entryGroups } = mockWriteStackFolder.mock.calls[0][0] as any;
+    expect(entryGroups).toHaveLength(6);
+    expect(entryGroups).toEqual(
+      expect.arrayContaining([
+        { ctUid: "blog", locale: "de", entries: [{ uid: "blog-de" }] },
+        { ctUid: "author", locale: "fr", entries: [{ uid: "author-fr" }] },
+      ])
+    );
+    expect(mockGetAllLocales).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
+  });
+
+  /*
+    Negative — taxonomy #1 (empty data): the locale list comes back empty.
+
+    The export must still fetch the master locale rather than producing an empty
+    bundle. Iterating an empty locale array would mean zero `getAllEntries` calls
+    and an export containing no entries at all — a total content loss dressed up
+    as a successful job, which is strictly worse than the single-locale bug being
+    fixed here.
+  */
+  it("(locales, negative) an empty locale list still exports en-us rather than nothing", async () => {
+    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
+    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 0, entries: 1 });
+    mockGetAllLocales.mockResolvedValue([]);
+    mockGetAllEntries.mockResolvedValue([{ uid: "e1" }]);
+
+    const jobId = startExportJob({
+      projectId: "P1",
+      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main", scope: "whole", selectedModules: [] } },
+      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
+    } as any);
+    const job = await settle(jobId);
+
+    expect(job.status).toBe("succeeded");
+    expect(mockGetAllEntries).toHaveBeenCalledTimes(1);
+    expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", "blog", "en-us");
+    const { entryGroups } = mockWriteStackFolder.mock.calls[0][0] as any;
+    expect(entryGroups).toEqual([{ ctUid: "blog", locale: "en-us", entries: [{ uid: "e1" }] }]);
   });
 
   // A stack whose assets partly fail to download must still succeed overall

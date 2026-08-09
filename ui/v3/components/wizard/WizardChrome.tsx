@@ -7,6 +7,7 @@ import { useWizardSource } from './useWizardSource';
 import WizardAppBar from './WizardAppBar';
 import WizardFooter from './WizardFooter';
 import WizardStepTracker from './WizardStepTracker';
+import WizardToast from './WizardToast';
 
 /**
  * The persistent frame every step panel renders inside (feature.md UC-1, UC-6).
@@ -46,6 +47,9 @@ const WizardChrome: FC<{ children?: ReactNode }> = ({ children }) => {
           style={{ flex: 1, maxWidth: 1100, width: '100%', margin: '0 auto', padding: '24px' }}
         >
           {children}
+          {/* Shared across every step, so Content mapping, Preview and Migrate reuse it
+              rather than each growing its own (cs-audit-report FR-9.1). */}
+          <WizardToast />
         </div>
 
         <WizardFooter

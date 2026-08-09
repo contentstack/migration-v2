@@ -100,10 +100,52 @@ async function writeAssetFiles(assets: any[], destDir: string): Promise<string[]
   return failed;
 }
 
-export interface BundleFolderInput extends BundleWriterInput {
+/** One content type's entries for ONE locale — the unit the entries tree stores. */
+export interface EntryGroup {
+  ctUid: string;
+  locale: string;
+  entries: any[];
+}
+
+export interface BundleFolderInput {
+  contentTypes: any[];
+  globalFields: any[];
+  assets: any[];
+  /**
+   * Keyed by content type AND locale (2026-08-05). Previously keyed by content
+   * type alone, which forced every entry into a single locale folder and was how
+   * non-master-locale content came to be dropped from exports entirely.
+   */
+  entryGroups: EntryGroup[];
+  /** The stack's complete locale objects, from `csManagement.getAllLocales`. */
+  locales: any[];
   /** Real, absolute destination directory — a folder under cmsMigrationData/. */
   destDir: string;
 }
+
+/**
+ * Splits the locale list the way a real Contentstack export does: the master
+ * locale (the one with no `fallback_locale`) goes to `master-locale.json`, every
+ * other locale to `locales.json`. Verified against a CLI export — `locales.json`
+ * held de and fr with `fallback_locale: "en-us"`, and `master-locale.json` held
+ * en-us alone with `fallback_locale: null`.
+ *
+ * When no locale declares itself master, the first is promoted rather than
+ * leaving `master-locale.json` empty. An empty master file is not a neutral
+ * outcome: the import step reads it to decide where content lands, so an empty one
+ * silently strands every entry.
+ */
+const splitLocales = (
+  locales: any[]
+): { master: any | undefined; others: any[] } => {
+  const list = locales ?? [];
+  const masterIndex = list.findIndex((l) => !l?.fallback_locale);
+  const idx = masterIndex >= 0 ? masterIndex : list.length ? 0 : -1;
+  return {
+    master: idx >= 0 ? list[idx] : undefined,
+    others: list.filter((_, i) => i !== idx),
+  };
+};
 
 export interface BundleFolderResult {
   destDir: string;
@@ -120,7 +162,6 @@ export interface BundleFolderResult {
  */
 export const writeStackBundleFolder = async (input: BundleFolderInput): Promise<BundleFolderResult> => {
   const { destDir } = input;
-  const locale = input.locale ?? "en-us";
 
   // Start clean so a re-export never leaves stale files from a previous,
   // differently-shaped export sitting alongside the new ones.
@@ -138,15 +179,34 @@ export const writeStackBundleFolder = async (input: BundleFolderInput): Promise<
   writeJsonFile(path.join(destDir, "assets", "index.json"), toUidMap(input.assets));
   const failedAssets = await writeAssetFiles(input.assets, destDir);
 
-  for (const { ctUid, entries } of input.entriesByContentType) {
+  // One folder per content type AND locale — `entries/<ct>/<locale>/<locale>.json`,
+  // the shape a real Contentstack export uses.
+  for (const { ctUid, locale, entries } of input.entryGroups) {
     writeJsonFile(path.join(destDir, "entries", ctUid, locale, "index.json"), { "1": `${locale}.json` });
     writeJsonFile(path.join(destDir, "entries", ctUid, locale, `${locale}.json`), toUidMap(entries));
   }
 
-  writeJsonFile(path.join(destDir, "locales", "locales.json"), {});
-  writeJsonFile(path.join(destDir, "locales", "master-locale.json"), {
-    [randomUUID().replace(/-/g, "")]: { code: locale, fallback_locale: null, uid: "master", name: locale },
-  });
+  // The real locale objects, keyed by their real uids. Previously `locales.json`
+  // was a hardcoded `{}` and `master-locale.json` was synthesised from a random
+  // uid and whatever locale code the caller happened to pass — so the destination
+  // panel's master-locale mapping had nothing true to read.
+  const { master, others } = splitLocales(input.locales);
+  writeJsonFile(path.join(destDir, "locales", "locales.json"), toUidMap(others));
+  writeJsonFile(
+    path.join(destDir, "locales", "master-locale.json"),
+    master
+      ? toUidMap([master])
+      : // No locales at all: keep a valid, self-consistent master rather than an
+        // empty file the import step would read as "nowhere to put content".
+        {
+          [randomUUID().replace(/-/g, "")]: {
+            code: "en-us",
+            fallback_locale: null,
+            uid: "master",
+            name: "en-us",
+          },
+        }
+  );
   writeJsonFile(path.join(destDir, "taxonomies", "taxonomies.json"), {});
 
   writeJsonFile(path.join(destDir, "export-info.json"), { contentVersion: 2, exportedAt: new Date().toISOString() });

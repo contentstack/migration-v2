@@ -364,6 +364,106 @@ describe("v3 csManagement.service — stack methods", () => {
     );
   });
 
+  /*
+    2026-08-05 — publish state.
+
+    The exported entries carried NO `publish_details` key at all (verified: 0 of
+    65 entries across every file in both exported stacks), because Contentstack's
+    CMA does not return it on the entries LIST endpoint unless asked. A reference
+    export taken with the Contentstack CLI has it on every entry — empty array
+    where the record is published nowhere, one row per environment+locale where it
+    is. Without it the Audit step's "unpublished entries" check has no data.
+  */
+  it("(publish details, positive) getAllEntries asks Contentstack for publish_details", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockResolvedValue({ data: { count: 0, entries: [] } });
+
+    await csManagement.getAllEntries(TP, "blt1", "main", "blog");
+
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining("include_publish_details=true"),
+      expect.anything()
+    );
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary/default): the caller's locale reaches the URL
+    instead of silently collapsing to the `en-us` default.
+
+    This is the regression guard for the bug being fixed. The export pulled ONE
+    locale, so a three-locale stack exported 10 of its 28 entries and the other 18
+    were dropped with no error — a migration would have reported success while
+    leaving 64% of the content behind. Asserting the NON-default locale is what
+    catches a reintroduced default.
+  */
+  it("(publish details, negative) a non-default locale is requested verbatim, not collapsed to en-us", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockResolvedValue({ data: { count: 0, entries: [] } });
+
+    await csManagement.getAllEntries(TP, "blt1", "main", "blog", "de");
+
+    const [url] = mockGet.mock.calls[0];
+    expect(url).toContain("locale=de");
+    expect(url).not.toContain("locale=en-us");
+  });
+
+  /*
+    `getAllLocales` belongs to the `getAll*` export family (raw, complete objects
+    for writing to disk), not the `list*` picker family — `listLocales` maps down
+    to `{code, name}` for a dropdown, which is not enough to write a real
+    `locales.json`: that needs `uid` and `fallback_locale` too, and
+    `fallback_locale` is what identifies the master locale.
+  */
+  it("(getAllLocales, positive) returns the complete locale objects for the stack's branch", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockResolvedValue({
+      data: {
+        locales: [
+          { uid: "l1", code: "en-us", name: "English - United States", fallback_locale: null },
+          { uid: "l2", code: "de", name: "German", fallback_locale: "en-us" },
+        ],
+      },
+    });
+
+    const locales = await csManagement.getAllLocales(TP, "blt1", "main");
+
+    // Complete objects, not narrowed — `fallback_locale` is load-bearing.
+    expect(locales).toEqual([
+      { uid: "l1", code: "en-us", name: "English - United States", fallback_locale: null },
+      { uid: "l2", code: "de", name: "German", fallback_locale: "en-us" },
+    ]);
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining("/locales"),
+      expect.objectContaining({
+        headers: expect.objectContaining({ api_key: "blt1", branch: "main" }),
+      })
+    );
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): Contentstack has already been observed
+    returning locales as an OBJECT rather than an array (that exact response broke
+    the create-stack locale picker with "((intermediate value) ?? []).map is not a
+    function"). Treated as an array this throws; the object form must be
+    normalised, because falling back to `[]` here would export zero locales and
+    therefore zero entries.
+  */
+  it("(getAllLocales, negative) an object-keyed response is normalised rather than dropped", async () => {
+    mockGetAuthtoken.mockResolvedValue("tok");
+    mockGet.mockResolvedValue({
+      data: {
+        locales: {
+          l1: { uid: "l1", code: "en-us", fallback_locale: null },
+          l2: { uid: "l2", code: "fr", fallback_locale: "en-us" },
+        },
+      },
+    });
+
+    const locales = await csManagement.getAllLocales(TP, "blt1", "main");
+
+    expect(locales.map((l: any) => l.code)).toEqual(["en-us", "fr"]);
+  });
+
   it("(export, positive) getAllGlobalFields returns the full real global field definitions", async () => {
     mockGetAuthtoken.mockResolvedValue("tok");
     mockGet.mockResolvedValue({

@@ -282,17 +282,54 @@ async function writeStackBundle(
 
     const globalFields = wants("globalFields") ? await csManagement.getAllGlobalFields(tp, apiKey, branch) : [];
     const assets = wants("assets") ? await csManagement.getAllAssets(tp, apiKey, branch) : [];
-    const entriesByContentType = wants("entries")
+
+    /*
+      Locales are fetched unconditionally, not as a selectable module: they are
+      needed to write locales.json/master-locale.json AND to know which locales to
+      pull entries for.
+
+      A stack always has at least a master locale, so an empty list means the call
+      returned nothing usable — fall back to en-us rather than iterating an empty
+      array, which would fetch zero entries and produce an empty bundle. A
+      successful job containing no content is worse than the bug this replaces.
+    */
+    const locales = await csManagement.getAllLocales(tp, apiKey, branch);
+    const localeCodes = locales.map((l: any) => l?.code).filter((c: unknown): c is string => !!c);
+    const codes = localeCodes.length ? localeCodes : ["en-us"];
+    if (codes.length > 1) {
+      pushLog(jobId, "DEBUG", `Exporting entries for ${codes.length} locales: ${codes.join(", ")}`);
+    }
+
+    /*
+      Every content type × every locale. Previously this fetched one locale per
+      content type (getAllEntries' default), which silently dropped all
+      non-master-locale content: a three-locale stack exported 10 of its 28
+      entries and the job still reported success.
+    */
+    const entryGroups = wants("entries")
       ? await mapWithConcurrency(
-          contentTypes.filter((ct) => ct?.uid),
+          contentTypes
+            .filter((ct) => ct?.uid)
+            .flatMap((ct) => codes.map((locale) => ({ ctUid: ct.uid as string, locale }))),
           EXPORT_ENTRIES_CONCURRENCY,
-          async (ct) => ({ ctUid: ct.uid, entries: await csManagement.getAllEntries(tp, apiKey, branch, ct.uid) })
+          async ({ ctUid, locale }) => ({
+            ctUid,
+            locale,
+            entries: await csManagement.getAllEntries(tp, apiKey, branch, ctUid, locale),
+          })
         )
       : [];
 
     if (assets.length) pushLog(jobId, "DEBUG", `Downloading ${assets.length} real asset file(s)…`);
     const destDir = stackDataDir(sanitizeForFilename(apiKey));
-    const { failedAssets } = await writeStackBundleFolder({ contentTypes, globalFields, assets, entriesByContentType, destDir });
+    const { failedAssets } = await writeStackBundleFolder({
+      contentTypes,
+      globalFields,
+      assets,
+      entryGroups,
+      locales,
+      destDir,
+    });
     if (failedAssets.length) {
       pushLog(jobId, "WARN", `${failedAssets.length} asset(s) failed to download and were skipped`);
     }

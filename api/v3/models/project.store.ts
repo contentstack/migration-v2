@@ -8,6 +8,7 @@ import {
   PROJECT_NAME_MAX,
 } from "../constants/project.js";
 import {
+  V3AuditDecisions,
   V3Destination,
   V3GraphSummary,
   V3LastExport,
@@ -256,6 +257,51 @@ export const getV3DestinationToken = async (
 ): Promise<V3StoredManagementToken | undefined> => {
   const project = await getV3Project(projectId, scope);
   return project?.destinationToken;
+};
+
+/**
+ * Stores the Audit step's include/exclude decisions on a project (cs-audit-report
+ * TR-10, DM-2).
+ *
+ * ⚠️ A **field-level** assignment, and that is a requirement rather than a style
+ * choice (trd.md TRR-7). This record also holds `destinationToken.secretEncrypted` —
+ * a permanent Contentstack write credential that cannot be re-read once lost — so the
+ * convenient `{...project, audit}` spread would destroy it. It would also silently
+ * overwrite `source.lastExport`, which the wizard's step gate reads to decide whether
+ * this step is reachable at all.
+ *
+ * Throws 404 for an unknown project rather than creating one: recording an audit
+ * decision must not become a second creation path (FR-9.9, FR-9.10).
+ */
+export const setV3AuditDecisions = async (
+  projectId: string,
+  decisions: V3AuditDecisions,
+  nowIso: string
+): Promise<void> => {
+  await db.read();
+  const existing = requireProject(projectId);
+
+  existing.audit = decisions;
+  existing.updated_at = nowIso;
+
+  await db.write();
+};
+
+/**
+ * Reads a project's audit decisions for a caller in scope, or `undefined` when the
+ * project is out of scope OR has never been audited.
+ *
+ * Those two cases are deliberately indistinguishable, matching every other scoped read
+ * in this store (NFR-6, EC-16). `undefined` for a never-audited project is also
+ * meaningful in its own right: it lets the panel tell "showing defaults" from "showing
+ * the user's choices", which an empty decision set could not.
+ */
+export const getV3AuditDecisions = async (
+  projectId: string,
+  scope: V3ProjectScope
+): Promise<V3AuditDecisions | undefined> => {
+  const project = await getV3Project(projectId, scope);
+  return project?.audit;
 };
 
 /**

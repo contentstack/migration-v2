@@ -4,6 +4,8 @@ import sourceReducer from './slice/source.slice';
 import destinationReducer from './slice/destination.slice';
 import sessionReducer from './slice/session.slice';
 import projectReducer from './slice/project.slice';
+import auditReducer from './slice/audit.slice';
+import toastReducer from './slice/toast.slice';
 
 /**
  * v3 store — fully independent from v2's store. Mounted via its own <Provider>
@@ -18,6 +20,9 @@ const rootReducer = combineReducers({
   destination: destinationReducer,
   session: sessionReducer,
   project: projectReducer,
+  audit: auditReducer,
+  // Shared by the whole wizard, not just the Audit step (cs-audit-report FR-9.1).
+  toast: toastReducer,
 });
 
 export const v3Store = configureStore({

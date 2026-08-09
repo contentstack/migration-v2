@@ -43,7 +43,10 @@ describe("v3 bundleWriter.service — writeStackBundleFolder", () => {
       contentTypes: [{ uid: "blog", title: "Blog Post", schema: [] }],
       globalFields: [{ uid: "seo", title: "SEO" }],
       assets: [{ uid: "a1", filename: "hero.png", url: "https://cdn.example/hero.png" }],
-      entriesByContentType: [{ ctUid: "blog", entries: [{ uid: "e1", title: "Welcome Post" }] }],
+      // 2026-08-05: entry groups are keyed by content type AND locale, and the
+      // real locale objects are supplied — see the multi-locale pair below.
+      entryGroups: [{ ctUid: "blog", locale: "en-us", entries: [{ uid: "e1", title: "Welcome Post" }] }],
+      locales: [{ uid: "l1", code: "en-us", name: "English - United States", fallback_locale: null }],
       destDir,
     });
 
@@ -69,7 +72,13 @@ describe("v3 bundleWriter.service — writeStackBundleFolder", () => {
     expect(readJsonFile(path.join(destDir, "entries/blog/en-us/en-us.json"))).toEqual({
       e1: { uid: "e1", title: "Welcome Post" },
     });
+    // Only a master locale exists, so `locales.json` — which holds the NON-master
+    // locales — is legitimately empty, while `master-locale.json` carries the real
+    // locale keyed by its real uid (previously a synthesised uid and a guessed code).
     expect(readJsonFile(path.join(destDir, "locales/locales.json"))).toEqual({});
+    expect(readJsonFile(path.join(destDir, "locales/master-locale.json"))).toEqual({
+      l1: { uid: "l1", code: "en-us", name: "English - United States", fallback_locale: null },
+    });
     expect(readJsonFile(path.join(destDir, "taxonomies/taxonomies.json"))).toEqual({});
     expect(readJsonFile(path.join(destDir, "export-info.json")).contentVersion).toBe(2);
   });
@@ -84,7 +93,8 @@ describe("v3 bundleWriter.service — writeStackBundleFolder", () => {
       contentTypes: [],
       globalFields: [],
       assets: [{ uid: "a1", filename: "broken.png", url: "https://cdn.example/broken.png" }],
-      entriesByContentType: [],
+      entryGroups: [],
+      locales: [],
       destDir,
     });
 
@@ -102,9 +112,95 @@ describe("v3 bundleWriter.service — writeStackBundleFolder", () => {
     fs.mkdirSync(destDir, { recursive: true });
     fs.writeFileSync(path.join(destDir, "stale-leftover.json"), "{}");
 
-    await writeStackBundleFolder({ contentTypes: [], globalFields: [], assets: [], entriesByContentType: [], destDir });
+    await writeStackBundleFolder({ contentTypes: [], globalFields: [], assets: [], entryGroups: [], locales: [], destDir });
 
     expect(fs.existsSync(path.join(destDir, "stale-leftover.json"))).toBe(false);
+  });
+
+  /*
+    2026-08-05 — multi-locale export.
+
+    The writer previously took entries keyed by content type only and wrote them
+    all under a single locale folder (`input.locale ?? "en-us"`), and wrote
+    `locales.json` as a hardcoded `{}` with a `master-locale.json` synthesised
+    from a random uid. Verified against a Contentstack CLI export of the same
+    stack: real exports split `locales.json` (every non-master locale, each with
+    its `fallback_locale`) from `master-locale.json` (the one whose
+    `fallback_locale` is null), and carry an `entries/<ct>/<locale>/` folder per
+    locale. Ours wrote 10 of that stack's 28 entries.
+  */
+  it("(multi-locale, positive) writes one entries folder per locale and splits master from non-master locales", async () => {
+    const destDir = path.join(TMP, "blt-locales");
+
+    await writeStackBundleFolder({
+      contentTypes: [{ uid: "blog", title: "Blog Post" }],
+      globalFields: [],
+      assets: [],
+      entryGroups: [
+        { ctUid: "blog", locale: "en-us", entries: [{ uid: "e1", locale: "en-us" }] },
+        { ctUid: "blog", locale: "de", entries: [{ uid: "e1", locale: "de" }] },
+        { ctUid: "blog", locale: "fr", entries: [{ uid: "e1", locale: "fr" }] },
+      ],
+      locales: [
+        { uid: "lm", code: "en-us", name: "English - United States", fallback_locale: null },
+        { uid: "ld", code: "de", name: "German", fallback_locale: "en-us" },
+        { uid: "lf", code: "fr", name: "French", fallback_locale: "en-us" },
+      ],
+      destDir,
+    });
+
+    // A folder per locale, each holding that locale's own records.
+    for (const loc of ["en-us", "de", "fr"]) {
+      expect(readJsonFile(path.join(destDir, `entries/blog/${loc}/${loc}.json`))).toEqual({
+        e1: { uid: "e1", locale: loc },
+      });
+      expect(readJsonFile(path.join(destDir, `entries/blog/${loc}/index.json`))).toEqual({
+        "1": `${loc}.json`,
+      });
+    }
+
+    // Non-master locales only, keyed by real uid.
+    expect(readJsonFile(path.join(destDir, "locales/locales.json"))).toEqual({
+      ld: { uid: "ld", code: "de", name: "German", fallback_locale: "en-us" },
+      lf: { uid: "lf", code: "fr", name: "French", fallback_locale: "en-us" },
+    });
+    // The master locale, alone, and NOT duplicated into locales.json above.
+    expect(readJsonFile(path.join(destDir, "locales/master-locale.json"))).toEqual({
+      lm: { uid: "lm", code: "en-us", name: "English - United States", fallback_locale: null },
+    });
+  });
+
+  /*
+    Negative — taxonomy #1 (missing data): no locale in the list has a null
+    `fallback_locale`, so the master cannot be identified from the data.
+
+    The writer must still produce a VALID `master-locale.json` — falling back to
+    the first locale — rather than an empty object. An empty master-locale.json is
+    not a neutral outcome: the import step reads it to decide where content lands,
+    so an empty one silently strands every entry.
+  */
+  it("(multi-locale, negative) an unidentifiable master locale falls back to the first locale, never an empty file", async () => {
+    const destDir = path.join(TMP, "blt-nomaster");
+
+    await writeStackBundleFolder({
+      contentTypes: [],
+      globalFields: [],
+      assets: [],
+      entryGroups: [],
+      locales: [
+        { uid: "l1", code: "de", name: "German", fallback_locale: "en-us" },
+        { uid: "l2", code: "fr", name: "French", fallback_locale: "en-us" },
+      ],
+      destDir,
+    });
+
+    expect(readJsonFile(path.join(destDir, "locales/master-locale.json"))).toEqual({
+      l1: { uid: "l1", code: "de", name: "German", fallback_locale: "en-us" },
+    });
+    // The one promoted to master is not also listed as a non-master locale.
+    expect(readJsonFile(path.join(destDir, "locales/locales.json"))).toEqual({
+      l2: { uid: "l2", code: "fr", name: "French", fallback_locale: "en-us" },
+    });
   });
 });
 

@@ -175,3 +175,19 @@
   animation: v3-progress-shimmer 1.5s ease-in-out infinite;
 }
 .v3-scope .v3-progress-step--active { animation: v3-progress-ring 1.4s ease-in-out infinite; }
+
+/* Audit: the check row that is currently running.
+
+   Deliberately animates background-color only. `v3-pulse` above scales to 1.3, which is
+   right for a small status dot and wrong for a full-width row — applied to the audit's
+   ~1000px check row it grew the row past both edges of its own card. Opacity is no good
+   either: it would fade the row's label along with its background. */
+@keyframes v3-audit-check-pulse {
+  0%, 100% { background-color: var(--surface-sunken); }
+  50%      { background-color: var(--surface-inset); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-scope .v3-audit-check--running { animation: none; }
+  .v3-scope .v3-audit-spinner { animation: none; border-top-color: var(--brand-strong); }
+}

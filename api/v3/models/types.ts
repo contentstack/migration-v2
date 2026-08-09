@@ -158,8 +158,33 @@ export interface V3Project {
    * only by `setV3DestinationToken` and read only by `getV3DestinationToken`.
    */
   destinationToken?: V3StoredManagementToken;
+  /**
+   * The Audit step's decisions. Absent means "never audited", which resolves to
+   * everything included — the same default a new project gets (FR-7.1).
+   */
+  audit?: V3AuditDecisions;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * The user's include/exclude choices from the Audit step (cs-audit-report DM-2).
+ *
+ * The ONLY part of the audit that lives on the project record. The findings — the
+ * computed inventory — live beside the export they derive from, because they are
+ * potentially megabytes, must die when the export is replaced, and this record is
+ * returned whole to the browser by the project listing (FR-7.9).
+ *
+ * Deliberately loose about which categories may appear: validation happens at the
+ * endpoint and resolution ignores anything non-excludable, so a hand-edited record
+ * cannot make the audit act on a category the UI never offered.
+ */
+export interface V3AuditDecisions {
+  /** Category-level standing policy — `unpublishedEntries` / `unusedAssets`. */
+  categories: Record<string, "include" | "exclude">;
+  /** Per-item overrides, keyed `entry:<ct>:<uid>:<locale>` or `asset:<uid>`. */
+  itemOverrides: Record<string, "include" | "exclude">;
+  updatedAt?: string;
 }
 
 /**

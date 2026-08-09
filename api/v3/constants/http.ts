@@ -9,6 +9,8 @@ export const HTTP_CODES = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  /** Used where a request is valid but the resource is not in a usable state. */
+  CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413,
   UNPROCESSABLE_CONTENT: 422,
   SERVER_ERROR: 500,

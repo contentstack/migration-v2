@@ -384,8 +384,18 @@ export const csManagement = {
     const all: any[] = [];
     let skip = 0;
     for (let page = 0; page < 500; page++) {
+      /*
+        `include_publish_details=true` is required — Contentstack's CMA omits
+        `publish_details` from the entries LIST response otherwise, and without it
+        the Audit step cannot tell a draft from a published entry. Verified: our
+        exports carried the key on 0 of 65 entries, while a CLI export of the same
+        stack has it on every one.
+
+        The value is an array of `{environment, locale, time, user, version}` rows —
+        empty when the record is published nowhere.
+      */
       const data = await csGet(
-        `${host}/content_types/${ctUid}/entries?locale=${locale}&include_count=true&skip=${skip}&limit=${limit}`,
+        `${host}/content_types/${ctUid}/entries?locale=${locale}&include_publish_details=true&include_count=true&skip=${skip}&limit=${limit}`,
         headers
       );
       const batch = data?.entries ?? [];
@@ -395,6 +405,29 @@ export const csManagement = {
       if (batch.length === 0 || skip >= total) break;
     }
     return all;
+  },
+
+  /**
+   * Every locale on a stack's branch, as the COMPLETE Contentstack objects.
+   *
+   * Belongs to the `getAll*` export family rather than the `list*` picker family:
+   * `listLocales` narrows to `{code, name}` for a dropdown, which cannot write a
+   * real `locales.json` — that needs `uid` (the file is keyed by it) and
+   * `fallback_locale` (a null one identifies the master locale).
+   *
+   * Not paged: a stack's locale count is small and `/locales` returns them all.
+   */
+  getAllLocales: async (
+    tp: TokenPayload | undefined,
+    stackApiKey: string,
+    branch?: string
+  ): Promise<any[]> => {
+    const headers = stackHeaders(await authHeaders(tp), stackApiKey, branch);
+    const data = await csGet(`${hostFor(tp?.region as string)}/locales`, headers);
+    // Normalised, not assumed to be an array: Contentstack has been observed
+    // returning locales as an object keyed by uid, which broke the create-stack
+    // picker with "((intermediate value) ?? []).map is not a function".
+    return asArray(data?.locales);
   },
 
   // ---- Destination panel (trd.md TR-11, TR-13, TR-14) ----
