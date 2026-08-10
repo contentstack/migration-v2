@@ -89,7 +89,12 @@ const runCommand = (
       }
     });
 
-    // For stderr handler
+    // For stderr handler — a per-entry/per-task failure (e.g. an "Entry localization
+    // failed" 422 from the management API) surfaces here even when the CLI's overall
+    // import still exits 0 and continues with the rest of the batch. Log it as an error
+    // line so it's visible in the execution log, but don't treat it as fatal — the CLI is
+    // deliberately best-effort per entry, and the exit code is still the source of truth
+    // for whether the run as a whole succeeded or needs a retry.
     cmdProcess.stderr.on('data', (data) => {
       const output = data.toString();
       process.stderr.write(output); // Keep colors in console
@@ -130,6 +135,43 @@ const runCommand = (
       }
     });
   });
+};
+
+/**
+ * Writes a distinct failure marker to the migration log(s) and clears the stuck
+ * "in progress" flag, so MigrationLogViewer.tsx — which only ever stops waiting on an
+ * exact terminal string — doesn't spin forever, and the run can be retried.
+ */
+const writeFailureMarker = async (
+  isTest: boolean,
+  projectId: string,
+  transformePath: string
+): Promise<void> => {
+  try {
+    const failureLogEntry = {
+      level: 'error',
+      message: isTest ? 'Test Migration Process Failed' : 'Migration Process Failed',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(transformePath, JSON.stringify(failureLogEntry) + '\n');
+  } catch (logErr) {
+    console.error('Error writing failure marker to log file:', logErr);
+  }
+  if (!isTest) {
+    try {
+      await ProjectModelLowdb.read();
+      const projectIndex = ProjectModelLowdb.chain
+        .get('projects')
+        .findIndex({ id: projectId })
+        .value();
+      if (projectIndex > -1) {
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+        await ProjectModelLowdb.write();
+      }
+    } catch (statusErr) {
+      console.error('Error resetting migration status after failure:', statusErr);
+    }
+  }
 };
 
 /**
@@ -234,59 +276,26 @@ export const runCli = async (
         transformePath
       ); // Pass the log file path here
 
-      // After the import command completes
+      // After the import command completes.
+      //
+      // Note: the CLI's import plugin runs best-effort per entry — a single entry failing
+      // (e.g. an "Entry localization failed" 422, logged as an 'error' line above by the
+      // stderr handler) does not stop it from continuing with and completing the rest of the
+      // batch, and it still exits 0. That's by design, so a run is treated as complete here
+      // whenever the process exits 0, even if some individual entries logged errors along the
+      // way — those errors remain visible in the execution log for follow-up, but don't block
+      // the rest of the migration. Only a non-zero exit (handled below, in the catch block)
+      // means nothing happened and the run needs a full retry.
 
-      // Write the completion message ONCE in the format the UI expects
-      if (isTest) {
-        const directLogEntry = {
-          level: 'info',
-          message: 'Test Migration Process Completed',
-          timestamp: new Date().toISOString(),
-        };
-
-        // Write to the transform path (main log file) - ONLY ONCE
-        fs.appendFileSync(
-          transformePath,
-          JSON.stringify(directLogEntry) + '\n'
-        );
-
-        // Also write to backup log path if different
-        if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
-        }
-      } else {
-        const directLogEntry = {
-          level: 'info',
-          message: 'Migration Process Completed',
-          timestamp: new Date().toISOString(),
-        };
-
-        // Write to the transform path (main log file) - ONLY ONCE
-        fs.appendFileSync(
-          transformePath,
-          JSON.stringify(directLogEntry) + '\n'
-        );
-
-        // Also write to backup log path if different
-        if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
-        }
-        await ProjectModelLowdb.read();
-        const projectData = ProjectModelLowdb.chain
-          .get("projects")
-          .find({ id: projectId })
-          .value();
-        const iteration = projectData?.iteration || 1;
-        await writeUidMapping(backupPath, projectId, iteration);
-        await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
-      }
-
-      // Keep the project status update code:
-      // ... rest of the code ...
-
-      // Add debug logs to track project index and test flag
-
-      // Make sure we have the latest data
+      // Do all post-import bookkeeping BEFORE writing the completion marker. If any of it
+      // throws, execution falls straight to the catch block below, which is then the only
+      // thing that ever writes a terminal marker for this run — so the log can never end up
+      // with both 'Completed' and 'Failed' for the same run. (It used to: the marker was
+      // written first, so a later throw here — e.g. from writeUidMapping or a lowdb write —
+      // would append 'Failed' after 'Completed' was already there, and
+      // MigrationLogViewer.tsx fires both its success and failure effects in the same pass,
+      // leaving migrationCompleted's final value dependent on dispatch order even though the
+      // backend had already persisted `isMigrationCompleted: true`.)
       await ProjectModelLowdb.read();
       const projectIndex = ProjectModelLowdb.chain
         .get('projects')
@@ -314,6 +323,10 @@ export const runCli = async (
 
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
+        const iteration = ProjectModelLowdb.data.projects[projectIndex]?.iteration || 1;
+        await writeUidMapping(backupPath, projectId, iteration);
+        await writePerLocaleEntryUidMapping(backupPath, projectId, iteration);
+
         // Direct modification might be more reliable
         ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
           true;
@@ -345,11 +358,29 @@ export const runCli = async (
           await recordMigratedLocales(projectId, ranLocales);
         }
       }
+
+      // Write the completion message ONCE, in the format the UI expects, only now that
+      // every side effect above has actually succeeded.
+      const directLogEntry = {
+        level: 'info',
+        message: isTest ? 'Test Migration Process Completed' : 'Migration Process Completed',
+        timestamp: new Date().toISOString(),
+      };
+      fs.appendFileSync(transformePath, JSON.stringify(directLogEntry) + '\n');
+      if (loggerPath && loggerPath !== transformePath) {
+        fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+      }
     } else {
       console.info('User not found.');
     }
   } catch (error) {
     console.error('🚀 ~ runCli ~ error:', error);
+    // The CLI import can hard-fail (e.g. a stack import validation error) after
+    // `runCommand` already logged the raw error, but nothing below this point ever ran —
+    // in particular the 'Migration Process Completed' terminal marker never got written.
+    // MigrationLogViewer.tsx only ever stops waiting when it sees that exact string, so
+    // without an explicit failure marker the UI spins forever with no way to retry.
+    await writeFailureMarker(isTest, projectId, transformePath);
   }
 };
 

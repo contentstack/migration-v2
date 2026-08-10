@@ -254,18 +254,25 @@ module.exports = async ({
             successMessage: 'Entries Updated Successfully',
             failedMessage: "Failed to update entries",
             task: async () => {
-                try {
-                    for (const contentType of contentTypes) {
-                        const entryUids = Object.keys(config[contentType]);
-                        console.info(`Processing content type: ${contentType}, entries: ${entryUids.length}`);
+                let totalCount = 0;
+                let failedCount = 0;
+                for (const contentType of contentTypes) {
+                    const entryUids = Object.keys(config[contentType]);
+                    console.info(`Processing content type: ${contentType}, entries: ${entryUids.length}`);
 
-                        for (const entryUid of entryUids) {
+                    for (const entryUid of entryUids) {
+                        totalCount++;
+                        // Declared outside the try so the catch below can still reference them
+                        // in its log message even if the failure happens before they're assigned.
+                        let locale;
+                        let realEntryUid = entryUid;
+                        try {
                             const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
                             // Per-locale config keys are "<csUid>::<locale>" with __locale/__csUid
                             // on the payload. Fall back to the bare key for legacy single-locale
                             // configs.
-                            const locale = updateData?.__locale;
-                            const realEntryUid = updateData?.__csUid || entryUid;
+                            locale = updateData?.__locale;
+                            realEntryUid = updateData?.__csUid || entryUid;
                             delete updateData?.__locale;
                             delete updateData?.__csUid;
                             const fetchOpts = locale ? { locale } : undefined;
@@ -333,12 +340,25 @@ module.exports = async ({
                                 await entry.update(updateOpts);
                             }
                             console.info(`Updated entry: ${realEntryUid}${locale ? ` (locale "${locale}")` : ''}`);
+                        } catch (error) {
+                            // A single entry's update failing (e.g. a Contentstack API validation
+                            // error such as "Entry localization failed") must not abort every
+                            // other entry still queued behind it — log and move on, matching
+                            // updateAssetTask's per-item error handling above. The failure is
+                            // still tracked and reported once, after every entry has been
+                            // attempted (see the throw below) — otherwise this task can never
+                            // fail, `Entry Update Process Completed` gets written even when every
+                            // entry failed, and `recordDeltaMigratedLocales` marks those locales
+                            // migrated purely from the config contents, silently skipping them on
+                            // the next delta iteration.
+                            failedCount++;
+                            console.error(`Failed to update entry ${realEntryUid}${locale ? ` (locale "${locale}")` : ''}:`, error?.message || error);
                         }
                     }
-                    console.info('All entries updated successfully');
-                } catch (error) {
-                    console.error(error);
-                    throw error;
+                }
+                console.info(`Processed ${totalCount} ${totalCount === 1 ? 'entry' : 'entries'} (${totalCount - failedCount} succeeded, ${failedCount} failed)`);
+                if (failedCount > 0) {
+                    throw new Error(`${failedCount} of ${totalCount} ${totalCount === 1 ? 'entry' : 'entries'} failed to update — see the log above for details.`);
                 }
             },
         };
