@@ -2496,20 +2496,6 @@ const getAssetMapping = async (req: Request) => {
     await uidMapperCurrent.read();
     const uidMapperPrev: any = iteration > 1 ? await getNearestPriorUidMapper(projectId, iteration) : null;
 
-    // Whether we actually have any uid data to resolve against yet. getUidMapperDb creates
-    // the file with an empty `assets: {}` default, so a fresh iteration directory (visited
-    // right after a restart, before this iteration's CLI import has run and written
-    // writeUidMapping's output) legitimately has none — distinct from "this project simply
-    // has no previously-migrated assets". Also true if any row already carries a
-    // pre-resolved uid from creation time (putTestData resolves it then, see ~line 280).
-    const hasAnyUidData =
-      Object.keys((uidMapperCurrent?.data as any)?.assets ?? {}).length > 0 ||
-      Object.keys((uidMapperPrev?.data as any)?.assets ?? {}).length > 0 ||
-      (assetMapping ?? []).some((item: any) => {
-        const uid = item?.contentstackAssetUid;
-        return uid != null && String(uid).trim() !== '';
-      });
-
     let uidEnriched = (assetMapping ?? []).map((item: any) => {
       if (!item) return item;
       const existing = item?.contentstackAssetUid;
@@ -2558,29 +2544,11 @@ const getAssetMapping = async (req: Request) => {
       return { ...item, status: 'ok' };
     });
 
-    // Delta migration intent: on iteration 2+ the Assets tab lists ONLY assets that
-    // were already migrated in a prior iteration — i.e. those with a Contentstack
-    // uid. The user selects which of those to update with the current file's newer
-    // version. Brand-new assets in this iteration have no prior uid; they upload
-    // automatically during the run and don't need a Map Entry row (nothing to
-    // select or update yet). Iteration 1 is untouched — everything is new then.
-    //
-    // Exception: always surface 'failed'/'missing' rows even without a uid. A brand-new
-    // asset that fails to download NEVER gets a Contentstack uid (it never successfully
-    // migrates), so the has-uid check alone would hide it from view forever — the user
-    // would have no way to discover or retry it.
-    // Only apply the delta filter once we actually have uid data to filter with —
-    // otherwise a race right after restart (this iteration's uid-mapper.json not written
-    // yet) would filter out EVERY row and render an empty tab indistinguishable from "no
-    // previously-migrated assets", which could be mistaken for correct behavior since
-    // CMG-1097 already gives that empty state a legitimate-looking layout.
-    const displayMapping = iteration > 1 && hasAnyUidData
-      ? enrichedMapping.filter((item: any) => {
-          const uid = item?.contentstackAssetUid;
-          const hasUid = uid != null && String(uid).trim() !== '';
-          return hasUid || item?.status === 'failed' || item?.status === 'missing';
-        })
-      : enrichedMapping;
+    // Show every asset regardless of iteration — brand-new-this-iteration assets
+    // alongside previously-migrated/updatable ones — matching getEntryMapping's
+    // behavior for entries. Consistent across all CMS connectors since this read
+    // path is shared.
+    const displayMapping = enrichedMapping;
 
     // Aggregate counts across the FULL (unpaginated, unsearched) visible set — the banner
     // needs "3 assets won't migrate" regardless of which page or search term is active.
