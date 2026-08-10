@@ -213,6 +213,7 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
     } else if (token_payload?.is_sso === false) {
       const authtoken = await getAuthtoken(token_payload?.region, token_payload?.user_id);
       headers.authtoken = authtoken;
+      console.log("headers", headers);
     } else {
       throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
     }
@@ -224,6 +225,7 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
       ]!}/locales?include_all=true`,
       headers: headers,
     });
+    console.log("res", res);
 
     if (err) {
       logger.error(

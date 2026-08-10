@@ -1,4 +1,5 @@
 import sitecoreValidator from './sitecore';
+import sitecoreFolderValidator from './sitecore/folder';
 import contentfulValidator from './contentful';
 import wordpressValidator from './wordpress';
 import aemValidator from './aem';
@@ -19,6 +20,12 @@ const validator = ({
   switch (CMSIdentifier) {
     case 'sitecore-zip': {
       return sitecoreValidator({ data });
+    }
+
+    // Bypass: localPath already points at an extracted Sitecore package,
+    // so validate the folder in place instead of unzipping into extracted_files.
+    case 'sitecore-folder': {
+      return sitecoreFolderValidator({ data });
     }
 
     case 'contentful-json': {

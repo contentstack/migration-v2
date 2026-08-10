@@ -16,32 +16,25 @@ const {
 
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
-  fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
-    if (err) {
-      console.error('Error writing file: 3', err);
-    }
-  });
+  // Must await the write: the callback form returns before the fd is closed, so
+  // callers in a loop pile up open handles and eventually hit EMFILE.
+  try {
+    await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+  } catch (err) {
+    console.error('Error writing file: 3', err);
+  }
 }
 
 async function writeFiles(entryPath: string, fileMeta: any, entryLocale: any, locale: string) {
   try {
     const indexPath = path.join(entryPath, ENTRIES_MASTER_FILE);
     const localePath = path.join(entryPath, `${locale}.json`);
-    fs.access(entryPath, async (err) => {
-      if (err) {
-        fs.mkdir(entryPath, { recursive: true }, async (err) => {
-          if (err) {
-            console.error('Error writing file: 2', err);
-          } else {
-            await writeOneFile(indexPath, fileMeta)
-            await writeOneFile(localePath, entryLocale)
-          }
-        });
-      } else {
-        await writeOneFile(indexPath, fileMeta)
-        await writeOneFile(localePath, entryLocale)
-      }
-    });
+    // mkdir with recursive:true is a no-op when the dir already exists, so this
+    // replaces the previous access-then-mkdir callback nesting. Awaiting matters:
+    // the callback version let the caller continue before these writes finished.
+    await fs.promises.mkdir(entryPath, { recursive: true });
+    await writeOneFile(indexPath, fileMeta);
+    await writeOneFile(localePath, entryLocale);
   } catch (error) {
     console.error('Error writing files:', error);
   }

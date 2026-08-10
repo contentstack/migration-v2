@@ -37,7 +37,31 @@ const runCommand = (
   logFilePath?: string,
 ): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
-    const cmdProcess = spawn(command, args, { shell: true });
+    // See runCli.service.ts: pipe stdio explicitly so a stale parent descriptor
+    // can't make spawn fail with EBADF.
+    const cmdProcess = spawn(command, args, {
+      shell: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    // Without this, a spawn failure would leave the promise pending forever.
+    cmdProcess.on('error', (err) => {
+      if (logFilePath) {
+        try {
+          fs.appendFileSync(
+            logFilePath,
+            JSON.stringify({
+              level: 'error',
+              message: `Failed to start command "${command}": ${err.message}`,
+              timestamp: new Date().toISOString(),
+            }) + '\n'
+          );
+        } catch {
+          /* logging must not mask the spawn failure */
+        }
+      }
+      reject(err);
+    });
 
     cmdProcess.stdout.on('data', (data) => {
       const output = data.toString();

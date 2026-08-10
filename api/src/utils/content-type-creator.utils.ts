@@ -209,7 +209,11 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', ke
       display_name: item?.display_name || rawUid,  // Keep original for display
       field_metadata: {},
       uid: itemUid,  // Snake case uid
-      multiple: true,
+      // Modular blocks are a repeating list by default. A field mapping may opt out
+      // (`multiple: false`) to model a discriminated union instead — exactly one block
+      // is selected, which is how a Sitecore field with several possible target kinds
+      // (entry / asset / media folder) maps without leaving sibling fields empty.
+      multiple: item?.multiple !== false,
       mandatory: false,
       unique: false,
       non_localizable: false,

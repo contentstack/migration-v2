@@ -64,7 +64,43 @@ const runCommand = (
   logFilePath?: string
 ): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
-    const cmdProcess = spawn(command, args, { shell: true });
+    let cmdProcess;
+    try {
+      cmdProcess = spawn(command, args, { shell: true });
+    } catch (err: any) {
+      // EBADF/EMFILE here means the process is out of file descriptors and
+      // cannot allocate the stdio pipes for the child.
+      if (err?.code === 'EBADF' || err?.code === 'EMFILE') {
+        reject(
+          new Error(
+            `Cannot spawn "${command}": out of file descriptors (${err.code}). ` +
+              `Raise the fd limit for the API process (ulimit -n) and retry.`
+          )
+        );
+        return;
+      }
+      reject(err);
+      return;
+    }
+
+    // Release the child's stdio pipes and detach every listener exactly once,
+    // whichever terminal event fires first. Without this each migration run
+    // leaks 3 descriptors and eventually spawn() fails with EBADF.
+    let settled = false;
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      cmdProcess.stdout?.removeAllListeners();
+      cmdProcess.stderr?.removeAllListeners();
+      cmdProcess.stdout?.destroy();
+      cmdProcess.stderr?.destroy();
+      cmdProcess.stdin?.destroy();
+    };
+
+    cmdProcess.on('error', (err) => {
+      cleanup();
+      reject(err);
+    });
 
     // For stdout handler
     cmdProcess.stdout.on('data', (data) => {
@@ -110,6 +146,7 @@ const runCommand = (
     });
 
     cmdProcess.on('close', (code) => {
+      cleanup();
       if (code === 0) resolve();
       else {
         // Log the error to the log file

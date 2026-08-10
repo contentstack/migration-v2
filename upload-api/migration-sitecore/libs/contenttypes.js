@@ -6,7 +6,7 @@ const _ = require('lodash');
 const read = require('fs-readdir-recursive');
 const helper = require('../utils/helper');
 const restrictedUid = require('../utils');
-const { MIGRATION_DATA_CONFIG } = require('../constants/index');
+const { MIGRATION_DATA_CONFIG, isSkippableSystemField } = require('../constants/index');
 
 const extraField = 'title';
 const configChecker = path?.join('content', 'Common', 'Configuration');
@@ -16,7 +16,8 @@ const {
   DATA_MAPPER_DIR,
   DATA_MAPPER_CONFIG_FILE,
   DATA_MAPPER_CONFIG_TREE_FILE,
-  CONTENT_TYPES_DIR_NAME
+  CONTENT_TYPES_DIR_NAME,
+  USED_TEMPLATES_FILE
 } = MIGRATION_DATA_CONFIG;
 
 function isKeyPresent(keyToFind, timeZones) {
@@ -95,7 +96,7 @@ const templateStandardValues = ({ components }) => {
   const fields = components?.item?.fields?.field;
   if (fields && Array.isArray(fields)) {
     fields.forEach((item) => {
-      if (!item?.$?.key.includes('__')) {
+      if (!isSkippableSystemField(item?.$?.key)) {
         standardValues.push({
           content: item.content,
           ...item.$
@@ -160,7 +161,8 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
-    case 'Checkbox': {
+    case 'Checkbox':
+    case 'checkbox': {
       default_value = default_value === '1' ? true : false;
       return {
         id: id,
@@ -238,6 +240,23 @@ const ContentTypeSchema = ({
       };
     }
 
+    case 'text':
+    case 'hidden':
+    case 'Icon': {
+      return {
+        id: id,
+        uid: sitecoreKey,
+        otherCmsField: name,
+        otherCmsType: type,
+        contentstackField: name,
+        contentstackFieldUid: uidCorrector({ uid }),
+        contentstackFieldType: 'single_line_text',
+        backupFieldType: 'single_line_text',
+        backupFieldUid: uid,
+        advanced: { default_value: default_value !== '' ? default_value : null }
+      };
+    }
+
     case 'Multi-Line Text': {
       return {
         id: id,
@@ -283,7 +302,8 @@ const ContentTypeSchema = ({
     }
 
     case 'Date':
-    case 'Time': {
+    case 'Time':
+    case 'datetime': {
       return {
         id: id,
         uid: sitecoreKey,
@@ -577,57 +597,61 @@ const contentTypeMapper = ({
             }
           }
         });
-        if (compType?.content !== 'Droptree') {
-          groupSchema?.schema?.push(
-            ContentTypeSchema({
-              name,
-              uid: uidCorrector({ uid: field?.key }),
-              type: compType?.content,
-              default_value: compType?.standardValues?.content,
-              id: field?.id,
-              choices: sourceType?.slice(0, config?.plan?.dropdown?.optionLimit - 2 ?? 98),
-              advanced,
-              sourLet,
-              sitecoreKey: field?.key,
-              isFromMapper: true,
-              affix
-            })
-          );
-        }
+        // Droptree fields used to be skipped outright, which dropped every field of that
+        // type from the schema. They are emitted as references now; ExtractRef resolves
+        // their targets from observed entry values and removes any that resolve to
+        // nothing, so a Droptree pointing only at machinery or assets still won't ship.
+        groupSchema?.schema?.push(
+          ContentTypeSchema({
+            name,
+            uid: uidCorrector({ uid: field?.key }),
+            type: compType?.content,
+            default_value: compType?.standardValues?.content,
+            id: field?.id,
+            choices: sourceType?.slice(0, config?.plan?.dropdown?.optionLimit - 2 ?? 98),
+            advanced,
+            sourLet,
+            sitecoreKey: field?.key,
+            isFromMapper: true,
+            affix
+          })
+        );
       }
       mainSchema?.push(...groupFlat(groupSchema, item));
     }
-    const isUrlfound = mainSchema?.find(
-      (rt) => rt?.contentstackFieldUid?.toLowerCase?.() === 'url'
-    );
-    if (isUrlfound === undefined) {
-      mainSchema?.unshift({
-        uid: 'url',
-        otherCmsField: 'url',
-        otherCmsType: 'text',
-        contentstackField: 'Url',
-        contentstackFieldUid: 'url',
-        contentstackFieldType: 'url',
-        backupFieldType: 'url',
-        backupFieldUid: 'url'
-      });
-    }
-    const isPresent = mainSchema?.find(
-      (item) => item?.contentstackFieldUid?.toLowerCase?.() === 'title'
-    );
-    if (isPresent === undefined) {
-      mainSchema.unshift({
-        uid: 'title',
-        otherCmsField: 'title',
-        otherCmsType: 'text',
-        contentstackField: 'Title',
-        contentstackFieldUid: 'title',
-        contentstackFieldType: 'text',
-        backupFieldType: 'text',
-        backupFieldUid: 'title'
-      });
-    }
   });
+  // Every content type needs title/url, including inheritance-only templates that have
+  // no components — so this runs outside the components loop, not inside it.
+  const isUrlfound = mainSchema?.find(
+    (rt) => rt?.contentstackFieldUid?.toLowerCase?.() === 'url'
+  );
+  if (isUrlfound === undefined) {
+    mainSchema?.unshift({
+      uid: 'url',
+      otherCmsField: 'url',
+      otherCmsType: 'text',
+      contentstackField: 'Url',
+      contentstackFieldUid: 'url',
+      contentstackFieldType: 'url',
+      backupFieldType: 'url',
+      backupFieldUid: 'url'
+    });
+  }
+  const isPresent = mainSchema?.find(
+    (item) => item?.contentstackFieldUid?.toLowerCase?.() === 'title'
+  );
+  if (isPresent === undefined) {
+    mainSchema.unshift({
+      uid: 'title',
+      otherCmsField: 'title',
+      otherCmsType: 'text',
+      contentstackField: 'Title',
+      contentstackFieldUid: 'title',
+      contentstackFieldType: 'text',
+      backupFieldType: 'text',
+      backupFieldUid: 'title'
+    });
+  }
   return mainSchema;
 };
 
@@ -670,7 +694,49 @@ function findExactPath(path, searchTerm) {
   return path?.endsWith(searchTerm);
 }
 
-function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, affix }) {
+// Sitecore's root base ("Standard template") that almost everything inherits from.
+// It only carries system fields, so it's never worth a content type of its own.
+const STANDARD_TEMPLATE_ID = '{1930BBEB-7805-471A-A3BE-4858AC7CF696}';
+
+// Read a template item's __base template field into a list of base template GUIDs
+// (excluding the Standard template root).
+const getBaseTemplateIds = (fields) => {
+  const baseIds = [];
+  fields?.forEach((item) => {
+    if (item?.$?.key === '__base template' && item?.$?.type === 'tree list') {
+      (item?.content ?? '')
+        .split('|')
+        .map((id) => id?.trim())
+        .forEach((id) => {
+          if (id && id !== STANDARD_TEMPLATE_ID) {
+            baseIds.push(id);
+          }
+        });
+    }
+  });
+  return baseIds;
+};
+
+// Starting from the templates that content entries actually use, walk the __base template
+// chain so every base template they inherit from is kept too. Base templates have no entries
+// of their own but are still needed — ExtractRef attaches them to their children as
+// global_field references. Everything outside this set (Sitecore's system/framework templates)
+// is dropped, so we don't create thousands of content types nothing points at.
+const resolveKeepSet = (usedTemplateIds, baseOf) => {
+  const keep = new Set();
+  const stack = [...(usedTemplateIds ?? [])];
+  while (stack.length) {
+    const id = stack.pop();
+    if (!id || keep.has(id)) continue;
+    keep.add(id);
+    (baseOf?.[id] ?? []).forEach((baseId) => {
+      if (!keep.has(baseId)) stack.push(baseId);
+    });
+  }
+  return keep;
+};
+
+function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, affix, keepSet }) {
   const newPath = read(templatePaths);
   const templatesComponentsPath = [];
   let templatesStandaedValuePath = {};
@@ -698,7 +764,11 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, a
   });
   template.standardValues = templateStandardValues({ components: templatesStandaedValuePath });
   const contentType = contentTypeMaker({ template, basePath: globalPath, sitecore_folder, affix });
-  if (contentType?.fieldMapping?.length) {
+  // Create the content type only when it's in the keep set: templates that content entries
+  // use, plus the base templates those inherit from (attached later by ExtractRef as global
+  // fields). This includes inheritance-only content templates like "Generic Content Page" and
+  // excludes the thousands of Sitecore system/framework templates nothing points at.
+  if (keepSet?.has?.(template?.id)) {
     helper?.writeFile(
       path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, CONTENT_TYPES_DIR_NAME),
       JSON.stringify(contentType, null, 4),
@@ -712,23 +782,70 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, a
   return true;
 }
 
+// Collect the template ids (tid) actually used by content entries. These seed the keep set;
+// their base templates are added on top by resolveKeepSet.
+function collectUsedTemplateIds(folder, sitecore_folder) {
+  const usedTemplateIds = new Set();
+  const separator = path?.sep;
+  for (let i = 0; i < folder?.length; i++) {
+    if (
+      folder?.[i]?.includes(`content${separator}`) &&
+      folder?.[i]?.endsWith('data.json')
+    ) {
+      const data = helper?.readFile(path?.join?.(sitecore_folder, folder?.[i]));
+      const tid = data?.item?.$?.tid;
+      if (tid) {
+        usedTemplateIds.add(tid);
+      }
+    }
+  }
+  return usedTemplateIds;
+}
+
+// Persist the directly-used template ids so ExtractRef can tell a pure base template
+// (safe to move into global_fields) from one that entries also point at directly and
+// therefore still needs a content type of its own.
+const writeUsedTemplateIds = (usedTemplateIds) => {
+  helper?.writeFile(
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR),
+    JSON.stringify([...(usedTemplateIds ?? [])], null, 4),
+    USED_TEMPLATES_FILE,
+    (err) => {
+      if (err) throw err;
+    }
+  );
+};
+
 function ExtractContentTypes(sitecore_folder, affix, configData) {
   config = configData;
   const folder = read(sitecore_folder);
+  const usedTemplateIds = collectUsedTemplateIds(folder, sitecore_folder);
+  writeUsedTemplateIds(usedTemplateIds);
   const templatePaths = [];
+  // template id -> its base template ids, used to walk the inheritance chain for the keep set.
+  const baseOf = {};
   const separator = path?.sep;
   for (let i = 0; i < folder?.length; i++) {
     if (folder?.[i]?.includes('templates') && folder?.[i]?.endsWith('data.json')) {
       const data = helper?.readFile(path?.join?.(sitecore_folder, folder?.[i]));
       if (data?.item?.$?.template === 'template') {
         templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split(`${separator}{`)?.[0]);
+        baseOf[data?.item?.$?.id] = getBaseTemplateIds(data?.item?.fields?.field);
       }
     }
   }
+  // Keep = templates used by entries + every base template they inherit from (recursively).
+  const keepSet = resolveKeepSet(usedTemplateIds, baseOf);
   if (templatePaths?.length) {
     const unique = [...new Set(templatePaths)];
     unique?.forEach((item) => {
-      singleContentTypeCreate({ templatePaths: item, globalPath: folder, sitecore_folder, affix });
+      singleContentTypeCreate({
+        templatePaths: item,
+        globalPath: folder,
+        sitecore_folder,
+        affix,
+        keepSet
+      });
     });
   } else {
     throw { message: 'Templates Not Found.' };

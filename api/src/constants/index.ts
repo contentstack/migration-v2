@@ -368,6 +368,39 @@ export const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
   // Add other reserved fields if needed
 };
 
+// Sitecore prefixes its own fields with `__`. Most are audit/workflow/UI plumbing we
+// don't migrate, but a handful hold real authored content and must be mapped like any
+// user field. Allowlist rather than blocklist: an unknown `__` field from another
+// package defaults to skipped instead of silently becoming an entry value.
+//
+// Kept in sync with upload-api/migration-sitecore/constants/index.js — the schema side
+// builds the mapping from that list, so an entry-side mismatch would either drop values
+// for mapped fields or write values with no field to land in.
+//
+// Deliberately excluded even though they hold values:
+//   __sortorder        - duplicated as the item's `sortorder` attribute; read that instead
+//   __renderings       - layout XML, consumed by the rendering/reference logic, not a field
+//   __final renderings - same
+//   __base template    - already special-cased into global fields on the schema side
+export const SITECORE_SYSTEM_FIELD_ALLOWLIST = [
+  '__icon',
+  '__display name',
+  '__short description',
+  '__long description',
+  '__thumbnail',
+  '__help link',
+  '__style',
+];
+
+// True when a Sitecore field key should be dropped: it's a `__` system field and not one
+// of the allowlisted content-bearing ones. Checks the `__` *prefix* — a user field merely
+// containing a double underscore is kept.
+export const isSkippableSystemField = (key?: string): boolean => {
+  if (typeof key !== 'string') return false;
+  if (!key.startsWith('__')) return false;
+  return !SITECORE_SYSTEM_FIELD_ALLOWLIST.includes(key.toLowerCase());
+};
+
 export const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 export const WORDPRESS_MISSSING_BLOCKS = 'core/missing';
 

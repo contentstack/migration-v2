@@ -30,7 +30,7 @@ import { wordpressService } from './wordpress.service.js';
 import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
-import customLogger from '../utils/custom-logger.utils.js';
+import customLogger, { closeCustomLoggers } from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
 import fs from 'fs';
 import { contentfulService } from './contentful.service.js';
@@ -708,15 +708,42 @@ const startTestMigration = async (req: Request): Promise<any> => {
  * @param req - The request object containing the necessary parameters.
  */
 const startMigration = async (req: Request): Promise<any> => {
-  const { orgId, projectId } = req?.params ?? {};
-  const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
+  const { projectId: rawProjectId } = req?.params ?? {};
+  const { is_sso } = req?.body?.token_payload ?? {};
 
   if (typeof is_sso !== 'boolean') {
     throw new BadRequestError(
       'Missing or invalid SSO flag in token payload: expected boolean "is_sso".',
     );
   }
-  
+
+  // runStartMigration has many early returns and can throw; the finally below is
+  // what guarantees cached Winston loggers (and their open file handles) are
+  // released on every exit path rather than only on the happy one.
+  try {
+    return await runStartMigration(req);
+  } finally {
+    const safeId = sanitizeProjectId(rawProjectId);
+    if (safeId) {
+      const stackId = sanitizeStackId(
+        ProjectModelLowdb.chain
+          .get('projects')
+          .find({ id: rawProjectId })
+          .value()?.destination_stack_id
+      );
+      if (stackId) {
+        closeCustomLoggers(
+          path.join(process.cwd(), 'logs', safeId, `${stackId}.log`)
+        );
+      }
+    }
+  }
+};
+
+const runStartMigration = async (req: Request): Promise<any> => {
+  const { orgId, projectId } = req?.params ?? {};
+  const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
@@ -890,29 +917,29 @@ const startMigration = async (req: Request): Promise<any> => {
       user_id,
       is_sso,
     });
-    await marketPlaceAppService?.createAppManifest({
-      orgId,
-      destinationStackId: project?.destination_stack_id,
-      region,
-      userId: user_id,
-    });
-    await extensionService?.createExtension({
-      destinationStackId: project?.destination_stack_id,
-      existingStackId: project?.source_stack_id,
-      token_payload: {
-        region,
-        user_id,
-        is_sso,
-      },
-    });
-    await taxonomyService?.createTaxonomy({
-      orgId,
-      projectId,
-      stackId: project?.destination_stack_id,
-      current_test_stack_id: project?.destination_stack_id,
-      region,
-      userId: user_id,
-    });
+    // await marketPlaceAppService?.createAppManifest({
+    //   orgId,
+    //   destinationStackId: project?.destination_stack_id,
+    //   region,
+    //   userId: user_id,
+    // });
+    // await extensionService?.createExtension({
+    //   destinationStackId: project?.destination_stack_id,
+    //   existingStackId: project?.source_stack_id,
+    //   token_payload: {
+    //     region,
+    //     user_id,
+    //     is_sso,
+    //   },
+    // });
+    // await taxonomyService?.createTaxonomy({
+    //   orgId,
+    //   projectId,
+    //   stackId: project?.destination_stack_id,
+    //   current_test_stack_id: project?.destination_stack_id,
+    //   region,
+    //   userId: user_id,
+    // });
     await globalFieldServie?.createGlobalField({
       region,
       user_id,

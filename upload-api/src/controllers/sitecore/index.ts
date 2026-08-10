@@ -144,7 +144,10 @@ const createSitecoreMapper = async (
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
     await extractEntries(newPath);
-    const infoMap = await reference();
+    // Pass the package path so reference fields can be resolved from the values entries
+    // actually hold; most Sitecore `source` definitions are queries or paths rather than
+    // GUID lists, so the definition alone yields no targets.
+    const infoMap = await reference(newPath);
     if (infoMap?.contentTypeUids?.length) {
       const assetMapping = await extractAssets(filePath);
       const fieldMapping: any = { contentTypes: [], extractPath: filePath, assetMapping };

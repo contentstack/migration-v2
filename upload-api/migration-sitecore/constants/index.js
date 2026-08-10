@@ -5,6 +5,8 @@ const MIGRATION_DATA_CONFIG = {
     DATA_MAPPER_CONFIG_TREE :"configurationTree",
     DATA_MAPPER_CONFIG_FILE :"configuration.json",
     DATA_MAPPER_CONFIG_TREE_FILE :"configurationTree.json",
+    USED_TEMPLATES_FILE :"usedTemplates",
+    USED_TEMPLATES_FILE_NAME :"usedTemplates.json",
   
     BACKUP_DATA: "migration-data",
     BACKUP_LOG_DIR: "logs",
@@ -45,6 +47,37 @@ const MIGRATION_DATA_CONFIG = {
 
 
 
+// Sitecore prefixes its own fields with `__`. Most are audit/workflow/UI plumbing we
+// don't migrate, but a handful hold real authored content and must be mapped like any
+// user field. Allowlist rather than blocklist: an unknown `__` field from another
+// package defaults to skipped instead of silently becoming schema.
+//
+// Deliberately excluded even though they hold values:
+//   __sortorder        - duplicated as the item's `sortorder` attribute; read that instead
+//   __renderings       - layout XML, consumed by the rendering/reference logic, not a field
+//   __final renderings - same
+//   __base template    - already special-cased into global fields in contenttypes.js
+const SITECORE_SYSTEM_FIELD_ALLOWLIST = [
+  '__icon',
+  '__display name',
+  '__short description',
+  '__long description',
+  '__thumbnail',
+  '__help link',
+  '__style'
+];
+
+// True when a Sitecore field key should be dropped from the mapping: it's a `__` system
+// field and not one of the allowlisted content-bearing ones. Note this checks the `__`
+// *prefix* — a user field merely containing a double underscore is kept.
+const isSkippableSystemField = (key) => {
+  if (typeof key !== 'string') return false;
+  if (!key.startsWith('__')) return false;
+  return !SITECORE_SYSTEM_FIELD_ALLOWLIST.includes(key.toLowerCase());
+};
+
 module.exports = {
-  MIGRATION_DATA_CONFIG
+  MIGRATION_DATA_CONFIG,
+  SITECORE_SYSTEM_FIELD_ALLOWLIST,
+  isSkippableSystemField
 };

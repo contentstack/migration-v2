@@ -5,6 +5,10 @@ import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { HTMLToJSON } from 'html-to-json-parser';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+import type {
+  ContentstackLink,
+  SitecoreLinkAttributes,
+} from './general-link.interface.js';
 dayjs.extend(customParseFormat);
 
 const append = 'a';
@@ -143,9 +147,13 @@ const findAssestInJsoRte = (
                 asset = value;
               }
             }
-          } else {
+          } else if (typeof idCorrector === 'function') {
             const assetUid = idCorrector({ id: uid });
             asset = allAssetJSON?.[assetUid];
+          } else {
+            // No corrector supplied by the caller — skip the lookup rather than
+            // throwing, so one embedded asset can't abort the whole migration.
+            console.info('idCorrector unavailable, skipping asset lookup', uid);
           }
           if (asset?.uid) {
             const updated = {
@@ -177,6 +185,41 @@ const findAssestInJsoRte = (
     }
   }
   return jsonValue;
+};
+
+// Sitecore links point at a target by GUID and carry no clue about which template
+// (content type) it belongs to, so a lookup has to sweep every template and locale in
+// entriesData. Media links point into the asset library instead. Returns the target's
+// display name, or '' when the target was not part of the migration.
+const resolveLinkTargetName = ({
+  id,
+  idCorrector,
+  allAssetJSON,
+  entriesData,
+}: any): string => {
+  if (!id || typeof idCorrector !== 'function') return '';
+  const targetUid = idCorrector({ id });
+  if (!targetUid) return '';
+
+  for (const template of entriesData ?? []) {
+    for (const localeEntries of Object.values(template?.locale ?? {})) {
+      const name = (localeEntries as any)?.[targetUid]?.meta?.name;
+      if (name) return name;
+    }
+  }
+
+  // Not an entry — media links resolve against the asset map.
+  return allAssetJSON?.[targetUid]?.title ?? '';
+};
+
+// Derive an href from the resolved title, mirroring the slug style used for entry urls.
+const slugifyTitle = (title: string): string => {
+  const slug = title
+    ?.trim?.()
+    ?.toLowerCase?.()
+    ?.replace(/[^a-z0-9]+/g, '-')
+    ?.replace(/^-|-$/g, '');
+  return slug ? `/${slug}` : '';
 };
 
 export const entriesFieldCreator = async ({
@@ -243,6 +286,14 @@ export const entriesFieldCreator = async ({
       const fileData = attachJsonRte({ content });
       for (const item of fileData?.children ?? []) {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
+          if (typeof idCorrector !== 'function') {
+            // See findAssestInJsoRte: skip rather than abort the migration.
+            console.info(
+              'idCorrector unavailable, skipping file asset',
+              item?.attrs?.['redactor-attributes']?.mediaid
+            );
+            return null;
+          }
           const assetUid = idCorrector({
             id: item?.attrs?.['redactor-attributes']?.mediaid,
           });
@@ -254,20 +305,38 @@ export const entriesFieldCreator = async ({
       return null;
     }
 
-    //need to change  this
+    // Sitecore's "General Link" is one field holding several kinds of destination
+    // (see general-link.interface.ts). Contentstack has only `{ title, href }`, so
+    // every variant is flattened into that. Both members are always strings —
+    // never undefined — so entry creation cannot fail on a missing label.
     case 'link': {
       const linkType: any = await htmlConverter({ content });
-      let obj: any = { title: '', href: '' };
+      const obj: ContentstackLink = { title: '', href: '' };
       if (typeof linkType === 'string') {
         const parseData = JSON?.parse?.(linkType);
         if (parseData?.type === 'div') {
           parseData?.content?.forEach((item: any) => {
-            if (item?.type === 'link') {
-              obj = {
-                title: item?.attributes?.id,
-                href: item?.attributes?.url ?? '',
-              };
-            }
+            if (item?.type !== 'link') return;
+            const attrs: SitecoreLinkAttributes = item?.attributes ?? {};
+
+            // Sitecore authors sometimes leave stray whitespace inside url="".
+            const url = attrs?.url?.trim?.() ?? '';
+            // Prefer the authored label, then the tooltip. An `id` means the link
+            // targets another item, so fall back to that target's own name.
+            const authored = attrs?.text?.trim?.() || attrs?.title?.trim?.() || '';
+            const title =
+              authored ||
+              resolveLinkTargetName({
+                id: attrs?.id,
+                idCorrector,
+                allAssetJSON,
+                entriesData,
+              });
+
+            obj.title = title ?? '';
+            // Internal/media links often carry no url at all — only a GUID — so
+            // derive the path from the resolved title instead.
+            obj.href = url || slugifyTitle(obj.title);
           });
         }
       }
@@ -301,9 +370,17 @@ export const entriesFieldCreator = async ({
     }
 
     case 'global_field': {
+      // refrenceTo holds the uid the global field is actually published under, which can
+      // differ from the field's own uid — a base template that also has its own entries
+      // yields the plain uid to its content type and ships as `<uid>_base`.
+      const rawGlobalFieldRef =
+        field?.refrenceTo ?? field?.reference_to ?? field?.contentstackFieldUid;
+      const globalFieldRef = Array.isArray(rawGlobalFieldRef)
+        ? rawGlobalFieldRef?.[0]
+        : rawGlobalFieldRef;
       const globalFieldsSchema = contentTypes?.find?.(
         (gfd: any) =>
-          gfd?.contentstackUid === field?.contentstackFieldUid &&
+          gfd?.contentstackUid === globalFieldRef &&
           gfd?.type === 'global_field'
       );
       if (globalFieldsSchema?.fieldMapping) {
@@ -331,6 +408,11 @@ export const entriesFieldCreator = async ({
             obj[field?.contentstackFieldUid] = await entriesFieldCreator({
               field,
               content,
+              idCorrector,
+              allAssetJSON,
+              contentTypes,
+              entriesData,
+              locale,
             });
           } else {
             Object?.values(field)?.forEach((item: any) => {
@@ -339,6 +421,11 @@ export const entriesFieldCreator = async ({
                   obj[ele?.contentstackFieldUid] = await entriesFieldCreator({
                     field: ele,
                     content,
+                    idCorrector,
+                    allAssetJSON,
+                    contentTypes,
+                    entriesData,
+                    locale,
                   });
                 });
               }

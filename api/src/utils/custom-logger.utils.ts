@@ -47,6 +47,51 @@ const fileExists = async (path: string): Promise<boolean> => {
 /**
  * The logger instance used for logging messages.
  */
+/**
+ * Winston loggers cached by log file path.
+ *
+ * Each `transports.File` opens a write stream and keeps it open for the life of
+ * the logger. Building a logger per call — in a loop over thousands of assets —
+ * leaks one file descriptor per log line until the process hits EMFILE, which
+ * then breaks every unrelated fs operation too. One logger per file, reused.
+ */
+const loggerCache = new Map<string, ReturnType<typeof createLogger>>();
+
+const getFileLogger = (logFilePath: string) => {
+  const cached = loggerCache.get(logFilePath);
+  if (cached) return cached;
+
+  const log = createLogger({
+    level: process.env.LOG_LEVEL || 'silly', // Use 'silly' to capture ALL log levels
+    format: format.combine(format.timestamp(), format.json()),
+    transports: [
+      // Write logs to a file named after the apiKey
+      new transports.File({ filename: logFilePath }),
+    ],
+  });
+  loggerCache.set(logFilePath, log);
+  return log;
+};
+
+/**
+ * Closes and forgets cached loggers, releasing their file handles.
+ * Pass a path to release one log file, or omit to release all.
+ */
+export const closeCustomLoggers = (logFilePath?: string) => {
+  const entries = logFilePath
+    ? ([[logFilePath, loggerCache.get(logFilePath)]] as const)
+    : [...loggerCache.entries()];
+  for (const [filePath, log] of entries) {
+    if (!log) continue;
+    try {
+      log.close();
+    } catch (error: any) {
+      console.error(`Failed to close logger: ${error?.message}`);
+    }
+    loggerCache.delete(filePath as string);
+  }
+};
+
 const customLogger = async (
   projectId: string,
   apiKey: string,
@@ -80,15 +125,8 @@ const customLogger = async (
         `Log file created and initial entry written: ${logFilePath}`
       );
     }
-    // Create a logger instance with a file transport
-    const log = createLogger({
-      level: process.env.LOG_LEVEL || 'silly', // Use 'silly' to capture ALL log levels
-      format: format.combine(format.timestamp(), format.json()),
-      transports: [
-        // Write logs to a file named after the apiKey
-        new transports.File({ filename: logFilePath }),
-      ],
-    });
+    // Reuse the logger for this file; see loggerCache above.
+    const log = getFileLogger(logFilePath);
 
     // Handle the logging levels dynamically
     switch (level) {

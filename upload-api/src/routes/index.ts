@@ -349,7 +349,9 @@ router.get(
           });
         }
 
-        // Handle directory paths (e.g., for AEM folder structure)
+        // Handle directory paths (AEM folder structure, or an already-extracted
+        // Sitecore package — in both cases there is nothing to unzip, so the path
+        // is validated and consumed in place rather than copied to extracted_files).
         if (isDirectory) {
           const fileExt = 'folder';
           const name = path.basename(localPath);
@@ -357,7 +359,7 @@ router.get(
           // For folders, pass the directory path directly to the validator
           const data = await handleFileProcessing(fileExt, localPath, cmsType, name);
 
-          // Create mapper for folders (e.g., AEM)
+          // Create mapper straight off localPath — no extracted_files round-trip.
           if (data?.status === 200) {
             // Path is from config (server-side), projectId and affix are sanitized
             createMapper(localPath, projectId, app_token, affix, config);

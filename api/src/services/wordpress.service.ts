@@ -1537,11 +1537,13 @@ async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
 }
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
-    fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
-      if (err) {
-        console.error('Error writing file: 3', err);
-      }
-    });
+    // Must await the write: the callback form returns before the fd is closed, so
+    // callers in a loop pile up open handles and eventually hit EMFILE.
+    try {
+      await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+    } catch (err) {
+      console.error('Error writing file: 3', err);
+    }
   }
 
 const getKeys = (obj: Record<string, any>): string[] => { //Function to fetch all the locale codes
