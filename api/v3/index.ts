@@ -7,6 +7,7 @@ import projectSourceRoutes from "./routes/projectSource.routes.js";
 import destinationRoutes from "./routes/destination.routes.js";
 import projectDestinationRoutes from "./routes/projectDestination.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
+import contentMappingRoutes from "./routes/contentMapping.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
@@ -28,6 +29,13 @@ v3.use("/project/:projectId/source", authenticateV3User, projectSourceRoutes);
 
 // Audit step — reads the project's export folder; no Contentstack calls.
 v3.use("/project/:projectId/audit", authenticateV3User, auditRoutes);
+
+// Content mapping — cs-content-type-selection API-1 / API-2
+v3.use(
+  "/project/:projectId/content-mapping",
+  authenticateV3User,
+  contentMappingRoutes
+);
 
 // Destination panel (Content Map & Audit) — all endpoints require the app_token JWT.
 v3.use("/destination", authenticateV3User, destinationRoutes);

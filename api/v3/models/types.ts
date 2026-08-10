@@ -165,6 +165,8 @@ export interface V3Project {
   audit?: V3AuditDecisions;
   created_at: string;
   updated_at: string;
+  /** cs-content-type-selection DM-2. Additive and optional. */
+  contentTypeSelection?: V3ContentTypeSelection;
 }
 
 /**
@@ -184,6 +186,20 @@ export interface V3AuditDecisions {
   categories: Record<string, "include" | "exclude">;
   /** Per-item overrides, keyed `entry:<ct>:<uid>:<locale>` or `asset:<uid>`. */
   itemOverrides: Record<string, "include" | "exclude">;
+  updatedAt?: string;
+}
+
+/**
+ * The operator's content type selection for one project — the only part of the
+ * Content mapping step they author (cs-content-type-selection DM-2).
+ *
+ * A uid present in `contentTypes` is selected; absence means unselected. The
+ * conflict mode is present only for a content type that also exists in the
+ * destination, and its vocabulary is a contract with interfaces 2 and 3 —
+ * changing it after selections exist in the wild needs a data migration.
+ */
+export interface V3ContentTypeSelection {
+  contentTypes: Record<string, { conflictMode?: "source" | "dest" | "merge" }>;
   updatedAt?: string;
 }
 

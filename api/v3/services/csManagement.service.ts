@@ -636,6 +636,36 @@ export const csManagement = {
     };
   },
 
+  /**
+   * The destination stack's content types, authenticated with the stored
+   * MANAGEMENT token (cs-content-type-selection FR-2.1 / TR-3).
+   *
+   * Deliberately separate from `getContentTypes`. Every other destination read in
+   * this service authenticates as the signed-in USER (`authHeaders` → authtoken
+   * or SSO bearer) plus a stack api key. This one uses the project's stored
+   * management token instead, because FR-2.1 requires the conflict check to work
+   * from the credential the migration itself will use — a user session that can
+   * see the stack is not evidence the migration can write to it.
+   *
+   * Contentstack authenticates a management token with a bare `authorization`
+   * header carrying the token value, not a Bearer prefix.
+   */
+  getDestinationContentTypes: async (opts: {
+    region: string;
+    stackApiKey: string;
+    token: string;
+    branch?: string;
+  }) => {
+    const headers: Record<string, string> = {
+      authorization: opts.token,
+      api_key: opts.stackApiKey,
+    };
+    if (opts.branch) headers.branch = opts.branch;
+
+    const data = await csGet(`${hostFor(opts.region)}/content_types`, headers);
+    return asArray(data?.content_types);
+  },
+
   /** Locales configured on a stack — feeds the destination locale dropdowns. */
   listLocales: async (
     tp: TokenPayload | undefined,

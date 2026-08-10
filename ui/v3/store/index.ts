@@ -5,6 +5,7 @@ import destinationReducer from './slice/destination.slice';
 import sessionReducer from './slice/session.slice';
 import projectReducer from './slice/project.slice';
 import auditReducer from './slice/audit.slice';
+import contentMappingReducer from './slice/contentMapping.slice';
 import toastReducer from './slice/toast.slice';
 
 /**
@@ -21,6 +22,7 @@ const rootReducer = combineReducers({
   session: sessionReducer,
   project: projectReducer,
   audit: auditReducer,
+    contentMapping: contentMappingReducer,
   // Shared by the whole wizard, not just the Audit step (cs-audit-report FR-9.1).
   toast: toastReducer,
 });

@@ -79,7 +79,7 @@ export const WIZARD_STEPS: WizardStep[] = [
     routeSegment: 'content-mapping',
     trackerLabel: 'Content mapping',
     appBarTitle: 'Content mapping',
-    actionLabel: 'Continue to preview',
+    actionLabel: 'Move to review',
     statusLine: 'Select content types, then map fields or pick entries inside each type.',
   },
   {

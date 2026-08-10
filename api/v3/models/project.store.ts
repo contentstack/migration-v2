@@ -18,6 +18,7 @@ import {
   V3ProjectScope,
   V3Source,
   V3StoredManagementToken,
+  V3ContentTypeSelection,
 } from "./types.js";
 
 /**
@@ -302,6 +303,65 @@ export const getV3AuditDecisions = async (
 ): Promise<V3AuditDecisions | undefined> => {
   const project = await getV3Project(projectId, scope);
   return project?.audit;
+};
+
+/**
+ * Persists the operator's content type selection — cs-content-type-selection
+ * FR-9.3, FR-9.4, FR-9.9; trd.md DM-2, TR-21.
+ *
+ * ⚠️ A **field-level** assignment, for exactly the reason `setV3AuditDecisions`
+ * above spells out (trd.md TRR-1): this record holds
+ * `destinationToken.secretEncrypted`, a Contentstack write credential that cannot
+ * be re-read once lost, so the convenient `{...project, contentTypeSelection}`
+ * spread would destroy it. It would also wipe `audit`, whose decisions this very
+ * step consumes downstream.
+ *
+ * `updatedAt` is stamped from the caller's clock rather than taken from the
+ * payload, so a client cannot backdate a selection and decide a later
+ * "which is newer" comparison for itself (EC-9).
+ */
+export const setV3ContentTypeSelection = async (
+  projectId: string,
+  selection: V3ContentTypeSelection,
+  nowIso: string
+): Promise<void> => {
+  await db.read();
+  const existing = requireProject(projectId);
+
+  // A soft-deleted project is not a migration target; recording a selection
+  // against one would quietly resurrect it (FR-9.9).
+  if (existing.isDeleted) {
+    const err = new Error(`Project ${projectId} does not exist`) as Error & {
+      status?: number;
+    };
+    err.status = 404;
+    throw err;
+  }
+
+  existing.contentTypeSelection = {
+    contentTypes: selection?.contentTypes ?? {},
+    updatedAt: nowIso,
+  };
+  existing.updated_at = nowIso;
+
+  await db.write();
+};
+
+/**
+ * Reads a project's content type selection for a caller in scope, or `undefined`
+ * when the project is out of scope OR has never had one saved.
+ *
+ * Those two cases are deliberately indistinguishable, matching every other scoped
+ * read in this store (NFR-4). `undefined` for a never-saved project is also
+ * meaningful in itself: it lets the panel tell "nothing was ever chosen" from
+ * "everything was deselected", which an empty map could not.
+ */
+export const getV3ContentTypeSelection = async (
+  projectId: string,
+  scope: V3ProjectScope
+): Promise<V3ContentTypeSelection | undefined> => {
+  const project = await getV3Project(projectId, scope);
+  return project?.contentTypeSelection;
 };
 
 /**

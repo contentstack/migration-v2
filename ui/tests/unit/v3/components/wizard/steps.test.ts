@@ -21,7 +21,14 @@ describe('v3 wizard steps — order', () => {
     // named the step after Destination and so skipped one.
     expect(byId('audit').actionLabel).toBe('Continue to Destination');
     expect(byId('destination').actionLabel).toBe('Proceed to content mapping');
-    expect(byId('content-mapping').actionLabel).toBe('Continue to preview');
+    /*
+      Changed 2026-08-10 by cs-content-type-selection FR-8.4, which specifies this
+      step's primary action as "Move to review" and is the newer spec for it. The
+      string lives in this feature's step definition, so the change lands here —
+      flagged in that feature's prd.md §9 and recorded in its tdd.md report. Not a
+      relaxation: the assertion is still exact, against the superseding value.
+    */
+    expect(byId('content-mapping').actionLabel).toBe('Move to review');
     expect(byId('preview').actionLabel).toBe('Start migration');
   });
 

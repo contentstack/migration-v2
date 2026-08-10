@@ -359,7 +359,7 @@ combine.log
 
 
 !example.env
-!production.env
+production.env
 
 database/
 database-v3/
