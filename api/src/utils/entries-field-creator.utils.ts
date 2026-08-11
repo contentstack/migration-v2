@@ -191,26 +191,41 @@ const findAssestInJsoRte = (
 // (content type) it belongs to, so a lookup has to sweep every template and locale in
 // entriesData. Media links point into the asset library instead. Returns the target's
 // display name, or '' when the target was not part of the migration.
+const resolveLinkTargetMeta = ({ id, idCorrector, entriesData }: any): any => {
+  if (!id || typeof idCorrector !== 'function') return undefined;
+  const targetUid = idCorrector({ id });
+  if (!targetUid) return undefined;
+
+  for (const template of entriesData ?? []) {
+    for (const localeEntries of Object.values(template?.locale ?? {})) {
+      const meta = (localeEntries as any)?.[targetUid]?.meta;
+      if (meta) return meta;
+    }
+  }
+  return undefined;
+};
+
 const resolveLinkTargetName = ({
   id,
   idCorrector,
   allAssetJSON,
   entriesData,
 }: any): string => {
-  if (!id || typeof idCorrector !== 'function') return '';
-  const targetUid = idCorrector({ id });
-  if (!targetUid) return '';
-
-  for (const template of entriesData ?? []) {
-    for (const localeEntries of Object.values(template?.locale ?? {})) {
-      const name = (localeEntries as any)?.[targetUid]?.meta?.name;
-      if (name) return name;
-    }
-  }
+  const meta = resolveLinkTargetMeta({ id, idCorrector, entriesData });
+  if (meta?.name) return meta.name;
 
   // Not an entry — media links resolve against the asset map.
-  return allAssetJSON?.[targetUid]?.title ?? '';
+  const targetUid = typeof idCorrector === 'function' && id ? idCorrector({ id }) : '';
+  return (targetUid && allAssetJSON?.[targetUid]?.title) || '';
 };
+
+/**
+ * The url an entry gets from its Sitecore item — the single definition of that rule.
+ *
+ * createEntry stamps this on every entry it writes, so a link pointing at that item has to produce
+ * the same string or the link addresses nothing in the destination stack.
+ */
+export const sitecoreItemUrl = (key?: string): string => (key ? `/${key}` : '');
 
 // Derive an href from the resolved title, mirroring the slug style used for entry urls.
 const slugifyTitle = (title: string): string => {
@@ -321,6 +336,11 @@ export const entriesFieldCreator = async ({
 
             // Sitecore authors sometimes leave stray whitespace inside url="".
             const url = attrs?.url?.trim?.() ?? '';
+            const targetMeta = resolveLinkTargetMeta({
+              id: attrs?.id,
+              idCorrector,
+              entriesData,
+            });
             // Prefer the authored label, then the tooltip. An `id` means the link
             // targets another item, so fall back to that target's own name.
             const authored = attrs?.text?.trim?.() || attrs?.title?.trim?.() || '';
@@ -334,9 +354,15 @@ export const entriesFieldCreator = async ({
               });
 
             obj.title = title ?? '';
-            // Internal/media links often carry no url at all — only a GUID — so
-            // derive the path from the resolved title instead.
-            obj.href = url || slugifyTitle(obj.title);
+            // When the link resolves to a migrated entry, address that entry's own url. The `url`
+            // Sitecore stores is the raw item path (`/WinnDixie/Home/pharmacy/express-refill`),
+            // which matches no entry in the destination stack — on this package 104 of 104 internal
+            // links that carried a stored url disagreed with their target's url, so preferring the
+            // stored value is what broke them. Falling back to the stored url keeps links whose
+            // target was not part of the migration, and slugifying the title remains the last
+            // resort for links with neither.
+            obj.href =
+              sitecoreItemUrl(targetMeta?.key) || url || slugifyTitle(obj.title);
           });
         }
       }

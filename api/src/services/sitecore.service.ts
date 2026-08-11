@@ -10,8 +10,13 @@ import {
 } from '../constants/index.js';
 import {
   entriesFieldCreator,
+  sitecoreItemUrl,
   unflatten,
 } from '../utils/entries-field-creator.utils.js';
+import {
+  buildNavigationMenuEntries,
+  isNavigationMenuContentType,
+} from '../utils/navigation-menu.utils.js';
 import { orgService } from './org.service.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
@@ -528,6 +533,43 @@ const createEntry = async ({
             locales: allLocales,
           });
           const entryLocale: any = {};
+          // Navigation is denormalised by the mapper: one entry per root menu carrying its whole
+          // subtree in nested modular blocks, because Sitecore expresses menu structure only through
+          // `parentid` + `sortorder` and the per-item loop below cannot see a tree. Awaited properly
+          // so the entries exist before writeFiles runs.
+          if (isNavigationMenuContentType(ctType)) {
+            const navResult = await buildNavigationMenuEntries({
+              entriesData,
+              contentTypes,
+              keyMapper,
+              idCorrector,
+              uidCorrector,
+              allAssetJSON,
+              locale,
+            });
+            Object.assign(entryLocale, navResult.entries);
+            for (const line of navResult.log) {
+              await customLogger(
+                projectId,
+                destinationStackId,
+                'info',
+                getLogMessage(srcFunc, line, {})
+              );
+            }
+            await customLogger(
+              projectId,
+              destinationStackId,
+              'info',
+              getLogMessage(
+                srcFunc,
+                `Navigation: built ${navResult.stats.menus} menu entries in ${newLocale} (${navResult.stats.menuBlocks} menu blocks, ${navResult.stats.contentBlocks} referenced content blocks, ${navResult.stats.truncated} truncated).`,
+                {}
+              )
+            );
+          } else
+          // NOTE: this existing branch does not await its async callbacks, so entryLocale can still
+          // be filling when writeFiles runs below. Left exactly as it was — awaiting it would change
+          // output for every content type, which does not belong in the navigation change.
           Object.entries(entryPresent?.locale?.[locale] || {}).map(
             async ([uid, entry]: any) => {
               const entryObj: any = {};
@@ -538,9 +580,11 @@ const createEntry = async ({
               // fieldMapping at all.
               entryObj.title = entry?.meta?.name;
               // Only build a url when a key is present, otherwise we'd emit
-              // a meaningless "/undefined".
+              // a meaningless "/undefined". sitecoreItemUrl is the one definition of this rule —
+              // link fields resolve their href through it too, so a link to this item and the item
+              // itself cannot drift apart.
               if (entry?.meta?.key) {
-                entryObj.url = `/${entry?.meta?.key}`;
+                entryObj.url = sitecoreItemUrl(entry?.meta?.key);
               }
               for await (const field of entry?.fields?.field ?? []) {
                 for await (const fsc of ctType?.fieldMapping ?? []) {

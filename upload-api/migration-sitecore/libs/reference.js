@@ -14,6 +14,14 @@ const {
   observedKinds,
   buildUnionBlockMapping
 } = require('./observedReferences.js');
+const {
+  NAV_MENU_CONTENT_TYPE_TITLE,
+  buildNavigationMenuFieldMapping,
+  buildNavigationMenuEntryMapping,
+  navigationReferenceTargets,
+  isNavigationMenuContentType,
+  isSuppressedNavigationTemplate
+} = require('./navigation.js');
 const append = 'a';
 const {
   DATA_MAPPER_DIR,
@@ -33,6 +41,30 @@ const uidCorrector = ({ uid }) => {
     return `${append}_${_.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase()}`;
   }
   return _.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase();
+};
+
+// Contentstack rejects a container with no children ("primary_content_details: should have a group
+// schema"). Dropping a field can empty its group, and emptying an inner group can empty its parent,
+// so prune repeatedly until stable. Shared by the per-content-type pass and the global-field
+// cleanup so both prune identically.
+const CONTAINER_TYPES = ['group', 'modular_blocks', 'modular_blocks_child'];
+
+const pruneEmptyContainers = (fields, ownerUid, referenceLog) => {
+  let pruned = fields ?? [];
+  for (;;) {
+    const hasChild = (uid) =>
+      pruned.some((other) => `${other?.contentstackFieldUid ?? ''}`.startsWith(`${uid}.`));
+    const next = pruned.filter((f) => {
+      if (!CONTAINER_TYPES.includes(f?.contentstackFieldType)) return true;
+      if (hasChild(f?.contentstackFieldUid)) return true;
+      referenceLog?.push(
+        `Container field "${f?.contentstackFieldUid}" (${f?.contentstackFieldType}) on ${ownerUid} was dropped: every child field was removed, and Contentstack rejects an empty container.`
+      );
+      return false;
+    });
+    if (next.length === pruned.length) return next;
+    pruned = next;
+  }
 };
 
 const emptyGlobalFiled = () => {
@@ -94,8 +126,55 @@ function ExtractRef(sitecoreFolder) {
   const referenceLog = [];
   const contentTypesPaths = read(contentFolderPath);
   if (contentTypesPaths?.length || basePages || contentTypeKeys || treeListRef) {
+    // Navigation is denormalised: each root menu becomes one entry carrying its whole subtree in
+    // nested modular blocks, so the nested groups and elements — and the container itself — ship no
+    // content type of their own. Computed once here because it needs the observed item index (the
+    // only place the item tree is available) plus contentTypeKeys.
+    const navReferenceTargets = observed?.itemIndex
+      ? navigationReferenceTargets({ itemIndex: observed.itemIndex, contentTypeKeys })
+      : [];
+
     contentTypesPaths?.forEach((item) => {
       const contentType = helper.readFile(path?.join?.(contentFolderPath, `${item}`));
+
+      // Nested nav groups and elements become blocks, never entries, so their content types would
+      // be created empty and referenced by nothing.
+      if (isSuppressedNavigationTemplate(contentType?.otherCmsUid)) {
+        try {
+          fs.unlinkSync(path?.join?.(contentFolderPath, `${item}`));
+        } catch (err) {
+          console.error('ExtractRef: could not remove suppressed navigation content type', item, err);
+        }
+        referenceLog.push(
+          `Navigation: template "${contentType?.otherCmsUid}" ships no content type — its items are modular blocks inside a menu entry.`
+        );
+        return;
+      }
+
+      if (isNavigationMenuContentType(contentType) && observed?.itemIndex) {
+        contentType.contentstackTitle = NAV_MENU_CONTENT_TYPE_TITLE;
+        contentType.fieldMapping = buildNavigationMenuFieldMapping(navReferenceTargets);
+        contentType.entryMapping = buildNavigationMenuEntryMapping({
+          itemIndex: observed.itemIndex,
+          contentTypeUid: contentType?.contentstackUid
+        });
+        referenceLog.push(
+          `Navigation: ${contentType?.contentstackUid} rebuilt as ${contentType.entryMapping.length} menu entries with nested blocks (content_item targets: ${navReferenceTargets.join(', ') || 'none'}).`
+        );
+        // The synthetic schema replaces the template's fields wholesale, so the reference,
+        // treelist and base-template passes below have nothing to contribute — and the base-template
+        // pass would re-attach Navigation Element as a global field, undoing the denormalisation.
+        helper.writeFile(
+          path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, CONTENT_TYPES_DIR_NAME),
+          JSON.stringify(contentType, null, 4),
+          contentType?.contentstackUid,
+          (err) => {
+            if (err) throw err;
+          }
+        );
+        return;
+      }
+
       if (contentType?.id || contentType?.contentstackUid) {
         if (contentType?.fieldMapping?.length) {
           const keptFields = [];
@@ -159,9 +238,26 @@ function ExtractRef(sitecoreFolder) {
               field.refrenceTo = uids;
               delete field?.sourceKey;
             }
+            // Same rule the observed-value branch above applies: a reference that resolves to
+            // nothing must not ship. Contentstack rejects `reference_to` shorter than 1
+            // ("schema.0.schema.0.reference_to: should have a minimum length of 1"), and the failure
+            // is not contained — the field is accepted at creation, fails on update, and then every
+            // entry of a content type using it dies reading `reference_to.length`. One such field on
+            // the `call_to_action` global field cost all 645 `page_title_text_and_image` entries.
+            if (!field?.refrenceTo?.length) {
+              referenceLog.push(
+                `Reference field "${field?.uid}" on ${contentType?.contentstackUid} was dropped: it resolved to no content type, and an empty reference_to is rejected by Contentstack.`
+              );
+              continue;
+            }
             keptFields.push(field);
           }
-          contentType.fieldMapping = keptFields;
+          // Dropping a field can empty its container; prune those before writing.
+          contentType.fieldMapping = pruneEmptyContainers(
+            keptFields,
+            contentType?.contentstackUid,
+            referenceLog
+          );
         }
         const refTree = treeListRef?.[contentType?.contentstackUid];
         if (refTree?.unique?.length) {
@@ -283,6 +379,53 @@ function ExtractRef(sitecoreFolder) {
         });
         item.fieldMapping = schemaData;
       });
+      // A global field can lose every field once unresolvable references and the containers holding
+      // them are pruned. Contentstack will not accept an empty global field, and a content type that
+      // still points at one fails on update and then takes all of its entries down with it. Drop
+      // both sides together.
+      const emptyGlobalFieldUids = new Set(
+        allGlobalFiels
+          .filter((item) => !item?.fieldMapping?.length)
+          .map((item) => item?.contentstackUid)
+          .filter(Boolean)
+      );
+      if (emptyGlobalFieldUids.size) {
+        for (let i = allGlobalFiels.length - 1; i >= 0; i -= 1) {
+          if (emptyGlobalFieldUids.has(allGlobalFiels[i]?.contentstackUid)) {
+            referenceLog.push(
+              `Global field "${allGlobalFiels[i]?.contentstackUid}" was dropped: every field it held was removed.`
+            );
+            allGlobalFiels.splice(i, 1);
+          }
+        }
+        // Strip the now-dangling global_field rows from every content type that referenced one.
+        read(contentFolderPath)?.forEach((file) => {
+          const ct = helper.readFile(path?.join?.(contentFolderPath, `${file}`));
+          if (!ct?.fieldMapping?.length) return;
+          const kept = ct.fieldMapping.filter((f) => {
+            if (
+              f?.contentstackFieldType === 'global_field' &&
+              emptyGlobalFieldUids.has(f?.refrenceTo)
+            ) {
+              referenceLog.push(
+                `Global field reference "${f?.contentstackFieldUid}" on ${ct?.contentstackUid} was dropped: ${f?.refrenceTo} ships no fields.`
+              );
+              return false;
+            }
+            return true;
+          });
+          if (kept.length === ct.fieldMapping.length) return;
+          ct.fieldMapping = pruneEmptyContainers(kept, ct?.contentstackUid, referenceLog);
+          helper.writeFile(
+            path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, CONTENT_TYPES_DIR_NAME),
+            JSON.stringify(ct, null, 4),
+            ct?.contentstackUid,
+            (err) => {
+              if (err) throw err;
+            }
+          );
+        });
+      }
       helper.writeFile(
         path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, GLOBAL_FIELDS_DIR_NAME),
         JSON.stringify(allGlobalFiels, null, 4),

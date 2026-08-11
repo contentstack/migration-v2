@@ -116,9 +116,22 @@ const observePackage = ({ sitecoreFolder }) => {
     const data = helper.readFile(path.join(contentRoot, file));
     const meta = data?.item?.$;
     if (!meta?.id) continue;
+    const existing = itemIndex[meta.id.toUpperCase()];
+    // An item ships once per (language, version). Keep the highest version so tree attributes
+    // describe the current state of the item rather than whichever file the walk saw last.
+    const version = Number.parseInt(`${meta.version ?? 1}`, 10) || 1;
+    if (existing && (existing.version ?? 1) > version) continue;
     itemIndex[meta.id.toUpperCase()] = {
       template: meta.template ?? '',
       templateId: meta.tid ?? '',
+      // Tree attributes, used to rebuild the item hierarchy (see libs/navigation.js). Sitecore has
+      // no children field, so `parentid` + `sortorder` are the only expression of structure — and
+      // this index is the one full walk of the package, so carrying them here avoids a second.
+      parentid: meta.parentid ?? '',
+      sortorder: meta.sortorder,
+      name: meta.name ?? '',
+      language: meta.language ?? '',
+      version,
       // Media items become assets, which a reference field cannot hold.
       isMedia: file.includes(`media library${path.sep}`) || file.includes('media library/')
     };
