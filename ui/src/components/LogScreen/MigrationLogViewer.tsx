@@ -53,6 +53,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hasShownCompletionNotification, setHasShownCompletionNotification] = useState(false);
+  const [hasShownFailureNotification, setHasShownFailureNotification] = useState(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector(
@@ -133,6 +134,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   useEffect(() => {
     if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
       setHasShownCompletionNotification(false);
+      setHasShownFailureNotification(false);
       setLogs([{ message: 'Migration logs will appear here once the process begins.', level: '' }]);
     }
   }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
@@ -213,10 +215,21 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     const requiredTerminalMessage = isDeltaIteration
       ? 'Entry Update Process Completed'
       : 'Migration Process Completed';
+    const requiredFailureMessage = isDeltaIteration
+      ? 'Entry Update Process Failed'
+      : 'Migration Process Failed';
     const hasTerminalMessage = logs?.some(
       (log) => log?.message === requiredTerminalMessage
     );
-    if (migrationStarted && hasTerminalMessage) {
+    // Mutually exclusive with the failure branch below: the backend now writes the
+    // completion marker only after every prior step actually succeeded (see
+    // runCli.service.ts / migration.service.ts), so a run's log should never carry both —
+    // but checking here too means a single pass never fires both notifications even if it
+    // somehow did.
+    const hasFailureMessage = logs?.some(
+      (log) => log?.message === requiredFailureMessage
+    );
+    if (migrationStarted && hasTerminalMessage && !hasFailureMessage) {
       try {
         const message = 'Migration Process Completed';
 
@@ -253,6 +266,38 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       } catch (error) {
         console.error('Invalid JSON string', error);
       }
+    }
+
+    // The bulk-import CLI (non-delta) or the update/localize CLI (delta) can hard-fail
+    // instead of completing — runCli.service.ts / migration.service.ts write
+    // 'Migration Process Failed' / 'Entry Update Process Failed' respectively in that case.
+    // Without this check the UI would otherwise wait forever for a completion message that
+    // will never arrive. Reset migrationStarted so "Execute Migration" becomes clickable
+    // again instead of leaving the run permanently stuck on the spinner.
+    if (migrationStarted && hasFailureMessage && !hasShownFailureNotification) {
+      setHasShownFailureNotification(true);
+
+      dispatch(
+        updateNewMigrationData({
+          ...newMigrationData,
+          migration_execution: {
+            ...newMigrationData?.migration_execution,
+            migrationStarted: false,
+            migrationCompleted: false
+          }
+        })
+      );
+
+      Notification({
+        notificationContent: {
+          text: 'Migration failed. Check the execution logs above for details, then try again.'
+        },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'error'
+      });
     }
   }, [logs, newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.iteration]);
 

@@ -1,5 +1,5 @@
 // Libraries
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@contentstack/venus-components';
 
 // Components
@@ -13,6 +13,40 @@ interface entryAssetMapperProps {
   handleStepChange: (currentStep: number) => void;
 }
 
+// CSS fallback (calc(100vh - 246px) in index.scss) assumes a fixed header-chrome height above
+// this box. That number drifts whenever the stepper/title chrome changes height even slightly
+// (project title length, browser zoom, etc.), silently pushing the sticky Save footer below the
+// viewport with no way to reach it. Measure this box's own top offset instead so its height is
+// always exactly "the rest of the viewport", regardless of what's above it.
+const useMeasuredBoxHeight = (ref: React.RefObject<HTMLElement | null>): number | undefined => {
+  const [height, setHeight] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const measure = () => {
+      const top = ref.current?.getBoundingClientRect().top;
+      if (top == null) return;
+      setHeight(Math.max(0, window.innerHeight - top));
+    };
+
+    measure();
+    // Observing the box itself only reports when ITS OWN size changes — but since we're the
+    // ones setting that size, it won't fire when the chrome ABOVE the box (stepper, project
+    // title) grows or shrinks and shifts the box's `top` without changing the box's own
+    // dimensions. Observe `document.body` instead: any reflow above this box changes body's
+    // rendered size too, which is exactly the drift this hook exists to react to.
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return height;
+};
+
 /**
  * Step 4 — Map Entry / Map Asset (delta migration).
  * Wraps the standalone Entry and Asset mappers behind an Entries / Assets toggle.
@@ -21,13 +55,23 @@ interface entryAssetMapperProps {
  */
 const EntryAssetMapper = ({ handleStepChange }: entryAssetMapperProps) => {
   const [mapperView, setMapperView] = useState<'entries' | 'assets'>('entries');
+  const boxRef = useRef<HTMLDivElement>(null);
+  const measuredHeight = useMeasuredBoxHeight(boxRef);
 
   return (
     // Plain flex-column wrapper — NOT .step-container. Both child mappers render their own
     // .step-container (height: 100%), so reusing it here would nest two full-height flex
     // containers around the toggle and clip the table. This wrapper just stacks the toggle
     // above the child and lets the child own the height.
-    <div className="entry-asset-mapper">
+    //
+    // Height is measured via JS (see useMeasuredBoxHeight) rather than trusted to the CSS
+    // calc(100vh - 246px) fallback alone — that fallback still applies for the one frame
+    // before this effect runs.
+    <div
+      className="entry-asset-mapper"
+      ref={boxRef}
+      style={measuredHeight != null ? { height: measuredHeight, maxHeight: measuredHeight } : undefined}
+    >
       <div className="mapper-view-toggle">
         <Button
           buttonType={mapperView === 'entries' ? 'secondary' : 'light'}
