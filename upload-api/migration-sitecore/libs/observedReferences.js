@@ -92,13 +92,17 @@ const extractGuids = (content) => {
 
 /**
  * Walk the extracted package once, building:
- *   itemIndex   GUID -> { template, templateId, isMedia }
+ *   itemIndex   GUID -> { template, templateId, isMedia, name, parentId }
+ *   childIndex  parent GUID -> [child GUIDs]
  *   observations "<template>|<fieldKey>" -> observed reference facts
  *
- * Both come from the same pass so the package is only read once.
+ * All come from the same pass so the package is only read once. `childIndex` exists for
+ * the renderings pass (libs/observedRenderings.js), which has to dereference folder
+ * datasources to the children whose content is actually rendered.
  */
 const observePackage = ({ sitecoreFolder }) => {
   const itemIndex = {};
+  const childIndex = {};
   const observations = {};
   const contentRoot = path.join(sitecoreFolder, 'master', 'sitecore');
   let allPaths = [];
@@ -106,7 +110,7 @@ const observePackage = ({ sitecoreFolder }) => {
     allPaths = read(contentRoot) ?? [];
   } catch (err) {
     console.error('observePackage: unable to read package root', err);
-    return { itemIndex, observations };
+    return { itemIndex, childIndex, observations };
   }
 
   const files = allPaths.filter((p) => p?.endsWith('data.json'));
@@ -116,12 +120,25 @@ const observePackage = ({ sitecoreFolder }) => {
     const data = helper.readFile(path.join(contentRoot, file));
     const meta = data?.item?.$;
     if (!meta?.id) continue;
-    itemIndex[meta.id.toUpperCase()] = {
+    const id = meta.id.toUpperCase();
+    itemIndex[id] = {
       template: meta.template ?? '',
       templateId: meta.tid ?? '',
+      // Kept for the renderings pass: the item name labels a component, and parentid is
+      // what lets a folder datasource be resolved to its children.
+      name: meta.name ?? '',
+      parentId: meta.parentid ? meta.parentid.toUpperCase() : '',
       // Media items become assets, which a reference field cannot hold.
       isMedia: file.includes(`media library${path.sep}`) || file.includes('media library/')
     };
+    if (meta.parentid) {
+      const parent = meta.parentid.toUpperCase();
+      if (!childIndex[parent]) childIndex[parent] = [];
+      // An item appears once per version/language on disk, so the same child is seen
+      // several times. Deduped here or a folder datasource would emit one block per
+      // version rather than one per child.
+      if (!childIndex[parent].includes(id)) childIndex[parent].push(id);
+    }
   }
 
   // Pass 2: fold every reference field value into its field's observation.
@@ -160,7 +177,7 @@ const observePackage = ({ sitecoreFolder }) => {
     }
   }
 
-  return { itemIndex, observations };
+  return { itemIndex, childIndex, observations };
 };
 
 const observeValue = ({ observation, content, itemIndex }) => {

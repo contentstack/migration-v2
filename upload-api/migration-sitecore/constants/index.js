@@ -45,6 +45,28 @@ const MIGRATION_DATA_CONFIG = {
     EXPORT_INFO_FILE: "export-info.json"
   }
 
+// Tuning for the layout/renderings feature (libs/observedRenderings.js).
+//
+// Blocks are keyed by datasource template rather than by rendering: on a real package
+// 219 distinct renderings on one page template resolve to 29 datasource templates, and
+// those templates are already migrated content types. The thresholds below trim that
+// further to the templates that actually carry the page.
+const RENDERING_CONFIG = {
+  // Field uid for the component list on a page content type.
+  COMPONENTS_FIELD_UID: 'components',
+  // Minimum share of a page template's placements before a datasource template earns
+  // its own block.
+  COVERAGE_THRESHOLD: 0.01,
+  // ...and it must appear on at least this many pages, so a template used heavily on a
+  // single page doesn't become schema for everyone.
+  MIN_PAGES: 2,
+  // Hard ceiling regardless of thresholds; the remainder goes to the fallback block.
+  MAX_BLOCKS_PER_TEMPLATE: 25,
+  // Shared block carrying every placement without a dedicated block, so the long tail
+  // is migrated as data rather than dropped.
+  FALLBACK_BLOCK_UID: 'component'
+};
+
 
 
 // Sitecore prefixes its own fields with `__`. Most are audit/workflow/UI plumbing we
@@ -54,7 +76,11 @@ const MIGRATION_DATA_CONFIG = {
 //
 // Deliberately excluded even though they hold values:
 //   __sortorder        - duplicated as the item's `sortorder` attribute; read that instead
-//   __renderings       - layout XML, consumed by the rendering/reference logic, not a field
+//   __renderings       - layout XML. Not a field: it becomes the `components` modular
+//                        blocks field, built by libs/observedRenderings.js and written
+//                        on the entry side by api/src/utils/rendering-composer.utils.ts.
+//                        It must stay out of this allowlist so it is never also emitted
+//                        as an ordinary text field.
 //   __final renderings - same
 //   __base template    - already special-cased into global fields in contenttypes.js
 const SITECORE_SYSTEM_FIELD_ALLOWLIST = [
@@ -78,6 +104,7 @@ const isSkippableSystemField = (key) => {
 
 module.exports = {
   MIGRATION_DATA_CONFIG,
+  RENDERING_CONFIG,
   SITECORE_SYSTEM_FIELD_ALLOWLIST,
   isSkippableSystemField
 };

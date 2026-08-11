@@ -1,0 +1,190 @@
+{
+ "page": [
+  {
+   "uid": "blt024dc59d632247c8",
+   "title": "Home",
+   "_sitecore_id": "{024DC59D-6322-47C8-A7D7-D907D477A158}",
+   "url": "/home",
+   "locale": "en-us",
+   "_version": 18,
+   "components": [
+    {
+     "home_carousel": {
+      "datasource": [
+       {
+        "uid": "bltb175fbb9c8ce4412",
+        "_content_type_uid": "promotion_set"
+       }
+      ],
+      "placeholder": "MainContent",
+      "css_styles": ""
+     }
+    },
+    {
+     "html_content_control": {
+      "datasource": [
+       {
+        "uid": "blt026c63e006b34578",
+        "_content_type_uid": "page_title_and_text"
+       }
+      ],
+      "placeholder": "MainContent",
+      "css_styles": ""
+     }
+    },
+    {
+     "html_content_control": {
+      "datasource": [
+       {
+        "uid": "blte2c7db58cc264548",
+        "_content_type_uid": "page_title_and_text"
+       }
+      ],
+      "placeholder": "MainContent1",
+      "css_styles": "CSSStyles"
+     }
+    }
+   ]
+  }
+ ],
+ "promotion_set": [
+  {
+   "uid": "bltb175fbb9c8ce4412",
+   "title": "home banner set",
+   "_sitecore_id": "{B175FBB9-C8CE-4412-8DE0-5B79503ECD24}",
+   "promotion_set_title": "home banner set",
+   "which_promotions": [
+    {
+     "uid": "blt335488f12d81411c",
+     "_content_type_uid": "promotion"
+    },
+    {
+     "uid": "blt2965cd7f46aa4f47",
+     "_content_type_uid": "promotion"
+    },
+    {
+     "uid": "bltacfc49f0273a4b92",
+     "_content_type_uid": "promotion"
+    }
+   ],
+   "locale": "en-us",
+   "_version": 19
+  }
+ ],
+ "promotion": [
+  {
+   "uid": "blt335488f12d81411c",
+   "title": "Promo1",
+   "_sitecore_id": "{335488F1-2D81-411C-B24B-4B5C89C1874E}",
+   "promotion_text": "<span style=\"color: #c8102e;\">Things are about to get saucy.</span>",
+   "promo_text": "<span style=\"line-height: 115%;\">Stock up & save this summer.</span>",
+   "tag_bg_color": "#E01B1A",
+   "link_text": "View ad",
+   "link": {
+    "title": "",
+    "href": "https://www.winndixie.com/weeklyad",
+    "target": ""
+   },
+   "promotion_image": "blt0d3a4bb3850c4931",
+   "promotion_image_medium": "bltee16eb5153cc4715",
+   "promotion_image_small": "blt512573e093454eed",
+   "locale": "en-us",
+   "_version": 68
+  },
+  {
+   "uid": "blt2965cd7f46aa4f47",
+   "title": "Promo2",
+   "_sitecore_id": "{2965CD7F-46AA-4F47-8B03-382240D81961}",
+   "promotion_text": "<span style=\"color: #c8102e;\">Save over 20%</span>",
+   "promo_text": "Check marks the savings",
+   "tag_bg_color": "#E01B1A",
+   "link_text": "View ad",
+   "link": {
+    "title": "",
+    "href": "https://www.winndixie.com/weeklyad",
+    "target": ""
+   },
+   "promotion_image": "bltd9a7a65ff8e545d2",
+   "promotion_image_medium": "blt4683afd385404912",
+   "promotion_image_small": "blt23c058360b124c72",
+   "locale": "en-us",
+   "_version": 34
+  },
+  {
+   "uid": "bltacfc49f0273a4b92",
+   "title": "Promo3",
+   "_sitecore_id": "{ACFC49F0-273A-4B92-B63E-705B0DD11067}",
+   "promotion_text": "<span style=\"color: #c8102e;\">Save over 20% </span>",
+   "promo_text": "Check marks the savings",
+   "tag_bg_color": "#E01B1A",
+   "link_text": "View ad",
+   "link": {
+    "title": "",
+    "href": "https://www.winndixie.com/weeklyad",
+    "target": ""
+   },
+   "promotion_image": "blt0e286e7e68e64d5b",
+   "promotion_image_medium": "blt970476bc682a42c1",
+   "promotion_image_small": "blt676934b69c494e97",
+   "locale": "en-us",
+   "_version": 18
+  }
+ ],
+ "page_title_and_text": [
+  {
+   "uid": "blt026c63e006b34578",
+   "title": "onions PageTitleAndText Set 3",
+   "_sitecore_id": "{026C63E0-06B3-4578-B5E8-01F689EB72B5}",
+   "page_title": "Onions",
+   "page_text": "Used for thousands of years across almost every known cuisine, onions are a mainstay in American kitchens. Learn more about your options here <br>",
+   "page_text_2": "",
+   "link": null,
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blte2c7db58cc264548",
+   "title": "fresh-herbs PageTitleAndText Set 6",
+   "_sitecore_id": "{E2C7DB58-CC26-4548-94F7-641D6E96E670}",
+   "page_title": "\u00a0Fresh Herbs",
+   "page_text": "Looking for an easy way to triumph in the kitchen? Try adding a few snips of fresh herbs to your favorite recipes.",
+   "page_text_2": "",
+   "link": null,
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blt3590c52be02d4f97",
+   "title": "potatoes PageTitleAndText Set 4",
+   "_sitecore_id": "{3590C52B-E02D-4F97-9761-7E90F9B724B5}",
+   "page_title": "Potatoes",
+   "page_text": "&nbsp;Potatoes are nutrition-packed: rich in Vitamin C, high in potassium, high in fiber, fat-free and sodium-free. In place of high-calorie toppings and seasonings, try low-fat plain yogurt, sour cream or cottage cheese.<br><br><b>Handling/storage tips: </b>Do not wash until ready to use. Better stored at room temperature away from heat or direct sunlight.&nbsp;",
+   "page_text_2": "",
+   "link": null,
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blt429ec9e8cb3745df",
+   "title": "coupon_policy-PageTitleAndText1",
+   "_sitecore_id": "{429EC9E8-CB37-45DF-8789-C7309CA9CE36}",
+   "page_title": "Coupon Policy",
+   "page_text": "<br>",
+   "page_text_2": "",
+   "link": null,
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "bltc9c62caa2e2042d9",
+   "title": "fuel-perks-template1-ss FieldsetLegend Set 7",
+   "_sitecore_id": "{C9C62CAA-2E20-42D9-B129-CDD4E344BF49}",
+   "page_title": "\u00a0 Save even more",
+   "page_text": "<img alt=\"\" src=\"~/media/f7d4342085e84a749ad24fee49ab8be6.ashx?h=228&amp;w=116\" style=\"height: 228px; width: 116px; float: right;\" />",
+   "page_text_2": "",
+   "link": null,
+   "locale": "en-us",
+   "_version": 1
+  }
+ ]
+}

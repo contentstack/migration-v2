@@ -916,7 +916,16 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
         },
         uid: cleanedUid,
         mandatory: field?.advanced?.mandatory ?? false,
-        multiple: field?.advanced?.multiple ?? false,
+        // Reference cardinality is resolved from observed Sitecore data (see
+        // resolveObservation in observedReferences.js) and lands on the field itself,
+        // not under `advanced` — reading only `advanced.multiple` discarded it and
+        // emitted every multi-value reference as single, which Contentstack then
+        // rejects because the entry writer always sends an array.
+        //
+        // The final fallback stays `false`: cardinality is meant to come from observed
+        // values, so a field with no signal should keep the conservative default rather
+        // than being widened to multi-value.
+        multiple: field?.multiple ?? field?.advanced?.multiple ?? false,
         non_localizable: field.advanced?.nonLocalizable ?? false,
         unique: field?.advanced?.unique ?? false
       };

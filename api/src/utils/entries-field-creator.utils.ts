@@ -222,6 +222,109 @@ const slugifyTitle = (title: string): string => {
   return slug ? `/${slug}` : '';
 };
 
+// Block uids emitted by the mapper for a union field. Kept in sync with
+// buildUnionBlockMapping in upload-api/migration-sitecore/libs/observedReferences.js —
+// the schema names the blocks, so entry values must use the same names.
+const UNION_BLOCKS = { entry: 'entry', asset: 'asset', folder: 'folder' } as const;
+
+/**
+ * Resolve one Sitecore GUID to the union block branch that should hold it.
+ *
+ * A bare GUID carries no type information, so the kind is determined by where the item
+ * turns up: entriesData for entries, allAssetJSON for assets, and neither for a media
+ * folder (whose items Sitecore mostly omits from the export, so absence is expected
+ * rather than an error).
+ *
+ * Returns null when the field's schema has no branch for the resolved kind, so a value
+ * is skipped rather than written into a block that doesn't exist.
+ */
+const unionBlockValue = ({
+  id,
+  field,
+  siblingFields,
+  idCorrector,
+  allAssetJSON,
+  entriesData,
+  locale,
+}: any) => {
+  const uid = idCorrector?.({ id });
+  if (!uid) return null;
+
+  // Which branches this field actually has — the mapper only emits blocks for kinds the
+  // observed data contained.
+  // Which branches this field actually has. The mapper only emits blocks for kinds the
+  // observed data contained, so a value whose kind has no block must be skipped rather
+  // than written into a block that doesn't exist.
+  //
+  // Blocks may arrive either already nested under `schema` (when the caller built a
+  // schema tree) or as sibling rows in the flat fieldMapping with dotted uids
+  // (`redirect_to_item.folder`), which is how the Sitecore entry path iterates. Accept
+  // both, and treat an unknown shape as "block present" so values are written rather
+  // than silently dropped.
+  const blockNames = (() => {
+    const names = new Set<string>();
+    const own = `${field?.contentstackFieldUid ?? ''}`;
+    for (const b of field?.schema ?? []) {
+      const uidPath = `${b?.contentstackFieldUid ?? b?.uid ?? ''}`;
+      if (uidPath) names.add(uidPath.split('.').pop() as string);
+    }
+    for (const row of siblingFields ?? []) {
+      const uidPath = `${row?.contentstackFieldUid ?? ''}`;
+      if (
+        own &&
+        uidPath.startsWith(`${own}.`) &&
+        uidPath.slice(own.length + 1).split('.').length === 1
+      ) {
+        names.add(uidPath.slice(own.length + 1));
+      }
+    }
+    return names;
+  })();
+  const hasBlock = (name: string) =>
+    blockNames.size === 0 ? true : blockNames.has(name);
+
+  // An entry: find the content type whose entries include this uid in this locale.
+  for (const template of entriesData ?? []) {
+    const entry = template?.locale?.[locale]?.[uid];
+    if (entry) {
+      if (!hasBlock(UNION_BLOCKS.entry)) return null;
+      const ctUid = uidCorrector({ uid: template?.template });
+      return {
+        [UNION_BLOCKS.entry]: {
+          target: [{ uid, _content_type_uid: ctUid }],
+        },
+      };
+    }
+  }
+
+  const asset = allAssetJSON?.[uid];
+
+  // An asset. Resolved before folders because both live in allAssetJSON, distinguished
+  // only by is_dir — and an asset must never fall through to the folder branch.
+  if (asset && !asset?.is_dir) {
+    return hasBlock(UNION_BLOCKS.asset)
+      ? { [UNION_BLOCKS.asset]: { target: uid } }
+      : null;
+  }
+
+  // A media folder created by the asset pipeline: carries both its Sitecore path and
+  // the Contentstack folder uid.
+  if (asset?.is_dir) {
+    if (!hasBlock(UNION_BLOCKS.folder)) return null;
+    return {
+      [UNION_BLOCKS.folder]: {
+        path: asset?.sitecorePath ?? '',
+        folder_uid: asset?.uid ?? '',
+      },
+    };
+  }
+
+  // Not an entry and not in the asset map. Sitecore omits most media-folder items from
+  // its exports, so this is the expected shape for a folder the pipeline never created
+  // — there is nothing to write, and guessing a branch would fabricate data.
+  return null;
+};
+
 export const entriesFieldCreator = async ({
   field,
   content,
@@ -230,6 +333,9 @@ export const entriesFieldCreator = async ({
   contentTypes,
   entriesData,
   locale,
+  // The full flat fieldMapping. Only used by modular block fields, whose branches are
+  // sibling rows rather than nested schema on the field itself.
+  siblingFields,
 }: any) => {
   switch (field?.contentstackFieldType) {
     case 'multi_line_text':
@@ -367,6 +473,34 @@ export const entriesFieldCreator = async ({
         console.info('test ====>');
       }
       return refs;
+    }
+
+    // A Sitecore single-item picker whose targets span more than one kind of thing:
+    // the picked item may be an entry, a media asset, or a media folder. Those are three
+    // different Contentstack field types, so the mapper emits a single-select modular
+    // block with one branch per kind (see observedReferences.buildUnionBlockMapping).
+    //
+    // The stored value is a bare GUID and looks identical in all three cases, so the
+    // branch is chosen by resolving the GUID: entries are found in entriesData, assets
+    // in allAssetJSON, and anything else is treated as a media folder.
+    case 'modular_blocks': {
+      const blocks: any[] = [];
+      // Single-select in the schema, but the value is still an array of one — that's how
+      // Contentstack represents a blocks field regardless of `multiple`.
+      for (const id of `${content ?? ''}`.split('|')) {
+        if (!id?.trim?.()) continue;
+        const block = unionBlockValue({
+          id,
+          field,
+          siblingFields,
+          idCorrector,
+          allAssetJSON,
+          entriesData,
+          locale,
+        });
+        if (block) blocks.push(block);
+      }
+      return blocks;
     }
 
     case 'global_field': {

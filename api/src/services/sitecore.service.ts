@@ -22,6 +22,7 @@ import {
   parentUidForAssetPath,
 } from '../utils/asset-folder.utils.js';
 import type { AssetFolderMapping } from '../utils/asset-folder.interface.js';
+import { composeComponents } from '../utils/rendering-composer.utils.js';
 
 const append = 'a';
 const baseDirName = MIGRATION_DATA_CONFIG.DATA;
@@ -412,6 +413,60 @@ const createAssets = async ({
   return allAssetJSON;
 };
 
+/**
+ * Write an empty but well-formed assets index for a run that skips asset migration.
+ *
+ * Skipping assets is deliberate here, but "no assets" and "no assets directory" are not
+ * the same thing downstream: runStartMigration reads
+ * `<stack>/assets/index.json` and returns early — before the import CLI runs — when the
+ * file is missing, so an absent directory silently aborts the entire migration rather
+ * than just omitting assets. Writing the same three files createAssets would write, with
+ * empty contents, keeps that contract and lets content types and entries import.
+ *
+ * Mirrors the file layout in createAssets: `assets.json` is the chunk manifest,
+ * `index.json` the asset map, `folders.json` the folder mapper.
+ */
+const writeEmptyAssetsIndex = async ({
+  baseDir,
+  destinationStackId,
+  projectId,
+}: any) => {
+  const srcFunc = 'writeEmptyAssetsIndex';
+  const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
+  try {
+    await fs.promises.mkdir(path.join(process.cwd(), assetsSave), {
+      recursive: true,
+    });
+    await fs.promises.writeFile(
+      path.join(process.cwd(), assetsSave, ASSETS_FILE_NAME),
+      JSON.stringify({ '1': ASSETS_SCHEMA_FILE })
+    );
+    await fs.promises.writeFile(
+      path.join(process.cwd(), assetsSave, ASSETS_SCHEMA_FILE),
+      JSON.stringify({})
+    );
+    await fs.promises.writeFile(
+      path.join(process.cwd(), assetsSave, ASSETS_FOLDER_FILE_NAME),
+      JSON.stringify([], null, 2)
+    );
+    const message = getLogMessage(
+      srcFunc,
+      'Asset migration is disabled for this run: an empty assets index was written so content types and entries can still be imported. No assets will be created in the stack, and asset-backed fields will be empty.',
+      {}
+    );
+    await customLogger(projectId, destinationStackId, 'warn', message);
+  } catch (err) {
+    console.error('🚀 ~ writeEmptyAssetsIndex ~ err:', err);
+    const message = getLogMessage(
+      srcFunc,
+      'Failed to write the empty assets index; the migration will stop before the import step.',
+      {},
+      err
+    );
+    await customLogger(projectId, destinationStackId, 'error', message);
+  }
+};
+
 const createEntry = async ({
   packagePath,
   contentTypes,
@@ -433,12 +488,16 @@ const createEntry = async ({
     const srcFunc = 'createEntry';
     const baseDir = path.join(baseDirName, destinationStackId);
     const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
-    const allAssetJSON: any = await createAssets({
-      packagePath,
-      baseDir,
-      destinationStackId,
-      projectId,
-    });
+    // Asset migration is intentionally skipped: entries and content types are being
+    // migrated without assets for now. `allAssetJSON` stays empty, so `file` fields and
+    // asset-backed union blocks resolve to null rather than pointing at assets that were
+    // never uploaded.
+    //
+    // Downstream still needs a well-formed (empty) assets index — the delta step in
+    // migration.service.ts reads assets/index.json and aborts the whole run before the
+    // import CLI if it is absent. writeEmptyAssetsIndex keeps that contract.
+    const allAssetJSON: any = {};
+    await writeEmptyAssetsIndex({ baseDir, destinationStackId, projectId });
     // Inherited fields live inside global fields; load their definitions so flat Sitecore
     // fields can be routed to the nested global-field paths (see buildGlobalFieldPathMap).
     let globalFields: any[] = [];
@@ -459,6 +518,7 @@ const createEntry = async ({
       path.join(packagePath, 'items', 'master', 'sitecore', 'content')
     );
     const entriesData: any = [];
+    const childIndex: Record<string, string[]> = {};
     if (fs.existsSync(folderName)) {
       const entryPath = read?.(folderName);
       for await (const file of entryPath) {
@@ -470,6 +530,18 @@ const createEntry = async ({
           const jsonData = JSON.parse(data);
           const { language, template } = jsonData?.item?.$ ?? {};
           const id = idCorrector({ id: jsonData?.item?.$?.id });
+          // Parent -> children, built here because this loop already reads every item's
+          // meta. Used to expand a folder datasource into the children a rendering
+          // actually displays (see rendering-composer.utils.ts). Keyed by raw uppercased
+          // GUID to match the `s:ds` attribute rather than the corrected entry uid.
+          const rawId = `${jsonData?.item?.$?.id ?? ''}`.toUpperCase();
+          const rawParent = `${jsonData?.item?.$?.parentid ?? ''}`.toUpperCase();
+          if (rawId && rawParent) {
+            if (!childIndex[rawParent]) childIndex[rawParent] = [];
+            if (!childIndex[rawParent].includes(rawId)) {
+              childIndex[rawParent].push(rawId);
+            }
+          }
           const entries: any = {};
           entries[id] = {
             meta: jsonData?.item?.$,
@@ -511,6 +583,13 @@ const createEntry = async ({
         ctType?.fieldMapping,
         globalFields
       );
+      // Present only when the mapper ran with renderings enabled and this template
+      // carries layout. Absent otherwise, which keeps composition entirely opt-in.
+      const componentsField = ctType?.fieldMapping?.find(
+        (item: any) =>
+          item?.contentstackFieldType === 'modular_blocks' &&
+          item?.isRenderingBlocks === true
+      );
       const entryPresent: any = entriesData?.find(
         (item: any) =>
           uidCorrector({ uid: item?.template }) === ctType?.contentstackUid
@@ -528,7 +607,11 @@ const createEntry = async ({
             locales: allLocales,
           });
           const entryLocale: any = {};
-          Object.entries(entryPresent?.locale?.[locale] || {}).map(
+          // Awaited: the callbacks below populate `entryLocale`, which is written to
+          // disk once this resolves. Without the await the write can race ahead of the
+          // async work and emit an empty locale file.
+          await Promise.all(
+            Object.entries(entryPresent?.locale?.[locale] || {}).map(
             async ([uid, entry]: any) => {
               const entryObj: any = {};
               entryObj.uid = uid;
@@ -546,6 +629,14 @@ const createEntry = async ({
                 for await (const fsc of ctType?.fieldMapping ?? []) {
                   if (
                     fsc?.contentstackFieldType !== 'group' &&
+                    // Modular block children are written by their parent block field, so
+                    // skip them here. Without this a child like
+                    // `redirect to item.folder.path` would flatten to `path` and could
+                    // match an unrelated Sitecore field of that name.
+                    fsc?.contentstackFieldType !== 'modular_blocks_child' &&
+                    // Leaf rows inside a block (`<field>.<block>.<leaf>`) are likewise
+                    // the parent's responsibility.
+                    `${fsc?.uid ?? ''}`.split('.').length < 3 &&
                     !isSkippableSystemField(field?.$?.key)
                   ) {
                     if (flattenFieldName(fsc?.uid) === field?.$?.key) {
@@ -557,6 +648,9 @@ const createEntry = async ({
                         contentTypes,
                         entriesData,
                         locale,
+                        // A union block's branches are sibling rows in the flat mapping,
+                        // so the writer needs the full list to know which branches exist.
+                        siblingFields: ctType?.fieldMapping,
                       });
                       const gpData: any = ctType?.fieldMapping?.find(
                         (elemant: any) =>
@@ -615,6 +709,37 @@ const createEntry = async ({
                   }
                 }
               }
+              // Layout composition. Handled outside the field loop above because
+              // `__renderings` is filtered by isSkippableSystemField before it can ever
+              // match a mapping row — see rendering-composer.utils.ts.
+              if (componentsField?.contentstackFieldUid) {
+                // xml2js runs with `explicitArray: false`, so an item holding a single
+                // field yields an object rather than a one-element array.
+                const rawFields = entry?.fields?.field;
+                const fieldList = Array.isArray(rawFields)
+                  ? rawFields
+                  : rawFields
+                    ? [rawFields]
+                    : [];
+                const layoutField = fieldList.find(
+                  (f: any) => f?.$?.key === '__renderings'
+                );
+                if (layoutField?.content) {
+                  const components = composeComponents({
+                    layoutContent: layoutField?.content,
+                    fieldMapping: ctType?.fieldMapping,
+                    componentsUid: componentsField?.contentstackFieldUid,
+                    entriesData,
+                    locale,
+                    idCorrector,
+                    uidCorrector,
+                    childIndex,
+                  });
+                  if (components?.length) {
+                    entryObj[componentsField.contentstackFieldUid] = components;
+                  }
+                }
+              }
               entryObj.publish_details = [];
               if (entryObj?.title) {
                 if (Object.keys?.(entryObj)?.length > 1) {
@@ -636,6 +761,7 @@ const createEntry = async ({
                 }
               }
             }
+            )
           );
           const mapperCt: string =
             keyMapper?.[ctType?.contentstackUid] !== '' &&

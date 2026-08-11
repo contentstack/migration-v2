@@ -1,0 +1,309 @@
+{
+ "page": [
+  {
+   "uid": "bltc934f5f44f56491a",
+   "title": "giftcards",
+   "_sitecore_id": "{C934F5F4-4F56-491A-9852-5ABAB4F6DC82}",
+   "_sitecore_template": "generic content page",
+   "url": "/giftcards",
+   "locale": "en-us",
+   "_version": 4,
+   "components": [
+    {
+     "app_header": {
+      "datasource": [
+       {
+        "uid": "blt0aa12d86c6ab4eec",
+        "_content_type_uid": "content_section"
+       }
+      ],
+      "placeholder": "MainContent"
+     }
+    },
+    {
+     "giftcard_ordering": {
+      "datasource": [
+       {
+        "uid": "blt4a487768ea2042d1",
+        "_content_type_uid": "content_section"
+       }
+      ],
+      "placeholder": "MainContent",
+      "cta_links": [
+       {
+        "uid": "blt4cd33874dfe744a9",
+        "_content_type_uid": "navigation_element"
+       }
+      ]
+     }
+    },
+    {
+     "giftcard_already_have": {
+      "datasource": [
+       {
+        "uid": "blta04d3753a7674265",
+        "_content_type_uid": "content_section"
+       }
+      ],
+      "placeholder": "MainContent",
+      "cta_links": [
+       {
+        "uid": "bltcfae414de454480d",
+        "_content_type_uid": "navigation_element"
+       }
+      ]
+     }
+    },
+    {
+     "faq_accordion": {
+      "datasource": [
+       {
+        "uid": "blt9505b6c723f8458c",
+        "_content_type_uid": "faq_accordion"
+       }
+      ],
+      "placeholder": "MainContent"
+     }
+    },
+    {
+     "giftcard_bulk_order": {
+      "datasource": [
+       {
+        "uid": "bltcaef490491034c8e",
+        "_content_type_uid": "content_section"
+       }
+      ],
+      "placeholder": "MainContent",
+      "cta_links": [
+       {
+        "uid": "blt1aee9ea9e31e4c7e",
+        "_content_type_uid": "navigation_element"
+       }
+      ]
+     }
+    },
+    {
+     "giftcard_working": {
+      "datasource": [
+       {
+        "uid": "blt12be51aaca924a6e",
+        "_content_type_uid": "content_section"
+       }
+      ],
+      "placeholder": "MainContent",
+      "steps": [
+       {
+        "uid": "blt5b5283d568024f4a",
+        "_content_type_uid": "content_section"
+       },
+       {
+        "uid": "bltc934a390e6d44a8a",
+        "_content_type_uid": "content_section"
+       },
+       {
+        "uid": "blt0d971a56682e4fa5",
+        "_content_type_uid": "content_section"
+       },
+       {
+        "uid": "bltae1b62d759ce45f0",
+        "_content_type_uid": "content_section"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "content_section": [
+  {
+   "uid": "blt0aa12d86c6ab4eec",
+   "title": "AppHeaderSection",
+   "_sitecore_id": "{0AA12D86-C6AB-4EEC-9B79-7F14B36C28F4}",
+   "_sitecore_template": "page title text and image",
+   "page_title": "Winn-Dixie gift cards",
+   "page_text": "Give a Winning gift, with a Winn-Dixie gift card. Whether it\u2019s for a celebration, a \u2018Thank you\u2019 or to donate, everyone loves a good Winn!\n<br><br>\n<small><i>Gift cards may not be used to purchase alcohol, tobacco, lottery, check fees, special events, money orders and fees, Ticketmaster, Western Union, express shipping, utility payments, flu shots, tickets, gift cards, and/or phone cards. </i></small>\n<style>\n.App_Header_section .App_Header h2{\ncolor:#c8102e;\n}\n</style>",
+   "page_image": {
+    "uid": "blt3052459cd429465c",
+    "_sitecore_mediaid": "3052459C-D429-465C-B175-DB2C9FC43155",
+    "alt": "Winn-Dixie giftcards"
+   },
+   "supporting_image_1": {
+    "uid": "blt3052459cd429465c",
+    "_sitecore_mediaid": "3052459C-D429-465C-B175-DB2C9FC43155",
+    "alt": "Winn-Dixie giftcards"
+   },
+   "supporting_image_2": {
+    "uid": "bltd8058b1c55724ec7",
+    "_sitecore_mediaid": "D8058B1C-5572-4EC7-A688-10D266BA9882",
+    "alt": "Winn-Dixie giftcards"
+   },
+   "locale": "en-us",
+   "_version": 2
+  },
+  {
+   "uid": "blt4a487768ea2042d1",
+   "title": "GiftCardOrdering",
+   "_sitecore_id": "{4A487768-EA20-42D1-8FF4-D27E0E42C0A4}",
+   "_sitecore_template": "page title text and image",
+   "page_title": "Gift card ordering",
+   "page_text": "Choose between two gift card options, Digital or Traditional. Click below to start your order.",
+   "page_image_caption": "Order gift cards",
+   "page_image": {
+    "uid": "blt28280dcc9b2f4ae8",
+    "_sitecore_mediaid": "28280DCC-9B2F-4AE8-A748-9F9FEBD496A6",
+    "alt": ""
+   },
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blta04d3753a7674265",
+   "title": "GiftCardAlreadyhave",
+   "_sitecore_id": "{A04D3753-A767-4265-B552-2115610BF127}",
+   "_sitecore_template": "page title text and image",
+   "page_title": "Already have a gift card?",
+   "page_text": "Check your balance by calling<a href=\"tel:866-493-4438\"> 866-493-4438.</a>\n\n<style>\n@media (min-width: 992px){\n.alreadyhave-GiftCard .alreadyHaveTextSec {\n    margin-left: 60px;\n}\n.alreadyhave-GiftCard .gift-alreadySec{\nmargin-top: 20px;\n}\n}\n.alreadyhave-GiftCard .alreadyHaveTextSec p{\nmargin-top: 22px;\n}\n\n.alreadyhave-GiftCard .alreadyHaveTextSec a{\ndisplay: inline-block;\nmargin-left: 5px !important;\nfont-size: 1em !important;\n}\n</style>",
+   "promo_date_string": "Reload gift cards",
+   "page_image_caption": "Check Balance",
+   "background": "/-/media/Media/GiftCard/Winn-Dixie-Gift-Card.png",
+   "page_image": {
+    "uid": "blt28280dcc9b2f4ae8",
+    "_sitecore_mediaid": "28280DCC-9B2F-4AE8-A748-9F9FEBD496A6",
+    "alt": ""
+   },
+   "locale": "en-us",
+   "_version": 3
+  },
+  {
+   "uid": "bltcaef490491034c8e",
+   "title": "GiftCardBulkorder",
+   "_sitecore_id": "{CAEF4904-9103-4C8E-B2CC-4CC73C94E215}",
+   "_sitecore_template": "page title text and image",
+   "page_title": "Bulk is better!",
+   "page_text": "Bulk Gift cards are perfect for your business to incentivize your employees or to donate to your charity.",
+   "page_image": {
+    "uid": "blt546e0e9702a7445e",
+    "_sitecore_mediaid": "546E0E97-02A7-445E-8D47-FF386B78F907",
+    "alt": ""
+   },
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blt12be51aaca924a6e",
+   "title": "BulkGiftCardOrdering",
+   "_sitecore_id": "{12BE51AA-CA92-4A6E-A70A-AECB114575AB}",
+   "_sitecore_template": "page title text and image",
+   "page_title": "Bulk gift card ordering",
+   "page_text": "Get Winn-Dixie gift cards in bulk for businesses, charities & large organizations. Treat your customers or incentivize your employees with a Winning gift!",
+   "promo_date_string": "How do bulk gift cards work?",
+   "page_image_caption": "Order gift cards",
+   "page_image": {
+    "uid": "blt30a0e73459f34f59",
+    "_sitecore_mediaid": "30A0E734-59F3-4F59-93F3-9BACEA629FEC",
+    "alt": ""
+   },
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blt5b5283d568024f4a",
+   "title": "GiftCardHowWork1",
+   "_sitecore_id": "{5B5283D5-6802-4F4A-AA3C-5E73851588AB}",
+   "_sitecore_template": "page title and text",
+   "page_title": "How it works",
+   "page_text": "Register",
+   "page_text_2": "Fill out the application for your business or organization. The compliance team will review your registration in 2-3 business days. (More information may be requested within this time frame)",
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "bltc934a390e6d44a8a",
+   "title": "GiftCardHowWork2",
+   "_sitecore_id": "{C934A390-E6D4-4A8A-B1E7-B90EA8A191AB}",
+   "_sitecore_template": "page title and text",
+   "page_title": "Personal ordering site",
+   "page_text": "Once your account is activated you can order cards at any time of day and have access to past orders placed.",
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blt0d971a56682e4fa5",
+   "title": "GiftCardHowWork3",
+   "_sitecore_id": "{0D971A56-682E-4FA5-A185-ECEAD4BEBF32}",
+   "_sitecore_template": "page title and text",
+   "page_title": "Customize",
+   "page_text": "Choose designs, how many gift cards and what denominations you would like.",
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "bltae1b62d759ce45f0",
+   "title": "GiftCardHowWork4",
+   "_sitecore_id": "{AE1B62D7-59CE-45F0-84D5-C651AE16C661}",
+   "_sitecore_template": "page title and text",
+   "page_title": "Delivery",
+   "page_text": "We deliver physical cards anywhere in the United States.* Digital gift cards are now available!<br/>",
+   "page_text_2": "*We don\u2019t deliver to PO Boxes. <a href=\"https://www.winndixie.com/shopping/in-store/gift-cards\">Read more</a> information on our <span class=\"gift\">gift card policy</span>.\n<style>\n.giftCard-HowWorksSec .boxBorder .txtArea .infoTxt {\ncolor:#3c3c3b;\n}\n\n .giftCard-HowWorksSec .boxBorder .txtArea .infoTxt .gift{\nfont-weight:500;\n}\n</style>",
+   "locale": "en-us",
+   "_version": 1
+  }
+ ],
+ "navigation_element": [
+  {
+   "uid": "blt4cd33874dfe744a9",
+   "title": "OrderGift",
+   "_sitecore_id": "{4CD33874-DFE7-44A9-ACD0-5302CE8F698D}",
+   "navigation_name": "Order gift cards",
+   "navigation_url": {
+    "title": "",
+    "href": "https://winndixie.cashstar.com/store/recipient?locale=en-us",
+    "target": "_blank"
+   },
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "blt1aee9ea9e31e4c7e",
+   "title": "BulkOrderGift",
+   "_sitecore_id": "{1AEE9EA9-E31E-4C7E-AC58-3DEC8D4FC271}",
+   "navigation_name": "Order bulk gift cards",
+   "navigation_url": {
+    "title": "",
+    "href": "https://seg-biz.cashstar.com/home/",
+    "target": "_blank"
+   },
+   "locale": "en-us",
+   "_version": 1
+  },
+  {
+   "uid": "bltcfae414de454480d",
+   "title": "CheckBalance",
+   "_sitecore_id": "{CFAE414D-E454-480D-8682-50828C6785B5}",
+   "navigation_name": "Check balance",
+   "navigation_url": {
+    "title": "",
+    "href": "https://winndixie.cashstar.com/store/type?locale=en-us",
+    "target": "_blank"
+   },
+   "locale": "en-us",
+   "_version": 1
+  }
+ ],
+ "faq_accordion": [
+  {
+   "uid": "blt9505b6c723f8458c",
+   "title": "GiftCard_FAQ",
+   "_sitecore_id": "{9505B6C7-23F8-458C-A910-B48290DEC1EA}",
+   "page_title": "Gift Card FAQs",
+   "page_text": "<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingOne\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseOne\" aria-expanded=\"false\" aria-controls=\"collapseOne\">\nAre there any fees associated with Winn-Dixie Gift Cards?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\">\n</em>\n</button>\n</h3>\n</div>\n<div id=\"collapseOne\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">No. There are no fees associated with Gift Cards. You will only be charged the face value of the Gift Card, and shipping. eGift Cards are sent via email and incur no shipping charges.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTwo\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwo\" aria-expanded=\"false\" aria-controls=\"collapseTwo\">\nCan I change the value of a Gift Card after I&rsquo;ve paid for it?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\">\n</em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwo\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Not at this time.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader \" id=\"headingThree\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseThree\" aria-expanded=\"false\" aria-controls=\"collapseThree\">\nHow do I cancel the purchase of Gift Card?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\">\n</em>\n</button>\n</h3>\n</div>\n<div id=\"collapseThree\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">If your Gift Card has not been delivered, you can cancel your purchase by contacting <a rel=\"noopener noreferrer\" href=\"https://winndixie.cashstar.com/self_service/v2/about/customer_support/contact\" target=\"_blank\">Customer Support</a>. Cancellation is subject to limitations</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingFive\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseFive\" aria-expanded=\"false\" aria-controls=\"collapseFive\">\nWhat payment methods do you accept?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseFive\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Visa, MasterCard, American Express, Discover.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingSix\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseSix\" aria-expanded=\"false\" aria-controls=\"collapseSix\">\nWhat is a credit card Security Code and why is it required?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseSix\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">In order to protect you from unauthorized transactions, we require your credit card&rsquo;s Security Code. <br />\n<br />\nMasterCard, VISA, and Discover: The Security Code is the 3-digit number printed on the signature panel on the back of your card. It immediately follows the account number. <br />\n<br />\nAmerican Express: The card Security Code (also referred to as the CID number) is printed above the imprinted card number on the front of the card (on either the left or right).*<br />\n<br />\n<em>*Please note, there are a small percentage of &ldquo;plastic-less&rdquo; card accounts for American Express - Corporate and Purchasing Card accounts. If you have one of these accounts with no AMEX card, please enter 5555 as your card security code.</em></p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingSeven\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseSeven\" aria-expanded=\"false\" aria-controls=\"collapseSeven\">\nWhen is my credit card charged for my purchase?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseSeven\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Your credit card is charged at the time of purchase. This purchase will appear on your credit/debit card statement as Winn Dixie GiftCard.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingEight\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseEight\" aria-expanded=\"false\" aria-controls=\"collapseEight\">\nWhen will my recipient receive their Gift Card?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseEight\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">eGift Card: Your eGift Card will be sent via email on the delivery date you choose, with rare exceptions for processing delays. For same-day delivery, most eGift Cards are sent within an hour of the purchase transaction. For future delivery, eGift Cards are sent on the morning of the scheduled delivery date. <br />\n<br />\nPlastic Gift Card: Delivery times are determined by the Shipping Method selection. Orders are generally shipped within 1-2 business days. Once your Gift Card is shipped, you will receive an email with a tracking number, with which you may access the current shipping status of your gift.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWhat are the shipping options?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">eGift Card: eGift Cards will be sent via email. Please see the &ldquo;eGift Cards&rdquo; section below for more about eGift Cards.<br />\n<br />\nPlastic Gift Card: You can choose our standard shipping free of charge, or for an additional fee you can choose to expedite your order. You can make your selection under the Shipping Method option. Depending on when your order is placed, it may take 1-2 business days to process order.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseEleven\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nHow do I check my order status and delivery?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseEleven\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Once your Gift Card is shipped, you will receive an email with a tracking number, with which you may access the current shipping status of your gift.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwelve\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWhere can I ship my order?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwelve\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Gift Cards may be shipped to valid street addresses within the United States. For your protection, we do not ship to Post Office Boxes.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseThirteen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nCan I buy an eGift Card for myself?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseThirteen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Yes. To do so, go to the &ldquo;For Me&rdquo; tab underneath &ldquo;Who is the gift card for&rdquo;. Your eGift Card will be sent to the email address entered on the Payment Page. When you receive your eGift Card alert via email, follow the instructions in this message to retrieve and redeem your eGift Card.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseFourteen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nI want a printed eGift Card to present to someone as a gift. How do I do this?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseFourteen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Simply personalize the eGift Card for your recipient, have it sent to yourself and then print it. Go to the &ldquo;For Me&rdquo; tab underneath &ldquo;Who is the gift card for&rdquo;. Your eGift Card will be sent to the email address entered on the Payment Page. Enter your recipient&rsquo;s name and your personal message on the eGift Card messages page and complete the transaction normally. You will receive an eGift Card alert via email. Follow the instructions in this message to retrieve your eGift Card and then choose &ldquo;Click to print this page.&rdquo; The resulting printout may be presented as a gift to the recipient.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseFifteen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nCan I send two (or more) eGift Cards to two (or more) different people who share an email address?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseFifteen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Yes. If you send separate eGift Cards to Aunt Mary and Uncle Jim at their shared email address, they will receive two messages with the subject &ldquo;[Sender] sent you an eGift Card from Winn-Dixie&rdquo; with your name in place of [Sender]. Within the text of the emails, each message will be addressed to the respective recipient, using the name you entered in the purchase process, for example: &ldquo;Mary Smith, John Jones sent you a $XX eGift Card from Winn-Dixie.&rdquo;</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseSixsteen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWhere can I use my Gift Card?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseSixsteen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">You can use your Gift Card at all Winn Dixie or Harvey's locations.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseSeventeen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWhen does the Gift Card expire?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseSeventeen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">There is no expiration date on your Gift Card. We recommend that you redeem it soon after you receive it, so you don&rsquo;t forget.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseEighteen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nCan I reload my Gift Card after I&rsquo;ve spent the full value?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseEighteen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Not at this time.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseNineteen\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nI want a printed eGift Card to present to someone as a gift. How do I do this?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseNineteen\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">An eGift Card is an electronic Gift Card that is sent via email. On the delivery date you choose, a message is sent to the recipient informing them of your gift, with a link to retrieve it online. The link in the email goes to a page showing the eGift Card you created (the design you selected, with your recipient&rsquo;s name and your personalized message), its value and code number. This page also gives simple instructions for redeeming the eGift Card, including printing instructions. Sometimes, special offers and promotions are listed on the page.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwenty\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nHow do you prevent the eGift Card email from getting lost as spam?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwenty\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">We adhere to all industry best practices to ensure successful delivery of the eGift Card via email. Still, there is a chance that the email will be treated as spam or the recipient didn&rsquo;t notice it in their email inbox. You will receive an email message confirming delivery of the Gift Card alert email, and a message notifying you that the eGift Card has been viewed. If the eGift Card goes un-viewed for 15 days after delivery, you will receive a message with options for resolving the issue.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwentyone\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nHow do I know the recipient actually received the eGift Card I sent them?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwentyone\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">You will receive an email message confirming delivery, and a message notifying you that the eGift Card has been viewed. If the eGift Card goes un-viewed for 15 days after delivery, you will receive a message with options for resolving the issue. You may also contact <a rel=\"noopener noreferrer\" href=\"https://winndixie.cashstar.com/self_service/v2/about/customer_support/contact\" target=\"_blank\">Customer Support</a> with the order number from the email you received confirming your purchase, and we can tell you if the recipient has viewed their eGift Card.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwentytwo\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nDo I need to print my eGift Card in color? Do I need a special printer?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwentytwo\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">No and no. Most standard office and household printers are equipped to print eGift Cards, and you do not need to print in color. Some printers produce great results, and older printers sometimes don&rsquo;t print certain images well, but the most important thing is that the Card Number is clear. If it is not, you may need to install a new ink cartridge.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwentythree\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nIs my order secure?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwentythree\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">All personal and financial information is transmitted using the https protocol over a Secure Sockets Layer (SSL), utilizing state of the art technology for consumer protection. Behind the scenes, your web browser is sending all personal and financial information over SSL. The Gift Card purchase process is fully PCI compliant. If you have any questions or concerns, please contact <a rel=\"noopener noreferrer\" href=\"https://winndixie.cashstar.com/self_service/v2/about/customer_support/contact\" target=\"_blank\">Customer Support</a>.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwentyfour\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWhat if I lose my eGift Card?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwentyfour\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Your eGift Card has cash value and should be safeguarded as such. If you lose your eGift Card, contact <a rel=\"noopener noreferrer\" href=\"https://winndixie.cashstar.com/self_service/v2/about/customer_support/contact\" target=\"_blank\">Customer Support</a> immediately. If your eGift Card has not been redeemed or has some remaining value, we can cancel the original and issue you a new eGift Card for that value.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwentyfive\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWhat if someone makes a copy of my printed eGift Card?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwentyfive\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">Our state of the art technology inhibits fraud, but you must safeguard your eGift Card for your own protection. If someone makes a copy of your Gift Card and redeems it for the full amount, your copy will have no value. No matter how many copies are made, the value of the eGift Card is tied to the Gift Card number. When that number is used, the value of the purchase is deducted from the eGift Card. If you suspect that someone has copied or stolen your eGift Card, contact <a rel=\"noopener noreferrer\" href=\"https://winndixie.cashstar.com/self_service/v2/about/customer_support/contact\" target=\"_blank\">Customer Support</a> immediately. Any value that has not been used can be re-issued to you in a new Gift Card.</p>\n</div>\n</div>\n<hr />\n</li>\n<li class=\"card faqcard\">\n<div class=\"card-header faqheader\" id=\"headingTen\">\n<h3 class=\"mb-0\" itemprop=\"name\">\n<button class=\"btn btn-link collapsed\" data-toggle=\"collapse\" data-target=\"#collapseTwentysix\" aria-expanded=\"false\" aria-controls=\"collapseTen\">\nWho is CashStar?\n<em class=\"more-less glyphicon glyphicon-plus\" aria-hidden=\"true\"></em>\n</button>\n</h3>\n</div>\n<div id=\"collapseTwentysix\" class=\"collapse\" data-parent=\"#accfaq\">\n<div class=\"card-body faqbody\">\n<p itemprop=\"text\">CashStar is a Blackhawk Network business specializing in Digital Gifting that allows consumers and businesses to securely order and send Gift Cards over the internet. CashStar&rsquo;s focus is on developing a secure payment technology platform and service dedicated to bridging the digital and physical divide. CashStar is fully PCI compliant.</p>\n</div>\n</div>\n<hr />\n</li>\n<style>\n    .container_faq .mystery-faqlink {\n    display: block !important;\n    }\n    .container_faq .faq i {\n    font-size: 14px;\n    }\n    .container_faq .faq .accordianTitle{\n    text-align: center;\n    }\n    .card-header h3 {\n    font-size: 1em;\n    margin-top: 10px;\n    }\n    @media screen and (max-width: 991px) {\n    .about__rewards .container-fluid {\n    overflow: hidden;\n    }\n    .faqbg img, .faqbg svg {\n    width: 100%;\n    }\n    }\n    .container_faq .faq .accordianTitle{\n    color:#c8102e;\n    }\n    .container_faq .mystery-descr{\n    display:none;\n    }\n    .container_faq .faq a{\n    font-weight: bold;\n    color:#c8102e;\n    }\n    @media(min-width:100px) and (max-width:991px){\n    .container_faq .faq{\n    width:100%;\n    }\n    }\n    @media (min-width: 768px) and (max-width: 1024px){\n    .container_faq .container {\n    width: 100%;\n    padding: 24px;\n    }\n    .container_faq .faq{\n    width:100%;\n    }\n    }\n</style>",
+   "page_image": {
+    "uid": "bltb1494f17096344e0",
+    "_sitecore_mediaid": "B1494F17-0963-44E0-B121-5E6F38BB6CA8",
+    "alt": ""
+   },
+   "locale": "en-us",
+   "_version": 3
+  }
+ ]
+}

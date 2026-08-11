@@ -1,0 +1,365 @@
+[
+ {
+  "title": "Promotion",
+  "uid": "promotion",
+  "description": "Sitecore: brand promotion",
+  "schema": [
+   {
+    "data_type": "text",
+    "display_name": "Title",
+    "uid": "title",
+    "mandatory": true,
+    "unique": true,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "text",
+    "display_name": "Promotion Text",
+    "uid": "promotion_text",
+    "field_metadata": {
+     "allow_rich_text": true,
+     "description": "",
+     "multiline": false,
+     "rich_text_type": "advanced",
+     "version": 3
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "text",
+    "display_name": "Promo Text",
+    "uid": "promo_text",
+    "field_metadata": {
+     "allow_rich_text": true,
+     "description": "",
+     "multiline": false,
+     "rich_text_type": "advanced",
+     "version": 3
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "text",
+    "display_name": "Tag Background Color",
+    "uid": "tag_bg_color",
+    "mandatory": false,
+    "multiple": false,
+    "unique": false,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "text",
+    "display_name": "Link Text",
+    "uid": "link_text",
+    "mandatory": false,
+    "multiple": false,
+    "unique": false,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "link",
+    "display_name": "Link",
+    "uid": "link",
+    "field_metadata": {
+     "description": "",
+     "default_value": {
+      "title": "",
+      "url": ""
+     }
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "file",
+    "display_name": "Promotion Image",
+    "uid": "promotion_image",
+    "field_metadata": {
+     "description": "",
+     "rich_text_type": "standard"
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "file",
+    "display_name": "Promotion Image (Medium)",
+    "uid": "promotion_image_medium",
+    "field_metadata": {
+     "description": "",
+     "rich_text_type": "standard"
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "file",
+    "display_name": "Promotion Image (Small)",
+    "uid": "promotion_image_small",
+    "field_metadata": {
+     "description": "",
+     "rich_text_type": "standard"
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   }
+  ]
+ },
+ {
+  "title": "Promotion Set",
+  "uid": "promotion_set",
+  "description": "Sitecore: Promotion Set (HomeCarousel datasource)",
+  "schema": [
+   {
+    "data_type": "text",
+    "display_name": "Title",
+    "uid": "title",
+    "mandatory": true,
+    "unique": true,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "text",
+    "display_name": "Promotion Set Title",
+    "uid": "promotion_set_title",
+    "mandatory": false,
+    "multiple": false,
+    "unique": false,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "reference",
+    "display_name": "Which Promotions",
+    "uid": "which_promotions",
+    "reference_to": [
+     "promotion"
+    ],
+    "field_metadata": {
+     "ref_multiple": true,
+     "ref_multiple_content_types": true
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   }
+  ]
+ },
+ {
+  "title": "Page Title and Text",
+  "uid": "page_title_and_text",
+  "description": "Sitecore: Page Title and Text (HTMLContentControl datasource)",
+  "schema": [
+   {
+    "data_type": "text",
+    "display_name": "Title",
+    "uid": "title",
+    "mandatory": true,
+    "unique": true,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "text",
+    "display_name": "Page Title",
+    "uid": "page_title",
+    "mandatory": false,
+    "multiple": false,
+    "unique": false,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "text",
+    "display_name": "Page Text",
+    "uid": "page_text",
+    "field_metadata": {
+     "allow_rich_text": true,
+     "description": "",
+     "multiline": false,
+     "rich_text_type": "advanced",
+     "version": 3
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "text",
+    "display_name": "Page Text 2",
+    "uid": "page_text_2",
+    "field_metadata": {
+     "allow_rich_text": true,
+     "description": "",
+     "multiline": false,
+     "rich_text_type": "advanced",
+     "version": 3
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   },
+   {
+    "data_type": "link",
+    "display_name": "Link",
+    "uid": "link",
+    "field_metadata": {
+     "description": "",
+     "default_value": {
+      "title": "",
+      "url": ""
+     }
+    },
+    "mandatory": false,
+    "multiple": false,
+    "unique": false
+   }
+  ]
+ },
+ {
+  "title": "Page",
+  "uid": "page",
+  "description": "Sitecore page with __renderings layout composition",
+  "schema": [
+   {
+    "data_type": "text",
+    "display_name": "Title",
+    "uid": "title",
+    "mandatory": true,
+    "unique": true,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "text",
+    "display_name": "URL",
+    "uid": "url",
+    "mandatory": false,
+    "unique": false,
+    "field_metadata": {
+     "_default": true
+    }
+   },
+   {
+    "data_type": "blocks",
+    "display_name": "Components",
+    "uid": "components",
+    "mandatory": false,
+    "multiple": true,
+    "unique": false,
+    "field_metadata": {
+     "instruction": "Ordered component list; replaces Sitecore __renderings layout XML",
+     "description": ""
+    },
+    "blocks": [
+     {
+      "title": "Home Carousel",
+      "uid": "home_carousel",
+      "schema": [
+       {
+        "data_type": "reference",
+        "display_name": "Datasource",
+        "uid": "datasource",
+        "reference_to": [
+         "promotion_set"
+        ],
+        "field_metadata": {
+         "ref_multiple": false,
+         "ref_multiple_content_types": true
+        },
+        "mandatory": false,
+        "multiple": false,
+        "unique": false
+       },
+       {
+        "data_type": "text",
+        "display_name": "Placeholder",
+        "uid": "placeholder",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "field_metadata": {
+         "_default": true
+        }
+       },
+       {
+        "data_type": "text",
+        "display_name": "CSS Styles",
+        "uid": "css_styles",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "field_metadata": {
+         "_default": true
+        }
+       }
+      ]
+     },
+     {
+      "title": "HTML Content Control",
+      "uid": "html_content_control",
+      "schema": [
+       {
+        "data_type": "reference",
+        "display_name": "Datasource",
+        "uid": "datasource",
+        "reference_to": [
+         "page_title_and_text"
+        ],
+        "field_metadata": {
+         "ref_multiple": false,
+         "ref_multiple_content_types": true
+        },
+        "mandatory": false,
+        "multiple": false,
+        "unique": false
+       },
+       {
+        "data_type": "text",
+        "display_name": "Placeholder",
+        "uid": "placeholder",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "field_metadata": {
+         "_default": true
+        }
+       },
+       {
+        "data_type": "text",
+        "display_name": "CSS Styles",
+        "uid": "css_styles",
+        "mandatory": false,
+        "multiple": false,
+        "unique": false,
+        "field_metadata": {
+         "_default": true
+        }
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]

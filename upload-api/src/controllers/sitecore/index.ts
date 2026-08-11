@@ -147,7 +147,9 @@ const createSitecoreMapper = async (
     // Pass the package path so reference fields can be resolved from the values entries
     // actually hold; most Sitecore `source` definitions are queries or paths rather than
     // GUID lists, so the definition alone yields no targets.
-    const infoMap = await reference(newPath);
+    // `config` also carries the renderings flag: with it unset, ExtractRef skips the
+    // layout pass entirely and the emitted content types are unchanged.
+    const infoMap = await reference(newPath, config);
     if (infoMap?.contentTypeUids?.length) {
       const assetMapping = await extractAssets(filePath);
       const fieldMapping: any = { contentTypes: [], extractPath: filePath, assetMapping };

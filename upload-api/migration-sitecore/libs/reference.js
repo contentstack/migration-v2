@@ -5,7 +5,8 @@ const _ = require('lodash');
 const read = require('fs-readdir-recursive');
 const helper = require('../utils/helper');
 const restrictedUid = require('../utils');
-const { MIGRATION_DATA_CONFIG } = require('../constants/index.js');
+const { MIGRATION_DATA_CONFIG, RENDERING_CONFIG } = require('../constants/index.js');
+const { COMPONENTS_FIELD_UID } = RENDERING_CONFIG;
 const {
   observePackage,
   resolveObservation,
@@ -14,6 +15,12 @@ const {
   observedKinds,
   buildUnionBlockMapping
 } = require('./observedReferences.js');
+const {
+  observeRenderings,
+  selectBlocks,
+  buildRenderingBlockMapping,
+  describeRenderingResolution
+} = require('./observedRenderings.js');
 const append = 'a';
 const {
   DATA_MAPPER_DIR,
@@ -65,7 +72,7 @@ const globalFieldUidFor = (uid, usedContentTypeUids) =>
 // keep working; without it the observed-value pass is skipped and reference fields fall
 // back to the `source` definition, which only yields targets for the minority of
 // definitions that spell their sources out as GUIDs.
-function ExtractRef(sitecoreFolder) {
+function ExtractRef(sitecoreFolder, configData) {
   emptyGlobalFiled();
   const basePages = helper.readFile(
     path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, 'base.json')
@@ -91,6 +98,18 @@ function ExtractRef(sitecoreFolder) {
   // after extractEntries, so the items are on disk by now — which is what makes this
   // possible here and not in the schema builder, which sees only template definitions.
   const observed = sitecoreFolder ? observePackage({ sitecoreFolder }) : null;
+  // Layout composition, from the same on-disk items and reusing the index built above
+  // rather than walking the 4,650 layout-bearing files a second time. Gated so existing
+  // migrations are byte-identical until the feature is switched on.
+  const renderingsEnabled = configData?.migrateRenderings === true;
+  const observedLayouts =
+    renderingsEnabled && sitecoreFolder && observed
+      ? observeRenderings({
+          sitecoreFolder,
+          itemIndex: observed.itemIndex,
+          childIndex: observed.childIndex
+        })
+      : null;
   const referenceLog = [];
   const contentTypesPaths = read(contentFolderPath);
   if (contentTypesPaths?.length || basePages || contentTypeKeys || treeListRef) {
@@ -162,6 +181,26 @@ function ExtractRef(sitecoreFolder) {
             keptFields.push(field);
           }
           contentType.fieldMapping = keptFields;
+        }
+        // Layout composition. Keyed on the template's `key` for the same reason the
+        // reference lookup above is: an entry's `template` attribute carries the key,
+        // while the template item's name is title-cased.
+        if (observedLayouts) {
+          const layout =
+            observedLayouts.observations?.[
+              `${contentType?.otherCmsUid ?? ''}`.toLowerCase()
+            ];
+          if (layout?.placements) {
+            const selection = selectBlocks({
+              observation: layout,
+              contentTypeKeys,
+              options: configData?.renderingOptions
+            });
+            contentType.fieldMapping.push(
+              ...buildRenderingBlockMapping({ selected: selection.selected })
+            );
+            referenceLog.push(describeRenderingResolution(layout, selection));
+          }
         }
         const refTree = treeListRef?.[contentType?.contentstackUid];
         if (refTree?.unique?.length) {
@@ -268,6 +307,15 @@ function ExtractRef(sitecoreFolder) {
         const clone = _.cloneDeep(content);
         clone.contentstackUid = globalFieldUidFor(item, usedContentTypeUids);
         clone.id = `${content?.id ?? item}${DUAL_PURPOSE_GF_ID_SUFFIX}`;
+        // The title has to diverge as well, not just the uid. Contentstack requires a
+        // title to be unique across content types *and* global fields, so leaving both
+        // as e.g. "Page Content" makes creating the second one fail — and because the
+        // global field is created first, it is the content type that loses. Every
+        // content type that then referenced it fails with "refers to a Content Type that
+        // does not exist", which is how one duplicated title takes out a whole subtree.
+        if (clone?.contentstackTitle) {
+          clone.contentstackTitle = `${clone.contentstackTitle} Base`;
+        }
         allGlobalFiels?.push(clone);
         return;
       }
@@ -277,7 +325,14 @@ function ExtractRef(sitecoreFolder) {
       allGlobalFiels?.forEach((item) => {
         const schemaData = [];
         item?.fieldMapping?.forEach?.((schema) => {
-          if (!['title', 'url']?.includes(schema?.contentstackFieldUid)) {
+          // `components` is layout composition belonging to the page a global field is
+          // inherited *into*, not to the base template. Letting it through would give
+          // every inheriting page template an empty duplicate blocks field, and the
+          // entry side writes into the page's own field regardless.
+          const uid = `${schema?.contentstackFieldUid ?? ''}`;
+          const isComponents =
+            uid === COMPONENTS_FIELD_UID || uid.startsWith(`${COMPONENTS_FIELD_UID}.`);
+          if (!['title', 'url']?.includes(uid) && !isComponents) {
             schemaData?.push(schema);
           }
         });

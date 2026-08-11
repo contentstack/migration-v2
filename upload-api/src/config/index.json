@@ -25,5 +25,6 @@
     "base_url": "drupal_assets_base_url",
     "public_path": "drupal_assets_public_path"
   },
+  "migrateRenderings": true,
   "localPath": "/Users/yash.shinde/Documents/Migration/WInndixxe/PROD Instance/MergedPackage/package-winn"
 }
