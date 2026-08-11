@@ -1113,5 +1113,25 @@ describe('contentMapper.service', () => {
       expect(result.count).toBe(1);
       expect(result.assetMapping[0].filename).toBe('windmill.jpg');
     });
+
+    it('shows brand-new assets alongside previously-migrated ones on iteration 2+', async () => {
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: { ...project, iteration: 2 } })
+      );
+      mockUidMapperDb.data = { entry: {}, assets: { 'src-1': 'cs-1' } };
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-1', contentstackAssetUid: 'cs-1', filename: 'a.jpg', title: 'A' },
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-2', filename: 'b.jpg', title: 'B' },
+          ],
+        })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq());
+
+      expect(result.count).toBe(2);
+      expect(result.assetMapping.map((item: any) => item.otherCmsAssetUid).sort()).toEqual(['src-1', 'src-2']);
+    });
   });
 });
