@@ -258,6 +258,8 @@ export const startExportAndPoll =
     dispatch(sourceActions.setJobLogs([]));
     dispatch(sourceActions.setJobLiveCounts(undefined));
     dispatch(sourceActions.setJobProgress(0));
+    dispatch(sourceActions.setJobStage(undefined));
+    dispatch(sourceActions.setJobDroppedLogs(undefined));
     dispatch(sourceActions.setRunning(true));
     try {
       const { data } = await sourceApi.startExport(body);
@@ -273,6 +275,10 @@ export const startExportAndPoll =
         if (s.data.logs) dispatch(sourceActions.setJobLogs(s.data.logs));
         if (s.data.liveCounts) dispatch(sourceActions.setJobLiveCounts(s.data.liveCounts));
         if (typeof s.data.progress === 'number') dispatch(sourceActions.setJobProgress(s.data.progress));
+        // Assigned unconditionally: the server OMITS `stage` for file mode, and a
+        // guarded assignment would leave the last stack export's caption on screen.
+        dispatch(sourceActions.setJobStage(s.data.stage));
+        dispatch(sourceActions.setJobDroppedLogs(s.data.droppedLogs));
       }
 
       if (status === 'succeeded') {

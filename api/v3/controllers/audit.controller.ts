@@ -75,7 +75,9 @@ const resolveProject = async (
 const exportDirFor = (project: V3Project): string | undefined => {
   const apiKey = project.source?.stack?.stackApiKey;
   if (!apiKey) return undefined;
-  return stackDataDir(apiKey);
+  // Nested under the project as of 2026-08-12, so two projects on one stack no
+  // longer read (and overwrite) the same export folder.
+  return stackDataDir(project.id, apiKey);
 };
 
 /** Strips `items` — API-3 is the summary; rows come from API-4 one page at a time. */

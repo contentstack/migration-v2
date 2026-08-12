@@ -100,6 +100,11 @@ interface SourceState {
    * (see api/v3/services/export.service.ts `setProgress` calls). Undefined
    * before any export has started this session. */
   jobProgress?: number;
+  /** Server-provided caption for the current export step. Absent for file mode,
+   *  which has fixed phases the log view can derive a caption from itself. */
+  jobStage?: string;
+  /** Log lines the server's cap discarded, surfaced so truncation is visible. */
+  jobDroppedLogs?: number;
   jobLogs: JobLogLine[];
   /** Running tallies of real discovered items, updated as the export
    * progresses — distinct from the final persisted `graph.counts`, which only
@@ -220,6 +225,12 @@ const sourceSlice = createSlice({
     setJobProgress: (state, action: PayloadAction<number | undefined>) => {
       state.jobProgress = action.payload;
     },
+    setJobStage: (state, action: PayloadAction<string | undefined>) => {
+      state.jobStage = action.payload;
+    },
+    setJobDroppedLogs: (state, action: PayloadAction<number | undefined>) => {
+      state.jobDroppedLogs = action.payload;
+    },
     setJobLiveCounts: (state, action: PayloadAction<LiveCounts | undefined>) => {
       state.jobLiveCounts = action.payload;
     },
@@ -236,6 +247,8 @@ const sourceSlice = createSlice({
       state.jobId = undefined;
       state.jobStatus = undefined;
       state.jobProgress = undefined;
+      state.jobStage = undefined;
+      state.jobDroppedLogs = undefined;
       state.jobLogs = [];
       state.jobLiveCounts = undefined;
       state.error = undefined;

@@ -54,6 +54,25 @@ export interface StartAuditScanInput {
   force?: boolean;
 }
 
+/**
+ * The findings cache, written INSIDE the export folder.
+ *
+ * Deliberately co-located, and briefly moved into the v3 database on 2026-08-12
+ * before being rolled back the same day. Two reasons it belongs here:
+ *
+ *  1. **Staleness protection is structural.** The export folder going away takes the
+ *     cache with it — a property the filesystem enforces for free, where storing it
+ *     elsewhere makes the cache outlive the export and leaves only a `cacheKey`
+ *     comparison between the operator and findings for data that no longer exists.
+ *  2. **It stays off the project database's hot path.** `project.store.ts` reads and
+ *     rewrites `projects.json` WHOLE (lowdb has no partial reads) on every project
+ *     operation. These findings enumerate each unused asset and unpublished entry
+ *     individually, so on a large stack they are megabytes that every unrelated
+ *     store call would then pay for.
+ *
+ * The trade accepted in return: projects sharing one source stack share one cache
+ * document, since it describes the EXPORT rather than the project.
+ */
 const CACHE_FILE = "audit.json";
 
 const CHECK_IDS = [
@@ -88,7 +107,17 @@ export const readCachedFindings = (
     // re-export that failed to clear the directory would serve findings for data that
     // no longer exists — silently wrong, the worst outcome for this feature (TRR-6).
     const current = readExportedAt(exportDir);
-    if (parsed.cacheKey !== current) return undefined;
+    /*
+      KEPT from the 2026-08-12 move, because it fixes a hole that exists in this
+      design too: an UNVERIFIABLE cache is discarded rather than trusted.
+
+      Scanning an export whose `export-info.json` is missing or unstamped produces a
+      document with no `cacheKey` at all (JSON.stringify omits an undefined value).
+      A bare `parsed.cacheKey !== current` then compares undefined against undefined,
+      matches, and serves that document forever — including after a re-export, for as
+      long as the export stays unstamped. Requiring both to be present closes it.
+    */
+    if (!current || !parsed.cacheKey || parsed.cacheKey !== current) return undefined;
 
     return parsed;
   } catch {

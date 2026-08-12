@@ -63,6 +63,17 @@ interface ExportLogViewProps {
    * export batches. Undefined before any export has started this session. */
   progress?: number;
   jobStatus?: JobStatus;
+  /**
+   * Server-provided caption for what the export is doing right now.
+   *
+   * Preferred over the STAGES table whenever present, because only the job knows
+   * which module the CLI is on. Absent for file-mode exports, which still have the
+   * fixed phases STAGES was written for.
+   */
+  stage?: string;
+  /** Log lines the server's cap discarded, so truncation is visible rather than
+   *  silent. */
+  droppedLogs?: number;
 }
 
 /** Formats live elapsed time the way the design's clock chip does — sub-10s
@@ -81,7 +92,14 @@ const ClockIcon: FC = () => (
   </svg>
 );
 
-const ExportLogView: FC<ExportLogViewProps> = ({ logs, running, progress, jobStatus }) => {
+const ExportLogView: FC<ExportLogViewProps> = ({
+  logs,
+  running,
+  progress,
+  jobStatus,
+  stage,
+  droppedLogs,
+}) => {
   const [filter, setFilter] = useState<'all' | LogLevel>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -170,11 +188,21 @@ const ExportLogView: FC<ExportLogViewProps> = ({ logs, running, progress, jobSta
   // thin top-edge strip and the status row (dot, label, % chip, clock).
   const pct = progress !== undefined ? Math.max(0, Math.min(100, progress)) : 0;
   const stageIndex = stageIndexFor(pct);
+  /*
+    The server's stage wins over the STAGES table.
+
+    STAGES maps a progress PERCENTAGE onto the old export pipeline's phase
+    boundaries. Stack exports no longer have those phases — they advance per
+    completed CLI run — so at 75% this rendered "Reading entries" for the whole of
+    a whole-stack export, and walked a content-types-only export through "Assets &
+    global fields" without exporting any. The table is kept solely for file-mode
+    exports, whose phases are unchanged and which send no stage.
+  */
   const currentLabel =
     jobStatus === 'succeeded' ? 'Exported successfully'
       : jobStatus === 'failed' ? 'Export failed'
         : jobStatus === 'queued' ? 'Queued…'
-          : STAGES[stageIndex]?.label ?? 'Exporting…';
+          : stage ?? STAGES[stageIndex]?.label ?? 'Exporting…';
   const statusColor = jobStatus ? STATUS_COLOR[jobStatus] : 'var(--brand-strong)';
   const isRunning = jobStatus !== 'succeeded' && jobStatus !== 'failed';
   const barColor = jobStatus === 'failed' ? 'var(--danger)' : jobStatus === 'succeeded' ? DONE_COLOR : 'var(--brand-strong)';
@@ -266,6 +294,28 @@ const ExportLogView: FC<ExportLogViewProps> = ({ logs, running, progress, jobSta
             <div style={{ fontSize: 12, maxWidth: 320 }}>
               Configure the source, then press <b style={{ color: 'var(--text-body)' }}>Start export</b> to watch each stage stream here.
             </div>
+          </div>
+        )}
+        {/*
+          Truncation has to be visible. The server caps retained lines, and a real
+          CLI export of a large stack exceeds that cap easily — presenting what is
+          left as the whole log would have someone conclude the CLI never printed
+          something it did. Rendered at the TOP because that is where the missing
+          lines were, and only when something was actually dropped.
+        */}
+        {!!droppedLogs && droppedLogs > 0 && (
+          <div
+            style={{
+              padding: '5px 8px',
+              marginBottom: 6,
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-sunken)',
+              color: 'var(--text-subtle)',
+              fontSize: 11.5,
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            {droppedLogs.toLocaleString()} earlier lines omitted to keep this log readable
           </div>
         )}
         {visible.map((l, i) => (

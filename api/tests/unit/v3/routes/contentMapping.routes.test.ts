@@ -51,7 +51,7 @@ vi.mock("../../../../v3/models/project.store.js", () => ({
 }));
 vi.mock("../../../../v3/utils/migrationData.util.js", () => ({
   stackDataDir: mockStackDataDir,
-  migrationDataDir: vi.fn(() => "/fake/cmsMigrationData"),
+  migrationDataDir: vi.fn(() => "/fake/exportData"),
 }));
 vi.mock("../../../../v3/utils/secret.util.js", () => ({
   decryptSecret: mockDecryptSecret,
@@ -116,7 +116,8 @@ beforeEach(() => {
   mockBuildInventory.mockResolvedValue(INVENTORY);
   mockSetSelection.mockResolvedValue(undefined);
   mockGetSelection.mockResolvedValue(undefined);
-  mockStackDataDir.mockReturnValue("/fake/cmsMigrationData/blt-src-secret-key");
+  // Nested per project since 2026-08-12: stackDataDir(projectId, stackId).
+  mockStackDataDir.mockReturnValue("/fake/exportData/P1/blt-src-secret-key");
   mockDecryptSecret.mockReturnValue("cs_plain_token");
 });
 
@@ -700,13 +701,20 @@ describe("v3 content mapping — reading the inventory", () => {
 
     const body = JSON.stringify(res.body);
     expect(body).not.toContain("blt-src-secret-key");
-    expect(body).not.toContain("cmsMigrationData");
+    /*
+      ⚠️ Updated with the 2026-08-12 rename of `cmsMigrationData` → `exportData`.
+      Left as the old name this assertion would still PASS — against a string that no
+      longer appears anywhere in the codebase — quietly turning a leak check into a
+      test of nothing. It has to name the directory actually in use.
+    */
+    expect(body).not.toContain("exportData");
   });
 
   it("TC_CTS_122 (positive): derives the export directory from the project, ignoring a supplied path", async () => {
     await get("P1", "?exportDir=/etc/passwd");
 
-    expect(mockStackDataDir).toHaveBeenCalledWith("blt-src-secret-key");
+    // Both segments come from the resolved project, never from the request.
+    expect(mockStackDataDir).toHaveBeenCalledWith("P1", "blt-src-secret-key");
   });
 
   /*

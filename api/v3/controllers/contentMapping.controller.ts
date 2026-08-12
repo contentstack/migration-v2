@@ -131,7 +131,7 @@ export const contentMappingController = {
     let inventory: ContentTypeInventory;
     try {
       inventory = await buildContentTypeInventory({
-        exportDir: stackDataDir(sourceApiKey),
+        exportDir: stackDataDir(project.id, sourceApiKey),
         destination: await destinationRefFor(project),
       });
     } catch (err) {
@@ -187,7 +187,7 @@ export const contentMappingController = {
     let inventory: ContentTypeInventory;
     try {
       inventory = await buildContentTypeInventory({
-        exportDir: stackDataDir(sourceApiKey),
+        exportDir: stackDataDir(project.id, sourceApiKey),
         destination: await destinationRefFor(project),
       });
     } catch {

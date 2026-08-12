@@ -28,7 +28,7 @@ const badgeFor = (running: boolean, jobStatus?: string, hasGraph?: boolean) => {
 
 const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
-  const { mode, stack, file, running, jobStatus, jobLogs, jobProgress, jobLiveCounts, graph, error } =
+  const { mode, stack, file, running, jobStatus, jobLogs, jobProgress, jobStage, jobDroppedLogs, jobLiveCounts, graph, error } =
     useV3Selector((s) => s.source);
 
   const activityRef = useRef<HTMLDivElement>(null);
@@ -228,7 +228,14 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
       {/* activity log — a separate full-width section below the Source card */}
       {showActivity && (
         <div ref={activityRef} className="v3-card" style={{ marginTop: 16, overflow: 'hidden' }}>
-          <ExportLogView logs={jobLogs} running={running} progress={jobProgress} jobStatus={jobStatus} />
+          <ExportLogView
+            logs={jobLogs}
+            running={running}
+            progress={jobProgress}
+            jobStatus={jobStatus}
+            stage={jobStage}
+            droppedLogs={jobDroppedLogs}
+          />
         </div>
       )}
     </div>

@@ -214,22 +214,6 @@ export const csManagement = {
     const data = await csGet(`${hostFor(region)}/stacks/branches`, headers);
     return (data?.branches ?? []).map((b: any) => ({ uid: b?.uid }));
   },
-
-  /** All content-type schemas in a stack (for the stack-mode graph build). */
-  getContentTypes: async (
-    tp: TokenPayload | undefined,
-    stackApiKey: string,
-    branch?: string
-  ) => {
-    const region = tp?.region as string;
-    const headers = stackHeaders(await authHeaders(tp), stackApiKey, branch);
-    const data = await csGet(
-      `${hostFor(region)}/content_types?include_global_field_schema=true`,
-      headers
-    );
-    return data?.content_types ?? [];
-  },
-
   /** How many real items to fetch/report per module for the live export log. */
   moduleLogSampleSize: 6,
 
@@ -328,22 +312,6 @@ export const csManagement = {
   /** Page size for the real full-data export fetchers below (distinct from
    * `moduleLogSampleSize`, which only samples a few items for the live log). */
   exportPageSize: 100,
-
-  /** Every real global field definition in the stack (used by the genuine
-   * export-to-disk bundle, not the sampled preview). */
-  getAllGlobalFields: async (
-    tp: TokenPayload | undefined,
-    stackApiKey: string,
-    branch?: string
-  ): Promise<any[]> => {
-    const region = tp?.region as string;
-    const headers = stackHeaders(await authHeaders(tp), stackApiKey, branch);
-    const data = await csGet(`${hostFor(region)}/global_fields`, headers);
-    return data?.global_fields ?? [];
-  },
-
-  /** Every real asset in the stack, paged until exhausted (used by the
-   * genuine export-to-disk bundle, not the sampled preview). */
   getAllAssets: async (
     tp: TokenPayload | undefined,
     stackApiKey: string,
@@ -406,38 +374,6 @@ export const csManagement = {
     }
     return all;
   },
-
-  /**
-   * Every locale on a stack's branch, as the COMPLETE Contentstack objects.
-   *
-   * Belongs to the `getAll*` export family rather than the `list*` picker family:
-   * `listLocales` narrows to `{code, name}` for a dropdown, which cannot write a
-   * real `locales.json` — that needs `uid` (the file is keyed by it) and
-   * `fallback_locale` (a null one identifies the master locale).
-   *
-   * Not paged: a stack's locale count is small and `/locales` returns them all.
-   */
-  getAllLocales: async (
-    tp: TokenPayload | undefined,
-    stackApiKey: string,
-    branch?: string
-  ): Promise<any[]> => {
-    const headers = stackHeaders(await authHeaders(tp), stackApiKey, branch);
-    const data = await csGet(`${hostFor(tp?.region as string)}/locales`, headers);
-    // Normalised, not assumed to be an array: Contentstack has been observed
-    // returning locales as an object keyed by uid, which broke the create-stack
-    // picker with "((intermediate value) ?? []).map is not a function".
-    return asArray(data?.locales);
-  },
-
-  // ---- Destination panel (trd.md TR-11, TR-13, TR-14) ----
-
-  /**
-   * Creates a new stack in an organization (API-4 / FR-1.5). Contentstack itself
-   * rejects a name that collides with an existing stack in the org; that 400 is
-   * surfaced verbatim so the UI can show "already exists" (EC-3). Non-idempotent
-   * — callers MUST NOT retry blindly (TRR-5).
-   */
   createStack: async (
     tp: TokenPayload | undefined,
     orgId: string,
@@ -640,7 +576,8 @@ export const csManagement = {
    * The destination stack's content types, authenticated with the stored
    * MANAGEMENT token (cs-content-type-selection FR-2.1 / TR-3).
    *
-   * Deliberately separate from `getContentTypes`. Every other destination read in
+   * Deliberately separate from the source-side content-type read (removed with the
+   * pre-CLI export pipeline). Every other destination read in
    * this service authenticates as the signed-in USER (`authHeaders` → authtoken
    * or SSO bearer) plus a stack api key. This one uses the project's stored
    * management token instead, because FR-2.1 requires the conflict check to work

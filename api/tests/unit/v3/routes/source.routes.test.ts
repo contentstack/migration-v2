@@ -11,6 +11,12 @@ import AdmZip from "adm-zip";
  * error-middleware/parseBundle run real. Auth is tested separately (TC_SRC_048),
  * so these mount the source router without the auth guard.
  */
+const { mockGetJob } = vi.hoisted(() => ({ mockGetJob: vi.fn() }));
+vi.mock("../../../../v3/services/export.service.js", () => ({
+  getJob: mockGetJob,
+  startExportJob: vi.fn(() => "job-1"),
+}));
+
 const { mockGetV3Project } = vi.hoisted(() => ({ mockGetV3Project: vi.fn() }));
 vi.mock("../../../../v3/models/project.store.js", () => ({
   getV3Project: mockGetV3Project,
@@ -37,7 +43,60 @@ const makeApp = async (uploadLimit?: number) => {
 
 beforeEach(() => {
   mockGetV3Project.mockReset();
+  mockGetJob.mockReset();
   vi.unstubAllEnvs();
+});
+
+/**
+ * The job-status endpoint's payload — added 2026-08-11 with the Source Export
+ * Revamp's log cap and server-provided stage caption.
+ *
+ * Both fields are pure PLUMBING, and plumbing that fails silently: if the
+ * controller drops `stage`, the UI falls back to deriving a caption from the
+ * progress percentage against the OLD pipeline's phase boundaries — captions that
+ * name modules the run is not touching. If it drops `droppedLogs`, a truncated log
+ * is presented as complete. Neither shows up as an error, so the endpoint's shape
+ * needs pinning directly.
+ */
+describe("v3 source routes — export status payload", () => {
+  const job = (over: Record<string, unknown> = {}) => ({
+    jobId: "job-1",
+    projectId: "P1",
+    status: "running",
+    progress: 42,
+    startedAt: "2026-08-11T00:00:00.000Z",
+    logs: [{ ts: "00:00:01", level: "INFO", msg: "Exported content type: Blog Post" }],
+    liveCounts: { contentTypes: 1, assets: 0, entries: 0, globalFields: 0, references: 0 },
+    droppedLogs: 0,
+    ...over,
+  });
+
+  it("(payload, positive) the status response carries the stage caption and the dropped-line count", async () => {
+    mockGetJob.mockReturnValue(job({ stage: "Exporting content types", droppedLogs: 1234 }));
+    const app = await makeApp();
+
+    const res = await request(app).get("/source/export/job-1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.stage).toBe("Exporting content types");
+    expect(res.body.droppedLogs).toBe(1234);
+  });
+
+  /*
+    Negative — taxonomy #1 (missing value): a job with no stage yet must not
+    invent one. File-mode exports set no stage at all, and a fabricated caption
+    would describe work that is not happening.
+  */
+  it("(payload, negative) a job with no stage reports no stage rather than a placeholder", async () => {
+    mockGetJob.mockReturnValue(job());
+    const app = await makeApp();
+
+    const res = await request(app).get("/source/export/job-1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.stage).toBeUndefined();
+    expect(res.body.droppedLogs).toBe(0);
+  });
 });
 
 describe("v3 source routes — HTTP behavior", () => {

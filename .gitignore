@@ -370,6 +370,13 @@ upload-api/extracted_files*
 # Exceptions to *MigrationData* above — real source files, not generated data dirs.
 !api/v3/utils/migrationData.util.ts
 !api/tests/unit/v3/utils/migrationData.util.test.ts
+
+# v3's export tree, renamed from cmsMigrationData → exportData on 2026-08-12.
+# Listed explicitly because the *MigrationData* glob above no longer matches it —
+# that rename is exactly how 160MB of exported stack data came to be un-ignored.
+# Named at BOTH levels (here and api/.gitignore) on purpose: the cost of one of
+# them being wrong is committing a customer's exported content.
+api/v3/exportData/
 *.zip
 app.json
 

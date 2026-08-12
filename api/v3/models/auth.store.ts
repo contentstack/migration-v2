@@ -62,6 +62,51 @@ export const getAccessToken = async (
 ): Promise<string | null> =>
   (await findUser(region, userId))?.access_token ?? null;
 
+/** What the Contentstack CLI needs written into its own config store. */
+export interface CliCredential {
+  authtoken?: string;
+  accessToken?: string;
+  email?: string;
+  userUid?: string;
+  updatedAt?: string;
+}
+
+/**
+ * The credential for a CLI export, or null when there is none usable.
+ *
+ * ⚠️ Returns ONLY the token matching `isSso`, never the whole row. A stored row
+ * holds both `authtoken` and `access_token`, and the CLI prefers OAuth whenever
+ * an access token is present — so returning both would make a NON-SSO user
+ * authenticate over OAuth with a token their session never used. That surfaces as
+ * an opaque CLI auth error, or worse as an export running under a different
+ * identity. Splitting on `isSso` here is what keeps the CLI on the same
+ * credential `csManagement`'s own HTTP calls use.
+ *
+ * An empty token yields null rather than a credential holding `""`: the explicit
+ * "no credential" refusal is far easier to act on than a CLI auth failure.
+ */
+export const getCliCredential = async (
+  region: string,
+  userId: string,
+  isSso: boolean
+): Promise<CliCredential | null> => {
+  const user = await findUser(region, userId);
+  if (!user) return null;
+
+  const token = isSso ? user.access_token : user.authtoken;
+  if (!token) return null;
+
+  return {
+    ...(isSso ? { accessToken: token } : { authtoken: token }),
+    email: user.email,
+    userUid: user.user_id,
+    // `updated_at` in preference to `created_at`: the CLI reads it to decide
+    // whether an OAuth token needs refreshing, and `created_at` would have it
+    // refresh a token that is already fresh.
+    updatedAt: user.updated_at,
+  };
+};
+
 /**
  * Persists a non-SSO Contentstack credential for (region, userId) — used by
  * the region-login flow (a real CS `/user-session` login for a region other

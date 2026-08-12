@@ -364,8 +364,12 @@ production.env
 database/
 database-v3/
 /sitecoreMigrationData
+# The legacy v1/v2 engine's own data dir — keeps its name.
 /cmsMigrationData
+# v3's export tree. Renamed from cmsMigrationData → exportData on 2026-08-12; the
+# old path is kept so an older checkout's leftover folder stays ignored too.
 /v3/cmsMigrationData
+/v3/exportData
 /migration-data
 **/copy*
 **copy.ts

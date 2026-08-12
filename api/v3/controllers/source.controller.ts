@@ -221,6 +221,18 @@ const getExportStatus = (req: Request, res: Response) => {
     progress: job.progress,
     logs: job.logs,
     liveCounts: job.liveCounts,
+    /*
+      The stage caption comes from the SERVER because only the job knows which
+      module the CLI is on. The client used to derive it from the progress
+      percentage against a table of the old pipeline's phase boundaries, which no
+      longer exist — leaving captions that named modules the run wasn't touching.
+      Omitted when absent (file mode) rather than defaulted, so the client can fall
+      back instead of showing a fabricated caption.
+    */
+    ...(job.stage ? { stage: job.stage } : {}),
+    // Always sent, including 0: the client needs to distinguish "nothing dropped"
+    // from "this server is too old to tell me", and only an explicit 0 does that.
+    droppedLogs: job.droppedLogs,
     ...(job.error ? { error: job.error } : {}),
   });
 };

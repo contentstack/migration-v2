@@ -70,4 +70,88 @@ describe('v3 ExportLogView — progress bar', () => {
     render(<ExportLogView logs={[]} running={false} />);
     expect(screen.queryByText(/^\d+(\.\d)?s$/)).toBeNull();
   });
+
+  /*
+    ── The stage caption (Source Export Revamp) ──────────────────────────────
+
+    This component derived its caption from the progress PERCENTAGE against a
+    hardcoded STAGES table of the old export pipeline's phase boundaries
+    (15 → "Connecting", 40 → "Reading content types", 65 → "Assets & global
+    fields", 82 → "Reading entries", …).
+
+    Those boundaries no longer exist. Stack exports now advance
+    `10 + (i+1)/total × 65` per completed CLI run, so a whole-stack export sits at
+    75% for its entire duration and rendered "Reading entries" the whole time —
+    while a content-types-only export walked through "Assets & global fields" and
+    "Reading entries" without exporting either. The caption asserted work that was
+    not happening.
+
+    The server now sends the caption, because only the job knows which module the
+    CLI is on. The percentage table survives ONLY as the fallback for file-mode
+    exports, whose phases are unchanged.
+  */
+  it('(stage, positive) renders the server-provided stage caption instead of guessing from progress', () => {
+    render(
+      <ExportLogView
+        logs={[]}
+        running
+        progress={75}
+        jobStatus="running"
+        stage="Exporting global fields"
+      />
+    );
+
+    expect(screen.getByText('Exporting global fields')).toBeInTheDocument();
+    // 75% would previously have rendered "Reading entries" — the exact defect.
+    expect(screen.queryByText('Reading entries')).toBeNull();
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): with no stage from the server the
+    component must still caption the run, not go blank. File-mode exports send no
+    stage, and an empty caption would read as a stalled export.
+  */
+  it('(stage, negative) falls back to a progress-derived caption when the server sends no stage', () => {
+    render(<ExportLogView logs={[]} running progress={15} jobStatus="running" />);
+
+    expect(screen.getByText('Reading content types')).toBeInTheDocument();
+  });
+
+  /*
+    The log cap has to be VISIBLE. A silently truncated log would have someone
+    conclude the CLI never printed something it did — the log is the only evidence
+    they have about what the export actually did.
+  */
+  it('(dropped, positive) says how many earlier lines the cap discarded', () => {
+    render(
+      <ExportLogView
+        logs={[{ ts: '00:00:01', level: 'INFO', msg: 'Exported content type: Blog Post' }]}
+        running
+        progress={50}
+        jobStatus="running"
+        droppedLogs={1234}
+      />
+    );
+
+    expect(screen.getByText(/1,?234 earlier line/i)).toBeInTheDocument();
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): nothing dropped means no notice at all.
+    A permanent "0 lines omitted" would train the reader to ignore the one message
+    that matters when it is real.
+  */
+  it('(dropped, negative) shows no truncation notice when nothing was dropped', () => {
+    render(
+      <ExportLogView
+        logs={[{ ts: '00:00:01', level: 'INFO', msg: 'Exported content type: Blog Post' }]}
+        running
+        progress={50}
+        jobStatus="running"
+        droppedLogs={0}
+      />
+    );
+
+    expect(screen.queryByText(/earlier line/i)).toBeNull();
+  });
 });

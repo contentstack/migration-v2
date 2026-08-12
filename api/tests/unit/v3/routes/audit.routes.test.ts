@@ -64,7 +64,7 @@ vi.mock("../../../../v3/models/project.store.js", () => ({
 }));
 vi.mock("../../../../v3/utils/migrationData.util.js", () => ({
   stackDataDir: mockStackDataDir,
-  migrationDataDir: vi.fn(() => "/fake/cmsMigrationData"),
+  migrationDataDir: vi.fn(() => "/fake/exportData"),
 }));
 
 /** The whole /v3 router, so the real auth guard is in the chain. */
@@ -132,7 +132,8 @@ beforeEach(() => {
   ].forEach((m) => m.mockReset());
 
   mockGetProject.mockResolvedValue(PROJECT);
-  mockStackDataDir.mockImplementation((id: string) => `/fake/cmsMigrationData/${id}`);
+  // Nested per project since 2026-08-12: stackDataDir(projectId, stackId).
+  mockStackDataDir.mockImplementation((pid: string, id: string) => `/fake/exportData/${pid}/${id}`);
   mockReadCached.mockReturnValue(FINDINGS);
   mockGetDecisions.mockResolvedValue(DECISIONS);
   mockSetDecisions.mockResolvedValue(undefined);
@@ -602,11 +603,17 @@ describe("v3 audit routes — authentication and scoping", () => {
       .post("/project/P1/audit/run")
       .send({ token_payload: TOKEN_PAYLOAD });
 
-    // The ordering TRR-4's mitigation depends on: the project is resolved first,
-    // and the path is built from what IT holds — never from the URL segment.
-    expect(mockStackDataDir).toHaveBeenCalledWith("blt-src");
+    /*
+      The ordering TRR-4's mitigation depends on: the project is resolved first, and
+      the path is built from what IT holds — never from the URL segment.
+
+      Strengthened 2026-08-12: the path now carries the resolved project's OWN id as
+      well, so a request for one project can no longer land on another project's
+      export directory even if both record the same source stack.
+    */
+    expect(mockStackDataDir).toHaveBeenCalledWith("P1", "blt-src");
     const [{ exportDir }] = mockStartScan.mock.calls[0];
-    expect(exportDir).toBe("/fake/cmsMigrationData/blt-src");
+    expect(exportDir).toBe("/fake/exportData/P1/blt-src");
   });
 
   /*

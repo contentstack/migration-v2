@@ -38,6 +38,9 @@ import {
 const TMP = path.join(os.tmpdir(), `v3-audit-scan-${process.pid}`);
 const CACHE = "audit.json";
 
+/** The cache document written beside an export. */
+const cacheIn = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, CACHE), "utf8"));
+
 /** A readable export carrying one unpublished record and one asset. */
 const readableExport = (over: Record<string, unknown> = {}) => ({
   readable: true,
@@ -150,7 +153,7 @@ describe("v3 auditScan — running a scan and caching its result", () => {
 
     // Inside the export directory, so the exporter clearing that directory
     // invalidates the cache structurally rather than by a rule (FR-7.8).
-    const cached = JSON.parse(fs.readFileSync(path.join(dir, CACHE), "utf8"));
+    const cached = cacheIn(dir);
     expect(cached.totals.denominator).toBe(3);
     expect(cached.checks).toHaveLength(4);
   });
@@ -205,7 +208,7 @@ describe("v3 auditScan — reading the cache", () => {
 
     // Stand-in for a re-export: the document survives but the export it describes
     // has moved on.
-    const cached = JSON.parse(fs.readFileSync(path.join(dir, CACHE), "utf8"));
+    const cached = cacheIn(dir);
     cached.cacheKey = "2026-01-01T00:00:00.000Z";
     fs.writeFileSync(path.join(dir, CACHE), JSON.stringify(cached));
 
@@ -222,6 +225,37 @@ describe("v3 auditScan — reading the cache", () => {
     fs.writeFileSync(path.join(dir, CACHE), "{ not json at all");
 
     expect(readCachedFindings(dir)).toBeUndefined();
+  });
+
+  /*
+    Found during the 2026-08-12 move and KEPT after rolling it back, because the hole
+    exists in this design too: an UNVERIFIABLE cache must be discarded, not trusted.
+
+    Scanning an export whose `export-info.json` is missing or unstamped writes a
+    document with NO `cacheKey` — `JSON.stringify` omits an undefined value. A bare
+    `parsed.cacheKey !== current` then compares undefined against undefined, matches,
+    and serves that document forever, including after a genuine re-export, for as long
+    as the export stays unstamped.
+  */
+  it("(staleness, positive) a cache with no key is discarded when the export is unstamped", async () => {
+    const dir = exportDir("c5");
+    // An export the reader can use but which carries no timestamp.
+    mockReadExport.mockReturnValue(readableExport({ exportedAt: undefined }));
+
+    await settle(startAuditScan({ projectId: "P1", exportDir: dir }));
+
+    // The document exists on disk but describes nothing verifiable.
+    expect(cacheIn(dir)).not.toHaveProperty("cacheKey");
+    expect(readCachedFindings(dir)).toBeUndefined();
+  });
+
+  // Negative — the paired case: a cache whose export IS stamped and matching is still
+  // served. A guard that rejected everything would be as useless as none.
+  it("(staleness, negative) a cache whose export still matches is served", async () => {
+    const dir = exportDir("c6");
+    await settle(startAuditScan({ projectId: "P1", exportDir: dir }));
+
+    expect(readCachedFindings(dir)).toBeDefined();
   });
 });
 
@@ -259,7 +293,7 @@ describe("v3 auditScan — re-running", () => {
 
     await settle(startAuditScan({ projectId: "P1", exportDir: dir }));
 
-    const cached = JSON.parse(fs.readFileSync(path.join(dir, CACHE), "utf8"));
+    const cached = cacheIn(dir);
     // The findings document describes the export only — no decision state anywhere
     // in it, so a re-run cannot disturb what the user chose (FR-7.6).
     expect(cached).not.toHaveProperty("decisions");

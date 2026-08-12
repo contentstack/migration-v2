@@ -29,10 +29,35 @@ export interface ParsedBundle {
 }
 
 /** Module catalog + dependency edges (drives the "required by" forcing, FR-3.6). */
+/**
+ * The module list, and the dependency closure that governs BOTH what the export
+ * actually fetches and which rows the picker locks.
+ *
+ * ⚠️ One source of truth, on purpose (source-export-revamp plan §5.4). This array
+ * is served by `source.controller.ts`'s `listModules` and consumed by the UI's
+ * `toggleModule` / `forcedKeys`, which already auto-select transitive
+ * dependencies and render a forced row as disabled with a "required by" note. So
+ * widening `dependsOn` here enforces the closure on the server AND shows it in
+ * the picker, with no UI change.
+ *
+ * `dependsOn` widened 2026-08-10. It previously declared only
+ * `entries → [contentTypes, assets]`, which let an operator export content types
+ * with no global fields, taxonomies or extensions — a bundle whose destination
+ * content types cannot be created. Measured against a real 23-content-type
+ * export: 51 fields across 11 extensions, 6 taxonomy fields, 4 global-field
+ * references.
+ *
+ * `environments` hangs off `entries`, not `contentTypes`: entry `publish_details`
+ * reference environment uids; nothing in a content type's schema does.
+ *
+ * This list is shared with the FILE-UPLOAD path, so the file picker now forces
+ * the same closure. Deliberate — the referential facts are identical for an
+ * uploaded bundle (plan Q-8).
+ */
 export const MODULE_DEFS: { key: string; label: string; dependsOn: string[] }[] = [
-  { key: "contentTypes", label: "Content Types", dependsOn: [] },
+  { key: "contentTypes", label: "Content Types", dependsOn: ["globalFields", "taxonomies", "locales", "extensions"] },
   { key: "globalFields", label: "Global Fields", dependsOn: [] },
-  { key: "entries", label: "Entries", dependsOn: ["contentTypes", "assets"] },
+  { key: "entries", label: "Entries", dependsOn: ["contentTypes", "assets", "environments"] },
   { key: "assets", label: "Assets", dependsOn: [] },
   { key: "locales", label: "Locales", dependsOn: [] },
   { key: "extensions", label: "Extensions", dependsOn: [] },

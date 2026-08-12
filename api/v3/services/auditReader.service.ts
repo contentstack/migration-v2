@@ -257,13 +257,29 @@ export const readAuditExport = (exportDir: string): AuditExportData => {
         const parsed = readJson(index);
         return parsed && typeof parsed === "object" ? (parsed as Record<string, any>) : {};
       }
-      // The CLI shards assets into `<uuid>-assets.json` beside a chunk pointer.
+      /*
+        The CLI shards assets into `<uuid>-assets.json`, and ONLY those files hold
+        assets. Two siblings sit beside them and neither is data:
+
+          assets.json    → a chunk index: {"1": "<uuid>-assets.json"}
+          metadata.json  → {"<uuid>-assets.json": [ …versions… ]}
+
+        Measured against a real 10-asset export that this function reported as 11:
+        walking every `*.json` and keeping values where `typeof value === "object"`
+        let `metadata.json` through, because its value is an ARRAY — so its KEY, a
+        filename, was merged in as an asset uid. Restricting to the chunk suffix
+        removes that whole class of mistake rather than blacklisting two filenames
+        the CLI may add to.
+      */
       const merged: Record<string, any> = {};
       for (const f of dataFilesIn(dir)) {
+        if (!f.endsWith("-assets.json")) continue;
         const parsed = readJson(f);
         if (!parsed || typeof parsed !== "object") continue;
         for (const [uid, asset] of Object.entries(parsed as Record<string, any>)) {
-          if (asset && typeof asset === "object") merged[uid] = asset;
+          // An asset is an object, never an array — Array.isArray is what the old
+          // `typeof` check was missing.
+          if (asset && typeof asset === "object" && !Array.isArray(asset)) merged[uid] = asset;
         }
       }
       return merged;

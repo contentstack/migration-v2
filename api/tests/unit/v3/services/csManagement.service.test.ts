@@ -1,5 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+/*
+ * NOTE 2026-08-12 — five tests were removed with their subjects, not to reach green.
+ * `getContentTypes`, `getAllGlobalFields` and `getAllLocales` existed only to feed the
+ * pre-CLI export pipeline; the Contentstack CLI performs the export now, so those
+ * functions were deleted and their tests with them.
+ *
+ * `getAllAssets` and `getAllEntries` were KEPT despite also having no caller today —
+ * they are the paginated readers with rate-limit handling that the unbuilt
+ * destination/import step will need, and rewriting that from scratch is a worse
+ * outcome than briefly unused code.
+ */
+
 /**
  * TDD — v3 csManagement.service (listOrgs / listStacks / listBranches).
  * Backs TC_SRC_043 (listing endpoints return the expected shape), TC_SRC_049
@@ -171,28 +183,6 @@ describe("v3 csManagement.service — stack methods", () => {
     expect(counts.assets).toBe(0);
     expect(counts.contentTypes).toBe(1);
     expect(counts.entries).toBe(1);
-  });
-
-  it("TC_SRC_044 (positive): getContentTypes returns the CS content_types array with stack headers", async () => {
-    mockGetAuthtoken.mockResolvedValue("tok");
-    mockGet.mockResolvedValue({ data: { content_types: [{ uid: "a" }, { uid: "b" }] } });
-
-    const cts = await csManagement.getContentTypes(TP, "blt1", "main");
-    expect(cts).toHaveLength(2);
-    expect(mockGet).toHaveBeenCalledWith(
-      expect.stringContaining("/content_types"),
-      expect.objectContaining({
-        headers: expect.objectContaining({ api_key: "blt1", branch: "main", authtoken: "tok" }),
-      })
-    );
-  });
-
-  // Negative — taxonomy #2 (invalid/missing shape): no content_types field → [], not a crash.
-  it("TC_SRC_044 (negative): getContentTypes returns [] when the response has no content_types", async () => {
-    mockGetAuthtoken.mockResolvedValue("tok");
-    mockGet.mockResolvedValue({ data: {} });
-
-    expect(await csManagement.getContentTypes(TP, "blt1")).toEqual([]);
   });
 
   it("(onItem, positive) getStackModuleCounts reports real sampled item names via onItem as each call resolves", async () => {
@@ -405,73 +395,6 @@ describe("v3 csManagement.service — stack methods", () => {
     const [url] = mockGet.mock.calls[0];
     expect(url).toContain("locale=de");
     expect(url).not.toContain("locale=en-us");
-  });
-
-  /*
-    `getAllLocales` belongs to the `getAll*` export family (raw, complete objects
-    for writing to disk), not the `list*` picker family — `listLocales` maps down
-    to `{code, name}` for a dropdown, which is not enough to write a real
-    `locales.json`: that needs `uid` and `fallback_locale` too, and
-    `fallback_locale` is what identifies the master locale.
-  */
-  it("(getAllLocales, positive) returns the complete locale objects for the stack's branch", async () => {
-    mockGetAuthtoken.mockResolvedValue("tok");
-    mockGet.mockResolvedValue({
-      data: {
-        locales: [
-          { uid: "l1", code: "en-us", name: "English - United States", fallback_locale: null },
-          { uid: "l2", code: "de", name: "German", fallback_locale: "en-us" },
-        ],
-      },
-    });
-
-    const locales = await csManagement.getAllLocales(TP, "blt1", "main");
-
-    // Complete objects, not narrowed — `fallback_locale` is load-bearing.
-    expect(locales).toEqual([
-      { uid: "l1", code: "en-us", name: "English - United States", fallback_locale: null },
-      { uid: "l2", code: "de", name: "German", fallback_locale: "en-us" },
-    ]);
-    expect(mockGet).toHaveBeenCalledWith(
-      expect.stringContaining("/locales"),
-      expect.objectContaining({
-        headers: expect.objectContaining({ api_key: "blt1", branch: "main" }),
-      })
-    );
-  });
-
-  /*
-    Negative — taxonomy #2 (invalid shape): Contentstack has already been observed
-    returning locales as an OBJECT rather than an array (that exact response broke
-    the create-stack locale picker with "((intermediate value) ?? []).map is not a
-    function"). Treated as an array this throws; the object form must be
-    normalised, because falling back to `[]` here would export zero locales and
-    therefore zero entries.
-  */
-  it("(getAllLocales, negative) an object-keyed response is normalised rather than dropped", async () => {
-    mockGetAuthtoken.mockResolvedValue("tok");
-    mockGet.mockResolvedValue({
-      data: {
-        locales: {
-          l1: { uid: "l1", code: "en-us", fallback_locale: null },
-          l2: { uid: "l2", code: "fr", fallback_locale: "en-us" },
-        },
-      },
-    });
-
-    const locales = await csManagement.getAllLocales(TP, "blt1", "main");
-
-    expect(locales.map((l: any) => l.code)).toEqual(["en-us", "fr"]);
-  });
-
-  it("(export, positive) getAllGlobalFields returns the full real global field definitions", async () => {
-    mockGetAuthtoken.mockResolvedValue("tok");
-    mockGet.mockResolvedValue({
-      data: { global_fields: [{ uid: "seo", title: "SEO", schema: [{ uid: "meta" }] }] },
-    });
-
-    const fields = await csManagement.getAllGlobalFields(TP, "blt1", "main");
-    expect(fields).toEqual([{ uid: "seo", title: "SEO", schema: [{ uid: "meta" }] }]);
   });
 
   // Regression: entries counting must be dispatched in PARALLEL across content

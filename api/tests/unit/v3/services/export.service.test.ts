@@ -7,6 +7,33 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * zero-state graph). feature.md FR-5.5, EC-6, EC-7.
  *
  * Collaborators mocked at their boundaries; the pure buildGraph runs real.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * UPDATED 2026-08-11 — Source Export Revamp, Phase 3.
+ *
+ * Stack mode no longer exports by making Management API calls of its own; it
+ * invokes the Contentstack CLI (`docs/plans/source-export-revamp.md`). Every
+ * stack-mode test below therefore moved to the new boundary — `runCliExport`
+ * rather than `csManagement.getContentTypes` / `getStackModuleCounts` /
+ * `writeStackBundleFolder`. Each moved test records what it used to assert and
+ * why the new assertion is the equivalent (or, in two cases, stronger) guarantee.
+ *
+ * FILE mode is untouched: an uploaded bundle is already a real export, so it
+ * still parses and repackages the zip. Those tests are unchanged, verbatim.
+ *
+ * One assertion deliberately REVERSED, recorded here because it is a real
+ * behaviour change rather than a re-point:
+ *
+ *   old: "(bundle, negative) a bundle-save failure is logged as an error but does
+ *         not fail the job" — the graph came from separate API calls, so a failed
+ *         disk write still left a valid preview.
+ *   new: a failure to finalise the export folder FAILS the job.
+ *
+ * The reason is that disk is now the only source: the graph, the counts and every
+ * later step (Audit, Content mapping) all read the folder the CLI wrote. Reporting
+ * success after a failed write would hand the operator a project whose next step
+ * silently reads a PREVIOUS export — the same class of stale-data bug that
+ * `stampExportedAt` exists to prevent. Failing loudly is the only safe outcome.
  */
 const { mockGetUploadMeta, mockGetUploadZipPath } = vi.hoisted(() => ({
   mockGetUploadMeta: vi.fn(),
@@ -29,17 +56,22 @@ vi.mock("../../../../v3/services/bundle.service.js", () => ({
   filterBundleBySelection: mockFilterBundle,
 }));
 
-const { mockWriteStackFolder, mockWriteUploadedFolder } = vi.hoisted(() => ({
-  mockWriteStackFolder: vi.fn(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: [] })),
-  mockWriteUploadedFolder: vi.fn(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/export", failedAssets: [] })),
+/*
+  Only `writeUploadedBundleFolder` remains — `writeStackBundleFolder` was deleted on
+  2026-08-12 with the pre-CLI pipeline. Declaring a mock for a function that no longer
+  exists is worse than useless: vitest happily fabricates it, so any
+  `expect(mock).not.toHaveBeenCalled()` against it passes unconditionally and reads
+  like a real guarantee.
+*/
+const { mockWriteUploadedFolder } = vi.hoisted(() => ({
+  mockWriteUploadedFolder: vi.fn(() => Promise.resolve({ destDir: "/fake/exportData/export", failedAssets: [] })),
 }));
 vi.mock("../../../../v3/services/bundleWriter.service.js", () => ({
-  writeStackBundleFolder: mockWriteStackFolder,
   writeUploadedBundleFolder: mockWriteUploadedFolder,
 }));
 
 const { mockStackDataDir } = vi.hoisted(() => ({
-  mockStackDataDir: vi.fn((id: string) => `/fake/cmsMigrationData/${id}`),
+  mockStackDataDir: vi.fn((pid: string, id: string) => `/fake/exportData/${pid}/${id}`),
 }));
 vi.mock("../../../../v3/utils/migrationData.util.js", () => ({
   stackDataDir: mockStackDataDir,
@@ -58,39 +90,81 @@ vi.mock("../../../../v3/models/project.store.js", () => ({
   setV3Graph: mockSetGraph,
 }));
 
-const {
-  mockGetCts,
-  mockGetCounts,
-  mockGetAllGlobalFields,
-  mockGetAllAssets,
-  mockGetAllEntries,
-  mockGetAllLocales,
-} = vi.hoisted(() => ({
-  mockGetCts: vi.fn(),
+/*
+  Only the functions that STILL EXIST are mocked. `getContentTypes`,
+  `getAllGlobalFields` and `getAllLocales` were deleted on 2026-08-12 — mocking them
+  would fabricate functions the real module no longer has, making any "was not called"
+  assertion against them pass by construction while looking meaningful.
+
+  `getStackModuleCounts`, `getAllAssets` and `getAllEntries` are real and callable, so
+  asserting the CLI export does NOT reach for them still catches something.
+*/
+const { mockGetCounts, mockGetAllAssets, mockGetAllEntries } = vi.hoisted(() => ({
   mockGetCounts: vi.fn(),
-  mockGetAllGlobalFields: vi.fn(() => Promise.resolve([])),
   mockGetAllAssets: vi.fn(() => Promise.resolve([])),
   mockGetAllEntries: vi.fn(() => Promise.resolve([])),
-  mockGetAllLocales: vi.fn(() => Promise.resolve([{ uid: "lm", code: "en-us", fallback_locale: null }])),
 }));
 vi.mock("../../../../v3/services/csManagement.service.js", () => ({
   csManagement: {
-    getContentTypes: mockGetCts,
     getStackModuleCounts: mockGetCounts,
-    getAllGlobalFields: mockGetAllGlobalFields,
     getAllAssets: mockGetAllAssets,
     getAllEntries: mockGetAllEntries,
-    getAllLocales: mockGetAllLocales,
   },
 }));
 
-const { mockReadFileSync } = vi.hoisted(() => ({
+// ── the CLI boundary (Source Export Revamp) ───────────────────────────────────
+
+const { mockRunCliExport } = vi.hoisted(() => ({
+  mockRunCliExport: vi.fn(() => Promise.resolve({ ok: true })),
+}));
+vi.mock("../../../../v3/services/cliExport.service.js", () => ({
+  runCliExport: mockRunCliExport,
+}));
+
+const { mockApplyCliRegion, mockApplyCliAuth } = vi.hoisted(() => ({
+  mockApplyCliRegion: vi.fn(),
+  mockApplyCliAuth: vi.fn(),
+}));
+vi.mock("../../../../v3/utils/cliAuth.util.js", () => ({
+  applyCliRegion: mockApplyCliRegion,
+  applyCliAuth: mockApplyCliAuth,
+}));
+
+const { mockGetCliCredential } = vi.hoisted(() => ({
+  mockGetCliCredential: vi.fn(() => Promise.resolve({ authtoken: "AUTH_1", email: "a@b.com" })),
+}));
+vi.mock("../../../../v3/models/auth.store.js", () => ({
+  getCliCredential: mockGetCliCredential,
+}));
+
+const { mockReadCounts, mockReadCts, mockStampExportedAt } = vi.hoisted(() => ({
+  mockReadCounts: vi.fn(() => ({ contentTypes: 0, globalFields: 0, assets: 0, entries: 0 })),
+  mockReadCts: vi.fn(() => [] as any[]),
+  mockStampExportedAt: vi.fn(),
+}));
+vi.mock("../../../../v3/utils/exportFolder.util.js", () => ({
+  readExportCounts: mockReadCounts,
+  readExportedContentTypes: mockReadCts,
+  stampExportedAt: mockStampExportedAt,
+}));
+
+const { mockReadFileSync, mockExistsSync, mockRenameSync, mockRmSync, mockMkdirSync } = vi.hoisted(() => ({
   mockReadFileSync: vi.fn(() => Buffer.from("zip")),
+  mockExistsSync: vi.fn(() => false),
+  mockRenameSync: vi.fn(),
+  mockRmSync: vi.fn(),
+  mockMkdirSync: vi.fn(),
 }));
-vi.mock("fs", () => ({
-  default: { readFileSync: mockReadFileSync },
-  readFileSync: mockReadFileSync,
-}));
+vi.mock("fs", () => {
+  const api = {
+    readFileSync: mockReadFileSync,
+    existsSync: mockExistsSync,
+    renameSync: mockRenameSync,
+    rmSync: mockRmSync,
+    mkdirSync: mockMkdirSync,
+  };
+  return { default: api, ...api };
+});
 
 import { startExportJob, getJob } from "../../../../v3/services/export.service.js";
 
@@ -109,6 +183,17 @@ const fileInput = (over: any = {}) => ({
   ...over,
 });
 
+/** A stack-mode job. `stack` overrides merge over a whole-stack default. */
+const stackInput = (stack: any = {}) => ({
+  projectId: "P1",
+  source: { mode: "stack" as const, stack: { stackApiKey: "blt1", branch: "main", ...stack } },
+  tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
+});
+
+/** The runs `runCliExport` was actually asked to perform. */
+const runsFromCall = (): Array<string | undefined> =>
+  ((mockRunCliExport.mock.calls[0]?.[0] as any)?.runs ?? []).map((r: any) => r.module);
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("V3_LOG_PACE_MS", "0"); // no artificial pacing delay in tests
@@ -119,13 +204,16 @@ beforeEach(() => {
   // clearAllMocks() clears call history but NOT a per-test .mockImplementation
   // override (e.g. the "disk full" throw below) — restore the shared default
   // here so it doesn't leak into whichever test runs next.
-  mockWriteStackFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: [] }));
-  mockWriteUploadedFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/cmsMigrationData/export", failedAssets: [] }));
-  mockStackDataDir.mockImplementation((id: string) => `/fake/cmsMigrationData/${id}`);
-  // Single-locale stack by default; the multi-locale pair overrides this.
-  mockGetAllLocales.mockImplementation(() =>
-    Promise.resolve([{ uid: "lm", code: "en-us", fallback_locale: null }])
-  );
+  mockWriteUploadedFolder.mockImplementation(() => Promise.resolve({ destDir: "/fake/exportData/export", failedAssets: [] }));
+  // Nested per project since 2026-08-12: stackDataDir(projectId, stackId).
+  mockStackDataDir.mockImplementation((pid: string, id: string) => `/fake/exportData/${pid}/${id}`);
+  // CLI defaults: a clean success writing nothing in particular.
+  mockRunCliExport.mockImplementation(() => Promise.resolve({ ok: true }));
+  mockGetCliCredential.mockImplementation(() => Promise.resolve({ authtoken: "AUTH_1", email: "a@b.com" }));
+  mockReadCounts.mockImplementation(() => ({ contentTypes: 0, globalFields: 0, assets: 0, entries: 0 }));
+  mockReadCts.mockImplementation(() => []);
+  mockExistsSync.mockImplementation(() => false);
+  mockRenameSync.mockImplementation(() => {});
 });
 
 describe("v3 export.service", () => {
@@ -169,35 +257,6 @@ describe("v3 export.service", () => {
     expect(job.status).toBe("failed");
     expect(job.error).toBeTruthy();
     expect(mockSetGraph).not.toHaveBeenCalled();
-  });
-
-  it("TC_SRC_055 (positive): a stack CS failure is surfaced as a failed job, not a crash", async () => {
-    mockGetCts.mockRejectedValue(new Error("CS unreachable"));
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-
-    const job = await settle(jobId);
-    expect(job.status).toBe("failed");
-    expect(job.error).toContain("CS unreachable");
-  });
-
-  // Negative — contrast: a stack export that succeeds settles to succeeded, not failed.
-  it("TC_SRC_055 (negative): a successful stack export settles to succeeded", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "a", title: "A", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 0, entries: 0 });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-
-    const job = await settle(jobId);
-    expect(job.status).toBe("succeeded");
-    expect(mockSetGraph).toHaveBeenCalledTimes(1);
   });
 
   it("TC_SRC_035 (positive): an empty source yields a valid zero-state graph (all counts 0)", async () => {
@@ -269,99 +328,6 @@ describe("v3 export.service", () => {
     expect(job.liveCounts).toMatchObject({ contentTypes: 0, globalFields: 0, assets: 0, entries: 0 });
   });
 
-  it("(live, positive) a stack export logs real per-item names via the csManagement onItem callback", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "a", title: "Blog Post", schema: [] }]);
-    mockGetCounts.mockImplementation(async (_tp, _key, _branch, _cts, onItem) => {
-      onItem?.({ type: "globalField", name: "SEO" });
-      onItem?.({ type: "asset", name: "hero.png" });
-      onItem?.({ type: "entry", name: "Welcome Post", ctTitle: "Blog Post" });
-      return { contentTypes: 1, globalFields: 1, assets: 1, entries: 1 };
-    });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    const messages = job.logs.map((l) => l.msg).join("\n");
-    expect(messages).toContain("Blog Post");
-    expect(messages).toContain("SEO");
-    expect(messages).toContain("hero.png");
-    expect(messages).toContain("Welcome Post");
-    expect(job.liveCounts).toMatchObject({ contentTypes: 1, globalFields: 1, assets: 1, entries: 1 });
-  });
-
-  // Negative — a stack with zero content types logs no item lines and liveCounts stay zero.
-  it("(live, negative) a stack with no content types logs no per-item lines", async () => {
-    mockGetCts.mockResolvedValue([]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 0, globalFields: 0, assets: 0, entries: 0 });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.logs.some((l) => l.msg.startsWith("Discovered content type"))).toBe(false);
-    expect(job.liveCounts).toMatchObject({ contentTypes: 0, globalFields: 0, assets: 0, entries: 0 });
-  });
-
-  // Regression: "Specific module" scope was recorded but never actually
-  // enforced — the export always fetched/counted every module regardless of
-  // what the user unchecked, so Assets/Entries showed full-stack totals even
-  // when excluded. The job runner must compute the effective selection from
-  // source.stack.scope/selectedModules and thread it all the way down.
-  it("(scope, positive) a stack export in 'specific' scope passes the selection down to getStackModuleCounts", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "a", title: "A", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 1, assets: 0, entries: 0 });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: {
-        mode: "stack",
-        stack: { stackApiKey: "blt1", branch: "main", scope: "specific", selectedModules: ["contentTypes", "globalFields"] },
-      },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.status).toBe("succeeded");
-    expect(mockGetCounts).toHaveBeenCalledWith(
-      expect.anything(),
-      "blt1",
-      "main",
-      expect.anything(),
-      expect.anything(),
-      ["contentTypes", "globalFields"]
-    );
-  });
-
-  // Negative — contrast: 'whole' scope (the default) passes no selection
-  // (undefined), so getStackModuleCounts fetches and counts every module.
-  it("(scope, negative) a 'whole' scope stack export passes no selection (fetches everything)", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "a", title: "A", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 1, assets: 5, entries: 2 });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main", scope: "whole", selectedModules: [] } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    await settle(jobId);
-
-    expect(mockGetCounts).toHaveBeenCalledWith(
-      expect.anything(),
-      "blt1",
-      "main",
-      expect.anything(),
-      expect.anything(),
-      undefined
-    );
-  });
-
   // File mode has the identical scope-gating requirement: a 'specific' scope
   // that excludes assets/entries must zero them out and skip their per-item
   // log lines, even though parseBundleDetails always parses the full bundle.
@@ -413,192 +379,9 @@ describe("v3 export.service", () => {
     expect(messages).toContain("hero.png");
   });
 
-  // The actual, genuine export — writing real files to disk, not just a
-  // preview. Backs the follow-up to the scope-gating fix: previously nothing
-  // ever wrote real stack data anywhere; the job only ever sampled/counted.
-  // Now writes a real FOLDER under cmsMigrationData/<stackApiKey> (not a zip
-  // in Downloads) — the same location the migration engine's import step
-  // reads from — and downloads every asset's actual bytes.
-  it("(bundle, positive) a successful stack export fetches ALL real data and saves a real folder under cmsMigrationData", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 1, assets: 2, entries: 3 });
-    mockGetAllGlobalFields.mockResolvedValue([{ uid: "seo", title: "SEO" }]);
-    mockGetAllAssets.mockResolvedValue([{ uid: "a1" }, { uid: "a2" }]);
-    mockGetAllEntries.mockResolvedValue([{ uid: "e1" }, { uid: "e2" }, { uid: "e3" }]);
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main", scope: "whole", selectedModules: [] } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.status).toBe("succeeded");
-    expect(mockGetAllGlobalFields).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
-    expect(mockGetAllAssets).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
-    expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", "blog", "en-us");
-    expect(mockStackDataDir).toHaveBeenCalledWith("blt1");
-    expect(mockWriteStackFolder).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contentTypes: [{ uid: "blog", title: "Blog Post", schema: [] }],
-        globalFields: [{ uid: "seo", title: "SEO" }],
-        assets: [{ uid: "a1" }, { uid: "a2" }],
-        // 2026-08-05: locale-tagged groups, plus the real locale objects.
-        entryGroups: [
-          { ctUid: "blog", locale: "en-us", entries: [{ uid: "e1" }, { uid: "e2" }, { uid: "e3" }] },
-        ],
-        locales: [{ uid: "lm", code: "en-us", fallback_locale: null }],
-        destDir: "/fake/cmsMigrationData/blt1",
-      })
-    );
-    expect(job.logs.some((l) => l.msg.includes("Export data saved") && l.msg.includes("/fake/cmsMigrationData/blt1"))).toBe(true);
-  });
-
-  /*
-    2026-08-05 — every locale, not just the master.
-
-    Measured against a Contentstack CLI export of the same stack: the CLI captured
-    28 entries across de(9) / fr(9) / en-us(10); our export captured 10 — en-us
-    only. `getAllEntries` defaults its `locale` argument and the export never
-    passed one, so every non-master-locale entry was dropped silently. A migration
-    would have reported success while leaving 64% of the content behind, with
-    nothing in the UI to hint at it.
-  */
-  it("(locales, positive) entries are fetched for every locale of the stack, not just the master", async () => {
-    mockGetCts.mockResolvedValue([
-      { uid: "blog", title: "Blog Post", schema: [] },
-      { uid: "author", title: "Author", schema: [] },
-    ]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 2, globalFields: 0, assets: 0, entries: 6 });
-    mockGetAllLocales.mockResolvedValue([
-      { uid: "lm", code: "en-us", fallback_locale: null },
-      { uid: "ld", code: "de", fallback_locale: "en-us" },
-      { uid: "lf", code: "fr", fallback_locale: "en-us" },
-    ]);
-    mockGetAllEntries.mockImplementation((_tp: any, _k: string, _b: string, ctUid: string, locale: string) =>
-      Promise.resolve([{ uid: `${ctUid}-${locale}` }])
-    );
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main", scope: "whole", selectedModules: [] } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.status).toBe("succeeded");
-    // Two content types × three locales — every combination, none skipped.
-    expect(mockGetAllEntries).toHaveBeenCalledTimes(6);
-    for (const ct of ["blog", "author"]) {
-      for (const locale of ["en-us", "de", "fr"]) {
-        expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", ct, locale);
-      }
-    }
-    // The locale is carried through to the writer, so each group lands in its own
-    // entries/<ct>/<locale>/ folder rather than all collapsing into one.
-    const { entryGroups } = mockWriteStackFolder.mock.calls[0][0] as any;
-    expect(entryGroups).toHaveLength(6);
-    expect(entryGroups).toEqual(
-      expect.arrayContaining([
-        { ctUid: "blog", locale: "de", entries: [{ uid: "blog-de" }] },
-        { ctUid: "author", locale: "fr", entries: [{ uid: "author-fr" }] },
-      ])
-    );
-    expect(mockGetAllLocales).toHaveBeenCalledWith(expect.anything(), "blt1", "main");
-  });
-
-  /*
-    Negative — taxonomy #1 (empty data): the locale list comes back empty.
-
-    The export must still fetch the master locale rather than producing an empty
-    bundle. Iterating an empty locale array would mean zero `getAllEntries` calls
-    and an export containing no entries at all — a total content loss dressed up
-    as a successful job, which is strictly worse than the single-locale bug being
-    fixed here.
-  */
-  it("(locales, negative) an empty locale list still exports en-us rather than nothing", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 0, entries: 1 });
-    mockGetAllLocales.mockResolvedValue([]);
-    mockGetAllEntries.mockResolvedValue([{ uid: "e1" }]);
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main", scope: "whole", selectedModules: [] } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.status).toBe("succeeded");
-    expect(mockGetAllEntries).toHaveBeenCalledTimes(1);
-    expect(mockGetAllEntries).toHaveBeenCalledWith(expect.anything(), "blt1", "main", "blog", "en-us");
-    const { entryGroups } = mockWriteStackFolder.mock.calls[0][0] as any;
-    expect(entryGroups).toEqual([{ ctUid: "blog", locale: "en-us", entries: [{ uid: "e1" }] }]);
-  });
-
-  // A stack whose assets partly fail to download must still succeed overall
-  // — the failure is surfaced as a WARN log, not a job failure.
-  it("(bundle, negative) assets that fail to download are logged as a warning, not a job failure", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 1, entries: 0 });
-    mockWriteStackFolder.mockResolvedValue({ destDir: "/fake/cmsMigrationData/blt1", failedAssets: ["a1"] });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.status).toBe("succeeded");
-    expect(job.logs.some((l) => l.level === "WARN" && l.msg.includes("1 asset"))).toBe(true);
-  });
-
-  // Negative — a 'specific' scope stack export skips fetching unselected
-  // modules' full data entirely, not just their counts.
-  it("(bundle, negative) a 'specific' scope stack export never fetches full data for unselected modules", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 1, assets: 0, entries: 0 });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: {
-        mode: "stack",
-        stack: { stackApiKey: "blt1", branch: "main", scope: "specific", selectedModules: ["contentTypes", "globalFields"] },
-      },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    await settle(jobId);
-
-    expect(mockGetAllAssets).not.toHaveBeenCalled();
-    expect(mockGetAllEntries).not.toHaveBeenCalled();
-    expect(mockGetAllGlobalFields).toHaveBeenCalled();
-  });
-
-  // A failure while writing the real bundle to disk must not fail the whole
-  // job — the graph preview above it is still valid and was already built.
-  it("(bundle, negative) a bundle-save failure is logged as an error but does not fail the job", async () => {
-    mockGetCts.mockResolvedValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
-    mockGetCounts.mockResolvedValue({ contentTypes: 1, globalFields: 0, assets: 0, entries: 0 });
-    mockWriteStackFolder.mockImplementation(() => {
-      throw new Error("disk full");
-    });
-
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
-    const job = await settle(jobId);
-
-    expect(job.status).toBe("succeeded");
-    expect(job.logs.some((l) => l.level === "ERROR" && l.msg.includes("disk full"))).toBe(true);
-    expect(mockSetGraph).toHaveBeenCalledTimes(1);
-  });
-
   // File mode: the uploaded bundle already IS the real data, so the genuine
   // export just repackages it by module selection (no network for the zip
-  // itself) and extracts it as a real folder under cmsMigrationData/,
+  // itself) and extracts it as a real folder under exportData/,
   // downloading every asset's actual bytes.
   it("(bundle, positive) a file export repackages the real uploaded bundle (filtered by selection) into a real folder", async () => {
     mockGetUploadMeta.mockReturnValue({ modules: {} });
@@ -621,7 +404,7 @@ describe("v3 export.service", () => {
 
   // A file whose name carries the source stack's real id (the shape our own
   // stack-mode export produces, e.g. "bltXXXX-export-....zip") should be
-  // filed under that same stack id in cmsMigrationData — not a sanitized
+  // filed under that same stack id in exportData — not a sanitized
   // copy of the whole filename — so it lands in the SAME folder a live
   // export of that stack would use.
   it("(bundle, positive) a file named after its source stack id is written under that stack's folder", async () => {
@@ -638,52 +421,573 @@ describe("v3 export.service", () => {
 
     expect(mockWriteUploadedFolder).toHaveBeenCalledWith(expect.anything(), expect.stringContaining("blt9ca028c6d54b20f5"));
   });
+});
 
-  // Regression: a real export against a live stack with many content types
-  // hit Contentstack's rate limit — the full-data fetch dispatched EVERY
-  // content type's entries pagination simultaneously. Entries must now be
-  // fetched with bounded concurrency, not all-at-once, so a real stack with
-  // many content types doesn't burst past the rate limit.
-  it("(bundle, positive) full-data entries fetches run with bounded concurrency, not all content types at once", async () => {
-    const cts = Array.from({ length: 6 }, (_, i) => ({ uid: `ct${i}`, title: `CT ${i}`, schema: [] }));
-    mockGetCts.mockResolvedValue(cts);
-    mockGetCounts.mockResolvedValue({ contentTypes: 6, globalFields: 0, assets: 0, entries: 0 });
-
-    let inFlight = 0;
-    let maxInFlight = 0;
-    const pending: Array<() => void> = [];
-    mockGetAllEntries.mockImplementation(() => {
-      inFlight++;
-      maxInFlight = Math.max(maxInFlight, inFlight);
-      return new Promise((resolve) => {
-        pending.push(() => {
-          inFlight--;
-          resolve([]);
-        });
-      });
+/**
+ * Stack mode — exported by the Contentstack CLI, not by our own API calls.
+ *
+ * Every test here replaces a pre-CLI equivalent; the comment on each names what
+ * it used to assert. Two guarantees the old tests protected are worth restating,
+ * because losing them silently is exactly the failure this revamp must not
+ * reintroduce:
+ *
+ *   • ALL LOCALES. The old `(locales, positive)` test existed because our exporter
+ *     fetched only the master locale and dropped 64% of a three-locale stack's
+ *     entries while reporting success. The CLI exports every locale natively, so
+ *     the guarantee now lives in the module closure — `entries` pulls `locales`
+ *     in — which is what the closure tests below pin.
+ *   • BOUNDED CONCURRENCY. The old `(bundle, positive)` concurrency test existed
+ *     because dispatching every content type's pagination at once burst past
+ *     Contentstack's rate limit. Request pacing is now the CLI's concern; what
+ *     remains ours is that we never run two CLI processes at once, pinned here by
+ *     asserting a single `runCliExport` call carrying all runs.
+ */
+describe("v3 export.service — stack mode via the Contentstack CLI", () => {
+  /*
+    Replaces the pre-CLI `TC_SRC_055 (positive)`, which mocked
+    `getContentTypes` to reject. The boundary moved; the guarantee did not — a
+    failing export must surface as a failed job rather than crash the process.
+    Strengthened: the failing MODULE is now named, which a chained export needs
+    to be actionable at all.
+  */
+  it("TC_SRC_055 (positive): a CLI export failure is surfaced as a failed job, not a crash", async () => {
+    mockRunCliExport.mockResolvedValue({
+      ok: false,
+      failedModule: "content-types",
+      error: "CS unreachable",
     });
 
-    const jobId = startExportJob({
-      projectId: "P1",
-      source: { mode: "stack", stack: { stackApiKey: "blt1", branch: "main" } },
-      tokenPayload: { region: "NA", user_id: "u1", is_sso: false },
-    } as any);
+    const job = await settle(startExportJob(stackInput() as any));
 
-    // Flush microtasks so every call that WOULD be dispatched immediately has been.
-    await new Promise((r) => setTimeout(r, 0));
-    expect(maxInFlight).toBeLessThan(6); // not all 6 content types at once
-    expect(maxInFlight).toBeGreaterThan(0);
-    const initialBatch = pending.length;
+    expect(job.status).toBe("failed");
+    expect(job.error).toContain("CS unreachable");
+    expect(job.error).toContain("content-types");
+  });
 
-    // Draining the pool should let the remaining content types through, one at a time.
-    while (pending.length) {
-      pending.shift()!();
-      await new Promise((r) => setTimeout(r, 0));
-    }
+  // Negative — contrast: a stack export that succeeds settles to succeeded.
+  it("TC_SRC_055 (negative): a successful stack export settles to succeeded", async () => {
+    const job = await settle(startExportJob(stackInput() as any));
 
-    const job = await settle(jobId);
     expect(job.status).toBe("succeeded");
-    expect(mockGetAllEntries).toHaveBeenCalledTimes(6);
-    expect(initialBatch).toBeLessThan(6);
+    expect(mockSetGraph).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+    Replaces the pre-CLI `(live, positive)`, which asserted our own synthesised
+    "Discovered content type: X" lines from the csManagement onItem callback.
+
+    The requirement the user set for this revamp is that the log shows REAL CLI
+    output, so the assertion is now verbatim pass-through: whatever the CLI wrote
+    is what the operator reads. Deliberately independent of the CLI's exact
+    wording — pinning its phrasing would make the test fail on a CLI upgrade that
+    changed nothing that matters.
+  */
+  it("(live, positive) real CLI output lines reach the job log verbatim", async () => {
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      input.onLine?.("Starting to export content types", "stdout");
+      input.onLine?.("Exported content type: Blog Post", "stdout");
+      return { ok: true };
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    const messages = job.logs.map((l) => l.msg);
+    expect(messages).toContain("Starting to export content types");
+    expect(messages).toContain("Exported content type: Blog Post");
+  });
+
+  /*
+    Negative — taxonomy #1 (empty output): a CLI run that prints nothing must
+    produce no per-item lines at all.
+
+    This is the anti-fabrication guard. The pre-CLI exporter generated its own
+    progress prose, so it was structurally impossible for the log to be empty;
+    now that the log mirrors a real process, anything resembling an item line that
+    the CLI did not emit would be invented.
+  */
+  it("(live, negative) a silent CLI run produces no fabricated per-item lines", async () => {
+    mockRunCliExport.mockResolvedValue({ ok: true });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.logs.some((l) => /^(Discovered|Exporting) (content type|asset|entry)/.test(l.msg))).toBe(false);
+  });
+
+  /*
+    Replaces the pre-CLI `(scope, positive)`, which asserted the selection reached
+    `getStackModuleCounts`. It now has to reach the CLI as `--module` runs, and the
+    closure is resolved for real (cliModules.util is NOT mocked) so this covers the
+    dependency rules end to end rather than trusting a mock's word for them.
+  */
+  it("(scope, positive) a 'specific' scope exports the resolved module closure, not the raw ticks", async () => {
+    await settle(
+      startExportJob(stackInput({ scope: "specific", selectedModules: ["contentTypes"] }) as any)
+    );
+
+    const modules = runsFromCall();
+    // Content types cannot be imported without what they reference.
+    expect(modules).toContain("content-types");
+    expect(modules).toContain("global-fields");
+    expect(modules).toContain("locales");
+    expect(modules).toContain("taxonomies");
+    expect(modules).toContain("extensions");
+  });
+
+  /*
+    Negative — contrast: 'whole' scope is ONE run with no `--module` at all, not a
+    chain of every module. Enumerating modules for a whole-stack export would drop
+    whatever the CLI knows about that our own list does not.
+  */
+  it("(scope, negative) a 'whole' scope export is a single run with no module filter", async () => {
+    await settle(startExportJob(stackInput({ scope: "whole", selectedModules: [] }) as any));
+
+    expect(runsFromCall()).toEqual([undefined]);
+  });
+
+  /*
+    The all-locales guarantee, relocated. The old test asserted six
+    `getAllEntries` calls (2 content types × 3 locales) because our exporter had
+    silently exported only the master locale. The CLI handles locales itself, so
+    what we must guarantee is that selecting entries never produces an export
+    missing the locales that define them.
+  */
+  it("(closure, positive) selecting entries pulls in locales, content types, assets and environments", async () => {
+    await settle(
+      startExportJob(stackInput({ scope: "specific", selectedModules: ["entries"] }) as any)
+    );
+
+    const modules = runsFromCall();
+    for (const needed of ["entries", "content-types", "locales", "assets", "environments"]) {
+      expect(modules, `an entries export without ${needed} cannot be imported`).toContain(needed);
+    }
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): the closure must not over-reach either. A
+    content-types-only export that silently dragged in entries would turn a
+    schema-only migration into a full content export — minutes of asset downloads
+    the operator explicitly declined.
+  */
+  it("(closure, negative) selecting content types alone never pulls in entries or assets", async () => {
+    await settle(
+      startExportJob(stackInput({ scope: "specific", selectedModules: ["contentTypes"] }) as any)
+    );
+
+    const modules = runsFromCall();
+    expect(modules).not.toContain("entries");
+    expect(modules).not.toContain("assets");
+  });
+
+  /*
+    Replaces the pre-CLI `(bundle, positive)`, which asserted our own
+    `writeStackBundleFolder` call. The CLI writes the folder now, so what we own is
+    WHERE it writes and how it lands: into a temp sibling first, then renamed into
+    place, and stamped with `exportedAt` before the rename (Impact 2, Impact 8).
+  */
+  it("(folder, positive) the CLI writes to a temp folder that is stamped and renamed into place", async () => {
+    await settle(startExportJob(stackInput() as any));
+
+    const dataDir = (mockRunCliExport.mock.calls[0][0] as any).dataDir;
+    // Nested under the project, so two projects exporting one stack cannot
+    // overwrite each other's export.
+    expect(mockStackDataDir).toHaveBeenCalledWith("P1", "blt1");
+    // Never straight into the destination — a crash mid-export would otherwise
+    // leave a half-written folder that looks like a complete export.
+    expect(dataDir).not.toBe("/fake/exportData/P1/blt1");
+    expect(mockStampExportedAt).toHaveBeenCalledWith(dataDir, expect.any(String));
+    expect(mockRenameSync).toHaveBeenCalledWith(dataDir, "/fake/exportData/P1/blt1");
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): a failed CLI run must leave the
+    PREVIOUS export untouched.
+
+    This is why the temp folder exists. Exporting straight into the destination
+    would destroy a good export on any failure, and because every later step reads
+    that folder, the operator would lose the data the failed run was supposed to
+    replace.
+  */
+  it("(folder, negative) a failed CLI export never renames anything into the destination", async () => {
+    mockRunCliExport.mockResolvedValue({ ok: false, error: "boom" });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("failed");
+    expect(mockRenameSync).not.toHaveBeenCalledWith(expect.anything(), "/fake/exportData/P1/blt1");
+    expect(mockStampExportedAt).not.toHaveBeenCalled();
+  });
+
+  /*
+    Progress must track real completed work. The pre-CLI version advanced through
+    hardcoded percentages as its own phases finished; with a chained CLI export the
+    only honest signal is a run actually finishing.
+  */
+  it("(progress, positive) progress advances as each CLI run completes and ends at 100", async () => {
+    const seen: number[] = [];
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      const total = input.runs.length;
+      input.runs.forEach((r: any, i: number) => {
+        input.onRunComplete?.(r.module, i, total);
+        seen.push(getJob(jobId)!.progress);
+      });
+      return { ok: true };
+    });
+
+    const jobId = startExportJob(
+      stackInput({ scope: "specific", selectedModules: ["contentTypes"] }) as any
+    );
+    const job = await settle(jobId);
+
+    expect(job.progress).toBe(100);
+    // Monotonically increasing — never jumping backwards as modules finish.
+    expect(seen).toEqual([...seen].sort((a, b) => a - b));
+    expect(seen.length).toBeGreaterThan(1);
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): a failed export must NOT report 100%.
+
+    A progress bar that fills to completion on a failed run is actively
+    misleading — it is the one visual the operator trusts to know whether the
+    export finished.
+  */
+  it("(progress, negative) a failed export never reports 100% progress", async () => {
+    mockRunCliExport.mockResolvedValue({ ok: false, error: "boom" });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("failed");
+    expect(job.progress).toBeLessThan(100);
+  });
+
+  /*
+    The credential is injected into the CLI's own config store BEFORE the spawn,
+    never passed as an argument — that is what keeps it out of argv, out of a
+    process listing and out of the log the operator reads (Impact 4). The region is
+    verified in the same step (Impact 4b / R-9).
+  */
+  it("(auth, positive) the region is applied and the credential injected before the CLI runs", async () => {
+    await settle(startExportJob(stackInput() as any));
+
+    expect(mockApplyCliRegion).toHaveBeenCalledWith("NA");
+    expect(mockApplyCliAuth).toHaveBeenCalledWith(expect.objectContaining({ authtoken: "AUTH_1" }));
+    expect(mockGetCliCredential).toHaveBeenCalledWith("NA", "u1", false);
+    // Ordering is the point: a spawn before injection would authenticate with
+    // whatever a previous export left behind.
+    expect(mockApplyCliAuth.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRunCliExport.mock.invocationCallOrder[0]
+    );
+  });
+
+  /*
+    Negative — taxonomy #5 (permission/credential denial): no stored credential
+    must fail BEFORE spawning anything.
+
+    Spawning regardless would have the CLI fall back to whatever token its shared
+    config still held from a previous export — succeeding as the wrong user rather
+    than failing cleanly.
+  */
+  it("(auth, negative) a missing credential fails the job without ever spawning the CLI", async () => {
+    mockGetCliCredential.mockResolvedValue(null);
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("failed");
+    expect(job.error).toMatch(/credential|sign in|log in/i);
+    expect(mockRunCliExport).not.toHaveBeenCalled();
+  });
+
+  /*
+    The counts and the graph now come from the folder the CLI wrote, not from our
+    own API calls (Impact 6, Q-1). Numbers here are the real ones measured from a
+    genuine CLI export of the demo stack.
+  */
+  it("(counts, positive) live counts and the persisted graph come from the exported folder", async () => {
+    mockReadCounts.mockReturnValue({ contentTypes: 23, globalFields: 14, assets: 80, entries: 124 });
+    mockReadCts.mockReturnValue([{ uid: "blog", title: "Blog Post", schema: [] }]);
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.liveCounts).toMatchObject({ contentTypes: 23, globalFields: 14, assets: 80, entries: 124 });
+    expect(mockSetGraph.mock.calls[0][1].counts).toMatchObject({ assets: 80, entries: 124 });
+  });
+
+  /*
+    Negative — the CLI replaced our Management API export entirely. If any of these
+    calls still fired we would be paying for the work twice and, worse, reporting
+    counts from a source other than the folder that gets imported.
+
+    Narrowed 2026-08-12 to the functions that still EXIST. `getContentTypes` and
+    `writeStackBundleFolder` were asserted here too until they were deleted — at which
+    point those two assertions could no longer fail, because vitest fabricates a mock
+    for a missing export and "was not called" is then true by construction. The
+    guarantee for the deleted pair is now structural: there is no function to call.
+  */
+  it("(counts, negative) a stack export makes no Management API calls of its own", async () => {
+    await settle(startExportJob(stackInput() as any));
+
+    expect(mockGetCounts).not.toHaveBeenCalled();
+    expect(mockGetAllAssets).not.toHaveBeenCalled();
+    expect(mockGetAllEntries).not.toHaveBeenCalled();
+  });
+
+  /*
+    Replaces the pre-CLI `(bundle, negative)` about failed asset downloads: the CLI
+    reports its own asset problems on stderr, and a partial-asset warning must not
+    fail an otherwise good export.
+  */
+  it("(stderr, positive) a CLI warning on stderr is surfaced without failing the job", async () => {
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      input.onLine?.("warning: 1 asset could not be downloaded", "stderr");
+      return { ok: true };
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("succeeded");
+    expect(job.logs.some((l) => l.msg.includes("1 asset could not be downloaded"))).toBe(true);
+  });
+
+  /*
+    Negative — the REVERSED assertion, documented in this file's header.
+
+    Pre-CLI this asserted a disk-write failure was logged but the job still
+    succeeded, because the graph came from separate API calls. Disk is now the only
+    source of truth for the graph, the counts, Audit and Content mapping — so
+    reporting success after a failed finalise would hand the operator a project
+    whose next step silently reads a PREVIOUS export.
+  */
+  it("(stderr, negative) a failure to finalise the export folder fails the job", async () => {
+    mockRenameSync.mockImplementation(() => {
+      throw new Error("disk full");
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("failed");
+    expect(job.error).toContain("disk full");
+    expect(mockSetGraph).not.toHaveBeenCalled();
+  });
+
+  /*
+    The bounded-concurrency guarantee, relocated. Request pacing is the CLI's
+    concern now; ours is that a chained export is ONE serialised call rather than a
+    process per module racing on one shared CLI config store.
+  */
+  it("(serial, positive) a chained export is a single runCliExport call carrying every run", async () => {
+    await settle(
+      startExportJob(stackInput({ scope: "specific", selectedModules: ["entries"] }) as any)
+    );
+
+    expect(mockRunCliExport).toHaveBeenCalledTimes(1);
+    expect(runsFromCall().length).toBeGreaterThan(1);
+  });
+
+  /*
+    ── The log cap (plan Q-4 / R-4) ──────────────────────────────────────────
+
+    Real CLI output replaced our own sampled lines, so `job.logs` is now fed by a
+    process that can print thousands of lines for a large stack. The job registry
+    lives in memory for the life of the server, so an uncapped array is an
+    unbounded leak — and the status endpoint serialises the whole thing on every
+    poll, so it degrades the UI long before it exhausts memory.
+  */
+  it("(cap, positive) a chatty CLI export keeps only the most recent lines and counts what it dropped", async () => {
+    vi.stubEnv("V3_MAX_LOG_LINES", "50");
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      for (let i = 0; i < 500; i++) input.onLine?.(`line ${i}`, "stdout");
+      return { ok: true };
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.logs.length).toBe(50);
+    expect(job.droppedLogs).toBeGreaterThan(0);
+  });
+
+  // Negative — taxonomy #3 (boundary): an export under the cap must lose nothing.
+  it("(cap, negative) an export under the cap keeps every line and reports nothing dropped", async () => {
+    vi.stubEnv("V3_MAX_LOG_LINES", "50");
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      input.onLine?.("only line", "stdout");
+      return { ok: true };
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.logs.length).toBeLessThan(50);
+    expect(job.droppedLogs).toBe(0);
+    expect(job.logs.some((l) => l.msg === "only line")).toBe(true);
+  });
+
+  /*
+    The cap must drop the OLDEST lines, never the newest. The end of the log is
+    where the outcome lives — the final summary on success, and the failing
+    module's error on failure. A cap that kept the head would throw away the only
+    part worth reading.
+  */
+  it("(cap, positive) the newest lines survive the cap, including the outcome", async () => {
+    vi.stubEnv("V3_MAX_LOG_LINES", "20");
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      for (let i = 0; i < 200; i++) input.onLine?.(`line ${i}`, "stdout");
+      return { ok: true };
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    /*
+      The length assertion is what stops this test being hollow. Without it, both
+      "some(line 199)" and "some(SUCCESS)" are trivially true whenever NO cap
+      applied — so the test passed against an uncapped implementation. Pinning the
+      length first proves the cap really ran, and only then does surviving content
+      mean anything.
+    */
+    expect(job.logs.length).toBe(20);
+    expect(job.logs.some((l) => l.msg === "line 199")).toBe(true);
+    expect(job.logs.some((l) => l.level === "SUCCESS")).toBe(true);
+  });
+
+  // Negative — the paired assertion: the oldest lines are genuinely gone, not
+  // merely pushed further down an array that kept growing.
+  it("(cap, negative) the oldest lines are genuinely discarded once the cap is hit", async () => {
+    vi.stubEnv("V3_MAX_LOG_LINES", "20");
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      for (let i = 0; i < 200; i++) input.onLine?.(`line ${i}`, "stdout");
+      return { ok: true };
+    });
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.logs.some((l) => l.msg === "line 0")).toBe(false);
+    expect(job.logs.some((l) => l.msg === "Starting export…")).toBe(false);
+  });
+
+  /*
+    ── The stage label ───────────────────────────────────────────────────────
+
+    The UI's stage caption used to be derived from the progress PERCENTAGE against
+    a hardcoded table of the old pipeline's phase boundaries. Those boundaries no
+    longer exist, so the caption has to come from the job itself — it is the only
+    thing that knows which module the CLI is actually working on.
+  */
+  it("(stage, positive) the stage names the module being exported and advances with the runs", async () => {
+    const stages: string[] = [];
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      stages.push(getJob(jobId)!.stage ?? "");
+      input.runs.forEach((r: any, i: number) => {
+        input.onRunComplete?.(r.module, i, input.runs.length);
+        stages.push(getJob(jobId)!.stage ?? "");
+      });
+      return { ok: true };
+    });
+
+    const jobId = startExportJob(
+      stackInput({ scope: "specific", selectedModules: ["contentTypes"] }) as any
+    );
+    await settle(jobId);
+
+    // The first run's module is announced BEFORE the CLI starts on it, not after.
+    expect(stages[0]).toMatch(/content types/i);
+    // And the caption moves on as runs complete rather than staying frozen.
+    expect(new Set(stages).size).toBeGreaterThan(1);
+  });
+
+  /*
+    ── Per-module progress from real CLI output (Phase 2) ─────────────────────
+
+    THE defect this closes: a whole-stack export is ONE run, so `onRunComplete`
+    fired once and the bar jumped 10 → 75 and sat there for the entire export,
+    with a single static caption. The CLI announces each module as it starts
+    (`Exporting module: 'assets'...`, measured from a real export's info.log), and
+    that is what now drives both.
+  */
+  it("(announce, positive) a whole-stack export's progress and caption advance per announced module", async () => {
+    const seen: Array<{ pct: number; stage?: string }> = [];
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      for (const m of ["stack", "assets", "locales", "environments", "content-types"]) {
+        input.onLine?.(`Exporting module: '${m}'...`, "stdout", "INFO");
+        const j = getJob(jobId)!;
+        seen.push({ pct: j.progress, stage: j.stage });
+      }
+      return { ok: true };
+    });
+
+    const jobId = startExportJob(stackInput({ scope: "whole", selectedModules: [] }) as any);
+    await settle(jobId);
+
+    // The caption follows the CLI, module by module.
+    expect(seen.map((s) => s.stage)).toEqual([
+      "Exporting stack",
+      "Exporting assets",
+      "Exporting locales",
+      "Exporting environments",
+      "Exporting content types",
+    ]);
+    // And the bar actually moves during the export rather than sitting at one value.
+    expect(new Set(seen.map((s) => s.pct)).size).toBeGreaterThan(1);
+    expect(seen.map((s) => s.pct)).toEqual([...seen.map((s) => s.pct)].sort((a, b) => a - b));
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): ordinary CLI chatter must move neither
+    the bar nor the caption.
+
+    A loose match here would be worse than no per-module progress: the bar would run
+    ahead of the work and promise a completion that has not happened.
+  */
+  it("(announce, negative) ordinary CLI output moves neither progress nor the caption", async () => {
+    let before: { pct: number; stage?: string } | undefined;
+    let after: { pct: number; stage?: string } | undefined;
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      before = { pct: getJob(jobId)!.progress, stage: getJob(jobId)!.stage };
+      input.onLine?.("Exporting stack settings...", "stdout", "INFO");
+      input.onLine?.("Exported stack settings successfully!", "stdout", "SUCCESS");
+      input.onLine?.("Batch No. 1 of assets folders is complete", "stdout", "SUCCESS");
+      input.onLine?.("You are not using the most recent CLI release.", "stdout", undefined);
+      after = { pct: getJob(jobId)!.progress, stage: getJob(jobId)!.stage };
+      return { ok: true };
+    });
+
+    const jobId = startExportJob(stackInput({ scope: "whole", selectedModules: [] }) as any);
+    await settle(jobId);
+
+    expect(after).toEqual(before);
+  });
+
+  /*
+    Negative — a whole-stack export has no single module, so the stage must not
+    name one. Claiming "Exporting entries" while the CLI exports everything is the
+    exact defect this replaces: a caption asserting something the run isn't doing.
+  */
+  it("(stage, negative) a whole-stack export's stage never names a specific module", async () => {
+    let seen = "";
+    mockRunCliExport.mockImplementation(async (input: any) => {
+      seen = getJob(jobId)!.stage ?? "";
+      return { ok: true };
+    });
+
+    const jobId = startExportJob(stackInput({ scope: "whole", selectedModules: [] }) as any);
+    await settle(jobId);
+
+    expect(seen).toBeTruthy();
+    expect(seen).not.toMatch(/content types|entries|assets|global fields/i);
+  });
+
+  /*
+    Negative — taxonomy #1 (empty selection): a 'specific' scope with nothing
+    ticked must refuse rather than export.
+
+    Falling back to a whole-stack export would export everything on the strength
+    of what is almost certainly a UI bug — the opposite of what the operator asked
+    for, and expensive.
+  */
+  it("(serial, negative) a 'specific' scope with no modules selected refuses to export", async () => {
+    const job = await settle(
+      startExportJob(stackInput({ scope: "specific", selectedModules: [] }) as any)
+    );
+
+    expect(job.status).toBe("failed");
+    expect(job.error).toMatch(/no modules|nothing selected/i);
+    expect(mockRunCliExport).not.toHaveBeenCalled();
   });
 });

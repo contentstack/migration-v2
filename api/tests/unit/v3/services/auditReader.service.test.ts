@@ -594,4 +594,63 @@ describe("v3 auditReader — variants and cache key", () => {
     expect(data.readable).toBe(true);
     expect(data.exportedAt).toBeUndefined();
   });
+
+  /*
+    ── CLI bookkeeping files are not assets ─────────────────────────────────────
+
+    MEASURED against a real `csdx cm:stacks:export` of a 10-asset stack, which
+    reported 11. The `assets/` folder holds three JSON files and only one is data:
+
+      <uuid>-assets.json  → the 10 real assets, uid → asset
+      assets.json         → a chunk INDEX: {"1": "<uuid>-assets.json"}
+      metadata.json       → {"<uuid>-assets.json": [ …versions… ]}
+
+    The merge walked every `*.json` except `index.json` and kept any value where
+    `typeof value === "object"`. `metadata.json`'s value is an ARRAY, which passes
+    that guard, so its KEY — a filename — was merged in as though it were an asset
+    uid. One phantom asset per export, inflating the audit's count and producing a
+    row whose uid is a filename.
+
+    Same family as the export reader's index-vs-chunk bug: a CLI bookkeeping file
+    read as data. Both were invisible against fixtures that only ever wrote the
+    data file.
+  */
+  it("(chunks, positive) counts only the real assets, ignoring the chunk index and metadata files", () => {
+    const root = buildExport(path.join(TMP, "chunks-pos"), { assets: {} });
+    const dir = path.join(root, "assets");
+    // The real CLI writes no `assets/index.json`; it writes the three files below.
+    fs.rmSync(path.join(dir, "index.json"), { force: true });
+    writeJson(path.join(dir, "uuid-assets.json"), {
+      a1: { uid: "a1", filename: "one.png" },
+      a2: { uid: "a2", filename: "two.png" },
+    });
+    // The CLI's real siblings, verbatim in shape.
+    writeJson(path.join(dir, "assets.json"), { "1": "uuid-assets.json" });
+    writeJson(path.join(dir, "metadata.json"), {
+      "uuid-assets.json": [{ uid: "a1", url: "https://example.com/one.png" }],
+    });
+
+    const result = readAuditExport(root);
+
+    expect(Object.keys(result.assets)).toEqual(["a1", "a2"]);
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): a filename key must never become an
+    asset uid, which is precisely what the array-valued metadata entry caused.
+  */
+  it("(chunks, negative) never treats a metadata filename key as an asset uid", () => {
+    const root = buildExport(path.join(TMP, "chunks-neg"), { assets: {} });
+    const dir = path.join(root, "assets");
+    fs.rmSync(path.join(dir, "index.json"), { force: true });
+    writeJson(path.join(dir, "uuid-assets.json"), { a1: { uid: "a1", filename: "one.png" } });
+    writeJson(path.join(dir, "metadata.json"), {
+      "uuid-assets.json": [{ uid: "a1", url: "https://example.com/one.png" }],
+    });
+
+    const result = readAuditExport(root);
+
+    expect(Object.keys(result.assets)).not.toContain("uuid-assets.json");
+    expect(Object.keys(result.assets)).toHaveLength(1);
+  });
 });
