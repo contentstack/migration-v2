@@ -68,6 +68,7 @@ interface Project {
   extract_path: string;
   site_config?: { baseUrl: string; restApiPath: string };
   acfExportDir?: string;
+  articleModelDir?: string;
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;

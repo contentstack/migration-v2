@@ -10,7 +10,7 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter, updateConfigFile } from '../helper';
+import { fileOperationLimiter, updateConfigFile, parseXmlToJson, saveJson, mergeWordpressJson, filterMediaDocsToReferenced } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
@@ -349,20 +349,96 @@ router.get(
           });
         }
 
-        // Handle directory paths (e.g., for AEM folder structure)
+        // Handle directory paths
         if (isDirectory) {
-          const fileExt = 'folder';
-          const name = path.basename(localPath);
-
-          // For folders, pass the directory path directly to the validator
-          const data = await handleFileProcessing(fileExt, localPath, cmsType, name);
-
-          // Create mapper for folders (e.g., AEM)
-          if (data?.status === 200) {
-            // Path is from config (server-side), projectId and affix are sanitized
-            createMapper(localPath, projectId, app_token, affix, config);
+          // WordPress multi-file input: a folder of per-post-type WXR exports (blog, case study,
+          // videos, …). Parse each, merge into ONE WXR JSON, and hand that single file to the mapper
+          // so every post type imports into the same stack. Downstream (extractors + API) is unchanged.
+          if (cmsType === 'wordpress') {
+            const dirEntries = await fsPromises.readdir(localPath);
+            const xmlFiles = dirEntries.filter((f) => f.toLowerCase().endsWith('.xml')).sort();
+            if (xmlFiles.length === 0) {
+              return res.status(400).json({
+                status: 400,
+                message: 'No .xml files found in the folder.',
+                file_details: config
+              });
+            }
+            const name = sanitizeFilename(path.basename(localPath));
+            const parsedDocs: any[] = [];
+            const mediaDocs: any[] = [];
+            for (const f of xmlFiles) {
+              const xml = await fsPromises.readFile(path.join(localPath, f), 'utf8');
+              const parsed = await parseXmlToJson(xml);
+              if (!parsed) continue;
+              // A pure media-library export (every item is an `attachment`) is held aside — its
+              // thousands of unreferenced library assets must not bloat the stack. Instead of dropping
+              // it wholesale, we later pull back ONLY the attachments the content actually references
+              // (customer_logo, featured image, ACF image fields) via filterMediaDocsToReferenced.
+              const items = parsed?.rss?.channel?.item;
+              const itemArr = Array.isArray(items) ? items : (items ? [items] : []);
+              if (itemArr.length > 0 && itemArr.every((it: any) => it?.['wp:post_type'] === 'attachment')) {
+                mediaDocs.push(parsed);
+                logger.info('WordPress multi-file merge:', {
+                  status: 200,
+                  message: `Held media-library file "${f}" (${itemArr.length} attachments) for referenced-asset extraction.`
+                });
+                continue;
+              }
+              parsedDocs.push(parsed);
+            }
+            if (parsedDocs.length === 0) {
+              return res.status(400).json({
+                status: 400,
+                message: 'Could not parse any .xml file in the folder.',
+                file_details: config
+              });
+            }
+            // Re-include only the media-library attachments referenced by the content documents, so
+            // logos/featured images resolve without importing the entire library.
+            if (mediaDocs.length > 0) {
+              const { docs: referencedMedia, kept, dropped } = filterMediaDocsToReferenced(parsedDocs, mediaDocs);
+              parsedDocs.push(...referencedMedia);
+              logger.info('WordPress multi-file merge:', {
+                status: 200,
+                message: `Included ${kept} referenced media-library attachment(s); dropped ${dropped} unreferenced.`
+              });
+            }
+            const merged = mergeWordpressJson(parsedDocs);
+            const saved = await saveJson(merged, `${name}.json`);
+            if (!saved) {
+              return res.status(500).json({
+                status: 500,
+                message: 'Failed to save merged WordPress data.',
+                file_details: config
+              });
+            }
+            const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+            const mergedPath = path.join(baseDir, `${name}.json`);
+            if (isPathWithinBase(mergedPath, baseDir)) {
+              createMapper(mergedPath, projectId, app_token, affix, config);
+            } else {
+              console.error('Path traversal attempt detected');
+            }
+            logger.info('WordPress multi-file merge:', {
+              status: 200,
+              message: `Merged ${xmlFiles.length} XML files into one WXR.`
+            });
+            return res.status(200).json({
+              status: 200,
+              message: 'Validation successful',
+              file_details: config,
+              merged_files: xmlFiles.length
+            });
           }
 
+          // Other CMSes (e.g. AEM folder structure) keep the folder-processing path.
+          const fileExt = 'folder';
+          const name = path.basename(localPath);
+          const data = await handleFileProcessing(fileExt, localPath, cmsType, name);
+          if (data?.status === 200) {
+            createMapper(localPath, projectId, app_token, affix, config);
+          }
           return res.status(data?.status || 200).json(data);
         }
 

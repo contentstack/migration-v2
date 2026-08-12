@@ -336,9 +336,28 @@ function rootBlockForSchemaMapper(field: any) {
   return field.innerBlocks;
 }
 
+/**
+ * Read the raw WXR XML. Supports multi-file input: when `inputPath` is a DIRECTORY (a folder of
+ * per-post-type exports), every `*.xml` is concatenated so cheerio `$('item')` sees items from all
+ * files. A single-file path behaves as before. Mirrors the API-side reader used by saveEntry.
+ */
+const readWxrXml = async (inputPath: string): Promise<string> => {
+  const stat = await fs.promises.stat(inputPath).catch(() => null);
+  if (stat?.isDirectory()) {
+    const files = (await fs.promises.readdir(inputPath))
+      .filter((f: string) => f.toLowerCase().endsWith('.xml'))
+      .sort();
+    const parts = await Promise.all(
+      files.map((f: string) => fs.promises.readFile(path.join(inputPath, f), 'utf8')),
+    );
+    return parts.join('\n');
+  }
+  return fs.promises.readFile(inputPath, 'utf8');
+};
+
 const extractItems = async (item: any, config: DataConfig, type: string, affix: string, categories: any, terms: any) => {
     const localPath = config?.localPath;
-    const xmlData = await fs.promises.readFile(localPath, "utf8");
+    const xmlData = await readWxrXml(localPath);
     const $ = cheerio.load(xmlData, { xmlMode: true });
     const items = $('item');
     const authorsData = $('wp\\author');
@@ -846,7 +865,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         if (!Array.isArray(globalFields)) globalFields = [];
         // Merge (union) the discovered Yoast sub-fields into any existing SEO definition so the
         // schema accumulates across content types instead of being frozen on first write.
-        const existingIndex = globalFields.findIndex((gf: any) => gf?.uid === SEO_GLOBAL_FIELD_UID);
+        const existingIndex = globalFields.findIndex(
+          (gf: any) => (gf?.contentstackUid ?? gf?.uid) === SEO_GLOBAL_FIELD_UID
+        );
         const mergedSeo = mergeSeoGlobalFieldDefinition(
           existingIndex >= 0 ? globalFields[existingIndex] : undefined,
           Array.from(seoSubFieldUids)

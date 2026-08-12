@@ -1,4 +1,5 @@
 import { CT, Field } from '../interface/interface';
+import seoGlobalFieldModel from '../config/seo-global-field.json';
 
 /**
  * Handling for reusable Contentstack global fields produced during WordPress migration.
@@ -7,7 +8,13 @@ import { CT, Field } from '../interface/interface';
  * "SEO" global field referenced by the content type, instead of two flat top-level fields. The
  * field-mapper only carries the *reference* (built here); the global-field *definition* is ensured
  * on the destination side during migration (see api globalField.service.createGlobalField). Entry
- * values nest as `seo: { title, description }`.
+ * values nest as `seo: { <sub-field>: value }`.
+ *
+ * The SEO field set is NOT hardcoded here — it is authored in `config/seo-global-field.json` (a
+ * standard Contentstack global-field schema, same shape as the hand-authored content models) and
+ * converted at build time into the field-mapper envelope the rest of the pipeline consumes. To add
+ * or retype an SEO sub-field, edit that JSON — no code change. This mirrors the acf-type-mapping.json
+ * pattern (bundled default config, imported not inlined).
  */
 
 /** uid of the reusable SEO global field referenced by migrated content types. */
@@ -86,50 +93,118 @@ export function contentTypeReferencesSeo(CT: CT): boolean {
   );
 }
 
-/** A single text sub-field within the SEO global field, generated from a Yoast sub-field uid. */
-function buildSeoSubField(uid: string): Record<string, any> {
-  return {
-    data_type: 'text',
-    display_name: humanizeUid(uid),
-    uid,
-    field_metadata: { description: '', default_value: '', version: 3 },
-    format: '',
-    error_messages: { format: '' },
-    multiple: false,
-    mandatory: false,
-    unique: false,
-    non_localizable: false
-  };
-}
-
 /**
- * Full Contentstack definition for the reusable "SEO" global field.
- *
- * The schema is built dynamically from the set of Yoast sub-field uids discovered in the export
- * (see yoastSubFieldUid). No field is hardcoded — passing more Yoast keys yields more sub-fields.
- * Written to the global_fields export so the CLI can create it before content types reference it.
+ * Map a Contentstack schema `data_type` (+ field_metadata hints) from the authored model onto the
+ * field-mapper `contentstackFieldType` the content-type creator understands (see
+ * api/src/utils/content-type-creator.utils.ts convertToSchemaFormate). Kept deliberately small and
+ * mechanical — it translates types, it does not define fields.
  */
-export function buildSeoGlobalFieldDefinition(subFieldUids: string[] = []): Record<string, any> {
-  const uniqueUids = Array.from(new Set(subFieldUids.filter(Boolean)));
+function csDataTypeToFieldType(schemaField: Record<string, any>): string {
+  const dataType = schemaField?.data_type;
+  switch (dataType) {
+    case 'text':
+      if (schemaField?.display_type === 'dropdown' || schemaField?.enum) return 'dropdown';
+      if (schemaField?.field_metadata?.multiline) return 'multi_line_text';
+      return 'single_line_text';
+    case 'file':
+      return 'file';
+    case 'boolean':
+      return 'boolean';
+    case 'number':
+      return 'number';
+    case 'isodate':
+      return 'isodate';
+    case 'link':
+      return 'link';
+    case 'json':
+      return 'json';
+    default:
+      return 'single_line_text';
+  }
+}
+
+/**
+ * Convert one authored Contentstack schema field (from config/seo-global-field.json) into a
+ * field-mapper `Field` — the exact shape content-type field mappings use (see
+ * cmsMigrationData/content_types/*.json `fieldMapping[]`). Display name, cardinality, dropdown
+ * choices and mandatory/unique flags are carried through so the downstream creator rebuilds an
+ * equivalent Contentstack schema.
+ */
+function csSchemaFieldToMapperField(schemaField: Record<string, any>): Field {
+  const uid: string = schemaField?.uid;
+  const fieldType = csDataTypeToFieldType(schemaField);
+  const advanced: Record<string, any> = {
+    mandatory: schemaField?.mandatory ?? false,
+    multiple: schemaField?.multiple ?? false,
+    unique: schemaField?.unique ?? false,
+    nonLocalizable: schemaField?.non_localizable ?? false,
+    default_value: schemaField?.field_metadata?.default_value
+  };
+  // Dropdown choices live under enum.choices in the CS schema; the creator reads them from
+  // advanced.options ([{ value }] or [{ key, value }]).
+  if (fieldType === 'dropdown' && Array.isArray(schemaField?.enum?.choices)) {
+    advanced.options = schemaField.enum.choices;
+  }
   return {
-    title: 'SEO',
-    uid: SEO_GLOBAL_FIELD_UID,
-    description: 'Reusable SEO metadata (mapped from Yoast SEO during migration).',
-    schema: uniqueUids.map(buildSeoSubField)
+    isDeleted: false,
+    uid,
+    // Source (WordPress) side. otherCmsField carries the authored uid so the mapping is traceable;
+    // otherCmsType stays a neutral scalar so the creator does not coerce dropdowns to numbers.
+    otherCmsField: uid,
+    otherCmsType: schemaField?.data_type ?? 'text',
+    contentstackField: schemaField?.display_name ?? humanizeUid(uid),
+    contentstackFieldUid: uid,
+    contentstackFieldType: fieldType,
+    backupFieldType: fieldType,
+    backupFieldUid: uid,
+    advanced
   };
 }
 
 /**
- * Merge newly-discovered Yoast sub-field uids into an existing SEO global field definition,
- * returning the union of sub-fields. Lets the schema accumulate across content types that each
- * surface a different subset of Yoast keys, so no field is lost by write order.
+ * Full field-mapper definition for the reusable "SEO" global field.
+ *
+ * Returns the SAME envelope as a content type (see cmsMigrationData/content_types/*.json):
+ * `{ status, type: 'global_field', otherCmsUid, contentstackUid, fieldMapping: Field[] }`. The
+ * field set comes entirely from the authored model (config/seo-global-field.json) — nothing here is
+ * static. `contenTypeMaker` / `entriesFieldCreator` consume this shape directly.
+ */
+export function buildSeoGlobalFieldDefinition(): Record<string, any> {
+  const model: Record<string, any> = seoGlobalFieldModel as Record<string, any>;
+  const schema: Record<string, any>[] = Array.isArray(model?.schema) ? model.schema : [];
+  const uid: string = model?.uid ?? SEO_GLOBAL_FIELD_UID;
+  const title: string = model?.title ?? 'SEO';
+  return {
+    status: 1,
+    isUpdated: false,
+    updateAt: '',
+    otherCmsTitle: title,
+    otherCmsUid: uid,
+    contentstackTitle: title,
+    contentstackUid: uid,
+    type: 'global_field',
+    fieldMapping: schema.map(csSchemaFieldToMapperField)
+  };
+}
+
+/**
+ * Merge an already-written SEO definition with the authored model, returning the field-mapper
+ * envelope. The authored model is the source of truth; any field-mapping entry that a previous
+ * write added but the model no longer lists is preserved (union by contentstackFieldUid) so nothing
+ * is lost across content types that write the aggregate in turn.
+ *
+ * `subFieldUids` (Yoast keys discovered on the content type) is retained for call-site
+ * compatibility; field generation is now model-driven, so it no longer selects the schema.
  */
 export function mergeSeoGlobalFieldDefinition(
   existing: Record<string, any> | undefined,
-  subFieldUids: string[]
+  _subFieldUids: string[]
 ): Record<string, any> {
-  const existingUids: string[] = Array.isArray(existing?.schema)
-    ? existing!.schema.map((f: any) => f?.uid).filter(Boolean)
-    : [];
-  return buildSeoGlobalFieldDefinition([...existingUids, ...subFieldUids]);
+  const base = buildSeoGlobalFieldDefinition();
+  const existingMapping: Field[] = Array.isArray(existing?.fieldMapping) ? existing!.fieldMapping : [];
+  const modelUids = new Set(base.fieldMapping.map((f: Field) => f?.contentstackFieldUid));
+  const preserved = existingMapping.filter(
+    (f: Field) => f?.contentstackFieldUid && !modelUids.has(f.contentstackFieldUid)
+  );
+  return { ...base, fieldMapping: [...base.fieldMapping, ...preserved] };
 }

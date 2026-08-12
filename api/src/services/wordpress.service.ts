@@ -18,6 +18,112 @@ import { MEDIA_BLOCK_NAMES, WORDPRESS_MISSSING_BLOCKS  } from "../constants/inde
 
 const { JSDOM } = jsdom;
 
+/**
+ * Prefix identifying Yoast SEO postmeta keys.
+ */
+const YOAST_SEO_KEY_PREFIX = "_yoast_wpseo_";
+
+/**
+ * Raw Yoast postmeta suffix → authored SEO global-field sub-field uid. The authored SEO global field
+ * (config/seo-global-field.json, matching the naming convention of export-data/global-fields/review_seo.json)
+ * names its fields meta_title/meta_description/yoast_wpseo_focuskeywords/… while the raw Yoast key
+ * suffixes are title/metadesc/focuskeywords/…, so entry values must be re-keyed to the authored uids.
+ * Contentstack drops entry keys that have no matching schema field on import, so an un-mapped key
+ * silently loses its value.
+ */
+const YOAST_TO_SEO_FIELD_UID: Record<string, string> = {
+  title: "meta_title",
+  metadesc: "meta_description",
+  focuskeywords: "yoast_wpseo_focuskeywords",
+  keywordsynonyms: "yoast_wpseo_keywordsynonyms",
+  canonical: "canonical_url",
+  opengraph_image: "og_image",
+  schema_page_type: "yoast_wpseo_schema_page_type",
+};
+
+/**
+ * Derive the SEO global-field sub-field uid from a Yoast postmeta key. The raw `_yoast_wpseo_`
+ * suffix is normalized (`_yoast_wpseo_opengraph-image-id` → `opengraph_image_id`) and then re-keyed
+ * to the authored SEO global-field uid via YOAST_TO_SEO_FIELD_UID so entry values and the global
+ * field definition use identical sub-field uids. Returns '' for non-Yoast keys.
+ */
+const yoastSeoSubFieldUid = (metaKey: string | undefined): string => {
+  if (!metaKey) return "";
+  const normalized = metaKey.startsWith("_") ? metaKey : `_${metaKey}`;
+  if (!normalized.startsWith(YOAST_SEO_KEY_PREFIX)) return "";
+  const raw = normalized
+    .slice(YOAST_SEO_KEY_PREFIX.length)
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+  return YOAST_TO_SEO_FIELD_UID[raw] ?? raw;
+};
+
+export interface PostTypeTarget {
+  /** Contentstack content-type uid this WordPress post type is migrated into. */
+  contentType: string;
+  /** Optional discriminator value written to a `content_kind`-style field (the Article model uses this). */
+  contentKind?: string;
+}
+
+/**
+ * Single source of truth mapping WordPress post types → the Contentstack content type they migrate
+ * into. It drives BOTH the entry routing (which content-type folder entries are written/merged to)
+ * and the fixed-schema transform (which builder shapes the entry).
+ *
+ * Today `post` and `case_study` fold into the merged `article` model, distinguished by `content_kind`.
+ * To onboard another post type in the same flow: (1) add a row here, (2) drop that content type's JSON
+ * into the authored model folder (see resolveArticleModelDir), and (3) if it needs a bespoke body
+ * transform, add its own builder and gate it in saveEntry — otherwise it falls back to the mapper path.
+ */
+export const POST_TYPE_TARGETS: Record<string, PostTypeTarget> = {
+  post: { contentType: "article", contentKind: "blog" },
+  case_study: { contentType: "article", contentKind: "case_study" },
+  videos: { contentType: "review_videos" },
+  event: { contentType: "event" },
+  course: { contentType: "course" },
+};
+
+/**
+ * Contentstack uid of the merged Article content type — the one post type target that has a bespoke
+ * body-section transform (buildArticleEntry). Must match the uid of the authored article.json in the
+ * model folder.
+ */
+export const ARTICLE_TARGET_CT_UID = "article";
+
+/**
+ * ACF / custom-field values are stored in `wp:postmeta` keyed by the ACF field name. The engine fills
+ * any Contentstack field (top-level scalar/boolean/number or group sub-field) whose uid MATCHES an ACF
+ * field name automatically (e.g. `show_on_blog`, `is_featured`). Use this map only when the target
+ * Contentstack uid differs from the WordPress meta key — `contentstackUid: 'wpMetaKey'`.
+ * e.g. `key_takeaways: 'case_study_results'`. Term-ID and asset-URL fields (e.g. industry as
+ * `_primary_term_industry`, customer_logo as `ImageURL`) need resolution and are intentionally omitted.
+ */
+/**
+ * Target field uid → WordPress postmeta key, for cases where the Contentstack field name differs from
+ * the WP meta_key. Global (applies to every target), so keep entries uid-specific enough not to collide
+ * across content types. Event fields below are stored by the scaledagile theme as post-type-registered
+ * postmeta (camelCase), NOT as ACF groups, so they never appear in the ACF export.
+ */
+export const ACF_FIELD_ALIASES: Record<string, string> = {
+  start_date_time: 'eventStartDate',
+  end_date_time: 'eventEndDate',
+  timezone: 'eventTimeZone',
+  location_name: 'eventLocation',
+  course_level: 'level',
+  // Case-study details group (article) ← WordPress postmeta.
+  customer_name: 'page_header_title',
+  key_takeaways: 'case_study_results'
+};
+
+/** Returns the migration target for a WordPress post type, or undefined when it is not mapped. */
+function targetForPostType(postType: string | undefined): PostTypeTarget | undefined {
+  const key = String(postType ?? "").toLowerCase().trim();
+  return Object.prototype.hasOwnProperty.call(POST_TYPE_TARGETS, key)
+    ? POST_TYPE_TARGETS[key]
+    : undefined;
+}
+
 // Get the current file's path
 const __filename = fileURLToPath(import.meta.url);
 
@@ -80,6 +186,46 @@ const idCorrector = (id: any) => {
 
 const normalizeNicenameForUid = (nicename: unknown) =>
   String(nicename ?? "").replace(/-/g, "_").replace(/\s+/g, "_");
+
+/** Humanize a domain/nicename slug into a display name, e.g. "post_format" -> "Post Format". */
+const humanizeSlug = (slug: unknown) =>
+  String(slug ?? "")
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Nest a taxonomy's terms whose hierarchy is encoded in the term NAME with `>` (WordPress convention,
+ * e.g. "Country>Australia", "Customer Story>Aviation"). For each such term, the text before the last
+ * `>` is the parent and the text after is the leaf. The parent is resolved by matching an EXISTING
+ * term's name (case/trim-insensitive) so the child's `parent_uid` points at the parent's real
+ * nicename-derived uid (`country`), never a name-synthesized one; the child is leaf-renamed so
+ * Contentstack shows "Australia" nested under "Country". A term whose parent doesn't exist is left
+ * top-level (`parent_uid` stays null) rather than emitting a dangling parent_uid the CLI would reject.
+ * Mutates the terms in place and returns them.
+ */
+export function nestHierarchicalTerms(
+  terms: Array<{ uid: string; name: string; parent_uid: string | null }>,
+): Array<{ uid: string; name: string; parent_uid: string | null }> {
+  const uidByName = new Map<string, string>();
+  for (const t of terms) {
+    const key = String(t?.name ?? "").trim().toLowerCase();
+    if (key && !uidByName.has(key)) uidByName.set(key, t.uid);
+  }
+  for (const t of terms) {
+    const name = String(t?.name ?? "");
+    if (!name.includes(">")) continue;
+    const idx = name.lastIndexOf(">");
+    const parentName = name.slice(0, idx).trim();
+    const leaf = name.slice(idx + 1).trim();
+    const parentUid = uidByName.get(parentName.toLowerCase());
+    if (parentUid && parentUid !== t.uid) {
+      t.parent_uid = parentUid;
+      if (leaf) t.name = leaf;
+    }
+  }
+  return terms;
+}
 
 let failedJSONFilePath = path.join(
   assetMasterFolderPath,
@@ -330,10 +476,12 @@ function unwrapSingleChildGroup(block: any): any {
 function toIsoDate(value: any): string | undefined {
   const raw = String(value ?? '').trim();
   if (!raw || raw.startsWith('0000-00-00')) return undefined;
-  // WP exports "YYYY-MM-DD HH:mm:ss"; normalize the space to 'T' and treat as UTC.
-  const normalized = /\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}/.test(raw)
-    ? `${raw.replace(' ', 'T')}Z`
-    : raw;
+  // WP emits zone-less datetimes as "YYYY-MM-DD HH:mm:ss" (pubdate) or "YYYY-MM-DDTHH:mm:ss" (event
+  // meta). With no zone, JS Date would parse them as server-local — making output depend on the host
+  // timezone. Pin them to UTC so migration is deterministic; strings that already carry a Z/offset pass
+  // through untouched.
+  const naive = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/);
+  const normalized = naive ? `${naive[1]}T${naive[2]}Z` : raw;
   const parsed = new Date(normalized);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
@@ -585,6 +733,1301 @@ function attachMediaTextFieldsToChildren(
     assetData,
   );
   if (textValue != null && textValue !== '') out[mtk] = textValue;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Article body-section router
+ *
+ * Converts a parsed Gutenberg block tree (from `content:encoded`) directly into the fixed
+ * `body_sections` modular-block array of the merged "Article" content type — WITHOUT going through
+ * the mapper-driven `createSchema`. It is used only for post types whose POST_TYPE_TARGETS entry maps to the Article content type, so
+ * every other CMS content type keeps its existing inferred behavior untouched.
+ *
+ * Routing rules (see the approved router table):
+ *   core/quote, core/pullquote            → quote        block
+ *   core/video, core/embed                → video_embed  block
+ *   core/button                           → cta_section  block
+ *   core/spacer, core/separator           → dropped (pure spacing)
+ *   everything else (paragraph, heading,  → accumulated into a single rich_text block; consecutive
+ *   list, table, image, media-text, …)      rich blocks merge so we emit few clean sections, not one
+ *                                            per paragraph. Content is never dropped — the default is
+ *                                            always rich_text.
+ * stats_band has no native WordPress block and therefore never appears unless the source grows one.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Reconstruct a block's full HTML by interleaving its innerContent string parts with its innerBlocks. */
+function serializeBlockToHtml(block: any): string {
+  if (!block) return '';
+  const inner = Array.isArray(block?.innerBlocks) ? block.innerBlocks : [];
+  if (Array.isArray(block?.innerContent)) {
+    let idx = 0;
+    return block.innerContent
+      .map((part: any) => (typeof part === 'string' ? part : serializeBlockToHtml(inner[idx++])))
+      .join('');
+  }
+  if (typeof block?.innerHTML === 'string' && block.innerHTML.trim()) {
+    return block.innerHTML;
+  }
+  return collectHtmlFromInnerBlocks(block);
+}
+
+/** Flatten layout-only wrappers (columns/column/group/buttons) so content blocks form a linear stream in document order. */
+function* linearizeContentBlocks(
+  blocks: any[],
+  keepWhole?: (block: any) => boolean,
+): Generator<any> {
+  for (const raw of Array.isArray(blocks) ? blocks : []) {
+    // Walk down single-child group wrappers, but stop and yield intact at any recognized pattern group
+    // (FAQ / card-grid) so the caller can route it as a unit. A plain unwrap would collapse past the
+    // card-grid group down to its `columns` child, stripping the metadata.patternName we key on.
+    let block = raw;
+    let kept = false;
+    while (true) {
+      if (keepWhole && keepWhole(block)) { yield block; kept = true; break; }
+      if (
+        block?.blockName === 'core/group' &&
+        Array.isArray(block?.innerBlocks) &&
+        block.innerBlocks.length === 1
+      ) {
+        block = block.innerBlocks[0];
+      } else {
+        break;
+      }
+    }
+    if (kept) continue;
+    const name = block?.blockName;
+    if (
+      name === 'core/columns' ||
+      name === 'core/column' ||
+      name === 'core/group' ||
+      name === 'core/cover' ||
+      name === 'core/buttons'
+    ) {
+      yield* linearizeContentBlocks(block?.innerBlocks || [], keepWhole);
+    } else {
+      yield block;
+    }
+  }
+}
+
+/** core/quote & core/pullquote → { quote_text, attribution?, attribution_role? }; null when no text. */
+function parseQuoteBlock(block: any): Record<string, any> | null {
+  const $q = cheerio.load(serializeBlockToHtml(block));
+  const attribution = $q('cite').first().text().replace(/\s+/g, ' ').trim();
+  $q('cite').remove();
+  const quoteText = $q.root().text().replace(/\s+/g, ' ').trim();
+  if (!quoteText) return null;
+  const quote: Record<string, any> = { quote_text: quoteText };
+  if (attribution) quote.attribution = attribution;
+  return quote;
+}
+
+/** core/video (src in markup) & core/embed (url in attrs) → { video_url, caption? }; null when no URL. */
+function parseVideoBlock(block: any): Record<string, any> | null {
+  const html = serializeBlockToHtml(block);
+  let url = String(block?.attrs?.url ?? '').trim();
+
+  // Vidyard embeds (salsa-blocks/vidyard-embed) carry only a `videoId` in attrs; the inline <img src>
+  // is a `.jpg` thumbnail, not the video. Reconstruct the player URL from the id (also recoverable from
+  // the img's data-uuid), and keep the thumbnail separately.
+  let thumbnail = '';
+  if (!url) {
+    const videoId =
+      String(block?.attrs?.videoId ?? '').trim() ||
+      html.match(/data-uuid=["']([^"']+)["']/i)?.[1]?.trim() ||
+      '';
+    if (videoId) {
+      url = `https://play.vidyard.com/${videoId}`;
+      thumbnail = `https://play.vidyard.com/${videoId}.jpg`;
+    }
+  }
+
+  if (!url) {
+    const srcMatch = html.match(/src=["']([^"']+)["']/i);
+    url = srcMatch?.[1]?.trim() ?? '';
+  }
+  if (!url) return null;
+  const caption = cheerio.load(html)('figcaption').first().text().replace(/\s+/g, ' ').trim();
+  const video: Record<string, any> = { video_url: url };
+  if (caption) video.caption = caption;
+  if (thumbnail) video.thumbnail = thumbnail;
+  return video;
+}
+
+/** core/button → { heading, body }; heading is the button label (mandatory), body keeps the link. null when unlabeled. */
+function parseCtaBlock(block: any): Record<string, any> | null {
+  const $c = cheerio.load(serializeBlockToHtml(block));
+  const anchor = $c('a').first();
+  const label = anchor.text().replace(/\s+/g, ' ').trim();
+  const href = String(anchor.attr('href') ?? '').trim();
+  if (!label) return null;
+  const cta: Record<string, any> = { heading: label };
+  const bodyHtml = href ? `<p><a href="${href}">${label}</a></p>` : `<p>${label}</p>`;
+  const body = RteJsonConverter(bodyHtml);
+  if (body) cta.body = body;
+  return cta;
+}
+
+/** Build the Article `body_sections` array from a parsed Gutenberg block tree. */
+/**
+ * Contentstack rejects any single JSON-RTE field value larger than 30KB ("content: JSON must not
+ * exceed 30KB in size"). Because the router merges every consecutive rich block into ONE rich_text
+ * section, a long body (e.g. multi-thousand-word case studies) can produce a single `content` value
+ * far over the limit. Keep headroom below the hard 30720-byte cap for JSON string escaping.
+ */
+const MAX_RTE_FIELD_BYTES = 30000;
+
+/** Heading level (1-6) when an HTML fragment begins with a heading element, else 0. */
+function leadingHeadingLevel(html: string): number {
+  const m = /^\s*<h([1-6])\b/i.exec(html || '');
+  return m ? Number(m[1]) : 0;
+}
+
+/**
+ * Pack accumulated per-block HTML fragments into one or more rich_text sections, keeping each emitted
+ * value under MAX_RTE_FIELD_BYTES. Splits are HEADING-AWARE: blocks are first grouped into logical
+ * sections (a heading plus every block beneath it, up to the next same-or-higher-level heading), and a
+ * new field is started BEFORE a section that would overflow — so a field never ends on an orphaned
+ * heading nor begins with heading-less prose. A single section larger than the cap is split internally
+ * on block boundaries, with its heading kept on the first piece. Sizing sums each block's serialized
+ * value — a slight over-estimate versus the merged value — so the concatenated result stays under the
+ * cap. `toValue` renders a fragment (JSON RTE object or HTML string); `wrap` builds the section object.
+ */
+function packRichTextSections(
+  blockHtmls: string[],
+  toValue: (html: string) => any,
+  wrap: (value: any) => any,
+): any[] {
+  const bytesOf = (html: string): number => {
+    const value = toValue(html);
+    return value ? Buffer.byteLength(JSON.stringify(value), 'utf8') : 0;
+  };
+
+  // 1) Group blocks into heading-led logical sections. A heading whose level is same-or-higher than the
+  //    one that opened the current section starts a new section (deeper subheadings stay within it).
+  //    Content before the first heading forms an initial heading-less section.
+  const sections: string[][] = [];
+  let current: string[] = [];
+  let currentLevel = 0; // heading level that opened `current` (0 = pre-heading content)
+  for (const bh of blockHtmls) {
+    const level = leadingHeadingLevel(bh);
+    if (level > 0 && current.length && (currentLevel === 0 || level <= currentLevel)) {
+      sections.push(current);
+      current = [];
+      currentLevel = 0;
+    }
+    if (level > 0 && current.length === 0) currentLevel = level;
+    current.push(bh);
+  }
+  if (current.length) sections.push(current);
+
+  // 2) Pack whole sections into fields; flush before a section that would overflow so every field
+  //    starts at a heading (or the document's leading content).
+  const out: any[] = [];
+  let chunk: string[] = [];
+  let bytes = 0;
+  const emit = (htmls: string[]) => {
+    const html = htmls.join('');
+    if (!hasMeaningfulHtmlContent(html)) return;
+    const value = toValue(html);
+    if (value) out.push(wrap(value));
+  };
+  const flush = () => {
+    if (chunk.length) emit(chunk);
+    chunk = [];
+    bytes = 0;
+  };
+
+  for (const section of sections) {
+    const secBytes = section.reduce((n, bh) => n + bytesOf(bh), 0);
+    if (secBytes > MAX_RTE_FIELD_BYTES) {
+      // Section too big to be one field: emit any pending chunk, then split this section on block
+      // boundaries (its heading rides on the first piece).
+      flush();
+      let sub: string[] = [];
+      let subBytes = 0;
+      for (const bh of section) {
+        const b = bytesOf(bh);
+        if (sub.length && subBytes + b > MAX_RTE_FIELD_BYTES) { emit(sub); sub = []; subBytes = 0; }
+        sub.push(bh);
+        subBytes += b;
+      }
+      if (sub.length) emit(sub);
+      continue;
+    }
+    if (chunk.length && bytes + secBytes > MAX_RTE_FIELD_BYTES) flush();
+    chunk.push(...section);
+    bytes += secBytes;
+  }
+  flush();
+  return out;
+}
+
+export function buildBodySections(blocksJson: any[]): any[] {
+  const sections: any[] = [];
+  let buffer: string[] = [];
+
+  const flushRichText = () => {
+    if (buffer.length === 0) return;
+    const blockHtmls = buffer;
+    buffer = [];
+    sections.push(
+      ...packRichTextSections(blockHtmls, RteJsonConverter, (content) => ({ rich_text: { content } })),
+    );
+  };
+
+  for (const block of linearizeContentBlocks(blocksJson)) {
+    const name = block?.blockName;
+    if (name === 'core/quote' || name === 'core/pullquote') {
+      flushRichText();
+      const quote = parseQuoteBlock(block);
+      if (quote) sections.push({ quote });
+      continue;
+    }
+    if (name === 'core/video' || name === 'core/embed') {
+      flushRichText();
+      const video = parseVideoBlock(block);
+      if (video) sections.push({ video_embed: video });
+      continue;
+    }
+    if (name === 'core/button') {
+      flushRichText();
+      const cta = parseCtaBlock(block);
+      if (cta) sections.push({ cta_section: cta });
+      continue;
+    }
+    if (name === 'core/spacer' || name === 'core/separator') {
+      continue; // pure spacing — no content to carry
+    }
+    // Default: rich content. Accumulate so consecutive blocks merge into one rich_text section.
+    const html = serializeBlockToHtml(block);
+    if (html && html.trim()) buffer.push(html);
+  }
+  flushRichText();
+  return sections;
+}
+
+/** Coerce a WXR guid (string or `{ '#text' | _ }` object) to a plain string. */
+function guidToString(guid: any): string {
+  if (guid == null) return '';
+  if (typeof guid === 'string') return guid;
+  return String(guid?.['#text'] ?? guid?._ ?? guid?.text ?? '');
+}
+
+/**
+ * Build the base Article entry object (title, url, content_kind, body_sections, published_date,
+ * migration_metadata) for one Article-targeted post. Shared extraction in saveEntry (excerpt,
+ * featured_image, seo, taxonomies, authors) layers on top of this.
+ */
+export function buildArticleEntry(
+  blocksJson: any[],
+  item: any,
+  kind: string,
+  uid: string,
+  link?: string,
+): Record<string, any> {
+  const permalink = String(link ?? item?.link ?? '').trim();
+  const publishedIso = toIsoDate(item?.['wp:post_date_gmt'] ?? item?.['wp:post_date']);
+  const entry: Record<string, any> = {
+    title: item?.title,
+    uid,
+    url: permalink,
+    content_kind: kind,
+  };
+  const bodySections = buildBodySections(blocksJson);
+  if (bodySections.length > 0) entry.body_sections = bodySections;
+  if (publishedIso) entry.published_date = publishedIso;
+
+  const wpPostId = Number(item?.['wp:post_id']);
+  const migrationMetadata: Record<string, any> = {
+    wp_post_name: item?.['wp:post_name'] ?? '',
+    wp_guid: guidToString(item?.guid),
+    original_permalink: permalink,
+  };
+  if (!Number.isNaN(wpPostId)) migrationMetadata.wp_post_id = wpPostId;
+  if (publishedIso) migrationMetadata.wp_published_at = publishedIso;
+  entry.migration_metadata = migrationMetadata;
+
+  return entry;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Generic schema-driven entry builder
+ *
+ * Reads the TARGET content type's authored schema and maps WordPress content into it, so any content
+ * type (article, video, …) is handled by one engine — no per-type builder. Roles are detected by
+ * field data_type + uid conventions; the body router emits only the modular blocks the target declares.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** WP Gutenberg block → semantic block uid the router understands. */
+const WP_BLOCK_TO_SEMANTIC: Record<string, string> = {
+  'core/paragraph': 'rich_text',
+  'core/list': 'rich_text',
+  'core/table': 'rich_text',
+  'core/image': 'rich_text',
+  'core/html': 'rich_text',
+  'core/heading': 'heading',
+  'core/quote': 'quote',
+  'core/pullquote': 'quote',
+  'core/video': 'video_embed',
+  'core/embed': 'video_embed',
+  'salsa-blocks/vidyard-embed': 'video_embed',
+  'core/button': 'cta_section',
+  'core/spacer': 'spacer',
+  'core/separator': 'spacer',
+};
+
+/** Normalize a field's reference_to (string or array) to a string[]. */
+function referenceTargets(field: any): string[] {
+  const rt = field?.reference_to;
+  return Array.isArray(rt) ? rt : rt ? [rt] : [];
+}
+
+/** Sub-field uids declared by a modular block definition. */
+function blockSubUids(blockDef: any): Set<string> {
+  return new Set((blockDef?.schema || []).map((f: any) => f?.uid));
+}
+
+/** Enum choice values for a sub-field uid within a block/field definition. */
+function choiceValues(def: any, subUid: string): string[] {
+  const f = (def?.schema || []).find((x: any) => x?.uid === subUid);
+  return (f?.enum?.choices || []).map((c: any) => c?.value).filter(Boolean);
+}
+
+/** True when a field renders as a dropdown/enum. */
+function isDropdownField(field: any): boolean {
+  return field?.display_type === 'dropdown' || Array.isArray(field?.enum?.choices);
+}
+
+/**
+ * Match a raw value against a dropdown's declared choices, returning the CANONICAL choice value (not the
+ * raw input) or undefined when none matches. Comparison is normalized (trim, lowercase, spaces/hyphens →
+ * underscore) so a WP label like "Foundational" maps to a choice value `foundational`. Returning
+ * undefined on no match means an out-of-range value is skipped rather than written as an invalid enum.
+ */
+function matchDropdownChoice(field: any, raw: any): string | undefined {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
+  const norm = (s: any) => String(s).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const target = norm(raw);
+  for (const c of field?.enum?.choices || []) {
+    if (c?.value != null && norm(c.value) === target) return c.value;
+  }
+  return undefined;
+}
+
+/** Locate a block's rich-text content sub-field + whether it wants JSON RTE (vs an HTML string). */
+function richTextSlot(blockDef: any): { uid: string; json: boolean } | null {
+  const sub = (blockDef?.schema || []).find(
+    (f: any) =>
+      (f?.data_type === 'json' && f?.field_metadata?.allow_json_rte) ||
+      (f?.data_type === 'text' && (f?.field_metadata?.allow_rich_text || f?.field_metadata?.multiline)) ||
+      f?.uid === 'content',
+  );
+  return sub ? { uid: sub.uid, json: sub.data_type === 'json' } : null;
+}
+
+/** Block uids the router already handles as their own semantic sections — never the rich-text fallback. */
+const RESERVED_SEMANTIC_BLOCK_UIDS = new Set(['heading', 'quote', 'video_embed', 'cta_section', 'spacer']);
+
+/**
+ * Locate the block a target declares as its generic rich-text container — the one arbitrary prose folds
+ * into. Prefers a block literally named `rich_text` (article/video convention); otherwise scores blocks
+ * by role so a model that names it differently (e.g. event's `rich_text_section`) still works without a
+ * mapping row. A container must own a real rich-text field (JSON RTE or advanced HTML — not a bare
+ * multiline textarea) and carry no structural fields (file/link/reference/global_field/number/…), which
+ * disqualifies composite blocks like hero_section or speaker that merely happen to include a text area.
+ */
+function findRichTextBlockDef(blocksField: any): any | null {
+  const blocks = Array.isArray(blocksField?.blocks) ? blocksField.blocks : [];
+  const exact = blocks.find((b: any) => b?.uid === 'rich_text');
+  if (exact) return exact;
+
+  let best: any = null;
+  let bestScore = 0;
+  for (const b of blocks) {
+    const uid = String(b?.uid || '');
+    if (!uid || RESERVED_SEMANTIC_BLOCK_UIDS.has(uid)) continue;
+    const subs = Array.isArray(b?.schema) ? b.schema : [];
+    const richField = subs.find(
+      (f: any) =>
+        (f?.data_type === 'json' && f?.field_metadata?.allow_json_rte) ||
+        (f?.data_type === 'text' && f?.field_metadata?.allow_rich_text),
+    );
+    if (!richField) continue;
+    const hasStructural = subs.some(
+      (f: any) =>
+        f !== richField &&
+        ['file', 'link', 'reference', 'global_field', 'number', 'boolean', 'isodate'].includes(f?.data_type),
+    );
+    if (hasStructural) continue;
+    let score = 10 - subs.length; // purer container (fewer extra fields) scores higher
+    if (/rich|text|content|body|paragraph/i.test(uid)) score += 5;
+    if (score > bestScore) {
+      bestScore = score;
+      best = b;
+    }
+  }
+  return best;
+}
+
+function providerFromUrl(url: string): string | undefined {
+  const u = String(url || '').toLowerCase();
+  if (!u) return undefined;
+  if (u.includes('youtube') || u.includes('youtu.be')) return 'youtube';
+  if (u.includes('vimeo')) return 'vimeo';
+  return 'other';
+}
+
+/** Yoast SEO object + featured-image asset derived from an item's postmeta. */
+/**
+ * Sub-field uids the SEO global field actually declares, read from the in-memory content_mapper —
+ * the SAME fieldMapping the Contentstack global-field schema is built from (see content-type-creator
+ * convertToSchemaFormate). Entry SEO values are filtered to this set so a Yoast postmeta key with no
+ * matching schema field is never written: Contentstack silently drops entry keys absent from the
+ * referenced global field's schema, which would lose the value. Returns undefined when the SEO global
+ * field or its mapping isn't present, so callers skip filtering and preserve prior behavior.
+ */
+function seoAllowedSubUids(contentTypes: any[]): Set<string> | undefined {
+  const seoGf = Array.isArray(contentTypes)
+    ? contentTypes.find(
+        (c: any) =>
+          c?.type === 'global_field' &&
+          (c?.contentstackUid === 'seo' || c?.otherCmsUid === 'seo'),
+      )
+    : undefined;
+  const mapping = seoGf?.fieldMapping;
+  if (!Array.isArray(mapping) || mapping.length === 0) return undefined;
+  const uids = mapping
+    .map((f: any) => f?.contentstackFieldUid ?? f?.uid)
+    .filter((u: any): u is string => typeof u === 'string' && u.length > 0)
+    // The content_mapper still carries the raw Yoast-derived uids (title, metadesc, …) from
+    // config/seo-global-field.json, but the authored SEO global field that is actually imported
+    // (article-model/seo) declares meta_title/meta_description/…. Re-key through the same table
+    // yoastSeoSubFieldUid uses so this allow-set matches the schema entry values are written with.
+    .map((u: string) => YOAST_TO_SEO_FIELD_UID[u] ?? u);
+  return uids.length ? new Set(uids) : undefined;
+}
+
+function derivePostmeta(
+  item: any,
+  assetData: any,
+  allowedSeoUids?: Set<string>,
+): { seo: Record<string, any>; featuredAsset: any } {
+  const seo: Record<string, any> = {};
+  let thumbnailId: string | undefined;
+  let ogImageId: string | undefined;
+  const postmeta = Array.isArray(item?.['wp:postmeta']) ? item['wp:postmeta'] : [];
+  for (const meta of postmeta) {
+    const sub = yoastSeoSubFieldUid(meta?.['wp:meta_key']);
+    // The Yoast OG-image ID (`_yoast_wpseo_opengraph-image-id`) is captured for asset resolution, not
+    // stored as a value — the SEO global field's `og_image` is a FILE field, so it needs an asset ref.
+    if (sub === 'opengraph_image_id') {
+      if (meta?.['wp:meta_value']) ogImageId = String(meta['wp:meta_value']);
+      continue;
+    }
+    if (sub && (!allowedSeoUids || allowedSeoUids.has(sub))) seo[sub] = meta?.['wp:meta_value'];
+    if (meta?.['wp:meta_key'] === '_thumbnail_id' && meta?.['wp:meta_value']) {
+      thumbnailId = String(meta['wp:meta_value']);
+    }
+  }
+  // `og_image` is a FILE field: the Yoast postmeta gives a URL, but Contentstack needs an asset
+  // reference. Resolve it to a downloaded asset — by the OG-image attachment id, else by URL match —
+  // and drop it when no asset is available (a bare URL is an invalid file-field value on import).
+  if (typeof seo.og_image === 'string' && seo.og_image.trim()) {
+    const ogUrl = seo.og_image.trim();
+    let asset = ogImageId ? assetData?.[`assets_${ogImageId}`] : undefined;
+    if (!asset) {
+      const key = assetBaseKey(ogUrl, '');
+      asset = Object.values(assetData ?? {}).find(
+        (a: any) => a?.url && assetBaseKey(a.url, '') === key,
+      );
+    }
+    if (asset) seo.og_image = asset;
+    else delete seo.og_image;
+  }
+  const featuredAsset = thumbnailId ? assetData?.[`assets_${thumbnailId}`] : undefined;
+  return { seo, featuredAsset };
+}
+
+// --- Per-block builders (fill only the sub-fields the target block declares) -------------------
+
+function buildHeadingSubBlock(def: any, block: any): Record<string, any> | null {
+  const uids = blockSubUids(def);
+  const text = cheerio.load(serializeBlockToHtml(block)).root().text().replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+  const out: Record<string, any> = {};
+  if (uids.has('text')) out.text = text;
+  if (uids.has('level')) {
+    const lvlNum = Number(block?.attrs?.level ?? 2);
+    let level = `h${Number.isNaN(lvlNum) ? 2 : lvlNum}`;
+    const allowed = choiceValues(def, 'level');
+    if (allowed.length && !allowed.includes(level)) level = allowed[0];
+    out.level = level;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function buildQuoteSubBlock(def: any, block: any): Record<string, any> | null {
+  const parsed = parseQuoteBlock(block);
+  if (!parsed) return null;
+  const uids = blockSubUids(def);
+  const out: Record<string, any> = {};
+  if (uids.has('quote_text')) out.quote_text = parsed.quote_text;
+  if (uids.has('attribution') && parsed.attribution) out.attribution = parsed.attribution;
+  return Object.keys(out).length ? out : null;
+}
+
+function buildVideoEmbedSubBlock(def: any, block: any): Record<string, any> | null {
+  const parsed = parseVideoBlock(block);
+  if (!parsed) return null;
+  const uids = blockSubUids(def);
+  const out: Record<string, any> = {};
+  if (uids.has('video_url')) out.video_url = parsed.video_url;
+  if (uids.has('caption') && parsed.caption) out.caption = parsed.caption;
+  if (uids.has('provider')) {
+    const p = providerFromUrl(parsed.video_url);
+    const allowed = choiceValues(def, 'provider');
+    if (p && (!allowed.length || allowed.includes(p))) out.provider = p;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function buildCtaSubBlock(def: any, block: any): Record<string, any> | null {
+  const parsed = parseCtaBlock(block);
+  if (!parsed) return null;
+  const uids = blockSubUids(def);
+  const out: Record<string, any> = {};
+  if (uids.has('heading')) out.heading = parsed.heading;
+  if (uids.has('body') && parsed.body) out.body = parsed.body;
+  return Object.keys(out).length ? out : null;
+}
+
+function buildSpacerSubBlock(def: any, block: any): Record<string, any> {
+  const subs: any[] = Array.isArray(def?.schema) ? def.schema : [];
+  const h = parseInt(String(block?.attrs?.height ?? ''), 10); // WP stores e.g. "15px"
+  const out: Record<string, any> = {};
+
+  // Numeric height field (e.g. event's `height_px`): carry the raw pixel value.
+  const numField = subs.find((f: any) => f?.data_type === 'number');
+  if (numField && !Number.isNaN(h)) out[numField.uid] = h;
+
+  // Size-bucket dropdown (e.g. video's `size`): map px → small/medium/large.
+  const sizeField = subs.find((f: any) => f?.uid === 'size' || (f?.data_type === 'text' && isDropdownField(f)));
+  if (sizeField) {
+    let size = Number.isNaN(h) ? 'medium' : h <= 24 ? 'small' : h >= 64 ? 'large' : 'medium';
+    const allowed = choiceValues(def, sizeField.uid);
+    if (allowed.length && !allowed.includes(size)) size = allowed[0];
+    out[sizeField.uid] = size;
+  }
+  return out;
+}
+
+/**
+ * True when a block a target names `speaker` is actually speaker-shaped — it must declare a `name`
+ * field plus at least one of `bio`/`headshot`. This is what scopes media-text→speaker routing: a
+ * coincidentally-named block with a different shape (or any model without a real speaker block) never
+ * triggers it, so blogs/case studies/videos keep folding media-text into rich_text.
+ */
+function isSpeakerBlock(def: any): boolean {
+  if (!def) return false;
+  const uids = blockSubUids(def);
+  return uids.has('name') && (uids.has('bio') || uids.has('headshot'));
+}
+
+/**
+ * Parse a core/media-text "speaker card" (event content) into speaker fields. In events these blocks
+ * pair a headshot image with, in order: the speaker name, a "Role (Company)" line, then a bio
+ * paragraph. Headshot resolves via the block's mediaId against the already-migrated assets (keyed
+ * `assets_<attachmentId>`, same mechanism as featured images).
+ */
+function parseSpeakerBlock(
+  block: any,
+  assetData: any,
+): { name?: string; title?: string; company?: string; bio?: string; headshot?: any } | null {
+  const $ = cheerio.load(serializeBlockToHtml(block));
+  const scoped = $('.wp-block-media-text__content p'); // content column only, excludes the media figure
+  const paras = (scoped.length ? scoped : $('p')).toArray().map((el: any) => $(el));
+  const textAt = (i: number) => (paras[i] ? paras[i].text().replace(/\s+/g, ' ').trim() : '');
+
+  const name = textAt(0);
+  const roleLine = textAt(1);
+  let title: string | undefined;
+  let company: string | undefined;
+  const m = roleLine.match(/^(.*?)\s*\(([^)]*)\)\s*$/); // "Field CTO (Apptio)" → title / company
+  if (m) {
+    title = m[1].trim() || undefined;
+    company = m[2].trim() || undefined;
+  } else if (roleLine) {
+    title = roleLine;
+  }
+
+  const bioHtml = paras.slice(2).map((p: any) => $.html(p)).join('');
+  const bio = hasMeaningfulHtmlContent(bioHtml) ? normalizeHtmlFragment(bioHtml) : undefined;
+
+  const rawId = block?.attrs?.mediaId ?? block?.attrs?.media_id;
+  const idNum = Number(rawId);
+  const headshot = !Number.isNaN(idNum) && idNum > 0 ? assetData?.[`assets_${idNum}`] : undefined;
+
+  if (!name && !title && !bio && !headshot) return null;
+  return { name: name || undefined, title, company, bio, headshot };
+}
+
+/** Map a parsed media-text speaker card onto the declared sub-fields of a `speaker` block. */
+function buildSpeakerSubBlock(def: any, block: any, assetData: any): Record<string, any> | null {
+  const parsed = parseSpeakerBlock(block, assetData);
+  if (!parsed) return null;
+  const uids = blockSubUids(def);
+  const out: Record<string, any> = {};
+  if (uids.has('name') && parsed.name) out.name = parsed.name;
+  if (uids.has('title') && parsed.title) out.title = parsed.title;
+  if (uids.has('company') && parsed.company) out.company = parsed.company;
+  if (uids.has('bio') && parsed.bio) out.bio = parsed.bio;
+  if (uids.has('headshot') && parsed.headshot) out.headshot = parsed.headshot;
+  return Object.keys(out).length ? out : null;
+}
+
+/** True when a block declares a `global_field` sub-field that references the `cta` global field. */
+function hasCtaGlobalField(def: any): boolean {
+  return (def?.schema || []).some(
+    (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'),
+  );
+}
+
+/**
+ * Resolve the block a target uses for a WP button/CTA, and how to fill it:
+ *  - 'heading_body' — the article-style `cta_section` (heading + body rich text). Also the mode for any
+ *    block that declares a `heading` field, so article's cta_section (which ALSO carries an optional
+ *    primary_cta global field) keeps its existing behavior.
+ *  - 'global_field' — a block whose CTA *is* a `cta` global field with no heading/body (event's `button`).
+ * Prefers an exact `cta_section`; otherwise the first heading-less block that owns a cta global field.
+ * Returns null when the target declares no CTA block, so buttons fold into rich_text as before.
+ */
+function findCtaBlockDef(blocksField: any): { def: any; mode: 'heading_body' | 'global_field' } | null {
+  const blocks = Array.isArray(blocksField?.blocks) ? blocksField.blocks : [];
+  const exact = blocks.find((b: any) => b?.uid === 'cta_section');
+  if (exact) return { def: exact, mode: 'heading_body' };
+  // A dedicated button/CTA block owns a cta global field and is NOT a composite section — it declares no
+  // heading and no file/image field. That excludes blocks like hero_section/promo_tile that merely carry
+  // an optional cta alongside their own imagery. Prefer a button/cta-named block, then the leanest one.
+  const candidates = blocks
+    .filter(
+      (b: any) =>
+        hasCtaGlobalField(b) &&
+        !(b?.schema || []).some((f: any) => f?.uid === 'heading' || f?.data_type === 'file'),
+    )
+    .sort((a: any, b: any) => {
+      const an = /button|cta/i.test(a?.uid || '') ? 0 : 1;
+      const bn = /button|cta/i.test(b?.uid || '') ? 0 : 1;
+      return an !== bn ? an - bn : (a?.schema?.length || 0) - (b?.schema?.length || 0);
+    });
+  if (candidates.length) return { def: candidates[0], mode: 'global_field' };
+  return null;
+}
+
+/** Extract label / href / new-tab from a WP core/button anchor. */
+function parseButtonAnchor(block: any): { label: string; href: string; newTab: boolean } | null {
+  const $ = cheerio.load(serializeBlockToHtml(block));
+  const a = $('a').first();
+  const label = a.text().replace(/\s+/g, ' ').trim();
+  if (!label) return null;
+  const href = String(a.attr('href') ?? '').trim();
+  const newTab = String(a.attr('target') ?? '').toLowerCase() === '_blank';
+  return { label, href, newTab };
+}
+
+/**
+ * Build a block whose CTA is a `cta` global field (event `button`). Fills the global-field sub-field
+ * with the conventional cta shape (label / link / open_in_new_tab — same uids the cta global field
+ * declares; CS drops any it doesn't) and sets the align dropdown to its declared default when present.
+ */
+function buildCtaGlobalFieldBlock(def: any, block: any): Record<string, any> | null {
+  const parsed = parseButtonAnchor(block);
+  if (!parsed) return null;
+  const gfSub = (def?.schema || []).find(
+    (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'),
+  );
+  if (!gfSub) return null;
+
+  const cta: Record<string, any> = { label: parsed.label };
+  if (parsed.href) cta.link = { title: parsed.label, href: parsed.href };
+  if (parsed.newTab) cta.open_in_new_tab = true;
+
+  const out: Record<string, any> = { [gfSub.uid]: cta };
+
+  const alignField = (def?.schema || []).find((f: any) => f?.uid === 'align' || /align/i.test(f?.uid));
+  if (alignField) {
+    const choices = choiceValues(def, alignField.uid);
+    const dflt = alignField?.field_metadata?.default_value;
+    const align = typeof dflt === 'string' && choices.includes(dflt) ? dflt : choices[0];
+    if (align) out[alignField.uid] = align;
+  }
+  return out;
+}
+
+/** Normalize a heading string for matching: lowercase, single-spaced, trimmed. */
+function normalizeHeadingKey(s: string): string {
+  return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/** A WP core/heading level (1-6), defaulting to 2 when unspecified. */
+function wpHeadingLevel(block: any): number {
+  const l = Number(block?.attrs?.level);
+  return Number.isFinite(l) && l >= 1 && l <= 6 ? l : 2;
+}
+
+/**
+ * A "named section" is a declared block that owns a `heading` text field with a non-empty
+ * `default_value` PLUS a rich-text content slot (e.g. course `exam_details_section`: heading default
+ * "Exam guidelines" + JSON-RTE `intro`). The default_value IS the trigger: when a WP heading matches it,
+ * the following body content is routed into this block instead of folding into rich_text. Fully
+ * schema-driven — nothing about the heading text or target field is hardcoded.
+ */
+function findNamedSections(
+  blocksField: any,
+): Array<{ blockUid: string; headingUid: string; headingKey: string; slot: { uid: string; json: boolean } }> {
+  const out: Array<{ blockUid: string; headingUid: string; headingKey: string; slot: { uid: string; json: boolean } }> = [];
+  for (const b of Array.isArray(blocksField?.blocks) ? blocksField.blocks : []) {
+    const headingField = (b?.schema || []).find((f: any) => f?.uid === 'heading' && f?.data_type === 'text');
+    const dflt = headingField?.field_metadata?.default_value;
+    if (!headingField || !dflt || !String(dflt).trim()) continue;
+    const slot = richTextSlot(b);
+    if (!slot || slot.uid === headingField.uid) continue; // needs a content field distinct from the heading
+    out.push({ blockUid: b.uid, headingUid: headingField.uid, headingKey: normalizeHeadingKey(dflt), slot });
+  }
+  return out;
+}
+
+/** The WP pattern/name label a group block carries (`metadata.patternName` or `metadata.name`). */
+function groupPatternName(block: any): string {
+  const md = block?.attrs?.metadata;
+  return String(md?.patternName || md?.name || '').trim();
+}
+
+/**
+ * FAQ section support. A declared block that references another content type (e.g. course
+ * `faq_section` → `faq_item`) is the target; the referenced content type supplies the item shape
+ * (question = a text field, answer = a JSON field). Fully schema-driven — detected by the reference,
+ * not by uid. Returns null when the target declares no such block.
+ */
+function findFaqSectionDef(
+  blocksField: any,
+  contentTypesByUid?: Map<string, any>,
+): { blockUid: string; headingUid?: string; refField: string; refCtUid: string; questionUid: string; answerUid: string; categoryUid?: string } | null {
+  for (const b of Array.isArray(blocksField?.blocks) ? blocksField.blocks : []) {
+    const refField = (b?.schema || []).find((f: any) => f?.data_type === 'reference' && referenceTargets(f).length);
+    if (!refField) continue;
+    const refCtUid = referenceTargets(refField)[0];
+    const headingField = (b?.schema || []).find((f: any) => f?.data_type === 'text');
+    const refCt = contentTypesByUid?.get(refCtUid);
+    const refSchema: any[] = Array.isArray(refCt?.schema) ? refCt.schema : [];
+    // question = a text field (prefer the mandatory one); answer = a JSON/rich-text field.
+    const questionField = refSchema.find((f: any) => f?.data_type === 'text' && f?.mandatory) || refSchema.find((f: any) => f?.data_type === 'text');
+    const answerField = refSchema.find((f: any) => f?.data_type === 'json');
+    const categoryField = refSchema.find((f: any) => f?.data_type === 'text' && /categor/i.test(f?.uid || ''));
+    return {
+      blockUid: b.uid,
+      headingUid: headingField?.uid,
+      refField: refField.uid,
+      refCtUid,
+      questionUid: questionField?.uid || 'title',
+      answerUid: answerField?.uid || 'answer',
+      categoryUid: categoryField?.uid,
+    };
+  }
+  return null;
+}
+
+/**
+ * Card-grid section support. A declared block with a repeating `group` of cards (each card has a text
+ * title plus an image and/or description) is the target (e.g. course `card_grid`). Detected by shape,
+ * so any similarly-structured block qualifies. Returns null when none is declared.
+ */
+function findCardGridDef(
+  blocksField: any,
+): { blockUid: string; headingUid?: string; introUid?: string; columnsUid?: string; cardsUid: string; iconUid?: string; titleUid: string; descUid?: string; linkUid?: string } | null {
+  let best: any = null;
+  let bestScore = -1;
+  for (const b of Array.isArray(blocksField?.blocks) ? blocksField.blocks : []) {
+    // Skip a block that references another content type (that's the FAQ target, handled separately).
+    if ((b?.schema || []).some((f: any) => f?.data_type === 'reference')) continue;
+    const cardsField = (b?.schema || []).find((f: any) => f?.data_type === 'group' && f?.multiple);
+    if (!cardsField) continue;
+    const cardSchema: any[] = Array.isArray(cardsField?.schema) ? cardsField.schema : [];
+    const titleField = cardSchema.find((f: any) => f?.data_type === 'text');
+    const iconField = cardSchema.find((f: any) => f?.data_type === 'file');
+    const descField = cardSchema.find((f: any) => f?.data_type === 'json');
+    const linkField = cardSchema.find((f: any) => f?.data_type === 'link');
+    // A card must have a title AND carry visual/content richness beyond a plain text triple — an icon
+    // (file), a rich-text description (json), or a link. This distinguishes a card grid (icon+desc+link)
+    // from a stats band (text-only value/label/description).
+    if (!titleField || !(iconField || descField || linkField)) continue;
+    const introField = (b?.schema || []).find((f: any) => f?.data_type === 'json');
+    const headingField = (b?.schema || []).find((f: any) => f?.data_type === 'text' && /head/i.test(f?.uid || ''));
+    const columnsField = (b?.schema || []).find((f: any) => f?.data_type === 'text' && /column/i.test(f?.uid || ''));
+    // Prefer the richest card block: image + rich-text description + a section intro all point at a
+    // true card grid over a leaner file-only list (e.g. resource_list).
+    const score = (iconField ? 2 : 0) + (descField ? 2 : 0) + (linkField ? 1 : 0) + (introField ? 1 : 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = {
+        blockUid: b.uid,
+        headingUid: headingField?.uid,
+        introUid: introField?.uid,
+        columnsUid: columnsField?.uid,
+        cardsUid: cardsField.uid,
+        iconUid: iconField?.uid,
+        titleUid: titleField.uid,
+        descUid: descField?.uid,
+        linkUid: linkField?.uid,
+      };
+    }
+  }
+  return best;
+}
+
+/**
+ * Parse an FAQ pattern group into {question, answerHtml} pairs: the group's children are a run of
+ * heading (question) followed by the body blocks (answer) up to the next heading. The first heading is
+ * the section title (returned separately) when it sits above the first Q/A pair.
+ */
+function parseFaqGroup(groupBlock: any): { sectionHeading: string; items: Array<{ question: string; answerHtml: string }> } {
+  const children = (groupBlock?.innerBlocks || []).flatMap((b: any) => Array.from(linearizeContentBlocks([b])));
+  const items: Array<{ question: string; answerHtml: string }> = [];
+  let sectionHeading = '';
+  let i = 0;
+  // A leading top-level heading (e.g. h2 "Frequently Asked Questions") that is followed by another
+  // heading is the section title, not a question.
+  if (children[0]?.blockName === 'core/heading' && children[1]?.blockName === 'core/heading') {
+    sectionHeading = stripHtmlTags(serializeBlockToHtml(children[0])).replace(/\s+/g, ' ').trim();
+    i = 1;
+  }
+  for (; i < children.length; i++) {
+    if (children[i]?.blockName !== 'core/heading') continue;
+    const question = stripHtmlTags(serializeBlockToHtml(children[i])).replace(/\s+/g, ' ').trim();
+    if (!question) continue;
+    const parts: string[] = [];
+    let j = i + 1;
+    for (; j < children.length && children[j]?.blockName !== 'core/heading'; j++) {
+      const h = serializeBlockToHtml(children[j]);
+      if (h && h.trim()) parts.push(h);
+    }
+    i = j - 1;
+    items.push({ question, answerHtml: parts.join('') });
+  }
+  return { sectionHeading, items };
+}
+
+/** Parse a card-grid pattern group into card records (icon image id, title, description html, link). */
+function parseCardGridGroup(groupBlock: any): Array<{ iconId?: number; title: string; descHtml: string; link?: { title: string; href: string } }> {
+  const cards: Array<{ iconId?: number; title: string; descHtml: string; link?: { title: string; href: string } }> = [];
+  // Each card is a column. Walk columns; within a column pull the first image (icon), first heading
+  // (title), paragraph(s) (description) and first button/link.
+  const columns: any[] = [];
+  const collectColumns = (blocks: any[]) => {
+    for (const raw of Array.isArray(blocks) ? blocks : []) {
+      const b = unwrapSingleChildGroup(raw);
+      if (b?.blockName === 'core/column') columns.push(b);
+      else collectColumns(b?.innerBlocks || []);
+    }
+  };
+  collectColumns(groupBlock?.innerBlocks || []);
+  for (const col of columns) {
+    const inner = Array.from(linearizeContentBlocks([col]));
+    let iconId: number | undefined;
+    let title = '';
+    const descParts: string[] = [];
+    let link: { title: string; href: string } | undefined;
+    for (const blk of inner) {
+      const nm = blk?.blockName;
+      if (nm === 'core/image' && iconId === undefined) {
+        const id = Number(blk?.attrs?.id);
+        if (Number.isFinite(id) && id > 0) iconId = id;
+      } else if (nm === 'core/heading' && !title) {
+        title = stripHtmlTags(serializeBlockToHtml(blk)).replace(/\s+/g, ' ').trim();
+      } else if (nm === 'core/button' && !link) {
+        const a = parseButtonAnchor(blk);
+        if (a?.href) link = { title: a.label || a.href, href: a.href };
+      } else if (nm === 'core/paragraph' || nm === 'core/list') {
+        const h = serializeBlockToHtml(blk);
+        if (h && h.trim()) descParts.push(h);
+      }
+    }
+    if (title || descParts.length) cards.push({ iconId, title, descHtml: descParts.join(''), link });
+  }
+  return cards;
+}
+
+/**
+ * Build a modular-blocks array for `blocksField`, routing each Gutenberg block to a block the target
+ * declares. Blocks the target does not declare fold into rich_text (or drop, for spacer/separator).
+ */
+function buildModularBody(
+  blocksField: any,
+  blocks: any[],
+  assetData?: any,
+  ctx?: { uid?: string; locale?: string; contentTypesByUid?: Map<string, any>; sideEntries?: Record<string, Record<string, any>> },
+): any[] {
+  const defByUid = new Map<string, any>((blocksField?.blocks || []).map((b: any) => [b?.uid, b]));
+  const rtDef = findRichTextBlockDef(blocksField);
+  const rtBlockUid = rtDef?.uid;
+  const rtSlot = rtDef ? richTextSlot(rtDef) : null;
+  const ctaResolved = findCtaBlockDef(blocksField);
+
+  const sections: any[] = [];
+  let buffer: string[] = [];
+  const flush = () => {
+    if (!buffer.length || !rtDef || !rtSlot || !rtBlockUid) {
+      buffer = [];
+      return;
+    }
+    const blockHtmls = buffer;
+    buffer = [];
+    const toValue = rtSlot.json ? RteJsonConverter : normalizeHtmlFragment;
+    sections.push(
+      ...packRichTextSections(blockHtmls, toValue, (value) => ({ [rtBlockUid]: { [rtSlot.uid]: value } })),
+    );
+  };
+
+  const emit = (uid: string, sub: Record<string, any> | null) => {
+    if (sub) sections.push({ [uid]: sub });
+  };
+
+  // Speaker-section support: a heading directly before a speaker card labels that speaker group. Only
+  // active when the target's speaker block declares a `section_heading` field (event model).
+  const speakerDef = defByUid.get('speaker');
+  const speakerHasSection = isSpeakerBlock(speakerDef) && blockSubUids(speakerDef).has('section_heading');
+  let speakerSection: string | null = null;
+
+  // Blocks whose default heading marks a named section (e.g. exam_details_section ← "Exam guidelines").
+  const namedSections = findNamedSections(blocksField);
+
+  // Pattern-group sections: FAQ (a block referencing another content type) and card-grid (a block with a
+  // repeating card group). Detected by shape; only active when the target declares such a block AND the
+  // WordPress body carries a matching pattern group.
+  const faqDef = findFaqSectionDef(blocksField, ctx?.contentTypesByUid);
+  const cardGridDef = findCardGridDef(blocksField);
+  const keepWhole = (block: any): boolean => {
+    if (block?.blockName !== 'core/group') return false;
+    const pat = groupPatternName(block).toLowerCase();
+    if (faqDef && /faq/.test(pat)) return true;
+    if (cardGridDef && /card.?grid/.test(pat)) return true;
+    return false;
+  };
+
+  // faq_item entries are separate documents in another content type; collect them in ctx.sideEntries so
+  // saveEntry can write entries/<faq_item>/… and reference them here.
+  let faqSeq = 0;
+  const buildFaqRefs = (group: any): { heading: string; refs: Array<{ uid: string; _content_type_uid: string }> } | null => {
+    if (!faqDef) return null;
+    const { sectionHeading, items } = parseFaqGroup(group);
+    if (!items.length) return null;
+    const refs: Array<{ uid: string; _content_type_uid: string }> = [];
+    const store = ctx?.sideEntries?.[faqDef.refCtUid] ?? (ctx?.sideEntries ? (ctx.sideEntries[faqDef.refCtUid] = {}) : undefined);
+    for (const it of items) {
+      const faqUid = idCorrector(`${ctx?.uid || 'faq'}_faq_${faqSeq++}`);
+      const answerJson = it.answerHtml && hasMeaningfulHtmlContent(it.answerHtml) ? RteJsonConverter(it.answerHtml) : RteJsonConverter('<p></p>');
+      if (store) {
+        store[faqUid] = {
+          uid: faqUid,
+          [faqDef.questionUid]: it.question,
+          [faqDef.answerUid]: answerJson,
+          locale: ctx?.locale || 'en-us',
+          publish_details: [],
+        };
+      }
+      refs.push({ uid: faqUid, _content_type_uid: faqDef.refCtUid });
+    }
+    return { heading: sectionHeading, refs };
+  };
+
+  const lin = Array.from(linearizeContentBlocks(blocks, keepWhole));
+  for (let i = 0; i < lin.length; i++) {
+    const raw = lin[i];
+    const name = raw?.blockName;
+    const semantic = WP_BLOCK_TO_SEMANTIC[name];
+
+    // Pattern group kept intact by linearize (FAQ / card-grid). Route it to its declared block.
+    if (name === 'core/group' && keepWhole(raw)) {
+      const pat = groupPatternName(raw).toLowerCase();
+      if (faqDef && /faq/.test(pat)) {
+        flush();
+        const built = buildFaqRefs(raw);
+        if (built && built.refs.length) {
+          const sub: Record<string, any> = { [faqDef.refField]: built.refs };
+          if (faqDef.headingUid && built.heading) sub[faqDef.headingUid] = built.heading;
+          emit(faqDef.blockUid, sub);
+        }
+        speakerSection = null;
+        continue;
+      }
+      if (cardGridDef && /card.?grid/.test(pat)) {
+        flush();
+        const cards = parseCardGridGroup(raw);
+        if (cards.length) {
+          // The card-grid section's heading/intro live in the blocks just before the group. Reclaim a
+          // trailing heading (and an intro paragraph under it) from the rich-text buffer.
+          let heading = '';
+          let introHtml = '';
+          // Look back: last buffered heading = card-grid heading; content right after it = intro.
+          for (let k = buffer.length - 1; k >= 0; k--) {
+            if (/^\s*<h[1-6]/i.test(buffer[k])) {
+              heading = stripHtmlTags(buffer[k]).replace(/\s+/g, ' ').trim();
+              introHtml = buffer.slice(k + 1).join('');
+              buffer = buffer.slice(0, k);
+              break;
+            }
+          }
+          flush();
+          const sub: Record<string, any> = {};
+          if (cardGridDef.headingUid && heading) sub[cardGridDef.headingUid] = heading;
+          if (cardGridDef.introUid && introHtml && hasMeaningfulHtmlContent(introHtml)) sub[cardGridDef.introUid] = RteJsonConverter(introHtml);
+          sub[cardGridDef.cardsUid] = cards.map((c) => {
+            const card: Record<string, any> = {};
+            if (cardGridDef.titleUid && c.title) card[cardGridDef.titleUid] = c.title;
+            if (cardGridDef.descUid && c.descHtml && hasMeaningfulHtmlContent(c.descHtml)) card[cardGridDef.descUid] = RteJsonConverter(c.descHtml);
+            if (cardGridDef.iconUid && c.iconId != null) {
+              const asset = assetData?.[`assets_${c.iconId}`];
+              if (asset) card[cardGridDef.iconUid] = asset;
+            }
+            if (cardGridDef.linkUid && c.link) card[cardGridDef.linkUid] = c.link;
+            return card;
+          }).filter((c) => Object.keys(c).length);
+          if (sub[cardGridDef.cardsUid].length) emit(cardGridDef.blockUid, sub);
+        }
+        speakerSection = null;
+        continue;
+      }
+    }
+
+    // Named section: a heading whose text matches a declared block's default heading routes the content
+    // that follows (up to the next same-or-higher heading) into THAT block's rich-text slot, with the
+    // heading carried over. Schema-driven — the trigger and target come from the block definition.
+    if (name === 'core/heading' && namedSections.length) {
+      const headingText = stripHtmlTags(serializeBlockToHtml(raw)).replace(/\s+/g, ' ').trim();
+      const section = namedSections.find((ns) => ns.headingKey === normalizeHeadingKey(headingText));
+      if (section) {
+        flush();
+        const markerLevel = wpHeadingLevel(raw);
+        const parts: string[] = [];
+        let j = i + 1;
+        for (; j < lin.length; j++) {
+          const nb = lin[j];
+          if (nb?.blockName === 'core/heading' && wpHeadingLevel(nb) <= markerLevel) break;
+          const h = serializeBlockToHtml(nb);
+          if (h && h.trim()) parts.push(h);
+        }
+        i = j - 1; // consume the collected blocks
+        const html = parts.join('');
+        const sub: Record<string, any> = {};
+        if (headingText) sub[section.headingUid] = headingText;
+        if (hasMeaningfulHtmlContent(html)) {
+          const value = section.slot.json ? RteJsonConverter(html) : normalizeHtmlFragment(html);
+          if (value) sub[section.slot.uid] = value;
+        }
+        emit(section.blockUid, Object.keys(sub).length ? sub : null);
+        speakerSection = null;
+        continue;
+      }
+    }
+
+    // A heading immediately followed by a speaker card is that group's label: capture it and drop the
+    // heading (it must not become a stray rich_text). Other headings fall through to normal handling.
+    if (name === 'core/heading' && speakerHasSection && lin[i + 1]?.blockName === 'core/media-text') {
+      flush();
+      speakerSection = stripHtmlTags(serializeBlockToHtml(raw)).replace(/\s+/g, ' ').trim() || null;
+      continue;
+    }
+
+    if (semantic === 'heading' && defByUid.has('heading')) { flush(); emit('heading', buildHeadingSubBlock(defByUid.get('heading'), raw)); speakerSection = null; continue; }
+    if (semantic === 'quote' && defByUid.has('quote')) { flush(); emit('quote', buildQuoteSubBlock(defByUid.get('quote'), raw)); speakerSection = null; continue; }
+    if (semantic === 'video_embed' && defByUid.has('video_embed')) { flush(); emit('video_embed', buildVideoEmbedSubBlock(defByUid.get('video_embed'), raw)); speakerSection = null; continue; }
+    if (semantic === 'cta_section' && ctaResolved) {
+      flush();
+      const cta = ctaResolved.mode === 'global_field'
+        ? buildCtaGlobalFieldBlock(ctaResolved.def, raw)
+        : buildCtaSubBlock(ctaResolved.def, raw);
+      emit(ctaResolved.def.uid, cta);
+      speakerSection = null;
+      continue;
+    }
+    // media-text is NOT in the global semantic map (it means different things per model); route it to
+    // speaker ONLY when the target declares a speaker-shaped block — today just the event model. Every
+    // other target falls through to the default and folds media-text into rich_text as before.
+    if (name === 'core/media-text' && isSpeakerBlock(speakerDef)) {
+      flush();
+      const spk = buildSpeakerSubBlock(speakerDef, raw, assetData);
+      if (spk && speakerSection && speakerHasSection) spk.section_heading = speakerSection;
+      emit('speaker', spk);
+      continue; // keep speakerSection so consecutive cards in the same group inherit it
+    }
+    if (semantic === 'spacer' && defByUid.has('spacer')) { flush(); emit('spacer', buildSpacerSubBlock(defByUid.get('spacer'), raw)); continue; } // spacer doesn't break a speaker group
+    if (name === 'core/spacer' || name === 'core/separator') continue; // pure spacing, not declared → drop
+    // Default: rich content, or an unsupported semantic block folded into rich_text.
+    const html = serializeBlockToHtml(raw);
+    if (html && html.trim()) { buffer.push(html); speakerSection = null; }
+  }
+  flush();
+  return sections;
+}
+
+/**
+ * Build a complete Contentstack entry for one WordPress item, shaped by the target content type's
+ * authored schema. Fills each field by role: blocks (via buildModularBody), author reference, source/
+ * metadata group, seo global field, taxonomy, published date, featured image, title/url/excerpt, and a
+ * content_kind-style discriminator dropdown. Fields with no generic WP source (e.g. duration) are left
+ * for the ACF merge or empty.
+ */
+export function buildEntryFromSchema(
+  ct: any,
+  blocks: any[],
+  item: any,
+  ctx: { uid: string; link?: string; contentKind?: string; assetData: any; authorData: any[]; taxonomies: any[]; locale: string; allowedSeoUids?: Set<string>; globalFieldsByUid?: Map<string, any>; contentTypesByUid?: Map<string, any>; sideEntries?: Record<string, Record<string, any>> },
+): Record<string, any> {
+  const schema: any[] = Array.isArray(ct?.schema) ? ct.schema : [];
+  const entry: Record<string, any> = { uid: ctx.uid, locale: ctx.locale, publish_details: [] };
+  const permalink = String(ctx.link ?? item?.link ?? '').trim();
+  const publishedIso = toIsoDate(item?.['wp:post_date_gmt'] ?? item?.['wp:post_date']);
+  const excerptText = stripHtmlTags(String(item?.['excerpt:encoded'] ?? '').trim());
+  const { seo, featuredAsset } = derivePostmeta(item, ctx.assetData, ctx.allowedSeoUids);
+  const postIdNum = Number(item?.['wp:post_id']);
+  // Synonyms so a metadata group maps whether it uses migration_metadata or source_* uids.
+  const groupSources: Record<string, any> = {
+    wp_post_id: Number.isNaN(postIdNum) ? undefined : postIdNum,
+    source_post_id: Number.isNaN(postIdNum) ? undefined : postIdNum,
+    wp_post_name: item?.['wp:post_name'] ?? '',
+    source_slug: item?.['wp:post_name'] ?? '',
+    wp_guid: guidToString(item?.guid),
+    wp_published_at: publishedIso,
+    original_permalink: permalink,
+    source_post_type: String(item?.['wp:post_type'] ?? ''),
+  };
+
+  // ACF/custom-field values live in wp:postmeta keyed by the ACF field name.
+  const postmeta = new Map<string, any>();
+  for (const m of Array.isArray(item?.['wp:postmeta']) ? item['wp:postmeta'] : []) {
+    const k = m?.['wp:meta_key'];
+    if (typeof k === 'string' && !postmeta.has(k)) postmeta.set(k, m?.['wp:meta_value']);
+  }
+  /** Postmeta value for a Contentstack field uid, matching by name or ACF_FIELD_ALIASES. */
+  const metaFor = (fieldUid: string): any => {
+    if (postmeta.has(fieldUid)) return postmeta.get(fieldUid);
+    const alias = ACF_FIELD_ALIASES[fieldUid];
+    return alias ? postmeta.get(alias) : undefined;
+  };
+  /** Coerce a raw postmeta string to the field's data_type; undefined when empty/unsupported. */
+  const coerceMeta = (dataType: string, raw: any): any => {
+    if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
+    if (dataType === 'boolean') return raw === '1' || raw === 1 || raw === true || String(raw).toLowerCase() === 'true';
+    if (dataType === 'number') { const n = Number(raw); return Number.isNaN(n) ? undefined : n; }
+    if (dataType === 'text') return typeof raw === 'string' ? raw.trim() : String(raw);
+    return undefined; // file/json/etc need dedicated handling (asset refs, term resolution)
+  };
+  /** Fill a group / global-field's declared sub-fields from metadata synonyms, then postmeta by name. */
+  const fillDeclaredFields = (subSchema: any[]): Record<string, any> => {
+    const g: Record<string, any> = {};
+    for (const sub of Array.isArray(subSchema) ? subSchema : []) {
+      if (Object.prototype.hasOwnProperty.call(groupSources, sub?.uid)) {
+        const val = groupSources[sub.uid];
+        if (val !== undefined && val !== '') g[sub.uid] = sub?.data_type === 'number' ? Number(val) : val;
+        continue;
+      }
+      const raw = metaFor(sub?.uid);
+      // File sub-field (e.g. case_study_details.customer_logo ← `customer_logo` postmeta = attachment id):
+      // resolve the WordPress attachment id to its downloaded Contentstack asset.
+      if (sub?.data_type === 'file') {
+        const id = Number(raw);
+        if (Number.isFinite(id) && id > 0) {
+          const asset = ctx.assetData?.[`assets_${id}`];
+          if (asset) g[sub.uid] = asset;
+        }
+        continue;
+      }
+      // JSON/rich-text sub-field (e.g. case_study_details.key_takeaways ← `case_study_results` HTML):
+      // convert the postmeta HTML into a JSON RTE value.
+      if (sub?.data_type === 'json') {
+        const html = typeof raw === 'string' ? raw.trim() : '';
+        if (html && hasMeaningfulHtmlContent(html)) g[sub.uid] = RteJsonConverter(html);
+        continue;
+      }
+      const mv = coerceMeta(sub?.data_type, raw);
+      if (mv !== undefined) g[sub.uid] = mv;
+    }
+    return g;
+  };
+
+  for (const field of schema) {
+    const uid = field?.uid;
+    const dt = field?.data_type;
+    if (!uid) continue;
+    if (dt === 'blocks') {
+      const body = buildModularBody(field, blocks, ctx.assetData, ctx);
+      if (body.length) entry[uid] = body;
+    } else if (dt === 'reference' && referenceTargets(field).includes('author')) {
+      if (ctx.authorData?.length) entry[uid] = ctx.authorData;
+    } else if (dt === 'global_field') {
+      if (referenceTargets(field).includes('seo')) {
+        if (seo && Object.keys(seo).length) entry[uid] = seo;
+      } else {
+        // Non-SEO global field (e.g. course/review `metadata` → review_metadata): fill its declared
+        // sub-fields from postmeta by name (text/boolean/number), same as a group. Needs the referenced
+        // global field's schema, supplied via ctx.globalFieldsByUid.
+        const gfDef = ctx.globalFieldsByUid?.get(referenceTargets(field)[0]);
+        if (gfDef && Array.isArray(gfDef.schema)) {
+          const g = fillDeclaredFields(gfDef.schema);
+          if (Object.keys(g).length) entry[uid] = g;
+        }
+      }
+    } else if (dt === 'taxonomy') {
+      if (ctx.taxonomies?.length) entry[uid] = ctx.taxonomies;
+    } else if (dt === 'group') {
+      const g = fillDeclaredFields(field?.schema);
+      if (Object.keys(g).length) entry[uid] = g;
+    } else if (dt === 'isodate') {
+      // Prefer a real date from postmeta (e.g. event start/end via ACF_FIELD_ALIASES); only fall back to
+      // the post's publish date for genuine publish-date fields — never for arbitrary *date* uids.
+      const metaIso = toIsoDate(metaFor(uid));
+      if (metaIso) entry[uid] = metaIso;
+      else if (publishedIso && /publish/i.test(uid)) entry[uid] = publishedIso;
+    } else if (dt === 'link') {
+      // Contentstack link value is { title, href }. Source is a URL postmeta (via name/alias); empty
+      // until an alias points at one, so no output when there is no matching meta.
+      const href = coerceMeta('text', metaFor(uid));
+      if (href) entry[uid] = { title: href, href };
+    } else if (dt === 'file') {
+      if (/(featured|image|thumbnail)/i.test(uid) && featuredAsset) entry[uid] = featuredAsset;
+    } else if (dt === 'boolean') {
+      const mv = coerceMeta('boolean', metaFor(uid));
+      if (mv !== undefined) entry[uid] = mv;
+    } else if (dt === 'number') {
+      const mv = coerceMeta('number', metaFor(uid));
+      if (mv !== undefined) entry[uid] = mv;
+    } else if (dt === 'text') {
+      if (isDropdownField(field) && ctx.contentKind && choiceValues({ schema: [field] }, uid).includes(ctx.contentKind)) {
+        entry[uid] = ctx.contentKind;
+      } else if (uid === 'title') {
+        entry[uid] = item?.title;
+      } else if (uid === 'url') {
+        entry[uid] = permalink;
+      } else if (uid === 'excerpt' && excerptText) {
+        entry[uid] = excerptText;
+      } else if (isDropdownField(field)) {
+        // Dropdown fed by postmeta (e.g. course_level ← `level`): normalize to a valid choice value,
+        // skipping out-of-range values so we never write an invalid enum.
+        const choice = matchDropdownChoice(field, metaFor(uid));
+        if (choice !== undefined) entry[uid] = choice;
+      } else {
+        // Any other text field: fill from a matching ACF postmeta value.
+        const mv = coerceMeta('text', metaFor(uid));
+        if (mv !== undefined) entry[uid] = mv;
+      }
+    }
+  }
+
+  // Mandatory title fallback when the title field uses a non-standard uid.
+  const titleField = schema.find((f: any) => f?.field_metadata?._default && f?.data_type === 'text');
+  if (titleField && entry[titleField.uid] == null) entry[titleField.uid] = item?.title;
+
+  return entry;
 }
 
 async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>, postmeta?: any, link?: string) {
@@ -1533,7 +2976,29 @@ const extractTermsReference = (terms: any) => {
   const termReference = termArray?.filter((term: any) => term?.attributes?.domain !== 'category');
   return termReference;
 }
-async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>) {
+
+/**
+ * Read the raw WXR XML for a project. Supports multi-file input (one export per post type): when
+ * `inputPath` is a DIRECTORY, every `*.xml` inside is concatenated so downstream cheerio `$('item')`
+ * lookups see items from every file — letting several post-type exports migrate into one stack. A
+ * single-file path behaves exactly as before. WordPress post IDs are globally unique within a site's
+ * exports, so per-item `wp:post_id` lookups across the merged blob stay unambiguous.
+ */
+async function readWxrXml(inputPath: string): Promise<string> {
+  const stat = await fs.promises.stat(inputPath).catch(() => null);
+  if (stat?.isDirectory()) {
+    const files = (await fs.promises.readdir(inputPath))
+      .filter((f) => f.toLowerCase().endsWith('.xml'))
+      .sort();
+    const parts = await Promise.all(
+      files.map((f) => fs.promises.readFile(path.join(inputPath, f), 'utf8')),
+    );
+    return parts.join('\n');
+  }
+  return fs.promises.readFile(inputPath, 'utf8');
+}
+
+async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>, allowedSeoUids?: Set<string>) {
   console.info("saveEntry");
   const locale = getLocale(master_locale, project) || master_locale;
   const mapperKeys = project?.mapperKeys || {};
@@ -1548,10 +3013,44 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
   }
 
   //const Jsondata = await fs.promises.readFile(file_path, "utf8");
-  const xmlData = await fs.promises.readFile(file_path, "utf8");
+  const xmlData = await readWxrXml(file_path);
   const $ = cheerio.load(xmlData, { xmlMode: true });
   const items = $('item');
   const entryData: Record<string, any> = {};
+
+  // Per authored content type, whether it declares a taxonomy field. An entry for an authored content
+  // type that has NO taxonomy field must not carry a `taxonomies` key, else the CLI import rejects it
+  // ("The content type '<uid>' does not have a taxonomy field."). Content types that aren't authored
+  // (mapper-generated) always include the taxonomy field, so those default to attaching.
+  const authoredHasTaxonomy = new Map<string, boolean>();
+  const authoredCtByUid = new Map<string, any>();
+  const authoredGfByUid = new Map<string, any>();
+  try {
+    const modelDir = resolveArticleModelDir(project);
+    if (existsSync(modelDir)) {
+      const { contentTypes: authoredCts, globalFields: authoredGfs } = await loadAuthoredSchemas(modelDir);
+      for (const ct of authoredCts) {
+        authoredCtByUid.set(ct?.uid, ct);
+        authoredHasTaxonomy.set(
+          ct?.uid,
+          Array.isArray(ct?.schema) && ct.schema.some((f: any) => f?.data_type === 'taxonomy'),
+        );
+      }
+      for (const gf of authoredGfs) authoredGfByUid.set(gf?.uid, gf);
+    }
+  } catch (err) {
+    console.warn('Could not read authored content types for taxonomy check:', err);
+  }
+  // Side entries generated as a by-product of building a main entry (e.g. faq_item docs extracted from a
+  // course body). Keyed by target content type uid → { entryUid: entry }. Written to their own
+  // entries/<ct>/<locale>/<locale>.json after the main loop.
+  const sideEntries: Record<string, Record<string, any>> = {};
+  /** Whether the content type an item maps to declares a taxonomy field (default true when unknown). */
+  const contentTypeHasTaxonomyField = (postType: string | undefined): boolean => {
+    const ctUid = targetForPostType(postType)?.contentType;
+    if (ctUid && authoredHasTaxonomy.has(ctUid)) return authoredHasTaxonomy.get(ctUid)!;
+    return true;
+  };
 
   try {
     if(entry ){
@@ -1579,21 +3078,21 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         if(itemCategories.length > 0 && categories?.length > 0){
           const category = itemCategories.filter((category: any) => category?.attributes?.domain === 'category');
 
-          for(const cat of category){
-            const parentCategoryUid = categories?.find((category: any) => category?.["wp:category_nicename"] === cat?.attributes?.nicename)?.["wp:category_parent"];
-            const parentCategory = parentCategoryUid ? categories?.find((category: any) => category?.["wp:category_nicename"] === parentCategoryUid)?.['wp:term_id'] 
-            : categories?.find((category: any) => category?.["wp:category_nicename"] === cat?.attributes?.nicename)?.['wp:term_id'];
-            const categoryName = cat?.attributes?.nicename;
+          // for(const cat of category){
+          //   const parentCategoryUid = categories?.find((category: any) => category?.["wp:category_nicename"] === cat?.attributes?.nicename)?.["wp:category_parent"];
+          //   const parentCategory = parentCategoryUid ? categories?.find((category: any) => category?.["wp:category_nicename"] === parentCategoryUid)?.['wp:term_id'] 
+          //   : categories?.find((category: any) => category?.["wp:category_nicename"] === cat?.attributes?.nicename)?.['wp:term_id'];
+          //   const categoryName = cat?.attributes?.nicename;
             
-            taxonomies.push({
-              "taxonomy_uid": parentCategoryUid
-                ? `${normalizeNicenameForUid(parentCategoryUid)}_${parentCategory}`
-                : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`,
-              "term_uid": parentCategoryUid
-                ? normalizeNicenameForUid(categoryName)
-                : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`
-            });
-          } 
+          //   taxonomies.push({
+          //     "taxonomy_uid": parentCategoryUid
+          //       ? `${normalizeNicenameForUid(parentCategoryUid)}_${parentCategory}`
+          //       : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`,
+          //     "term_uid": parentCategoryUid
+          //       ? normalizeNicenameForUid(categoryName)
+          //       : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`
+          //   });
+          // } 
 
           const termCategory = itemCategories.filter((category: any) => category?.attributes?.domain !== 'category');
           const seenTermUids = new Set<string>();
@@ -1605,6 +3104,23 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             seenTermUids.add(termUid);
             terms.push({ "uid": termUid, "_content_type_uid": 'terms' });
           }
+        } else if (itemCategories.length > 0) {
+          // Inline-only WXR (no channel <wp:category> defs): derive taxonomy references straight from
+          // the inline <category domain=... nicename=...> tags. domain -> taxonomy_uid,
+          // nicename -> term_uid, matching the taxonomies synthesized in createTaxonomy. `author`
+          // maps to the Author reference and `post_tag` to native entry tags, so both are skipped.
+          const seenTaxonomyRefs = new Set<string>();
+          for (const cat of itemCategories) {
+            const domain = cat?.attributes?.domain;
+            if (!domain || domain === 'author' || domain === 'post_tag') continue;
+            const taxonomy_uid = normalizeNicenameForUid(domain);
+            const term_uid = normalizeNicenameForUid(cat?.attributes?.nicename);
+            if (!term_uid) continue;
+            const key = `${taxonomy_uid}:${term_uid}`;
+            if (seenTaxonomyRefs.has(key)) continue;
+            seenTaxonomyRefs.add(key);
+            taxonomies.push({ taxonomy_uid, term_uid });
+          }
         }
         const uid = idCorrector(`posts_${item?.["wp:post_id"]}`);
 
@@ -1613,10 +3129,17 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         );
 
         const author = Object?.keys(authorsData)?.find((key: any) => authorsData[key]?.title?.toLowerCase() === item?.['dc:creator']?.toLowerCase());
-        const authorData = [{
-          "uid":author,
-          "_content_type_uid": authorsCtName
-        }];
+        // Only emit a reference when the byline resolves to an actual author entry. An unresolved
+        // `dc:creator` leaves `author` undefined, and `{ uid: undefined, _content_type_uid }`
+        // serializes to `{ "_content_type_uid": "author" }` — a reference object with no `uid`. The
+        // CLI audit destructures `uid` (undefined) then calls `reference.startsWith('blt')` on the
+        // object, crashing with "reference.startsWith is not a function". Emit [] instead.
+        const authorData = author
+          ? [{
+              "uid": author,
+              "_content_type_uid": authorsCtName
+            }]
+          : [];
         const xmlItem = items?.length > 0 ? items?.filter((i, el) => {
           return $(el).find("wp\\:post_id").text() === item["wp:post_id"]
         }) : [];
@@ -1655,11 +3178,17 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
         const attachEntryMeta = (entryUid: string) => {
           const categoryReference = extractCategoryReference(item?.['category']);
-          if (categoryReference?.length > 0) {
+          // Attach whenever taxonomy refs were collected — channel `category` domain (categoryReference)
+          // or inline multi-domain tags (taxonomies populated above) — but only when the target content
+          // type actually has a taxonomy field, or the import rejects the entry.
+          if (
+            (categoryReference?.length > 0 || taxonomies?.length > 0) &&
+            contentTypeHasTaxonomyField(item?.['wp:post_type'])
+          ) {
             entryData[entryUid]['taxonomies'] = taxonomies;
           }
           const termsReference = extractTermsReference(item?.['category']);
-          if (termsReference?.length > 0) {
+          if (termsReference?.length > 0 && terms?.length > 0) {
             entryData[entryUid]['terms'] = terms;
           }
           entryData[entryUid]['tags'] = tags?.map((tag: any) => tag?.text);
@@ -1691,71 +3220,100 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 
 
-          // Pass individual content to createSchema
-          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings, item?.['wp:postmeta'], item?.link);
+          // Post types mapped in POST_TYPE_TARGETS whose target content type is authored in the model
+          // folder are shaped by the generic schema-driven engine (article, video, …). Everything else
+          // keeps the mapper-driven path with its legacy field assignments below.
+          const target = targetForPostType(item?.['wp:post_type']);
+          const targetCt = target ? authoredCtByUid.get(target.contentType) : undefined;
+          if (target && targetCt) {
+            entryData[uid] = buildEntryFromSchema(targetCt, blocksJson, item, {
+              uid,
+              link: item?.link,
+              contentKind: target.contentKind,
+              assetData,
+              authorData,
+              taxonomies,
+              locale,
+              allowedSeoUids,
+              globalFieldsByUid: authoredGfByUid,
+              contentTypesByUid: authoredCtByUid,
+              sideEntries,
+            });
+            // ACF-sourced fields (e.g. case_study_details, is_featured) come from ACF, not
+            // content:encoded — merge them on top when present.
+            if (!project?.acfExportDir && wpPost?.acf) {
+              const acfSchema = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
+              entryData[uid] = { ...entryData[uid], ...acfSchema };
+            }
+            console.info(`Processed entry ${uid} into '${target.contentType}' via schema-driven builder`);
+          } else {
+            // Pass individual content to createSchema
+            entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings, item?.['wp:postmeta'], item?.link);
 
-          if (!project?.acfExportDir && wpPost?.acf) {
-            const acfSchema = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
-            entryData[uid] = { ...entryData[uid], ...acfSchema };
-          }
-          const termsReference = extractTermsReference(item?.['category']);
-          if(termsReference?.length > 0) {
-            entryData[uid]['terms'] = terms;
-          }
-          entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
-          entryData[uid]['author'] = authorData;
-          entryData[uid]['locale'] = locale;
-          entryData[uid]['publish_details'] = [];
+            if (!project?.acfExportDir && wpPost?.acf) {
+              const acfSchema = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
+              entryData[uid] = { ...entryData[uid], ...acfSchema };
+            }
+            const termsReference = extractTermsReference(item?.['category']);
+            if(termsReference?.length > 0 && terms?.length > 0) {
+              entryData[uid]['terms'] = terms;
+            }
+            entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
+            entryData[uid]['author'] = authorData;
+            entryData[uid]['locale'] = locale;
+            entryData[uid]['publish_details'] = [];
 
-          // Editorial summary
-          const excerptHtml = String(item?.['excerpt:encoded'] ?? '').trim();
-          if (excerptHtml) {
-            entryData[uid]['excerpt'] = stripHtmlTags(excerptHtml);
-          }
-          // Lifecycle: status + created/updated dates (ISO for the isodate fields)
-          if (item?.['wp:status']) {
-            entryData[uid]['status'] = String(item['wp:status']);
-          }
-          const createdIso = toIsoDate(item?.['wp:post_date_gmt'] ?? item?.['wp:post_date']);
-          if (createdIso) entryData[uid]['cs_created_at'] = createdIso;
-          const updatedIso = toIsoDate(item?.['wp:post_modified_gmt'] ?? item?.['wp:post_modified']);
-          if (updatedIso) entryData[uid]['cs_updated_at'] = updatedIso;
+            // Editorial summary
+            const excerptHtml = String(item?.['excerpt:encoded'] ?? '').trim();
+            if (excerptHtml) {
+              entryData[uid]['excerpt'] = stripHtmlTags(excerptHtml);
+            }
+            // Lifecycle: status + created/updated dates (ISO for the isodate fields)
+            if (item?.['wp:status']) {
+              entryData[uid]['status'] = String(item['wp:status']);
+            }
+            const createdIso = toIsoDate(item?.['wp:post_date_gmt'] ?? item?.['wp:post_date']);
+            if (createdIso) entryData[uid]['cs_created_at'] = createdIso;
+            const updatedIso = toIsoDate(item?.['wp:post_modified_gmt'] ?? item?.['wp:post_modified']);
+            if (updatedIso) entryData[uid]['cs_updated_at'] = updatedIso;
 
-          if(item?.['wp:postmeta']?.length > 0){
-            const postmeta = item?.['wp:postmeta'];
-            const seo: Record<string, any> = {};
-            let thumbnailId: string | undefined;
-            for(const meta of postmeta){
-              const metaKey = meta?.['wp:meta_key'];
-              const metaValue = meta?.['wp:meta_value'];
-              if(metaKey === '_yoast_wpseo_title'){
-                seo.title = metaValue;
+            if(item?.['wp:postmeta']?.length > 0){
+              const postmeta = item?.['wp:postmeta'];
+              const seo: Record<string, any> = {};
+              let thumbnailId: string | undefined;
+              for(const meta of postmeta){
+                const metaKey = meta?.['wp:meta_key'];
+                const metaValue = meta?.['wp:meta_value'];
+                // Yoast SEO → reusable "SEO" global field. A postmeta key under the `_yoast_wpseo_`
+                // prefix maps to a sub-field (uid derived from the key), but only when that uid is
+                // declared by the SEO global field schema (allowedSeoUids) — Contentstack drops entry
+                // keys with no matching schema field, so writing them would silently lose the value.
+                const seoSubUid = yoastSeoSubFieldUid(metaKey);
+                if (seoSubUid && (!allowedSeoUids || allowedSeoUids.has(seoSubUid))) {
+                  seo[seoSubUid] = metaValue;
+                }
+                if(metaKey === '_thumbnail_id' && metaValue){
+                  thumbnailId = String(metaValue);
+                }
               }
-              if(metaKey === '_yoast_wpseo_metadesc'){
-                seo.description = metaValue;
+              if (Object.keys(seo).length > 0) {
+                entryData[uid]['seo'] = seo;
               }
-              if(metaKey === '_thumbnail_id' && metaValue){
-                thumbnailId = String(metaValue);
+              // Featured image: attach the post thumbnail (_thumbnail_id → attachment) as a Contentstack
+              // asset reference on the `featured_image` file field. Only when the referenced asset was
+              // successfully downloaded/registered (present in assetData); failed downloads leave it unset.
+              if (thumbnailId) {
+                const featuredAsset = assetData?.[`assets_${thumbnailId}`];
+                console.info(`Looking for featured image for entry ${uid} with thumbnail ID ${thumbnailId}`);
+                if (featuredAsset) {
+                  console.info(`Attaching featured image for entry ${uid} from thumbnail ID ${thumbnailId}`);
+                  entryData[uid]['featured_image'] = featuredAsset;
+                }
               }
             }
-            if (Object.keys(seo).length > 0) {
-              entryData[uid]['seo'] = seo;
-            }
-            // Featured image: attach the post thumbnail (_thumbnail_id → attachment) as a Contentstack
-            // asset reference on the `featured_image` file field. Only when the referenced asset was
-            // successfully downloaded/registered (present in assetData); failed downloads leave it unset.
-            if (thumbnailId) {
-              const featuredAsset = assetData?.[`assets_${thumbnailId}`];
-              console.info(`Looking for featured image for entry ${uid} with thumbnail ID ${thumbnailId}`);
-              if (featuredAsset) {
-                console.info(`Attaching featured image for entry ${uid} from thumbnail ID ${thumbnailId}`);
-                entryData[uid]['featured_image'] = featuredAsset;
-              }
-            }
-          }
-           
 
-          attachEntryMeta(uid);
+            attachEntryMeta(uid);
+          }
           console.info(`Processed entry ${uid} with individual content`);
         } else if (wpPost?.acf) {
           entryData[uid] = await createAcfSchema(fields, wpPost.acf, item?.title, uid, assetData, duplicateBlockMappings);
@@ -1773,6 +3331,34 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
       console.warn(`⚠️ Failed to parse blocks for:`, err);
     }
   }
+  // Persist any side entries (e.g. faq_item docs extracted from course bodies) into their own content
+  // type entries folder. Merge with anything already written so repeated content-type passes append.
+  for (const [ctUid, entriesById] of Object.entries(sideEntries)) {
+    if (!ctUid || !entriesById || !Object.keys(entriesById).length) continue;
+    const sideFolderPath = path.join(
+      MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, ctUid, locale,
+    );
+    if (!existsSync(sideFolderPath)) await fs.promises.mkdir(sideFolderPath, { recursive: true });
+    const sideFilePath = path.join(sideFolderPath, `${locale}.json`);
+    let merged: Record<string, any> = entriesById;
+    if (existsSync(sideFilePath)) {
+      try {
+        const existing = JSON.parse(await fs.promises.readFile(sideFilePath, 'utf8')) || {};
+        merged = { ...existing, ...entriesById };
+      } catch { merged = entriesById; }
+    }
+    await writeFileAsync(sideFilePath, merged, 4);
+    await fs.promises.writeFile(
+      path.join(sideFolderPath, 'index.json'), JSON.stringify({ '1': `${locale}.json` }, null, 4), 'utf-8',
+    );
+    await fanOutEntriesToAdditionalLocales(
+      sideFolderPath, locale,
+      path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, ctUid),
+      project,
+    );
+    console.info(`Wrote ${Object.keys(entriesById).length} side entries into '${ctUid}'`);
+  }
+
   return entryData;
 }
 /**
@@ -1811,7 +3397,7 @@ async function fanOutEntriesToAdditionalLocales(
 async function createEntry(file_path: string, packagePath: string, destinationStackId: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any){
   const locale = getLocale(master_locale, project) || master_locale;
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
-  const xmlData = await fs.promises.readFile(file_path, "utf8");
+  const xmlData = await readWxrXml(file_path);
   const $ = cheerio.load(xmlData, { xmlMode: true });
   const entriesJsonData = JSON.parse(Jsondata);
   const entries = entriesJsonData?.rss?.channel?.["item"];
@@ -1829,7 +3415,11 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   const assetData = JSON.parse(await fs.promises.readFile(assetsSchemaPath, "utf8")) || {};
 
   const itemsArray = Array?.isArray(entries) ? entries : (entries ? [entries] : []);
-  
+
+  // Sub-field uids the SEO global field declares (from the content_mapper). Entry SEO values are
+  // filtered to this set so Yoast keys with no matching schema field aren't written (and dropped).
+  const allowedSeoUids = seoAllowedSubUids(contentTypes);
+
 
   if(! existsSync(path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
     MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME))){
@@ -1898,17 +3488,27 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
 
   
   for(const contentType of postContentTypes){
-    //await startingDirPosts(contentType?.contentstackUid, master_locale, project?.locales); 
-    const postsFolderName = mapperKeys[contentType?.contentstackUid] ? mapperKeys[contentType?.contentstackUid] : contentType?.contentstackUid;
+    //await startingDirPosts(contentType?.contentstackUid, master_locale, project?.locales);
+    const contentTypeUid = contentType?.contentstackTitle?.toLowerCase();
+    const contentstackUid = contentType?.contentstackUid?.toLowerCase();
+    const otherCmsUid = contentType?.otherCmsUid?.toLowerCase();
+    // Post types mapped in POST_TYPE_TARGETS are written into their target content-type folder (and
+    // merged there), so several WP post types can collapse into one Contentstack CT — e.g. blogs +
+    // case studies both land in `article`. Unmapped post types keep their own per-post-type folder.
+    const mappedTarget =
+      targetForPostType(otherCmsUid) ||
+      targetForPostType(contentstackUid) ||
+      targetForPostType(contentTypeUid);
+    const isMappedTarget = Boolean(mappedTarget);
+    const postsFolderName = mappedTarget
+      ? mappedTarget.contentType
+      : (mapperKeys[contentType?.contentstackUid] ? mapperKeys[contentType?.contentstackUid] : contentType?.contentstackUid);
     // Create master locale folder and file
     postFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
       MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, postsFolderName, locale);
     if(postFolderPath &&! existsSync(postFolderPath)){
       await fs.promises.mkdir(postFolderPath, { recursive: true });
     }
-    const contentTypeUid = contentType?.contentstackTitle?.toLowerCase();
-    const contentstackUid = contentType?.contentstackUid?.toLowerCase();
-    const otherCmsUid = contentType?.otherCmsUid?.toLowerCase();
     const statusArray = ["publish", "inherit"];
     const entry = entries?.filter((data: any) => {
       const postType = data?.["wp:post_type"]?.toLowerCase();
@@ -1920,10 +3520,21 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       return matchesType && matchesStatus;
     });
 
-      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings) || {};
-      
+      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings, allowedSeoUids) || {};
+
       const filePath = path.join(postFolderPath,  `${locale}.json`);
-      await writeFileAsync(filePath, content, 4);
+      // Article is fed by more than one WP post type; merge into any entries already written to the
+      // shared folder so a later post type (e.g. case_study after post) appends instead of clobbering.
+      let outContent: Record<string, any> = content;
+      if (isMappedTarget && existsSync(filePath)) {
+        try {
+          const existing = JSON.parse(await fs.promises.readFile(filePath, "utf8")) || {};
+          outContent = { ...existing, ...content };
+        } catch {
+          outContent = content;
+        }
+      }
+      await writeFileAsync(filePath, outContent, 4);
 
       await fs.promises.writeFile(path.join(postFolderPath, "index.json"),
         JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
@@ -1938,13 +3549,170 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
     }
 }
 
+/**
+ * Folder holding the hand-authored Contentstack content models (article/course/event/… + global
+ * fields). Defaults to `<repo>/export-data` (sibling of `api/`); override with the `CONTENT_MODEL_DIR`
+ * env var. Files may be flat `*.json` OR split into `content-types/` and `global-fields/` subfolders.
+ */
+const CONTENT_MODEL_DIR = process.env.CONTENT_MODEL_DIR
+  ? path.resolve(process.env.CONTENT_MODEL_DIR)
+  : path.resolve(process.cwd(), '..', 'export-data');
+
+/**
+ * Resolve the folder holding the hand-authored content models. No project/database field is required:
+ * it defaults to `CONTENT_MODEL_DIR`. Overridable, in order, by `project.articleModelDir` (only if
+ * already present) or the `ARTICLE_MODEL_DIR` env var — both optional, so the default works with zero
+ * configuration.
+ */
+function resolveArticleModelDir(project: any): string {
+  if (project?.articleModelDir) return path.resolve(project.articleModelDir);
+  if (process.env.ARTICLE_MODEL_DIR) return path.resolve(process.env.ARTICLE_MODEL_DIR);
+  return CONTENT_MODEL_DIR;
+}
+
+/** Read a JSON file, returning `fallback` when it is missing or unparseable. */
+async function readJsonOrDefault<T>(filePath: string, fallback: T): Promise<T> {
+  if (!existsSync(filePath)) return fallback;
+  try {
+    return JSON.parse(await fs.promises.readFile(filePath, 'utf8')) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Scan a folder of authored `*.json` schema files and classify each by CONTENT (not filename), so
+ * files can be named anything (e.g. `article (8).json`, `cta (1).json`). A definition with `options`
+ * is a content type; a definition with a `schema` but no `options` is a global field.
+ *
+ * Supports two layouts: flat `*.json` directly in `srcDir` (e.g. `article-model/`), or split into
+ * subfolders like `content-types/` and `global-fields/` (e.g. `export-data/`). Each immediate
+ * subdirectory's `*.json` files are read too; classification is by content, so the folder name is
+ * incidental.
+ */
+async function loadAuthoredSchemas(srcDir: string): Promise<{ contentTypes: any[]; globalFields: any[] }> {
+  const contentTypes: any[] = [];
+  const globalFields: any[] = [];
+
+  const jsonPaths: string[] = [];
+  for (const name of await fs.promises.readdir(srcDir)) {
+    const full = path.join(srcDir, name);
+    const stat = await fs.promises.stat(full).catch(() => null);
+    if (stat?.isDirectory()) {
+      for (const sub of await fs.promises.readdir(full)) {
+        if (sub.toLowerCase().endsWith('.json')) jsonPaths.push(path.join(full, sub));
+      }
+    } else if (name.toLowerCase().endsWith('.json')) {
+      jsonPaths.push(full);
+    }
+  }
+
+  for (const filePath of jsonPaths) {
+    const def = await readJsonOrDefault<any>(filePath, null);
+    if (!def?.uid || !Array.isArray(def?.schema)) continue;
+    if (def?.options) contentTypes.push(def);
+    else globalFields.push(def);
+  }
+  return { contentTypes, globalFields };
+}
+
+/**
+ * "Drop-in" the hand-authored Article content model into the import folder instead of relying on the
+ * per-post-type schema inferred by the mapper.
+ *
+ * The Contentstack CLI imports content types from the aggregate `content_types/schema.json` array and
+ * global fields from `global_fields/globalfields.json` — NOT from the individual `<uid>.json` files —
+ * so this rewrites those aggregates: it drops every Article-source post type (post/case_study) plus
+ * any uid being re-supplied, then appends the authored content types (Article, Author, …) and upserts
+ * the authored global fields (seo, page_settings, cta, …) by uid. Individual `<uid>.json` files are
+ * kept in sync too for CLI versions that read them.
+ *
+ * Files are read from the folder resolved by resolveArticleModelDir (default `<repo>/export-data`)
+ * and classified by content, so filenames don't matter. No-ops with a warning when the folder is
+ * missing or holds no `article` content type, so a normal migration is unaffected. Must run AFTER
+ * createEntry (entries already routed to the `article` folder) and BEFORE the CLI import.
+ */
+async function dropInArticleContentTypes(destinationStackId: string, projectId: string, project: any): Promise<void> {
+  const srcDir = resolveArticleModelDir(project);
+  const contentTypesDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME);
+  const globalFieldsDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.GLOBAL_FIELDS_DIR_NAME);
+  const ctSchemaPath = path.join(contentTypesDir, MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE);
+  const gfAggregatePath = path.join(globalFieldsDir, MIGRATION_DATA_CONFIG.GLOBAL_FIELDS_FILE_NAME);
+
+  if (!existsSync(srcDir)) {
+    const msg = `Article drop-in skipped: no authored content model folder at ${srcDir}. Create it (default '<repo>/export-data', or set CONTENT_MODEL_DIR/ARTICLE_MODEL_DIR) and put the content-type/global-field JSON files inside (flat, or under content-types/ and global-fields/).`;
+    console.warn(msg);
+    await customLogger(projectId, destinationStackId, 'warn', msg);
+    return;
+  }
+
+  const { contentTypes: authoredDefs, globalFields: authoredGlobalFields } = await loadAuthoredSchemas(srcDir);
+  const articleDef = authoredDefs.find((ct: any) => ct?.uid === ARTICLE_TARGET_CT_UID);
+  if (!articleDef) {
+    const msg = `Article drop-in: no content type with uid '${ARTICLE_TARGET_CT_UID}' found in ${srcDir}; entries were routed to the article folder but no schema was supplied, so the import will not create the Article content type.`;
+    console.warn(msg);
+    await customLogger(projectId, destinationStackId, 'warn', msg);
+    return;
+  }
+
+  // Mapped source post types plus every uid we are re-supplying are dropped from the inferred
+  // content-type set, then replaced by the authored definitions.
+  const removeUids = new Set<string>(Object.keys(POST_TYPE_TARGETS));
+  for (const ct of authoredDefs) removeUids.add(ct.uid);
+
+  // 1. Rewrite the aggregate content-type index (schema.json) — what the CLI actually imports.
+  const ctAggregate = await readJsonOrDefault<any[]>(ctSchemaPath, []);
+  const filtered = (Array.isArray(ctAggregate) ? ctAggregate : []).filter(
+    (ct: any) => !removeUids.has(ct?.uid),
+  );
+  filtered.push(...authoredDefs);
+  await fs.promises.mkdir(contentTypesDir, { recursive: true });
+  await fs.promises.writeFile(ctSchemaPath, JSON.stringify(filtered, null, 2));
+
+  // 2. Keep individual <uid>.json files consistent: write authored, remove folded-in post types.
+  const authoredUids = new Set(authoredDefs.map((d: any) => d.uid));
+  for (const def of authoredDefs) {
+    await fs.promises.writeFile(path.join(contentTypesDir, `${def.uid}.json`), JSON.stringify(def));
+  }
+  for (const postType of Object.keys(POST_TYPE_TARGETS)) {
+    // Skip post types whose target IS an authored content type (e.g. video → video): that file was
+    // just written above and must not be deleted. Only truly folded-in types (post/case_study → article)
+    // are removed.
+    if (authoredUids.has(postType)) continue;
+    const inferred = path.join(contentTypesDir, `${postType}.json`);
+    if (existsSync(inferred)) {
+      try {
+        await fs.promises.unlink(inferred);
+      } catch (err) {
+        console.warn(`Article drop-in: failed to remove inferred content type ${inferred}:`, err);
+      }
+    }
+  }
+
+  // 3. Upsert authored global fields (seo, page_settings, cta…) into the aggregate globalfields.json.
+  if (authoredGlobalFields.length > 0) {
+    const gfAggregate = await readJsonOrDefault<any[]>(gfAggregatePath, []);
+    const byUid = new Map<string, any>(
+      (Array.isArray(gfAggregate) ? gfAggregate : []).map((gf: any) => [gf?.uid, gf]),
+    );
+    for (const gf of authoredGlobalFields) byUid.set(gf.uid, gf);
+    await fs.promises.mkdir(globalFieldsDir, { recursive: true });
+    await fs.promises.writeFile(gfAggregatePath, JSON.stringify([...byUid.values()], null, 2));
+  }
+
+  const removedPostTypes = Object.keys(POST_TYPE_TARGETS).filter((u) => u !== ARTICLE_TARGET_CT_UID);
+  const done = `Article drop-in complete: registered content types [${authoredDefs.map((d: any) => d.uid).join(', ')}] in schema.json (removed folded-in: ${removedPostTypes.join(', ') || 'none'}), upserted ${authoredGlobalFields.length} global field(s) [${authoredGlobalFields.map((g: any) => g.uid).join(', ')}], entries merged into '${ARTICLE_TARGET_CT_UID}'.`;
+  console.info(done);
+  await customLogger(projectId, destinationStackId, 'info', done);
+}
+
 async function createTaxonomy(file_path: string, packagePath: string, destinationStackId: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any){
   console.info("createTaxonomy");
   const taxonomiesPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME);
   await fs.promises.mkdir(taxonomiesPath, { recursive: true });
 
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
-  const xmlData = await fs.promises.readFile(file_path, "utf8");
+  const xmlData = await readWxrXml(file_path);
   const categoriesData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"];
   const categoriesJsonData = Array?.isArray(categoriesData) ? categoriesData : (categoriesData ? [categoriesData] : []);
 
@@ -1992,8 +3760,62 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
     await writeFileAsync(path.join(taxonomiesPath, MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME), JSON.stringify(allTaxonomies, null, 4), 4);
   }
   else {
-    console.warn("No categories found to extract");
-    customLogger(projectId, destinationStackId, 'error', "No categories found to extract");
+    // Inline-only WXR: no channel <wp:category> definitions. Synthesize taxonomies + terms from the
+    // inline <category domain=... nicename=...> tags on the items — each domain a taxonomy, each
+    // distinct nicename a (flat) term. Mirrors the mapper's inline derivation and the per-entry
+    // taxonomy refs in saveEntry. `author` (Author reference) and `post_tag` (native entry tags)
+    // are excluded so they aren't duplicated as taxonomies.
+    const parsed = JSON.parse(Jsondata);
+    const rawItems = parsed?.rss?.channel?.["item"] ?? parsed?.channel?.["item"];
+    const itemsArray = Array?.isArray(rawItems) ? rawItems : (rawItems ? [rawItems] : []);
+    const EXCLUDED_DOMAINS = new Set(["author", "post_tag"]);
+
+    // domain uid -> { name, terms: Map<termUid, term> }
+    const byDomain = new Map<string, { name: string; terms: Map<string, any> }>();
+    for (const item of itemsArray) {
+      const cats = Array?.isArray(item?.category) ? item.category : (item?.category ? [item.category] : []);
+      for (const cat of cats) {
+        const domain = cat?.attributes?.domain;
+        if (!domain || EXCLUDED_DOMAINS.has(domain)) continue;
+        const nicename = cat?.attributes?.nicename;
+        if (!nicename) continue;
+        const domainUid = normalizeNicenameForUid(domain);
+        if (!byDomain.has(domainUid)) {
+          byDomain.set(domainUid, { name: humanizeSlug(domain), terms: new Map() });
+        }
+        const termUid = normalizeNicenameForUid(nicename);
+        const bucket = byDomain.get(domainUid)!;
+        if (!bucket.terms.has(termUid)) {
+          const termText = typeof cat?.text === 'string' && cat.text.trim() ? cat.text.trim() : humanizeSlug(nicename);
+          bucket.terms.set(termUid, {
+            "uid": termUid,
+            "name": termText,
+            "description": "",
+            "parent_uid": null,
+          });
+        }
+      }
+    }
+
+    // Pass 2 — nest hierarchical terms encoded in the term NAME with `>` (see nestHierarchicalTerms).
+    for (const { terms } of byDomain.values()) {
+      nestHierarchicalTerms(Array.from(terms.values()));
+    }
+
+    if (byDomain.size > 0) {
+      const allTaxonomies: any = {};
+      for (const [domainUid, { name, terms }] of byDomain) {
+        const taxonomy = { "uid": domainUid, "name": name, "description": "" };
+        allTaxonomies[domainUid] = { "uid": domainUid, "name": name, "description": "" };
+        const taxonomyData = { taxonomy, terms: Array.from(terms.values()) };
+        await writeFileAsync(path.join(taxonomiesPath, `${domainUid}.json`), JSON.stringify(taxonomyData, null, 4), 4);
+        customLogger(projectId, destinationStackId, 'info', `Taxonomy ${name} has been successfully extracted`);
+      }
+      await writeFileAsync(path.join(taxonomiesPath, MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME), JSON.stringify(allTaxonomies, null, 4), 4);
+    } else {
+      console.warn("No categories found to extract");
+      customLogger(projectId, destinationStackId, 'error', "No categories found to extract");
+    }
   }
 }
 
@@ -2189,6 +4011,49 @@ const createTerms = async (allTerms: any, destinationStackId: string, projectId:
 }
 
 /************  Assests module functions start *********/
+
+/**
+ * Asset folder hierarchy created in the target stack: a parent `02-scaled-agile` with three children
+ * (`illustrations`, `images`, `pdfs`). Assets are routed into a child by file type; anything that fits
+ * none (video/office/etc.) lands directly under the parent. UIDs are stable readable strings so the
+ * folder objects (folders.json) and each asset's `parent_uid` reference the same values.
+ */
+const ASSET_FOLDERS = {
+  root: { uid: 'scaled_agile', name: '02-scaled-agile', parent_uid: null as string | null },
+  illustrations: { uid: 'scaled_agile_illustrations', name: 'illustrations', parent_uid: 'scaled_agile' },
+  images: { uid: 'scaled_agile_images', name: 'images', parent_uid: 'scaled_agile' },
+  pdfs: { uid: 'scaled_agile_pdfs', name: 'pdfs', parent_uid: 'scaled_agile' },
+} as const;
+
+// Everything that goes into the `images` folder: raster images, SVGs, and videos (per requirement).
+const IMAGE_FOLDER_EXTS = new Set([
+  'jpg', 'jpeg', 'png', 'gif', 'webp', 'ico', 'avif', 'bmp', 'tiff', // raster
+  'svg', // vector
+  'mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v', // video
+]);
+
+/** folders.json content: one folder object per ASSET_FOLDERS entry, in the CLI-import shape. */
+function assetFoldersJson(): any[] {
+  return Object.values(ASSET_FOLDERS).map((f) => ({
+    urlPath: `/assets/${f.uid}`,
+    uid: f.uid,
+    content_type: 'application/vnd.contenstack.folder',
+    tags: [],
+    name: f.name,
+    is_dir: true,
+    parent_uid: f.parent_uid,
+    _version: 1,
+  }));
+}
+
+/** Target folder uid for an asset, by file extension: pdf→pdfs, raster/svg/video→images, else root. */
+function assetFolderUid(extension: string): string {
+  const e = String(extension || '').replace(/^\./, '').toLowerCase();
+  if (e === 'pdf') return ASSET_FOLDERS.pdfs.uid;
+  if (IMAGE_FOLDER_EXTS.has(e)) return ASSET_FOLDERS.images.uid; // raster + svg + video
+  return ASSET_FOLDERS.root.uid; // office docs / audio / archives / other → under the parent folder
+}
+
 async function startingDirAssests(destinationStackId: string) {
   try {
     // Check if assetsSave directory exists
@@ -2228,7 +4093,7 @@ async function startingDirAssests(destinationStackId: string) {
       );
       await fs.promises.writeFile(
         path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FOLDER_FILE_NAME),
-        "{}"
+        JSON.stringify(assetFoldersJson(), null, 4)
       );
       await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
       await fs.promises.writeFile(failedJSONFilePath,  "{}" );
@@ -2243,6 +4108,12 @@ async function startingDirAssests(destinationStackId: string) {
     } catch {
       await fs.promises.mkdir(filesDir, { recursive: true });
     }
+
+    // Ensure the asset-folder hierarchy is present even when the assets dir already existed.
+    await fs.promises.writeFile(
+      path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FOLDER_FILE_NAME),
+      JSON.stringify(assetFoldersJson(), null, 4)
+    );
 
     // Check if assets.json exists
     const assetsJsonPath = path.join(
@@ -2304,11 +4175,28 @@ function normalizeAssetUrl(url: string, baseSiteUrl: string): string {
   return encodeURI(toCheckUrl(url, baseSiteUrl));
 }
 
+/**
+ * Base key for an asset URL, collapsing WordPress-generated size/scaled variants to their original so
+ * inline `content:encoded` images aren't re-downloaded as duplicates of the attachment. WP names resized
+ * copies `<name>-<W>x<H>.<ext>` (e.g. `foo-1024x576.jpg`) and the scaled original `<name>-scaled.<ext>`;
+ * both collapse to `<name>.<ext>`. Only such a suffix immediately before the extension is stripped
+ * (repeatedly, so `foo-scaled-300x200.jpg` → `foo.jpg`), leaving collision suffixes like `foo-2.jpg`
+ * untouched. Lowercased and query/hash-stripped so trivial URL differences still match.
+ */
+function assetBaseKey(url: string, baseSiteUrl: string): string {
+  let s = normalizeAssetUrl(url, baseSiteUrl).split('?')[0].split('#')[0].toLowerCase();
+  let prev = '';
+  while (prev !== s) {
+    prev = s;
+    s = s.replace(/-(?:\d+x\d+|scaled)(\.[a-z0-9]+)$/i, '$1');
+  }
+  return s;
+}
+
 function isAssetUrlDownloaded(url: string, baseSiteUrl: string): boolean {
-  const normalized = normalizeAssetUrl(url, baseSiteUrl);
+  const key = assetBaseKey(url, baseSiteUrl);
   return Object.values(assetData).some(
-    (asset: any) =>
-      asset?.url && normalizeAssetUrl(asset.url, baseSiteUrl) === normalized
+    (asset: any) => asset?.url && assetBaseKey(asset.url, baseSiteUrl) === key
   );
 }
 
@@ -2361,7 +4249,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   description =
     description.length > 255 ? description.slice(0, 255) : description;
 
-  const parent_uid = affix ? "wordpressasset" : null;
+  const parent_uid = assetFolderUid(fileExtension);
 
   const customId = `assets_${assets["wp:post_id"]}`;
   // Use customId as filename to ensure uniqueness, preserve extension
@@ -2688,7 +4576,7 @@ async function saveAssetFromUrl(
     return customId;
   }
   
-  const parent_uid = affix ? "wordpressasset" : null;
+  const parent_uid = assetFolderUid(fileExtension);
   
   try {
     const response = await axios.get(encodedUrl, {
@@ -2847,58 +4735,115 @@ async function getAllAssets(
       return;
     }
 
-    // Download attachment assets
+    // Download attachment assets.
+    // WordPress registers size/`-scaled` variants (and the same file cross-referenced across
+    // per-post-type exports) as SEPARATE attachment posts. Collapse them by base key so each
+    // underlying image is downloaded once; prefer the original (the URL that equals its own base
+    // key, i.e. has no `-WxH`/`-scaled` suffix) over a variant when both exist.
     const attachments = assets?.filter(
       ({ "wp:post_type": postType }) => postType === "attachment"
     );
+    const dedupedAttachments: any[] = [];
     if (attachments?.length > 0) {
-      await getAsset(attachments, affix, destinationStackId, projectId,baseSiteUrl);
-    }
-
-    // Extract and download assets from content:encoded fields
-    const allImageUrls = new Set<string>();
-    
-    // Process all items to extract image URLs from content:encoded
-    for (const item of assets) {
-      const contentEncoded = item["content:encoded"];
-      if (contentEncoded && typeof contentEncoded === 'string' && item?.['wp:status'] !== 'draft') {
-        const imageUrls = extractImageUrlsFromContent(contentEncoded, baseSiteUrl);
-        imageUrls.forEach((url) => {
-          if (!isAssetUrlDownloaded(url, baseSiteUrl)) {
-            allImageUrls.add(url);
-          }
-        });
+      const byBaseKey = new Map<string, any>();
+      let skippedDuplicateAttachments = 0;
+      for (const att of attachments) {
+        const attUrl = att?.["wp:attachment_url"];
+        if (!attUrl) { dedupedAttachments.push(att); continue; }
+        const key = assetBaseKey(attUrl, baseSiteUrl);
+        const existing = byBaseKey.get(key);
+        if (!existing) {
+          byBaseKey.set(key, att);
+          continue;
+        }
+        skippedDuplicateAttachments++;
+        // Prefer the original file over a variant if the current one is the un-suffixed original.
+        const isOriginal = assetBaseKey(attUrl, baseSiteUrl) ===
+          normalizeAssetUrl(attUrl, baseSiteUrl).split('?')[0].split('#')[0].toLowerCase();
+        if (isOriginal) byBaseKey.set(key, att);
       }
-    }
-
-    // Download all unique image URLs found in content:encoded
-    if (allImageUrls.size > 0) {
-      const imageUrlArray = Array.from(allImageUrls);
-      const BATCH_SIZE = 5; // Process 5 URLs at a time
-      const message = getLogMessage(
-        "getAllAssets",
-        `Found ${imageUrlArray.length} unique image URLs in content:encoded fields. Starting download...`,
-        {}
-      );
-      await customLogger(projectId, destinationStackId, 'info', message);
-
-      for (let i = 0; i < imageUrlArray.length; i += BATCH_SIZE) {
-        const batch = imageUrlArray.slice(i, i + BATCH_SIZE);
-        
-        await Promise.allSettled(
-          batch.map(async (url) => {
-            await saveAssetFromUrl(url, affix, destinationStackId, projectId, baseSiteUrl);
-          })
+      dedupedAttachments.push(...byBaseKey.values());
+      if (skippedDuplicateAttachments > 0) {
+        await customLogger(
+          projectId,
+          destinationStackId,
+          'info',
+          getLogMessage('getAllAssets', `Skipped ${skippedDuplicateAttachments} duplicate attachment(s) that are size/scaled variants of, or the same file as, another attachment.`, {}),
         );
       }
-
-      const completionMessage = getLogMessage(
-        "getAllAssets",
-        `Completed downloading assets from content:encoded fields.`,
-        {}
-      );
-      await customLogger(projectId, destinationStackId, 'info', completionMessage);
+      await getAsset(dedupedAttachments, affix, destinationStackId, projectId, baseSiteUrl);
     }
+
+    // NOTE: content:encoded image download is intentionally DISABLED — only attachment posts are
+    // migrated as assets. Inline body images are no longer pulled into the stack. Re-enable the
+    // block below to restore downloading images referenced from content:encoded fields.
+    //
+    // // Extract and download assets from content:encoded fields
+    // const allImageUrls = new Set<string>();
+    //
+    // // Seed with the base keys of already-downloaded assets (the attachments) so their WordPress size/
+    // // scaled variants embedded in content:encoded are skipped instead of re-downloaded as duplicates.
+    // // The same set also dedups variants of one image across content:encoded fields.
+    // const seenAssetKeys = new Set<string>();
+    // for (const asset of Object.values(assetData)) {
+    //   const u = (asset as any)?.url;
+    //   if (u) seenAssetKeys.add(assetBaseKey(u, baseSiteUrl));
+    // }
+    // let skippedVariantCount = 0;
+    //
+    // // Process all items to extract image URLs from content:encoded
+    // for (const item of assets) {
+    //   const contentEncoded = item["content:encoded"];
+    //   if (contentEncoded && typeof contentEncoded === 'string' && item?.['wp:status'] !== 'draft') {
+    //     const imageUrls = extractImageUrlsFromContent(contentEncoded, baseSiteUrl);
+    //     imageUrls.forEach((url) => {
+    //       const key = assetBaseKey(url, baseSiteUrl);
+    //       if (seenAssetKeys.has(key)) {
+    //         skippedVariantCount++;
+    //         return; // duplicate of an attachment (or another content image) at a different size
+    //       }
+    //       seenAssetKeys.add(key);
+    //       allImageUrls.add(url);
+    //     });
+    //   }
+    // }
+    // if (skippedVariantCount > 0) {
+    //   await customLogger(
+    //     projectId,
+    //     destinationStackId,
+    //     'info',
+    //     getLogMessage('getAllAssets', `Skipped ${skippedVariantCount} content:encoded image(s) that duplicate an attachment or another image at a different size/resolution.`, {}),
+    //   );
+    // }
+    //
+    // // Download all unique image URLs found in content:encoded
+    // if (allImageUrls.size > 0) {
+    //   const imageUrlArray = Array.from(allImageUrls);
+    //   const BATCH_SIZE = 5; // Process 5 URLs at a time
+    //   const message = getLogMessage(
+    //     "getAllAssets",
+    //     `Found ${imageUrlArray.length} unique image URLs in content:encoded fields. Starting download...`,
+    //     {}
+    //   );
+    //   await customLogger(projectId, destinationStackId, 'info', message);
+    //
+    //   for (let i = 0; i < imageUrlArray.length; i += BATCH_SIZE) {
+    //     const batch = imageUrlArray.slice(i, i + BATCH_SIZE);
+    //
+    //     await Promise.allSettled(
+    //       batch.map(async (url) => {
+    //         await saveAssetFromUrl(url, affix, destinationStackId, projectId, baseSiteUrl);
+    //       })
+    //     );
+    //   }
+    //
+    //   const completionMessage = getLogMessage(
+    //     "getAllAssets",
+    //     `Completed downloading assets from content:encoded fields.`,
+    //     {}
+    //   );
+    //   await customLogger(projectId, destinationStackId, 'info', completionMessage);
+    // }
 
     return;
   } catch (error) {
@@ -3279,5 +5224,6 @@ export const wordpressService = {
   extractGlobalFields,
   createVersionFile,
   createEntry,
-  createTaxonomy
+  createTaxonomy,
+  dropInArticleContentTypes
 };

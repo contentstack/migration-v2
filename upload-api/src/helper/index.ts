@@ -184,6 +184,105 @@ const parseXmlToJson = async (xml: any) => {
   }
 };
 
+const toArray = (v: any): any[] => (v == null ? [] : Array.isArray(v) ? v : [v]);
+
+/**
+ * Merge several parsed WXR documents (parseXmlToJson output) into one channel, so a folder of
+ * per-post-type exports (e.g. blog + case study + videos) imports as a single stack. Items are
+ * concatenated; authors, categories and terms are de-duplicated (same-site exports repeat these).
+ * The first document seeds the channel header. Returns one parsed doc shaped exactly like a single
+ * upload, so the entire downstream pipeline (extractors + API entry generation) runs unchanged.
+ */
+const mergeWordpressJson = (parsedDocs: any[]): any => {
+  const docs = (parsedDocs || []).filter((d) => d?.rss?.channel);
+  if (docs.length === 0) return parsedDocs?.[0];
+  const base = docs[0];
+  const channel = base.rss.channel;
+  const items: any[] = [];
+  const authors = new Map<string, any>();
+  const categories = new Map<string, any>();
+  const terms = new Map<string, any>();
+  for (const d of docs) {
+    const ch = d.rss.channel;
+    for (const it of toArray(ch.item)) items.push(it);
+    for (const a of toArray(ch['wp:author'])) {
+      const key = String(a?.['wp:author_login'] ?? a?.['wp:author_id'] ?? JSON.stringify(a));
+      if (!authors.has(key)) authors.set(key, a);
+    }
+    for (const c of toArray(ch['wp:category'])) {
+      const key = String(c?.['wp:category_nicename'] ?? c?.['wp:cat_name'] ?? JSON.stringify(c));
+      if (!categories.has(key)) categories.set(key, c);
+    }
+    for (const t of toArray(ch['wp:term'])) {
+      const key = `${t?.['wp:term_taxonomy'] ?? ''}:${t?.['wp:term_slug'] ?? t?.['wp:term_name'] ?? JSON.stringify(t)}`;
+      if (!terms.has(key)) terms.set(key, t);
+    }
+  }
+  channel.item = items;
+  if (authors.size) channel['wp:author'] = [...authors.values()];
+  if (categories.size) channel['wp:category'] = [...categories.values()];
+  if (terms.size) channel['wp:term'] = [...terms.values()];
+  return base;
+};
+
+// Postmeta keys that hold an attachment-id reference to a media asset (customer_logo, _thumbnail_id,
+// ACF image/file fields, …). Scanning only these keys avoids mistaking numeric counters/flags (e.g.
+// case_study_content=5) for asset ids.
+const REFERENCE_META_KEY_RE = /(logo|image|thumb|thumbnail|photo|icon|media|badge|avatar|gallery|banner|file|_id)$|(logo|image|thumb|photo|icon|media|badge|avatar|gallery|banner)/i;
+
+/**
+ * Collect the attachment ids referenced by structured fields (postmeta) across the given WXR docs —
+ * e.g. `customer_logo`, `_thumbnail_id` (featured image), ACF image fields. Used to pull just the
+ * referenced assets out of an otherwise-excluded media-library export.
+ */
+const collectReferencedAttachmentIds = (docs: any[]): Set<string> => {
+  const ids = new Set<string>();
+  for (const d of docs || []) {
+    const ch = d?.rss?.channel;
+    if (!ch) continue;
+    for (const it of toArray(ch.item)) {
+      for (const m of toArray(it?.['wp:postmeta'])) {
+        const key = m?.['wp:meta_key'];
+        if (typeof key !== 'string' || !REFERENCE_META_KEY_RE.test(key)) continue;
+        const s = String(m?.['wp:meta_value'] ?? '').trim();
+        if (/^\d+$/.test(s)) ids.add(s);
+      }
+    }
+  }
+  return ids;
+};
+
+/**
+ * Trim media-library docs (pure-attachment WXR exports) down to ONLY the attachments referenced by the
+ * content docs. Keeps referenced logos/featured images while dropping the thousands of unreferenced
+ * library assets. Returns the trimmed docs plus counts for logging.
+ */
+const filterMediaDocsToReferenced = (
+  contentDocs: any[],
+  mediaDocs: any[]
+): { docs: any[]; kept: number; dropped: number } => {
+  const referenced = collectReferencedAttachmentIds(contentDocs);
+  let kept = 0;
+  let dropped = 0;
+  const out: any[] = [];
+  for (const d of mediaDocs || []) {
+    const ch = d?.rss?.channel;
+    if (!ch) continue;
+    const keepItems = toArray(ch.item).filter((it: any) => {
+      const isRef =
+        it?.['wp:post_type'] === 'attachment' &&
+        referenced.has(String(it?.['wp:post_id'] ?? ''));
+      if (isRef) kept++;
+      else dropped++;
+      return isRef;
+    });
+    if (keepItems.length) {
+      out.push({ ...d, rss: { ...d.rss, channel: { ...ch, item: keepItems } } });
+    }
+  }
+  return { docs: out, kept, dropped };
+};
+
 const fileOperationLimiter = rateLimit({
   windowMs: 2 * 60 * 1000, // 2 minutes
   max: 2, // Limit each IP to 2 requests per windowMs for this endpoint
@@ -277,4 +376,4 @@ async function updateConfigFile(
   }
 }
 
-export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson, updateConfigFile };
+export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson, mergeWordpressJson, filterMediaDocsToReferenced, updateConfigFile };

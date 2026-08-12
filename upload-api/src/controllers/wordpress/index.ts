@@ -46,9 +46,14 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
     if(contentTypeData){
       const assetMapping = await extractAssets(filePath);
       const fieldMapping: any = { contentTypes: [], extractPath: filePath, assetMapping };
+      // Forward the authored content-model folder (index.json → project) so the API's Article/course/…
+      // drop-in reads models from it. Only sent when configured; otherwise the API keeps its default.
+      if (config?.contentModelDir) fieldMapping.contentModelDir = config.contentModelDir;
       contentTypeData.forEach((contentType: any) => {
         const jsonfileContent = contentType;
-        jsonfileContent.type = "content_type";
+        // Preserve an explicit type (e.g. 'global_field' for the SEO global field); only default
+        // to 'content_type' when the extractor didn't set one.
+        jsonfileContent.type = jsonfileContent.type || "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);
       })
 
@@ -64,7 +69,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
       };
       const {data} = await axios.request(mapperRequest);
       if (data?.data?.content_mapper?.length) {
-        deleteFolderSync(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA));
+        //deleteFolderSync(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA));
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.MAPPER_SAVED

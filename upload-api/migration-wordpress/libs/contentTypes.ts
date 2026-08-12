@@ -14,6 +14,9 @@ import extractTerms from './extractTerms';
 const { contentTypes: contentTypesConfig } = config.modules;
 
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
+// SEO (and any future) global fields are written here by extractItems (see libs/globalFields).
+// Kept in sync with the literal used in extractItems.
+const globalFieldsFolderPath = path.resolve(config.data, 'global_fields');
 
 function startingDir() {
   if (!fs.existsSync(contentTypeFolderPath)) {
@@ -45,6 +48,31 @@ function readJsonFilesFromFolder(folderPath: string) {
   
     return result;
   }
+
+/**
+ * Read global-field definitions written under `global_fields/` (e.g. the reusable SEO global field).
+ * `globalfields.json` holds an ARRAY of field-mapper envelopes (`type: 'global_field'`); each is
+ * returned alongside the content types so the mapper pipeline (contenTypeMaker) creates it too.
+ * Returns [] when no global fields were produced, so non-SEO migrations are unaffected.
+ */
+function readGlobalFieldsFromFolder(folderPath: string) {
+  const result: CT[] = [];
+  if (!fs?.existsSync(folderPath)) return result;
+
+  const files = fs?.readdirSync(folderPath);
+  for (const file of files) {
+    if (!file?.endsWith('.json')) continue;
+    const filePath = path?.join(folderPath, file);
+    try {
+      const parsed = JSON?.parse(fs?.readFileSync(filePath, 'utf-8'));
+      if (Array?.isArray(parsed)) result?.push?.(...parsed);
+      else if (parsed) result?.push?.(parsed);
+    } catch (err) {
+      console.error(`❌ Failed to parse global field ${file}:`, err);
+    }
+  }
+  return result;
+}
 
 async function extractContentTypes(affix: string, filePath: string, DataConfig: DataConfig) {
   try {
@@ -92,7 +120,10 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
     }
       
       
-    return readJsonFilesFromFolder(contentTypeFolderPath);
+    return [
+      ...readJsonFilesFromFolder(contentTypeFolderPath),
+      ...readGlobalFieldsFromFolder(globalFieldsFolderPath)
+    ];
   } catch (error : any) {
     console.error('Error during WordPress content type extraction:', error?.message);
   }

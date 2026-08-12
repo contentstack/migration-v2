@@ -326,6 +326,12 @@ const putTestData = async (req: Request) => {
         ProjectModelLowdb.data.projects[index].acfExportDir = req.body.acfExportDir;
       }
 
+      // Authored content-model folder from upload-api config (index.json → fieldMapping). Consumed by
+      // resolveArticleModelDir (highest priority) for the Article/course/… drop-in.
+      if (req?.body?.contentModelDir) {
+        ProjectModelLowdb.data.projects[index].articleModelDir = req.body.contentModelDir;
+      }
+
       // Update assetsConfig if provided (for Drupal asset URL configuration)
       if (
         req?.body?.assetsConfig &&
