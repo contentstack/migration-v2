@@ -217,8 +217,149 @@ export const loadPersistedGraph =
     }
   };
 
-/** Poll interval (ms) for export status. Small in tests via V3_POLL_MS. */
-const POLL_MS = Number(import.meta.env?.VITE_V3_POLL_MS) || 800;
+/**
+ * Restores a project's SAVED source selection when the Source page opens.
+ *
+ * `loadPersistedGraph` above already restores the graph, but nothing restored the
+ * selection — and because the graph is only rendered when a stack is selected, that one
+ * gap produced two visible faults: the graph appeared to vanish on returning to the page,
+ * and the (disabled) selects fell through to their placeholders, reading
+ * "Select an organization…" for a project that plainly had one.
+ *
+ * ⚠️ Deliberately does NOT reuse `selectRegion` / `selectOrg`. Those express user INTENT:
+ * they clear downstream fields and call `clearExportState()` — which would delete the very
+ * graph this restore exists to reveal — and `selectRegion` opens the region-login modal for
+ * any non-home region, which would ambush the operator on every visit to an old project.
+ *
+ * The saved record holds IDS only, no names, so the org and stack lists are fetched to
+ * resolve labels. Those fetches are best-effort: if they fail the ids remain restored and
+ * `V3Select` shows the id, which is worse-looking but true. Failing the whole restore
+ * because a name could not be looked up would take the graph down with it.
+ */
+export const loadPersistedSource =
+  (projectId: string) => async (dispatch: V3Dispatch, getState: () => V3RootState) => {
+    let saved: any;
+    try {
+      const { data } = await sourceApi.getSource(projectId);
+      saved = data?.source;
+    } catch {
+      /* No saved source — a fresh project hits this on every visit. Leave state alone. */
+      return;
+    }
+    if (!saved) return;
+
+    if (saved.mode === 'file' && saved.file) {
+      dispatch(sourceActions.setMode('file'));
+      if (saved.file.fileName) {
+        dispatch(
+          sourceActions.setFileSelected({
+            fileName: saved.file.fileName,
+            sizeBytes: saved.file.sizeBytes ?? 0,
+          })
+        );
+      }
+      if (saved.file.sourceId) {
+        dispatch(
+          sourceActions.setFileValidated({
+            sourceId: saved.file.sourceId,
+            manifest: saved.file.manifest ?? [],
+          })
+        );
+      }
+      if (saved.file.scope) dispatch(sourceActions.setFileField({ field: 'scope', value: saved.file.scope }));
+      if (saved.file.selectedModules) {
+        dispatch(sourceActions.setFileField({ field: 'selectedModules', value: saved.file.selectedModules }));
+      }
+      return;
+    }
+
+    const st = saved.stack;
+    if (!st) return;
+
+    dispatch(sourceActions.setMode('stack'));
+    // Field-by-field, so nothing that is absent from an older record is overwritten with
+    // undefined — and nothing here clears the graph.
+    if (st.region) dispatch(sourceActions.setStackField({ field: 'region', value: st.region }));
+    if (st.orgId) dispatch(sourceActions.setStackField({ field: 'org', value: st.orgId }));
+    if (st.stackApiKey) dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: st.stackApiKey }));
+    if (st.branch) dispatch(sourceActions.setStackField({ field: 'branch', value: st.branch }));
+    if (st.scope) dispatch(sourceActions.setStackField({ field: 'scope', value: st.scope }));
+    if (st.selectedModules) {
+      dispatch(sourceActions.setStackField({ field: 'selectedModules', value: st.selectedModules }));
+    }
+
+    /*
+      Label lookup, best-effort and read-only — no clearing, no modal. Each list is
+      fetched independently so one failure does not cost the other's names.
+    */
+    const rc = { region: st.region, regionUserId: getState().source.stack.regionAuth?.[st.region] };
+    try {
+      const { data } = await sourceApi.getOrgs(rc as any);
+      dispatch(
+        sourceActions.setOrgs((data.orgs ?? []).map((o: any) => ({ value: o.uid, label: o.name })))
+      );
+    } catch {
+      /* keep the id — see the note above */
+    }
+    if (st.orgId) {
+      try {
+        const { data } = await sourceApi.getStacks(st.orgId, rc as any);
+        dispatch(
+          sourceActions.setStacks(
+            (data.stacks ?? []).map((x: any) => ({ value: x.apiKey, label: x.name }))
+          )
+        );
+      } catch {
+        /* keep the id */
+      }
+    }
+  };
+
+/**
+ * Base poll interval (ms) for export status. Small in tests via VITE_V3_POLL_MS.
+ *
+ * Read at CALL time, not module load. A module-level constant freezes the value before any
+ * test or runtime override can apply — the same trap that made the server's log cap
+ * unconfigurable and untestable.
+ */
+const pollMs = (): number => Number(import.meta.env?.VITE_V3_POLL_MS) || 800;
+
+/**
+ * How long the client will watch an export before it stops polling.
+ *
+ * ⚠️ Was 75 polls × 800 ms = 60 SECONDS, which pre-dated the CLI. Measured against real
+ * stacks after the switch:
+ *
+ *     233s   62 MB stack   -> the client called it "timed out"; it had SUCCEEDED
+ *     230s                 -> same
+ *      51s   small stack   -> finished inside the old budget
+ *
+ * The CLI exports all 17 modules and downloads every asset binary, so minutes is normal
+ * and 60 seconds was calling completed work a failure — then inviting the operator to
+ * discard a finished 4-minute export and start over.
+ *
+ * 30 minutes is deliberately generous rather than tuned just past what was observed: a
+ * large customer stack is far bigger than the 62 MB case measured here. It is still
+ * bounded, because a server that never resolves the job must eventually release the
+ * client rather than leaving a spinner that can never end.
+ */
+const pollBudgetMs = (): number =>
+  Number(import.meta.env?.VITE_V3_POLL_BUDGET_MS) || 30 * 60 * 1000;
+
+/**
+ * The wait before poll number `n`, backing off as the export runs long.
+ *
+ * The first polls stay at the base interval so a short export still feels immediate.
+ * After that the cadence relaxes: polling a 4-minute job every 800 ms costs ~290 requests,
+ * and each one serialises the job's whole log, so the cost grows with exactly the exports
+ * that are already slow.
+ */
+const pollDelay = (n: number): number => {
+  const base = pollMs();
+  if (n < 15) return base;        // first ~12s at the base cadence
+  if (n < 45) return base * 3;    // then ~2.4s
+  return base * 6;                // then ~5s
+};
 
 /** Start the export for the current selection and poll until the graph is ready. */
 export const startExportAndPoll =
@@ -267,8 +408,12 @@ export const startExportAndPoll =
       dispatch(sourceActions.setJob({ jobId, jobStatus: 'queued' }));
 
       let status = 'queued';
-      for (let i = 0; i < 75 && status !== 'succeeded' && status !== 'failed'; i++) {
-        await new Promise((r) => setTimeout(r, POLL_MS));
+      const deadline = Date.now() + pollBudgetMs();
+      for (let i = 0; status !== 'succeeded' && status !== 'failed'; i++) {
+        // Time-based rather than a poll count: with backoff, a fixed number of polls no
+        // longer corresponds to a predictable wall-clock budget.
+        if (Date.now() >= deadline) break;
+        await new Promise((r) => setTimeout(r, pollDelay(i)));
         const s = await sourceApi.getExportStatus(jobId);
         status = s.data.status;
         dispatch(sourceActions.setJob({ jobId, jobStatus: status as any }));
@@ -287,7 +432,21 @@ export const startExportAndPoll =
       } else if (status === 'failed') {
         dispatch(sourceActions.setError('Export failed. Please try again.'));
       } else {
-        dispatch(sourceActions.setError('Export timed out. Please try again.'));
+        /*
+          The client stopped watching, but the job is still running on the server — this is
+          NOT a failure and must not be reported as one. The old copy ("Export timed out.
+          Please try again.") described work that had in fact completed and invited the
+          operator to throw it away.
+
+          `jobStatus` is deliberately left as whatever the server last reported, never
+          forced to 'failed': `isExportComplete` keys on that value, so writing 'failed'
+          here would also unfreeze a form whose export is still in progress.
+        */
+        dispatch(
+          sourceActions.setError(
+            'This export is still running on the server. It will finish in the background — reload this page to pick up the result.'
+          )
+        );
       }
     } catch (e) {
       dispatch(sourceActions.setError(errMsg(e)));

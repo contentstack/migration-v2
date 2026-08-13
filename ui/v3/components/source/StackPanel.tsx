@@ -6,12 +6,30 @@ import {
   loadRegions, loadStackModules, selectOrg, selectRegion, selectStack, startExportAndPoll,
 } from '../../store/thunks/source.thunks';
 import { forcedKeys, toggleModule } from '../../utils/moduleSelection';
+import { isExportComplete } from '../../store/slice/source.slice';
 import V3Select from './V3Select';
 
-const ScopeCard: FC<{ active: boolean; title: string; sub: string; onClick: () => void }> = ({ active, title, sub, onClick }) => (
-  <div onClick={onClick} role="button" style={{
-    flex: 1, minWidth: 0, cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'flex-start',
+const ScopeCard: FC<{
+  active: boolean;
+  title: string;
+  sub: string;
+  onClick: () => void;
+  /** Frozen after a successful export. */
+  disabled?: boolean;
+}> = ({ active, title, sub, onClick, disabled }) => (
+  /*
+    This is a div with role="button", so the `disabled` ATTRIBUTE would do nothing — the
+    handler has to be withheld and `aria-disabled` set explicitly. Styling it as disabled
+    while leaving the click live would look right and still change the recorded scope.
+  */
+  <div
+    onClick={disabled ? undefined : onClick}
+    role="button"
+    aria-disabled={disabled || undefined}
+    style={{
+    flex: 1, minWidth: 0, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', gap: 10, alignItems: 'flex-start',
     padding: '12px 13px', borderRadius: 'var(--radius-lg)',
+    opacity: disabled ? 0.55 : 1,
     border: `1.5px solid ${active ? 'var(--brand-strong)' : 'var(--border-subtle)'}`,
     background: active ? 'var(--brand-subtle)' : 'var(--surface-card)',
   }}>
@@ -25,9 +43,11 @@ const ScopeCard: FC<{ active: boolean; title: string; sub: string; onClick: () =
   </div>
 );
 
-const ModuleRow: FC<{ label: string; count: number; checked: boolean; forced: boolean; onToggle: () => void }> = ({ label, count, checked, forced, onToggle }) => (
-  <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 'var(--radius-sm)', cursor: forced ? 'not-allowed' : 'pointer', background: checked ? 'var(--brand-subtle)' : 'transparent' }}>
-    <input type="checkbox" aria-label={label} checked={checked} disabled={forced} onChange={onToggle}
+const ModuleRow: FC<{ label: string; count: number; checked: boolean; forced: boolean; onToggle: () => void; frozen?: boolean }> = ({ label, count, checked, forced, onToggle, frozen }) => (
+  <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 'var(--radius-sm)', cursor: forced || frozen ? 'not-allowed' : 'pointer', background: checked ? 'var(--brand-subtle)' : 'transparent' }}>
+    {/* `forced` and `frozen` are different reasons for the same state: forced means the
+        closure requires it, frozen means the export is already done. */}
+    <input type="checkbox" aria-label={label} checked={checked} disabled={forced || frozen} onChange={onToggle}
       style={{ width: 16, height: 16, accentColor: 'var(--brand-strong)' }} />
     <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-strong)' }}>
       {label}{forced && <i style={{ fontStyle: 'normal', fontSize: 10.5, fontWeight: 700, color: 'var(--text-subtle)', marginLeft: 6 }}>required by entries</i>}
@@ -40,6 +60,12 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
   const stack = useV3Selector((s) => s.source.stack);
   const running = useV3Selector((s) => s.source.running);
+  /*
+    Once the export has succeeded, everything that DEFINES it is frozen — see
+    `isExportComplete` for why a persisted graph counts and why a failure overrides.
+  */
+  const complete = useV3Selector((s) => isExportComplete(s.source));
+  const failed = useV3Selector((s) => s.source.jobStatus === 'failed');
 
   useEffect(() => {
     if (!stack.regions.length) dispatch(loadRegions());
@@ -57,6 +83,7 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
         <V3Select
           id="v3-region"
           ariaLabel="Region"
+          disabled={complete}
           value={stack.region}
           placeholder="Select a region…"
           options={stack.regions}
@@ -72,7 +99,7 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
           value={stack.org}
           placeholder={stack.region ? 'Select an organization…' : 'Select a region first'}
           options={stack.orgs}
-          disabled={!stack.region}
+          disabled={complete || !stack.region}
           onChange={(v) => dispatch(selectOrg(v))}
         />
       </div>
@@ -107,7 +134,7 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
             value={stack.stackApiKey}
             placeholder={stack.org ? 'Select a stack…' : 'Select an organization first'}
             options={stack.stacks}
-            disabled={!stack.org}
+            disabled={complete || !stack.org}
             onChange={(v) => dispatch(selectStack(v))}
           />
         )}
@@ -120,6 +147,7 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
           <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>Branch</span>
           <V3Select
             ariaLabel="Branch"
+            disabled={complete}
             value={stack.branch}
             placeholder="main"
             options={stack.branches.length ? stack.branches : [{ value: 'main', label: 'main' }]}
@@ -133,8 +161,8 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <label className="v3-label" style={{ margin: 0 }}>What do you want to export?</label>
         <div style={{ display: 'flex', gap: 10 }}>
-          <ScopeCard active={!specific} title="Whole stack" sub="Everything in the stack" onClick={() => dispatch(sourceActions.setStackField({ field: 'scope', value: 'whole' }))} />
-          <ScopeCard active={specific} title="Specific module" sub="Choose what to include" onClick={() => { dispatch(sourceActions.setStackField({ field: 'scope', value: 'specific' })); if (!stack.modules.length) dispatch(loadStackModules()); }} />
+          <ScopeCard active={!specific} disabled={complete} title="Whole stack" sub="Everything in the stack" onClick={() => dispatch(sourceActions.setStackField({ field: 'scope', value: 'whole' }))} />
+          <ScopeCard active={specific} disabled={complete} title="Specific module" sub="Choose what to include" onClick={() => { dispatch(sourceActions.setStackField({ field: 'scope', value: 'specific' })); if (!stack.modules.length) dispatch(loadStackModules()); }} />
         </div>
         {specific && (
           <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 240, overflowY: 'auto' }}>
@@ -158,7 +186,7 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
               <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: 8 }}>No modules found.</div>
             ) : (
               stack.modules.map((m) => (
-                <ModuleRow key={m.key} label={m.label} count={m.count} checked={stack.selectedModules.includes(m.key)} forced={forced.has(m.key)}
+                <ModuleRow key={m.key} label={m.label} count={m.count} checked={stack.selectedModules.includes(m.key)} forced={forced.has(m.key)} frozen={complete}
                   onToggle={() => dispatch(sourceActions.setStackField({ field: 'selectedModules', value: toggleModule(stack.modules, stack.selectedModules, m.key) }))} />
               ))
             )}
@@ -166,10 +194,16 @@ const StackPanel: FC<{ projectId: string }> = ({ projectId }) => {
         )}
       </div>
 
-      <button type="button" className="v3-btn" disabled={!canStart || running} onClick={() => dispatch(startExportAndPoll(projectId))}
+      {/*
+        Three labels, three states. "Export complete" is disabled — the work is done and
+        the form behind it is frozen. "Export again" after a FAILURE is deliberately
+        enabled: a failed export leaves the operator needing to change something and retry,
+        so this is the one path that must never be blocked.
+      */}
+      <button type="button" className="v3-btn" disabled={complete || !canStart || running} onClick={() => dispatch(startExportAndPoll(projectId))}
         style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         {running && <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,.5)', borderTopColor: '#fff', borderRadius: '50%', animation: 'v3-spin .7s linear infinite' }} />}
-        {running ? 'Reading source…' : 'Start export'}
+        {complete ? 'Export complete' : running ? 'Reading source…' : failed ? 'Export again' : 'Start export'}
       </button>
     </div>
   );

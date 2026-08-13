@@ -1,7 +1,7 @@
 import { FC, useRef, useState } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { sourceActions } from '../../store/slice/source.slice';
+import { sourceActions, isExportComplete } from '../../store/slice/source.slice';
 import { startExportAndPoll, uploadFile } from '../../store/thunks/source.thunks';
 import { forcedKeys, toggleModule } from '../../utils/moduleSelection';
 
@@ -9,6 +9,9 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const dispatch = useV3Dispatch();
   const file = useV3Selector((s) => s.source.file);
   const running = useV3Selector((s) => s.source.running);
+  /* Frozen once the export has succeeded — see `isExportComplete`. */
+  const complete = useV3Selector((s) => isExportComplete(s.source));
+  const failed = useV3Selector((s) => s.source.jobStatus === 'failed');
   const validating = useV3Selector((s) => s.source.validating);
   const inputRef = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<File | null>(null);
@@ -119,7 +122,9 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
           type="button"
           aria-label="Remove file"
           onClick={reset}
-          disabled={running}
+          /* Frozen after success: removing the bundle the export was made FROM would
+             leave the graph on screen describing a file the project no longer names. */
+          disabled={running || complete}
           style={{ alignSelf: 'flex-start', border: 'none', background: 'none', padding: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', cursor: running ? 'not-allowed' : 'pointer', textDecoration: 'underline', opacity: running ? 0.5 : 1 }}
         >
           Remove file
@@ -128,8 +133,10 @@ const FilePanel: FC<{ projectId: string }> = ({ projectId }) => {
 
       <div style={{ display: 'flex', gap: 10 }}>
         {file.validated ? (
-          <button type="button" className="v3-btn" onClick={() => dispatch(startExportAndPoll(projectId))} disabled={!canProceed || running} style={{ flex: 1 }}>
-            {running ? 'Reading source…' : 'Start export'}
+          <button type="button" className="v3-btn" onClick={() => dispatch(startExportAndPoll(projectId))} disabled={complete || !canProceed || running} style={{ flex: 1 }}>
+            {/* "Export again" after a failure stays ENABLED — the retry path must not be
+                blocked. Only success freezes. */}
+            {complete ? 'Export complete' : running ? 'Reading source…' : failed ? 'Export again' : 'Start export'}
           </button>
         ) : (
           <button type="button" className="v3-btn" onClick={() => picked && dispatch(uploadFile(picked))} disabled={!picked || validating} style={{ flex: 1 }}>

@@ -81,6 +81,17 @@ const V3Select: FC<V3SelectProps> = ({
   }, [open]);
 
   const selected = options.find((o) => o.value === value);
+  /*
+    What the closed control shows. When a value is set but its option list has not loaded
+    — or does not contain it, because the stack was removed or access was lost — the raw
+    value is shown rather than the placeholder.
+
+    Falling through to the placeholder was the bug: a restored project displayed
+    "Select an organization…" on a DISABLED control, stating the opposite of the truth.
+    An id is ugly; claiming nothing is selected is wrong.
+  */
+  const shown = selected?.label ?? (value ? value : placeholder);
+  const hasValue = !!selected || !!value;
 
   return (
     <div ref={rootRef} style={{ position: 'relative', ...style }}>
@@ -96,11 +107,11 @@ const V3Select: FC<V3SelectProps> = ({
         style={{
           width: '100%', textAlign: 'left', display: 'block',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          color: selected ? 'var(--text-strong)' : 'var(--text-subtle)',
+          color: hasValue ? 'var(--text-strong)' : 'var(--text-subtle)',
           ...buttonStyle,
         }}
       >
-        {selected ? selected.label : placeholder}
+        {shown}
       </button>
 
       {open && (

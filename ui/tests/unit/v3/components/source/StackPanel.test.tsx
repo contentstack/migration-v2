@@ -214,3 +214,210 @@ describe('v3 StackPanel', () => {
     expect(mockLoadStackModules).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Freezing the source form once an export has succeeded.
+ *
+ * Rows TC_SRC_059–063, TC_SRC_067. Added 2026-08-12 as a direct change (no pipeline
+ * run); the matrix was extended with the same ids.
+ *
+ * The rule is `!failed && (hasGraph || succeeded)`:
+ *   - `hasGraph` and not just `succeeded`, because the job registry is in-memory and
+ *     lost on restart. Returning to a finished project shows a persisted graph with no
+ *     job status at all, and the form must still be frozen (TC_SRC_067).
+ *   - `!failed` wins over both, because a failure must always leave the operator able to
+ *     change something and retry — including when an EARLIER export had succeeded and
+ *     left a graph behind (TC_SRC_063).
+ */
+const GRAPH = { counts: { contentTypes: 1 }, nodes: [], edges: [] };
+
+/*
+  A panel with a stack chosen. `stacks` must be seeded too: with an org set and an empty
+  stack list the panel renders "No stacks in this org." in place of the Stack select, so
+  a fixture that set only the org would be asserting against a state the operator never
+  reaches after a successful export.
+*/
+const seedReady = (store: any) => {
+  store.dispatch(sourceActions.setStackField({ field: 'region', value: 'NA' }));
+  store.dispatch(sourceActions.setStackField({ field: 'org', value: 'O1' }));
+  store.dispatch(
+    sourceActions.setStackField({ field: 'stacks', value: [{ value: 'blt1', label: 'Blog stack' }] })
+  );
+  store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+};
+
+describe('v3 StackPanel — frozen after a successful export', () => {
+  it('TC_SRC_059 (positive): disables the region, organization, stack and branch selects', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+
+    expect(screen.getByLabelText('Region')).toBeDisabled();
+    expect(screen.getByLabelText('Organization')).toBeDisabled();
+    expect(screen.getByLabelText('Stack')).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state) inverted: before any export the selects must
+    be usable. Without this pair, "everything disabled" would pass against a panel that
+    was permanently inert.
+  */
+  it('TC_SRC_059 (negative): leaves the selects usable before any export has run', () => {
+    renderStack(seedReady);
+
+    expect(screen.getByLabelText('Region')).not.toBeDisabled();
+    expect(screen.getByLabelText('Organization')).not.toBeDisabled();
+    expect(screen.getByLabelText('Stack')).not.toBeDisabled();
+  });
+
+  it('TC_SRC_060 (positive): marks the scope cards as disabled', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+
+    for (const card of screen.getAllByRole('button', { name: /whole stack|specific module/i })) {
+      expect(card).toHaveAttribute('aria-disabled', 'true');
+    }
+  });
+
+  /*
+    Negative — taxonomy #4: the scope cards must not merely LOOK disabled. They are divs
+    with role="button", so the `disabled` attribute does nothing on them — activating one
+    after a successful export must not change the recorded scope.
+  */
+  it('TC_SRC_060 (negative): activating a disabled scope card does not change the scope', () => {
+    const store = renderStack((s) => {
+      seedReady(s);
+      s.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+    const before = store.getState().source.stack.scope;
+
+    fireEvent.click(screen.getByRole('button', { name: /specific module/i }));
+
+    expect(store.getState().source.stack.scope).toBe(before);
+  });
+
+  it('TC_SRC_061 (positive): disables the module checkboxes', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setStackField({ field: 'scope', value: 'specific' }));
+      // Modules are set through the generic field setter — there is no
+      // `setStackModules` action.
+      store.dispatch(
+        sourceActions.setStackField({
+          field: 'modules',
+          value: [
+            { key: 'contentTypes', label: 'Content Types', dependsOn: [] },
+            { key: 'entries', label: 'Entries', dependsOn: [] },
+          ],
+        })
+      );
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+
+    expect(screen.getByLabelText('Content Types')).toBeDisabled();
+    expect(screen.getByLabelText('Entries')).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4: the same checkboxes are usable before the export. A module
+    that is FORCED by the closure is already disabled for its own reason, so this pair
+    uses two modules that depend on nothing.
+  */
+  it('TC_SRC_061 (negative): leaves the module checkboxes usable before the export', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setStackField({ field: 'scope', value: 'specific' }));
+      // Modules are set through the generic field setter — there is no
+      // `setStackModules` action.
+      store.dispatch(
+        sourceActions.setStackField({
+          field: 'modules',
+          value: [
+            { key: 'contentTypes', label: 'Content Types', dependsOn: [] },
+            { key: 'entries', label: 'Entries', dependsOn: [] },
+          ],
+        })
+      );
+    });
+
+    expect(screen.getByLabelText('Content Types')).not.toBeDisabled();
+  });
+
+  it('TC_SRC_062 (positive): shows "Export complete" on a disabled action button', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+
+    const btn = screen.getByRole('button', { name: /export complete/i });
+    expect(btn).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /^start export$/i })).toBeNull();
+  });
+
+  /*
+    Negative — taxonomy #1 (missing state): before the export it still reads "Start
+    export". Pinning both labels keeps the completed state from becoming the only one the
+    button ever shows.
+  */
+  it('TC_SRC_062 (negative): still reads "Start export" before the export has run', () => {
+    renderStack(seedReady);
+
+    expect(screen.getByRole('button', { name: /start export/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /export complete/i })).toBeNull();
+  });
+
+  it('TC_SRC_063 (positive): after a FAILED export the form stays usable and offers a retry', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'failed' }));
+    });
+
+    expect(screen.getByLabelText('Region')).not.toBeDisabled();
+    expect(screen.getByLabelText('Stack')).not.toBeDisabled();
+    const btn = screen.getByRole('button', { name: /export again/i });
+    expect(btn).not.toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #7 (conflict), and the interaction most likely to be got wrong: a
+    failure AFTER an earlier success. The persisted graph from the first export is still
+    in state, so a rule of `hasGraph || succeeded` alone would freeze the form and leave
+    the operator unable to retry the attempt that just failed.
+  */
+  it('TC_SRC_063 (negative): a failure after an earlier success still leaves the form usable', () => {
+    renderStack((store) => {
+      seedReady(store);
+      store.dispatch(sourceActions.setGraph(GRAPH as any));   // an earlier export succeeded
+      store.dispatch(sourceActions.setJob({ jobId: 'j2', jobStatus: 'failed' }));
+    });
+
+    expect(screen.getByLabelText('Region')).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /export again/i })).not.toBeDisabled();
+  });
+
+  it('TC_SRC_067 (positive): a persisted graph alone freezes the form, with no job status', () => {
+    renderStack((store) => {
+      seedReady(store);
+      // Revisiting a finished project: the in-memory job registry is gone, so only the
+      // persisted graph remains.
+      store.dispatch(sourceActions.setGraph(GRAPH as any));
+    });
+
+    expect(screen.getByLabelText('Region')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /export complete/i })).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #1 (missing value): no graph and no job status is a fresh panel,
+    which must not be frozen. This is the state every new project starts in.
+  */
+  it('TC_SRC_067 (negative): no graph and no job status leaves the form fully usable', () => {
+    renderStack(seedReady);
+
+    expect(screen.getByLabelText('Region')).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /start export/i })).not.toBeDisabled();
+  });
+});

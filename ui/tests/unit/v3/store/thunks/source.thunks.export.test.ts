@@ -31,6 +31,13 @@ const mkStore = () => configureStore({ reducer: { source: sourceReducer } });
 
 beforeEach(async () => {
   Object.values(mockApi).forEach((m) => (m as any).mockReset());
+  /*
+    Unstub FIRST. `vi.stubEnv` persists across tests, so a per-test override —
+    `VITE_V3_POLL_BUDGET_MS` in the give-up tests below — otherwise leaks into every later
+    test in the file and silently shortens their polling budget. That is what made the
+    backoff test see 3 polls instead of 21.
+  */
+  vi.unstubAllEnvs();
   vi.stubEnv('VITE_V3_POLL_MS', '1');
   vi.resetModules();
   thunks = await import('../../../../../v3/store/thunks/source.thunks');
@@ -358,5 +365,181 @@ describe('v3 export/upload thunks', () => {
 
     expect(store.getState().source.graph).toBeUndefined();
     expect(store.getState().source.error).toBeUndefined();
+  });
+});
+
+/**
+ * How long the client watches an export, and what it says when it stops — rows
+ * TC_SRC_074–077.
+ *
+ * Added 2026-08-13 after real-world testing. The client stopped after 75 polls × 800 ms =
+ * 60 SECONDS and reported "Export timed out. Please try again." Measured against real
+ * stacks, the CLI-based export takes far longer than that:
+ *
+ *     233s   62 MB stack   -> reported as timed out, had actually SUCCEEDED
+ *     230s                 -> reported as timed out, had actually SUCCEEDED
+ *      51s   small stack   -> finished inside the old budget
+ *
+ * The 60s figure dated from when the export was our own Management API calls; the CLI
+ * exports all 17 modules and downloads every asset binary. So the client was calling a
+ * completed 4-minute export a failure and inviting the operator to throw it away and
+ * start again.
+ *
+ * Two properties are pinned here: the budget is long enough for a real export, and when
+ * the client does stop watching a job that is STILL RUNNING it says so rather than
+ * claiming failure.
+ */
+describe('v3 export polling — budget and honest give-up', () => {
+  /** Drives `getExportStatus` to report `running` forever. */
+  const alwaysRunning = () => mockApi.getExportStatus.mockResolvedValue({ data: { status: 'running' } });
+
+  it('TC_SRC_074 (positive): keeps polling well past the old 60-second budget', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    // Succeeds only after more polls than the old ceiling allowed.
+    let calls = 0;
+    mockApi.getExportStatus.mockImplementation(async () => {
+      calls += 1;
+      return { data: { status: calls > 90 ? 'succeeded' : 'running' } };
+    });
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(calls).toBeGreaterThan(75);
+    expect(store.getState().source.graph).toEqual({ counts: {}, nodes: [], edges: [] });
+    expect(store.getState().source.error).toBeUndefined();
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): the budget must not be unbounded. A server that
+    never resolves the job has to release the client eventually, or the page polls forever
+    and the operator is left with a spinner that can never end.
+  */
+  it('TC_SRC_074 (negative): stops polling eventually rather than looping forever', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    alwaysRunning();
+    vi.stubEnv('VITE_V3_POLL_BUDGET_MS', '30');   // a tiny budget, for the test only
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.running).toBe(false);
+  });
+
+  it('TC_SRC_075 (positive): says the export is still running, not that it failed', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    alwaysRunning();
+    vi.stubEnv('VITE_V3_POLL_BUDGET_MS', '30');
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    const msg = store.getState().source.error ?? '';
+    expect(msg).toMatch(/still running/i);
+    expect(msg).not.toMatch(/timed out|failed/i);
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): a genuinely FAILED job must still be reported
+    as a failure. Softening every outcome into "still running" would hide real failures,
+    which is the opposite error to the one being fixed.
+  */
+  it('TC_SRC_075 (negative): still reports a genuine failure as a failure', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    mockApi.getExportStatus.mockResolvedValue({ data: { status: 'failed' } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    const msg = store.getState().source.error ?? '';
+    expect(msg).toMatch(/failed/i);
+    expect(msg).not.toMatch(/still running/i);
+  });
+
+  it('TC_SRC_076 (positive): keeps the job id so the finished export can be picked up', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'job-abc' } });
+    alwaysRunning();
+    vi.stubEnv('VITE_V3_POLL_BUDGET_MS', '30');
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobId).toBe('job-abc');
+    expect(store.getState().source.jobStatus).toBe('running');
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): giving up watching must NOT mark the job
+    failed. `isExportComplete` keys on `jobStatus !== 'failed'`, so writing 'failed' here
+    would also unfreeze a form whose export is still in progress.
+  */
+  it('TC_SRC_076 (negative): does not record the job as failed when it is still running', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    alwaysRunning();
+    vi.stubEnv('VITE_V3_POLL_BUDGET_MS', '30');
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    expect(store.getState().source.jobStatus).not.toBe('failed');
+  });
+
+  it('TC_SRC_077 (positive): slows its polling down over a long export', async () => {
+    /*
+      Measures the GAP between polls rather than total duration. An absolute-duration
+      assertion is at the mercy of timer resolution when the interval is stubbed to 1 ms;
+      comparing an early gap with a late one states the requirement directly and cannot be
+      satisfied by a flat cadence.
+    */
+    vi.stubEnv('VITE_V3_POLL_MS', '10');
+    vi.resetModules();
+    thunks = await import('../../../../../v3/store/thunks/source.thunks');
+
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    const at: number[] = [];
+    mockApi.getExportStatus.mockImplementation(async () => {
+      at.push(Date.now());
+      return { data: { status: at.length > 20 ? 'succeeded' : 'running' } };
+    });
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    const early = at[3] - at[2];              // inside the base-cadence window (n < 15)
+    const late = at[at.length - 1] - at[at.length - 2];  // past it
+    expect(at.length).toBeGreaterThan(15);
+    expect(late).toBeGreaterThan(early);
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): the FIRST polls must stay fast. A short export has
+    to feel immediate, so backoff may not apply from the start.
+  */
+  it('TC_SRC_077 (negative): does not slow down the first few polls', async () => {
+    const store = mkStore();
+    store.dispatch(sourceActions.setStackField({ field: 'stackApiKey', value: 'blt1' }));
+    mockApi.startExport.mockResolvedValue({ data: { jobId: 'j1' } });
+    let calls = 0;
+    mockApi.getExportStatus.mockImplementation(async () => {
+      calls += 1;
+      return { data: { status: calls >= 3 ? 'succeeded' : 'running' } };
+    });
+    mockApi.getGraph.mockResolvedValue({ data: { counts: {}, nodes: [], edges: [] } });
+
+    const started = Date.now();
+    await store.dispatch(thunks.startExportAndPoll('P1'));
+
+    // Three polls at the base interval — nowhere near a backed-off cadence.
+    expect(Date.now() - started).toBeLessThan(500);
+    expect(store.getState().source.graph).toBeDefined();
   });
 });

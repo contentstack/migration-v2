@@ -25,6 +25,9 @@ vi.mock('../../../../../v3/components/source/GraphView', () => ({
 // Inert the restore-on-mount thunk so tests don't hit the network.
 vi.mock('../../../../../v3/store/thunks/source.thunks', () => ({
   loadPersistedGraph: () => () => {},
+  // Added with the restore-on-mount fix: the panel now also restores the saved
+  // selection, so the mocked module must expose it or the mount throws.
+  loadPersistedSource: () => () => {},
 }));
 
 import sourceReducer, { sourceActions } from '../../../../../v3/store/slice/source.slice';
@@ -277,5 +280,39 @@ describe('v3 SourcePanel', () => {
     });
 
     expect(screen.getByTestId('stack-panel')).toBeInTheDocument();
+  });
+});
+
+/**
+ * The stack/file mode toggle after a successful export — row TC_SRC_066.
+ *
+ * Switching mode after a successful export would present a fresh form implying the
+ * project could be exported again from a different source, while the graph and export
+ * folder on screen came from the other one.
+ */
+describe('v3 SourcePanel — mode toggle frozen after a successful export', () => {
+  const MODE_GRAPH = { counts: { contentTypes: 1 }, nodes: [], edges: [] };
+
+  it('TC_SRC_066 (positive): disables both mode segments once the export has succeeded', () => {
+    renderPanel((store) => {
+      store.dispatch(sourceActions.setGraph(MODE_GRAPH as any));
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+
+    expect(screen.getByRole('button', { name: /from a stack/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /from a file/i })).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4: after a FAILED export the toggle must stay usable. Choosing a
+    different source is one of the legitimate ways to recover from a failure.
+  */
+  it('TC_SRC_066 (negative): leaves the mode segments usable after a failed export', () => {
+    renderPanel((store) => {
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'failed' }));
+    });
+
+    expect(screen.getByRole('button', { name: /from a stack/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /from a file/i })).not.toBeDisabled();
   });
 });

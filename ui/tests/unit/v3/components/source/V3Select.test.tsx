@@ -74,3 +74,86 @@ describe('v3 V3Select', () => {
     expect(screen.queryByRole('option', { name: 'Europe' })).toBeNull();
   });
 });
+
+/**
+ * Showing a stored value whose option list has not loaded — row TC_SRC_068.
+ *
+ * Added 2026-08-12. When a finished project is reopened, its saved selection is restored
+ * as an ID before the org/stack lists arrive (or at all, if that fetch fails). With no
+ * matching option the select used to fall through to its placeholder, so a disabled
+ * control read "Select an organization…" — which states the opposite of the truth.
+ */
+describe('v3 V3Select — a value with no matching option', () => {
+  it('TC_SRC_068 (positive): shows the raw value rather than the placeholder', () => {
+    render(
+      <V3Select
+        ariaLabel="Stack"
+        value="bltef5ad9f8875c3145"
+        placeholder="Select a stack…"
+        options={[]}
+        onChange={() => {}}
+      />
+    );
+
+    const btn = screen.getByRole('button', { name: 'Stack' });
+    expect(btn).toHaveTextContent('bltef5ad9f8875c3145');
+    expect(btn).not.toHaveTextContent('Select a stack…');
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): with NO value the placeholder is still
+    correct, because nothing has been chosen. Paired so the fallback cannot swallow the
+    genuinely-empty case, which is what every fresh project starts in.
+  */
+  it('TC_SRC_068 (negative): still shows the placeholder when there is no value', () => {
+    render(
+      <V3Select
+        ariaLabel="Stack"
+        value=""
+        placeholder="Select a stack…"
+        options={[]}
+        onChange={() => {}}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Stack' })).toHaveTextContent('Select a stack…');
+  });
+
+  it('TC_SRC_069 (positive): prefers the option label once the list has loaded', () => {
+    render(
+      <V3Select
+        ariaLabel="Stack"
+        value="bltef5ad9f8875c3145"
+        placeholder="Select a stack…"
+        options={[{ value: 'bltef5ad9f8875c3145', label: 'Blog stack' }]}
+        onChange={() => {}}
+      />
+    );
+
+    const btn = screen.getByRole('button', { name: 'Stack' });
+    expect(btn).toHaveTextContent('Blog stack');
+    expect(btn).not.toHaveTextContent('bltef5ad9f8875c3145');
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): a value matching NO option in a non-empty
+    list still falls back to the id. This is the stale-list case — the saved stack is
+    gone, or the operator lost access to it — and showing the placeholder there would
+    imply the project has no source at all.
+  */
+  it('TC_SRC_069 (negative): falls back to the id when the loaded list does not contain it', () => {
+    render(
+      <V3Select
+        ariaLabel="Stack"
+        value="blt-missing"
+        placeholder="Select a stack…"
+        options={[{ value: 'blt-other', label: 'Some other stack' }]}
+        onChange={() => {}}
+      />
+    );
+
+    const btn = screen.getByRole('button', { name: 'Stack' });
+    expect(btn).toHaveTextContent('blt-missing');
+    expect(btn).not.toHaveTextContent('Select a stack…');
+  });
+});

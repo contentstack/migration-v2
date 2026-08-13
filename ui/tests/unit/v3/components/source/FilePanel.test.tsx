@@ -180,3 +180,68 @@ describe('v3 FilePanel', () => {
     expect(screen.getByText(/Drop a migration file or click to browse/i)).toBeInTheDocument();
   });
 });
+
+/**
+ * Freezing the file form once an export has succeeded — rows TC_SRC_064–065.
+ *
+ * Same rule as StackPanel: `!failed && (hasGraph || succeeded)`. The controls here are
+ * "Remove file" and the action button, which switches between Validate and Start export
+ * depending on whether the upload has been validated.
+ */
+const FILE_GRAPH = { counts: { contentTypes: 1 }, nodes: [], edges: [] };
+
+const seedValidated = (store: any) => {
+  store.dispatch(sourceActions.setFileSelected({ fileName: 'export.zip', sizeBytes: 1234 }));
+  store.dispatch(sourceActions.setFileValidated({ sourceId: 's1', manifest: [] as any }));
+};
+
+describe('v3 FilePanel — frozen after a successful export', () => {
+  it('TC_SRC_064 (positive): disables Remove file and shows "Export complete" on the action', () => {
+    renderFile((store) => {
+      seedValidated(store);
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'succeeded' }));
+    });
+
+    expect(screen.getByRole('button', { name: /remove file/i })).toBeDisabled();
+    const action = screen.getByRole('button', { name: /export complete/i });
+    expect(action).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state) inverted: before the export both are usable.
+    Removing the file is what lets the operator choose a different bundle, so freezing it
+    unconditionally would make the panel a dead end.
+  */
+  it('TC_SRC_064 (negative): leaves Remove file and Start export usable before the export', () => {
+    renderFile(seedValidated);
+
+    expect(screen.getByRole('button', { name: /remove file/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /start export/i })).not.toBeDisabled();
+  });
+
+  it('TC_SRC_065 (positive): after a FAILED export the controls stay usable and offer a retry', () => {
+    renderFile((store) => {
+      seedValidated(store);
+      store.dispatch(sourceActions.setJob({ jobId: 'j1', jobStatus: 'failed' }));
+    });
+
+    expect(screen.getByRole('button', { name: /remove file/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /export again/i })).not.toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #7 (conflict): a failure after an earlier success. The graph from
+    the first export survives in state, so a rule keyed on `hasGraph` alone would freeze
+    the panel and strand the operator on the attempt that just failed.
+  */
+  it('TC_SRC_065 (negative): a failure after an earlier success still leaves the controls usable', () => {
+    renderFile((store) => {
+      seedValidated(store);
+      store.dispatch(sourceActions.setGraph(FILE_GRAPH as any));
+      store.dispatch(sourceActions.setJob({ jobId: 'j2', jobStatus: 'failed' }));
+    });
+
+    expect(screen.getByRole('button', { name: /remove file/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /export again/i })).not.toBeDisabled();
+  });
+});

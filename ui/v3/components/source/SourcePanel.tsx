@@ -1,8 +1,8 @@
 import { FC, useEffect, useRef, useState } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { sourceActions, SourceMode, LiveCounts } from '../../store/slice/source.slice';
-import { loadPersistedGraph } from '../../store/thunks/source.thunks';
+import { sourceActions, isExportComplete, SourceMode, LiveCounts } from '../../store/slice/source.slice';
+import { loadPersistedGraph, loadPersistedSource } from '../../store/thunks/source.thunks';
 import StackPanel from './StackPanel';
 import FilePanel from './FilePanel';
 import GraphView from './GraphView';
@@ -37,7 +37,19 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
-    if (!graph && projectId) dispatch(loadPersistedGraph(projectId));
+    if (!projectId) return;
+    if (!graph) dispatch(loadPersistedGraph(projectId));
+    /*
+      The saved SELECTION is restored too, not just the graph. Without it the graph is
+      fetched but never shown — it only renders when a stack is selected — and the selects
+      display their placeholders for a project that has one.
+
+      Restored whenever there is no selection in state yet, which is the case on a fresh
+      mount after navigating away to Audit and back, and on opening any older project.
+      Guarded so it cannot overwrite a selection the operator is midway through making.
+    */
+    const nothingSelected = mode === 'stack' ? !stack.stackApiKey : !file.fileName;
+    if (nothingSelected) dispatch(loadPersistedSource(projectId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -71,15 +83,25 @@ const SourcePanel: FC<{ projectId: string }> = ({ projectId }) => {
   const sourceName =
     mode === 'stack' ? stack.stackApiKey || 'No stack selected' : file.fileName || 'No file selected';
 
+  /*
+    The mode toggle is frozen after a successful export: switching to the other source
+    would present a fresh form implying the project could be exported again from
+    somewhere else, while the graph and the export folder came from this one. After a
+    FAILURE it stays live — choosing a different source is a legitimate way to recover.
+  */
+  const exportComplete = isExportComplete({ graph, jobStatus });
+
   const seg = (m: SourceMode, text: string) => (
     <button
       type="button"
       aria-pressed={mode === m}
+      disabled={exportComplete}
       onClick={() => dispatch(sourceActions.setMode(m))}
       style={{
         flex: 1, padding: '8px 12px', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)',
         fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-sans)',
         background: mode === m ? 'var(--surface-card)' : 'transparent',
+        opacity: exportComplete && mode !== m ? 0.55 : 1,
         boxShadow: mode === m ? 'var(--shadow-sm)' : 'none',
         color: mode === m ? 'var(--text-strong)' : 'var(--text-muted)',
       }}

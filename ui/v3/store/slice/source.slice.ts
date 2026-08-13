@@ -306,5 +306,30 @@ const sourceSlice = createSlice({
   },
 });
 
+/**
+ * Whether this project's export is finished, and the source form should therefore be
+ * frozen.
+ *
+ * One definition, consumed by StackPanel, FilePanel and SourcePanel — the rule has three
+ * parts and each is load-bearing:
+ *
+ *   - `!!graph` and not only `jobStatus === 'succeeded'`, because the job registry is
+ *     in-memory and lost on restart. Returning to a finished project shows a PERSISTED
+ *     graph with no job status at all, and the form must still be frozen.
+ *   - `jobStatus === 'succeeded'` as well, for the moment the export finishes and before
+ *     the graph has been re-read.
+ *   - `jobStatus !== 'failed'` WINS over both. A failure must always leave the operator
+ *     able to change something and retry — including when an earlier export succeeded and
+ *     left a graph behind, which is the case a rule of `hasGraph || succeeded` alone would
+ *     get wrong by stranding them on the attempt that just failed.
+ *
+ * Freezing matters because these inputs DEFINE the export: changing the stack, branch or
+ * module selection after the fact would leave the graph on screen and the export folder on
+ * disk describing different things.
+ */
+export const isExportComplete = (
+  s: Pick<SourceState, 'graph' | 'jobStatus'>
+): boolean => s.jobStatus !== 'failed' && (!!s.graph || s.jobStatus === 'succeeded');
+
 export const sourceActions = sourceSlice.actions;
 export default sourceSlice.reducer;
