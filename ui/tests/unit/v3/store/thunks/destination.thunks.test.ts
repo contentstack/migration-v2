@@ -600,3 +600,42 @@ describe('v3 destination thunks — resume', () => {
     expect(st.importAuth.method).toBeUndefined();
   });
 });
+
+/*
+ * TC_DEST_059 — restoring a saved destination must also restore its COMPLETE flag, which
+ * is what freezes the Audit and Destination panels after a reload.
+ *
+ * ⚠️ Originally written against `destinationActions.hydrate`, asserting that the reducer
+ * set `proceeded` itself. That was the wrong contract: `hydrate` is a plain field setter
+ * used by any caller that needs to seed a few fields, and marking the destination
+ * committed there silently froze the panel for all of them — it disabled the
+ * language-mapping remove button under TC_DEST_037. The knowledge "the server returned a
+ * document, so this destination is committed" belongs to this thunk, the only caller that
+ * actually has it, so that is where the behaviour is now pinned.
+ */
+describe('v3 loadPersistedDestination — restoring the completion flag', () => {
+  it('TC_DEST_059 (positive): marks the destination complete when the server returns a document', async () => {
+    mockApi.getDestination.mockResolvedValue({
+      data: { destination: { region: 'NA', orgId: 'o1', stack: { apiKey: 'blt1', name: 'Dest' } } },
+    });
+    const store = mkStore();
+
+    await store.dispatch(loadPersistedDestination('P1') as any);
+
+    expect(store.getState().destination.proceeded).toBe(true);
+    expect(store.getState().destination.stackApiKey).toBe('blt1');
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): a 404 is the normal first visit, not an
+    error. The flag must stay false, or every fresh project would open frozen.
+  */
+  it('TC_DEST_059 (negative): leaves the destination incomplete when nothing is persisted', async () => {
+    mockApi.getDestination.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }));
+    const store = mkStore();
+
+    await store.dispatch(loadPersistedDestination('P1') as any);
+
+    expect(store.getState().destination.proceeded).toBe(false);
+  });
+});

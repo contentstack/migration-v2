@@ -1,7 +1,7 @@
 import { FC } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { destinationActions, ImportAuthMethod } from '../../store/slice/destination.slice';
+import { destinationActions, ImportAuthMethod , isDestinationComplete } from '../../store/slice/destination.slice';
 
 /**
  * Import-authentication method chooser (UC-3 / FR-3.1–3.6).
@@ -28,6 +28,7 @@ const ImportAuthCards: FC = () => {
   const dispatch = useV3Dispatch();
   const importAuth = useV3Selector((s) => s.destination.importAuth);
   const appsWarningDismissed = useV3Selector((s) => s.destination.appsWarningDismissed);
+  const frozen = useV3Selector((s) => isDestinationComplete(s.destination));
 
   const isMgmt = importAuth.method === 'management';
 
@@ -40,14 +41,24 @@ const ImportAuthCards: FC = () => {
       <div role="radiogroup" aria-label="Import authentication" style={{ display: 'flex', gap: 10 }}>
         {METHODS.map((m) => {
           const on = importAuth.method === m.id;
-          const pick = () => dispatch(destinationActions.setImportMethod(m.id));
+          /*
+            Inert once frozen. The card is a `role="radio"` div rather than a form control,
+            so there is no `disabled` attribute to set — the ARIA equivalent is used
+            instead: announced as disabled, taken out of the tab order, and the handlers
+            made no-ops so neither a click nor Space/Enter can change a saved choice.
+          */
+          const pick = () => {
+            if (frozen) return;
+            dispatch(destinationActions.setImportMethod(m.id));
+          };
           return (
             <div
               key={m.id}
               className="v3-authcard"
               role="radio"
               aria-checked={on}
-              tabIndex={0}
+              aria-disabled={frozen || undefined}
+              tabIndex={frozen ? -1 : 0}
               onClick={pick}
               onKeyDown={(e) => {
                 if (e.key === ' ' || e.key === 'Enter') {

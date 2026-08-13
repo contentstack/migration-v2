@@ -27,6 +27,7 @@ vi.mock('../../../../../v3/store/thunks/audit.thunks', () => ({
   proceedFromAudit: () => () => {},
 }));
 
+import destinationReducer, { destinationActions } from '../../../../../v3/store/slice/destination.slice';
 import auditReducer, {
   auditActions,
   AuditCheckView,
@@ -69,7 +70,14 @@ const F1_TOTALS: AuditTotalsView = {
 
 const NO_DECISIONS: AuditDecisionsView = { categories: {}, itemOverrides: {} };
 
-const mkStore = () => configureStore({ reducer: { audit: auditReducer } });
+/*
+  The destination reducer is included because the Audit panel now freezes once the
+  DESTINATION is complete — the two steps lock together (2026-08-13). Audit reads that
+  state rather than owning a flag of its own, following the codebase's existing rule of
+  deriving progress from persisted documents rather than storing a step number.
+*/
+const mkStore = () =>
+  configureStore({ reducer: { audit: auditReducer, destination: destinationReducer } });
 
 const renderPanel = (store: ReturnType<typeof mkStore>) =>
   render(
@@ -534,5 +542,156 @@ describe('v3 AuditPanel — impact panel', () => {
 
     expect(container.textContent).not.toContain('NaN');
     expect(screen.getByText(/of 36 items/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Audit freezes with the destination, not with itself — rows TC_AR_197–199.
+ *
+ * The requirement is deliberately asymmetric to Source: finishing the AUDIT changes
+ * nothing, because the operator must be able to revise include/exclude decisions right up
+ * until the destination is settled. Both pages lock at the same moment, and that moment is
+ * the destination being saved.
+ */
+const seedDestinationSaved = (store: ReturnType<typeof mkStore>) =>
+  store.dispatch(destinationActions.setProceeded(true));
+
+/*
+  Items must be loaded for the row checkboxes to exist at all. Without this, a test that
+  asserts "every checkbox is disabled" passes over an EMPTY list and proves nothing — which
+  is exactly what happened on the first run here, and why each pair below also asserts the
+  controls are present.
+*/
+const seedItems = (store: ReturnType<typeof mkStore>) =>
+  store.dispatch(
+    auditActions.itemsLoaded({
+      items: [
+        {
+          key: 'entry:blog:e1:en',
+          category: 'unpublishedEntries',
+          type: 'Entry',
+          title: 'Draft post',
+          uid: 'blt-e1',
+          contentType: 'Blog post',
+          locale: 'en',
+          status: 'Never published',
+        },
+      ],
+      page: 1,
+      pageCount: 1,
+      total: 1,
+      // The filter chips read these; omitting them crashes the table.
+      counts: { all: 1, entries: 1, assets: 0, contentTypes: 0, globalFields: 0 },
+    } as never)
+  );
+
+describe('v3 AuditPanel — frozen once the destination is saved', () => {
+  it('TC_AR_197 (positive): disables the audit decision controls', () => {
+    const store = mkStore();
+    seedReady(store);
+    seedItems(store);
+    seedDestinationSaved(store);
+    renderPanel(store);
+
+    const boxes = screen.queryAllByRole('checkbox');
+    expect(boxes.length, 'no checkboxes rendered, so this assertion would be vacuous').toBeGreaterThan(0);
+    for (const box of boxes) expect(box).toBeDisabled();
+  });
+
+  /*
+    ⚠️ The assertion that encodes the whole requirement. A COMPLETED AUDIT with no saved
+    destination must stay fully editable — the decisions are exactly what the operator
+    revisits before committing to a destination. Freezing on the audit's own completion
+    would be the obvious implementation and the wrong one.
+  */
+  it('TC_AR_197 (negative): leaves the controls editable when the audit is done but the destination is not', () => {
+    const store = mkStore();
+    seedReady(store);
+    seedItems(store);
+    renderPanel(store);
+
+    const boxes = screen.queryAllByRole('checkbox');
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const box of boxes) expect(box).not.toBeDisabled();
+  });
+
+  it('TC_AR_198 (positive): explains why the decisions are read-only', () => {
+    const store = mkStore();
+    seedReady(store);
+    seedDestinationSaved(store);
+    renderPanel(store);
+
+    expect(screen.getByTestId('audit-frozen-notice').textContent).toMatch(/destination/i);
+  });
+
+  /*
+    Negative — taxonomy #1 (missing information): no notice before the freeze. The reason
+    for Audit's lock lives on a DIFFERENT page, so a disabled control here with no
+    explanation reads as a bug — but a permanent notice would be noise on every visit.
+  */
+  it('TC_AR_198 (negative): shows no read-only notice while the decisions are still editable', () => {
+    const store = mkStore();
+    seedReady(store);
+    renderPanel(store);
+
+    expect(screen.queryByTestId('audit-frozen-notice')).toBeNull();
+  });
+
+  /*
+    TC_AR_200, added 2026-08-13 after testing found the freeze was incomplete. The row
+    checkboxes and the bulk control locked, but the per-CATEGORY switch on each "Worth a
+    look" card stayed live — and that switch is the coarsest decision on the page, excluding
+    a whole category at once. Freezing the fine-grained controls while leaving the coarse one
+    open is worse than not freezing at all.
+  */
+  it('TC_AR_200 (positive): disables the category include/exclude switch once the destination is saved', () => {
+    const store = mkStore();
+    seedReady(store);
+    seedDestinationSaved(store);
+    renderPanel(store);
+
+    // Guard against a vacuous pass: with no cards rendered, `.every` would be trivially
+    // true and this test would pass against an unmodified component.
+    const switches = screen.getAllByRole('switch');
+    expect(switches.length).toBeGreaterThan(0);
+    switches.forEach((el) => expect(el).toBeDisabled());
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): the switch must stay operable before the
+    destination is saved. It is the primary control of the audit step, so freezing it early
+    would make the whole page useless — the operator revises exactly these decisions before
+    choosing a destination.
+  */
+  it('TC_AR_200 (negative): leaves the category switch operable while the decisions are editable', () => {
+    const store = mkStore();
+    seedReady(store);
+    renderPanel(store);
+
+    const switches = screen.getAllByRole('switch');
+    expect(switches.length).toBeGreaterThan(0);
+    switches.forEach((el) => expect(el).not.toBeDisabled());
+  });
+
+  it('TC_AR_199 (positive): disables the re-run control once the destination is saved', () => {
+    const store = mkStore();
+    seedReady(store);
+    seedDestinationSaved(store);
+    renderPanel(store);
+
+    expect(screen.getByRole('button', { name: /re-?run/i })).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): re-running before the destination is saved is
+    a legitimate action, and it is how the operator refreshes findings after changing the
+    source. It must not be frozen early.
+  */
+  it('TC_AR_199 (negative): leaves the re-run control usable before the destination is saved', () => {
+    const store = mkStore();
+    seedReady(store);
+    renderPanel(store);
+
+    expect(screen.getByRole('button', { name: /re-?run/i })).not.toBeDisabled();
   });
 });

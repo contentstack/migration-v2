@@ -98,7 +98,24 @@ const AuditCategoryCard: FC<{
   variantCaveat: boolean;
   onToggle: () => void;
   onReview: () => void;
-}> = ({ id, title, count, noun, guidance, excluded, variantCaveat, onToggle, onReview }) => (
+  /**
+   * Freezes the include/exclude switch. "Review items ↓" stays live — jumping to the
+   * table is navigation, not a decision, and reading the findings is still useful once
+   * they can no longer be changed.
+   */
+  readOnly?: boolean;
+}> = ({
+  id,
+  title,
+  count,
+  noun,
+  guidance,
+  excluded,
+  variantCaveat,
+  onToggle,
+  onReview,
+  readOnly,
+}) => (
   <div style={card(excluded)} role="group" aria-label={title} data-category={id}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
       <span style={iconTile} aria-hidden="true">
@@ -139,7 +156,8 @@ const AuditCategoryCard: FC<{
             role="switch"
             aria-checked={!excluded}
             aria-label={`${excluded ? 'Excluded' : 'Included'} — ${title}`}
-            style={track(excluded)}
+            disabled={readOnly}
+            style={readOnly ? { ...track(excluded), cursor: 'default', opacity: 0.55 } : track(excluded)}
             onClick={onToggle}
           >
             <span style={knob(excluded)} />

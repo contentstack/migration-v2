@@ -1,7 +1,12 @@
 import { FC, useCallback, useEffect } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { canProceed, destinationActions, destStackLabel } from '../../store/slice/destination.slice';
+import {
+  canProceed,
+  destinationActions,
+  destStackLabel,
+  isDestinationComplete,
+} from '../../store/slice/destination.slice';
 import {
   loadDestRegions,
   loadPersistedDestination,
@@ -53,6 +58,12 @@ const DestinationPanel: FC<{ projectId: string }> = ({ projectId }) => {
 
   const stackLabel = destStackLabel(d);
   const ready = canProceed(d);
+  /*
+    Once the destination is saved everything that DEFINES it is frozen. A management token
+    has been minted against that stack by then, so changing the selection afterwards would
+    leave the persisted document and the real credential describing different things.
+  */
+  const complete = isDestinationComplete(d);
 
   /*
     Wizard-chrome wiring (migration-wizard-chrome trd.md TR-9). This panel
@@ -189,6 +200,7 @@ const DestinationPanel: FC<{ projectId: string }> = ({ projectId }) => {
               <V3Select
                 id="v3-dest-region"
                 ariaLabel="Region"
+                disabled={complete}
                 value={d.region}
                 placeholder="Select a region…"
                 options={d.regions}
@@ -206,7 +218,7 @@ const DestinationPanel: FC<{ projectId: string }> = ({ projectId }) => {
                 value={d.org}
                 placeholder={orgPlaceholder}
                 options={d.orgs}
-                disabled={!d.region}
+                disabled={complete || !d.region}
                 onChange={(v) => dispatch(selectDestOrg(v))}
               />
             </div>
@@ -221,7 +233,7 @@ const DestinationPanel: FC<{ projectId: string }> = ({ projectId }) => {
                 value={d.stackApiKey}
                 placeholder={d.org ? 'Select a stack…' : 'Select an organization first'}
                 options={stackOptions}
-                disabled={!d.org}
+                disabled={complete || !d.org}
                 onChange={onStackChange}
               />
               <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 6 }}>
@@ -287,11 +299,11 @@ const DestinationPanel: FC<{ projectId: string }> = ({ projectId }) => {
               <button
                 type="button"
                 className="v3-btn"
-                disabled={!ready || d.saving}
+                disabled={complete || !ready || d.saving}
                 onClick={() => runProceed()}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                Proceed to content mapping
+                {complete ? 'Destination saved' : 'Proceed to content mapping'}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                   <path d="M4 12h15M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
