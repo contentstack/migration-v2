@@ -425,3 +425,46 @@ describe('v3 ProjectCard — status badge', () => {
     expect(value.textContent?.trim().length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * cs-project-lifecycle, tranche 1e — TC_PL_043 (FR-2.1).
+ *
+ * ⚠️ The card currently renders as a single <button>, so a delete control placed
+ * inside it would be nested interactive content: invalid HTML, and a screen reader
+ * would announce one control where there are two. The pair below forces the delete
+ * control to be genuinely separate — reachable in its own right, and NOT opening the
+ * project when activated.
+ */
+describe('cs-project-lifecycle — delete affordance on the card', () => {
+  const project = {
+    id: 'P1',
+    name: 'Migration Test',
+    region: 'NA',
+    owner: 'U1',
+    isDeleted: false,
+    created_at: '2026-05-01T00:00:00.000Z',
+    updated_at: '2026-05-01T00:00:00.000Z',
+  };
+
+  it('TC_PL_043 (positive): offers a delete control on the card', () => {
+    const onDelete = vi.fn();
+    render(<ProjectCard project={project as any} now={NOW} onOpen={mockOpen} onDelete={onDelete} />);
+
+    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): activating delete must NOT open the
+    project. If the control sits inside the card's own button the click bubbles and does
+    both — the operator lands in the wizard for a project they were trying to remove.
+  */
+  it('TC_PL_043 (negative): activating delete does not also open the project', async () => {
+    const onDelete = vi.fn();
+    render(<ProjectCard project={project as any} now={NOW} onOpen={mockOpen} onDelete={onDelete} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+
+    expect(onDelete).toHaveBeenCalledWith('P1');
+    expect(mockOpen).not.toHaveBeenCalled();
+  });
+});

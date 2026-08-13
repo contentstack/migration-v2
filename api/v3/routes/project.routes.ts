@@ -12,5 +12,10 @@ const router = express.Router({ mergeParams: true });
 
 router.get("/", asyncRouter(projectController.listProjects));
 router.post("/", asyncRouter(projectController.createProject));
+/*
+  cs-project-lifecycle API-1. Registered after the collection routes so the `:projectId`
+  segment cannot shadow them.
+*/
+router.delete("/:projectId", asyncRouter(projectController.deleteProject));
 
 export default router;

@@ -35,6 +35,9 @@ export interface ProjectState {
    */
   creating: boolean;
   createError?: string;
+  /** cs-project-lifecycle: the project id currently being deleted, if any. */
+  deletingId?: string;
+  deleteError?: string;
   /**
    * Set when the list request was refused as unauthenticated. The shared apiClient
    * owns the redirect; this page must render neither an error nor an empty state
@@ -49,6 +52,8 @@ const initialState: ProjectState = {
   error: undefined,
   creating: false,
   createError: undefined,
+  deletingId: undefined,
+  deleteError: undefined,
   unauthorized: false,
 };
 
@@ -90,6 +95,29 @@ const projectSlice = createSlice({
     createFailed: (state, action: PayloadAction<string>) => {
       state.creating = false;
       state.createError = action.payload;
+    },
+    deletePending: (state, action: PayloadAction<string>) => {
+      state.deletingId = action.payload;
+      state.deleteError = undefined;
+    },
+    /*
+      Removes the row locally rather than waiting for a re-fetch, so the list reflects
+      the deletion without a full reload (FR-2.6). Only ever dispatched after the server
+      confirmed — an optimistic removal would show a dashboard that disagrees with the
+      server, and the project would reappear on the next load with no explanation.
+    */
+    deleteSucceeded: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter((p) => p.id !== action.payload);
+      state.deletingId = undefined;
+      state.deleteError = undefined;
+    },
+    deleteFailed: (state, action: PayloadAction<string>) => {
+      state.deletingId = undefined;
+      state.deleteError = action.payload;
+    },
+    deleteReset: (state) => {
+      state.deletingId = undefined;
+      state.deleteError = undefined;
     },
     createReset: (state) => {
       state.creating = false;

@@ -321,3 +321,216 @@ describe('v3 CreateProjectModal — failure', () => {
     expect(nameField()).toHaveValue('EU region migration');
   });
 });
+
+/**
+ * cs-project-lifecycle, tranche 1e — TC_PL_095–102 (FR-4.1–FR-4.4).
+ *
+ * The modal already accepts an `error` prop rendered in a `role="alert"` element, so
+ * the duplicate-name refusal needs no new surface — what these tests pin is that the
+ * refusal does not cost the operator their typed input, and that the optional
+ * pre-submit hint uses the same comparison rule the server does.
+ */
+describe('cs-project-lifecycle — duplicate-name refusal in the create modal', () => {
+  const DUPLICATE = 'A project named "Migration Test" already exists.';
+
+  it('TC_PL_095 (positive): displays the refusal reason', () => {
+    renderModal({ error: DUPLICATE });
+
+    expect(screen.getByTestId('create-project-error')).toHaveTextContent(DUPLICATE);
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): no error means no alert. A permanently
+    rendered empty alert region trains the operator to ignore the one place a real
+    refusal appears.
+  */
+  it('TC_PL_095 (negative): renders no refusal region when there is no error', () => {
+    renderModal();
+
+    expect(screen.queryByTestId('create-project-error')).toBeNull();
+  });
+
+  it('TC_PL_096 (positive): announces the refusal through a live alert', () => {
+    renderModal({ error: DUPLICATE });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(DUPLICATE);
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): the refusal must not be announced as an
+    ordinary status. `role="alert"` is what makes a screen reader interrupt with it; a
+    silent status leaves a blind operator waiting for a create that already failed.
+  */
+  it('TC_PL_096 (negative): does not render the refusal as a non-assertive status only', () => {
+    renderModal({ error: DUPLICATE });
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('TC_PL_097 (positive): keeps the typed name and description when a refusal arrives', async () => {
+    const { rerender } = renderModal();
+    await userEvent.type(nameField(), 'Migration Test');
+    await userEvent.type(descField(), 'Q3 rollout');
+
+    rerender(
+      <CreateProjectModal
+        open
+        creating={false}
+        error={DUPLICATE}
+        onSubmit={mockSubmit}
+        onCancel={mockCancel}
+      />
+    );
+
+    expect(nameField()).toHaveValue('Migration Test');
+    expect(descField()).toHaveValue('Q3 rollout');
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): the fields must not be cleared. Losing
+    typed input on a validation failure is a defect in its own right, and the existing
+    component comments record that its reset is deliberately not keyed on `error` for
+    exactly this reason — this test protects that decision.
+  */
+  it('TC_PL_097 (negative): does not clear the fields when a refusal arrives', async () => {
+    const { rerender } = renderModal();
+    await userEvent.type(nameField(), 'Migration Test');
+
+    rerender(
+      <CreateProjectModal
+        open
+        creating={false}
+        error={DUPLICATE}
+        onSubmit={mockSubmit}
+        onCancel={mockCancel}
+      />
+    );
+
+    expect(nameField()).not.toHaveValue('');
+  });
+
+  it('TC_PL_098 (positive): stays open when a refusal arrives', () => {
+    renderModal({ error: DUPLICATE });
+
+    expect(nameField()).toBeInTheDocument();
+    expect(submit()).toBeInTheDocument();
+  });
+
+  /*
+    Negative — taxonomy #4: the refusal must not close the modal or disable the submit
+    control. Either would leave the operator unable to correct the name they were asked
+    to change.
+  */
+  it('TC_PL_098 (negative): leaves the submit control usable after a refusal', async () => {
+    renderModal({ error: DUPLICATE, existingNames: [] });
+    await userEvent.clear(nameField());
+    await userEvent.type(nameField(), 'A Fresh Name');
+
+    expect(submit()).not.toBeDisabled();
+  });
+
+  it('TC_PL_099 (positive): submits again once the name is corrected', async () => {
+    renderModal({ error: DUPLICATE });
+    await userEvent.clear(nameField());
+    await userEvent.type(nameField(), 'A Fresh Name');
+    await userEvent.click(submit());
+
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'A Fresh Name' }));
+  });
+
+  /*
+    Negative — taxonomy #7 (conflict): resubmitting the SAME duplicate name must not be
+    treated as a fresh attempt by the client. The server rule still decides, but the
+    client must not pretend the refusal was resolved by pressing submit again.
+  */
+  it('TC_PL_099 (negative): does not clear the standing refusal without a change to the name', async () => {
+    renderModal({ error: DUPLICATE });
+    /*
+      The name must be typed for this scenario to be the one described. With the field
+      left empty, pressing submit raises the local "name is required" rule instead, which
+      legitimately takes precedence — so the original version of this test was asserting
+      the refusal survived a situation that replaces it for a different reason.
+    */
+    await userEvent.type(nameField(), 'Migration Test');
+
+    await userEvent.click(submit());
+
+    expect(screen.getByTestId('create-project-error')).toHaveTextContent(DUPLICATE);
+  });
+
+  it('TC_PL_100 (positive): warns before submit when the name clashes with a loaded project', async () => {
+    renderModal({ existingNames: ['Migration Test'] });
+
+    await userEvent.type(nameField(), 'Migration Test');
+
+    expect(screen.getByRole('alert').textContent).toMatch(/already/i);
+  });
+
+  /*
+    Negative — taxonomy #7: the pre-submit hint must not stop the submission from being
+    attempted when the operator insists. The server rule is the contract (FR-3.7); the
+    hint is an affordance and must not become a second, divergent gate.
+  */
+  it('TC_PL_100 (negative): still lets the operator submit a name the hint flagged', async () => {
+    renderModal({ existingNames: ['Migration Test'] });
+    await userEvent.type(nameField(), 'Migration Test');
+
+    await userEvent.click(submit());
+
+    expect(mockSubmit).toHaveBeenCalled();
+  });
+
+  it('TC_PL_101 (positive): applies the same case and whitespace rule as the server', async () => {
+    renderModal({ existingNames: ['Migration Test'] });
+
+    /*
+      TRAILING whitespace, not leading. A name beginning with a space is rejected by the
+      modal's pre-existing leading-space rule, which takes precedence in the message
+      chain — correctly, because that name can never be created at all, so telling the
+      operator it clashes would be the less actionable of the two messages. Trailing
+      whitespace is the case where trimming is what decides the comparison, which is what
+      this row is about.
+    */
+    await userEvent.type(nameField(), 'migration test  ');
+
+    expect(screen.getByRole('alert').textContent).toMatch(/already/i);
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): inner whitespace is part of the name, so
+    'Migration  Test' is a different project and must NOT be flagged. A hint that
+    collapsed inner spaces would disagree with the server and warn about a name the
+    server would accept.
+  */
+  it('TC_PL_101 (negative): does not flag a name differing by inner whitespace', async () => {
+    renderModal({ existingNames: ['Migration Test'] });
+
+    await userEvent.type(nameField(), 'Migration  Test');
+
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('TC_PL_102 (positive): shows no hint for a name that clashes with nothing', async () => {
+    renderModal({ existingNames: ['Migration Test'] });
+
+    await userEvent.type(nameField(), 'Something Else Entirely');
+
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  /*
+    Negative — taxonomy #1 (empty input): an empty field must not be reported as a
+    clash. The presence rule already covers it, and 'that name is taken' for a name the
+    operator has not typed would be actively misleading.
+  */
+  it('TC_PL_102 (negative): shows no clash hint for an empty name field', async () => {
+    renderModal({ existingNames: ['Migration Test'] });
+
+    await userEvent.type(nameField(), 'x');
+    await userEvent.clear(nameField());
+
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});

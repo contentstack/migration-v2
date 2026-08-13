@@ -50,7 +50,9 @@ const ProjectCard: FC<{
   /** Passed in so the rendered date is deterministic (TR-11). */
   now: Date | number;
   onOpen: (projectId: string, stepSegment: string) => void;
-}> = ({ project, now, onOpen }) => {
+  /** cs-project-lifecycle FR-2.1. Omitted where deletion is not offered. */
+  onDelete?: (projectId: string) => void;
+}> = ({ project, now, onOpen, onDelete }) => {
   const status = deriveProjectStatus(project);
   const badge = BADGES[status];
 
@@ -60,7 +62,33 @@ const ProjectCard: FC<{
     onOpen(project.id, deriveResumeStep(project));
   };
 
+  /*
+    STRUCTURE (cs-project-lifecycle FR-2.1).
+
+    The card's chrome — border, radius, shadow — lives on a wrapper `div`. The
+    "open project" button covers the name and the Source/Status grid; the footer is a
+    SIBLING of that button, so the delete control inside it is not nested in another
+    control.
+
+    This is required, not stylistic: `TC_PD_038` asserts the card button contains no
+    nested `button`, `a` or `[role="button"]`, and a nested control would also bubble its
+    click and open the very project the operator was deleting. `stopPropagation` would
+    hide that rather than fix it, and would still leave invalid markup and a screen reader
+    announcing one control where there are two.
+  */
   return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--surface-card)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden',
+        transition: 'border-color .15s, box-shadow .15s, transform .15s',
+      }}
+    >
     <button
       type="button"
       data-testid="project-card"
@@ -72,13 +100,11 @@ const ProjectCard: FC<{
         textAlign: 'left',
         cursor: 'pointer',
         fontFamily: 'var(--font-sans, inherit)',
-        background: 'var(--surface-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-sm)',
+        // Chrome lives on the wrapper now; this is the open-project region only.
+        background: 'transparent',
+        border: 'none',
         padding: 0,
-        overflow: 'hidden',
-        transition: 'border-color .15s, box-shadow .15s, transform .15s',
+        width: '100%',
       }}
     >
       <div style={{ padding: '24px 24px 20px', width: '100%' }}>
@@ -159,7 +185,13 @@ const ProjectCard: FC<{
           </div>
         </div>
       </div>
+    </button>
 
+      {/*
+        The footer holds the date on the right and, when deletion is offered, the delete
+        control on the left. `space-between` rather than `flex-end` so the two sit at
+        opposite ends of a row that was already there — the left half was empty.
+      */}
       <div
         data-testid="project-card-footer"
         style={{
@@ -168,13 +200,59 @@ const ProjectCard: FC<{
           padding: '16px 24px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           gap: 9,
           color: 'var(--text-muted)',
           fontSize: 14,
           fontWeight: 500,
         }}
       >
+        {/* Placeholder keeps the date hard right when no delete control is rendered. */}
+        {!onDelete && <span />}
+        {onDelete && (
+          <button
+            type="button"
+            data-testid="project-delete"
+            aria-label={`Delete project ${project.name}`}
+            onClick={() => project?.id && onDelete(project.id)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              fontSize: 13.5,
+              fontWeight: 600,
+              fontFamily: 'var(--font-sans, inherit)',
+              padding: '6px 10px',
+              marginLeft: -10,          // optically aligns the icon with the card's 24px gutter
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid transparent',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => {
+              // The app's established danger treatment, applied only on intent — the
+              // same pattern `.v3-rowremove:hover` uses in theme.css.
+              e.currentTarget.style.background = 'var(--danger-surface)';
+              e.currentTarget.style.color = 'var(--danger)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+            Delete
+          </button>
+        )}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
         <span data-testid="project-card-clock" aria-hidden="true" style={{ display: 'inline-flex' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
@@ -185,8 +263,9 @@ const ProjectCard: FC<{
           {/* Last modified, not created (FR-4.5, FR-4.6). */}
           {formatLastModified(project.updated_at, now)}
         </span>
+        </span>
       </div>
-    </button>
+    </div>
   );
 };
 

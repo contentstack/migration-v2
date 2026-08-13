@@ -3,6 +3,8 @@ import path from "path";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 
+import { projectDataDir } from "../utils/migrationData.util.js";
+
 import {
   PROJECT_DESCRIPTION_MAX,
   PROJECT_NAME_MAX,
@@ -133,6 +135,34 @@ export const createV3Project = async (
   }
 
   await db.read();
+
+  /*
+    Name uniqueness (FR-3.1–FR-3.7). Evaluated here rather than in the controller
+    because the store is the only layer no client can bypass, and because the scope
+    predicate this reuses already lives here.
+
+    Compared case-folded and trimmed, against LIVE projects in the caller's scope only —
+    so deleting a project releases its name immediately (FR-3.3) and two operators may
+    each hold a "Migration Test" (FR-3.6).
+
+    `p.name` is read defensively: one record in the live store carries only `id` and
+    `created_at`, and an unguarded `.trim()` on its absent name would throw and break
+    creation for everyone (EC-15).
+  */
+  const requested = normaliseName(name);
+  const clash = db.data.projects.some(
+    (p) => inScope(p, scope) && normaliseName(p.name) === requested
+  );
+  if (clash) {
+    const err = new Error(`A project named "${name}" already exists.`) as Error & {
+      status?: number;
+    };
+    // 409, distinct from the 400s above: "you must provide a name" and "that name is
+    // taken" are different problems and must not be conflated (EC-10).
+    err.status = 409;
+    throw err;
+  }
+
   const project: V3Project = {
     id: meta.id,
     name,
@@ -146,6 +176,124 @@ export const createV3Project = async (
   db.data.projects.push(project);
   await db.write();
   return project;
+};
+
+/**
+ * A project name reduced to its comparison form: trimmed, case-folded.
+ *
+ * `toLowerCase` rather than any character stripping — removing diacritics would make
+ * "Unique Name" collide with "Ünïqué Nâme" and refuse a genuinely different name
+ * (feature.md R-5). Only the ENDS are trimmed, so inner whitespace stays significant
+ * and "Migration  Test" remains distinct from "Migration Test".
+ *
+ * Tolerates a missing or non-string name, which a malformed legacy record has (EC-15).
+ */
+const normaliseName = (name: unknown): string =>
+  typeof name === "string" ? name.trim().toLowerCase() : "";
+
+/** Total bytes under `dir`, or 0 when it does not exist. Read before removal. */
+const directorySize = (dir: string): number => {
+  let total = 0;
+  const walk = (current: string): void => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else {
+        try {
+          total += fs.statSync(full).size;
+        } catch {
+          /* a file that vanished mid-walk contributes nothing */
+        }
+      }
+    }
+  };
+  walk(dir);
+  return total;
+};
+
+export interface V3DeleteResult {
+  /** Whether an export folder was found and removed. */
+  folderRemoved: boolean;
+  /** Bytes reclaimed from disk; 0 when there was no folder. */
+  bytesReclaimed: number;
+}
+
+/**
+ * Deletes one project: flags the record, then removes everything it exported.
+ *
+ * ⚠️ ORDER IS THE SAFETY PROPERTY (FR-1.3). The record is flagged FIRST, so the worst
+ * outcome of a filesystem failure is a hidden project with an orphaned folder — which
+ * costs disk and nothing else. The reverse order has no acceptable failure mode: a
+ * project still listed whose export has been removed looks usable and is not, and
+ * every later step would read an empty folder with nothing to explain why (NFR-4).
+ *
+ * A folder-removal failure is REPORTED, not thrown. By that point the deletion has
+ * succeeded from the operator's point of view; only the disk reclaim did not, and the
+ * caller logs that rather than failing a delete that did happen.
+ *
+ * ⚠️ FIELD-LEVEL assignment, never a spread over the record. `{...project, isDeleted:
+ * true}` is the natural way to write this and is exactly the bug: it would drop
+ * `destinationToken.secretEncrypted`, which is write-only and unrecoverable once lost.
+ * `setV3AuditDecisions` and `setV3ContentTypeSelection` document the same hazard.
+ */
+export const deleteV3Project = async (
+  projectId: string,
+  nowIso: string = new Date().toISOString()
+): Promise<V3DeleteResult> => {
+  await db.read();
+  const existing = requireProject(projectId);
+
+  // An already-deleted project is gone as far as every scoped read is concerned, so a
+  // second delete reports "no such project" rather than succeeding for a project this
+  // call did not delete.
+  if (existing.isDeleted) {
+    const err = new Error(`Project ${projectId} does not exist`) as Error & {
+      status?: number;
+    };
+    err.status = 404;
+    throw err;
+  }
+
+  existing.isDeleted = true;
+  existing.updated_at = nowIso;
+  await db.write();
+
+  /*
+    Only now is the filesystem touched. The path comes from `projectDataDir`, never from
+    a join here, so the `safeSegment` sanitisation confines this recursive removal to
+    the intended directory (FR-1.7).
+  */
+  const dir = projectDataDir(projectId);
+  const bytesReclaimed = directorySize(dir);
+  const existed = fs.existsSync(dir);
+  try {
+    // One recursive call, not a per-file walk: the walk is what turns a large export
+    // from seconds into minutes (NFR-1).
+    fs.rmSync(dir, { recursive: true, force: true });
+  } catch {
+    return { folderRemoved: false, bytesReclaimed: 0 };
+  }
+  return { folderRemoved: existed, bytesReclaimed: existed ? bytesReclaimed : 0 };
+};
+
+/**
+ * Whether a project still exists and has not been deleted.
+ *
+ * Unscoped and deliberately minimal: its caller is the export job (FR-1.11), which
+ * holds a project id captured when the job started and must re-check liveness before
+ * its final writes. Without that check the job's atomic rename would recreate the
+ * export folder a deletion had just removed.
+ */
+export const isV3ProjectLive = async (projectId: string): Promise<boolean> => {
+  await db.read();
+  const project = db.data.projects.find((p) => p.id === projectId);
+  return !!project && project.isDeleted !== true;
 };
 
 /**
@@ -167,6 +315,31 @@ const requireProject = (projectId: string): V3Project => {
 };
 
 /**
+ * The project, or a 404 if it does not exist OR has been deleted.
+ *
+ * Used by every writer that records migration state (FR-1.10). A soft-deleted project
+ * is not a migration target, and a later write against one would silently attach state
+ * to a project the operator removed. `setV3ContentTypeSelection` carried this guard
+ * alone before deletion existed; the other four now share it, which is also why the
+ * check lives in one function rather than being repeated per writer.
+ *
+ * Deliberately NOT folded into `requireProject` itself: that would change the
+ * behaviour of every current and future caller at once, including `deleteV3Project`,
+ * which must be able to find a live project in order to delete it.
+ */
+const requireLiveProject = (projectId: string): V3Project => {
+  const existing = requireProject(projectId);
+  if (existing.isDeleted) {
+    const err = new Error(`Project ${projectId} does not exist`) as Error & {
+      status?: number;
+    };
+    err.status = 404;
+    throw err;
+  }
+  return existing;
+};
+
+/**
  * Upserts the source SELECTION onto an EXISTING v3 project. Server-owned fields
  * (`graph`, `lastExport`) are preserved unless the caller explicitly supplies
  * them. Throws 404 if the project does not exist — it no longer creates one
@@ -178,7 +351,9 @@ export const upsertV3Source = async (
   nowIso: string
 ): Promise<V3Source> => {
   await db.read();
-  const existing = requireProject(projectId);
+  // Refuses a soft-deleted project (FR-1.10) — recording a source against one would
+  // attach migration state to a project the operator removed.
+  const existing = requireLiveProject(projectId);
 
   const merged: V3Source = {
     ...incoming,
@@ -235,7 +410,7 @@ export const setV3DestinationToken = async (
   nowIso: string
 ): Promise<void> => {
   await db.read();
-  const existing = requireProject(projectId);
+  const existing = requireLiveProject(projectId);  // FR-1.10
 
   existing.destinationToken = token;
   existing.updated_at = nowIso;
@@ -280,7 +455,7 @@ export const setV3AuditDecisions = async (
   nowIso: string
 ): Promise<void> => {
   await db.read();
-  const existing = requireProject(projectId);
+  const existing = requireLiveProject(projectId);  // FR-1.10
 
   existing.audit = decisions;
   existing.updated_at = nowIso;
@@ -326,17 +501,12 @@ export const setV3ContentTypeSelection = async (
   nowIso: string
 ): Promise<void> => {
   await db.read();
-  const existing = requireProject(projectId);
-
-  // A soft-deleted project is not a migration target; recording a selection
-  // against one would quietly resurrect it (FR-9.9).
-  if (existing.isDeleted) {
-    const err = new Error(`Project ${projectId} does not exist`) as Error & {
-      status?: number;
-    };
-    err.status = 404;
-    throw err;
-  }
+  /*
+    This writer carried the deleted-project guard on its own before deletion existed
+    (FR-9.9). It now shares `requireLiveProject` with the other four, so there is one
+    place the rule lives rather than five copies that can drift.
+  */
+  const existing = requireLiveProject(projectId);
 
   existing.contentTypeSelection = {
     contentTypes: selection?.contentTypes ?? {},
@@ -376,8 +546,21 @@ export const setV3Graph = async (
 ): Promise<void> => {
   await db.read();
   const proj = db.data.projects.find((p) => p.id === projectId);
+  /*
+    The pre-existing error for a MISSING project or one with no source, unchanged.
+    TC_SRC_047 pins this message, and nothing in cs-project-lifecycle's feature.md
+    states it changed — so the deleted-project guard is added ALONGSIDE it rather than
+    replacing it. Routing both cases through `requireLiveProject` would have been
+    tidier and would have silently altered a contract this feature never touched.
+  */
   if (!proj || !proj.source) {
     throw new Error(`No v3 project/source found for '${projectId}'.`);
+  }
+  // FR-1.10: a deleted project is not a migration target.
+  if (proj.isDeleted) {
+    const err = new Error(`Project ${projectId} does not exist`) as Error & { status?: number };
+    err.status = 404;
+    throw err;
   }
   proj.source.graph = graph;
   proj.source.lastExport = lastExport;

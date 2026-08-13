@@ -48,8 +48,11 @@ export const loadProjects =
  * dispatch is synchronous, so a second call in the same tick observes
  * `creating === true` and returns immediately. Guarding on the submit control's
  * disabled state alone would not hold — two activations in one tick both read the
- * pre-update value. v3 cannot delete a project, so a duplicate is permanent
- * (FR-7.12, EC-16, TRR-2).
+ * pre-update value (FR-7.12, EC-16).
+ *
+ * Revised 2026-08-12: the former note here added "v3 cannot delete a project, so a
+ * duplicate is permanent". Both halves are now false — a duplicate NAME is refused with
+ * 409, and `deleteProject` below exists.
  */
 export const createProject =
   (input: { name: string; description?: string }) =>
@@ -86,5 +89,35 @@ export const createProject =
     } catch (e) {
       dispatch(projectActions.createFailed(errMsg(e)));
       return null;
+    }
+  };
+
+/**
+ * Deletes a project and drops it from the list (cs-project-lifecycle FR-2.6–FR-2.8).
+ *
+ * Single-flight on the same reasoning as `createProject`: `deletePending` is dispatched
+ * BEFORE the await and Redux dispatch is synchronous, so a second activation in the same
+ * tick observes `deletingId` and returns. Relying on the confirm control's disabled
+ * state alone would not hold — two activations in one tick both read the pre-update
+ * value, and here the action is irreversible.
+ */
+export const deleteProject =
+  (projectId: string) =>
+  async (dispatch: V3Dispatch, getState: () => V3RootState): Promise<boolean> => {
+    if (getState().project.deletingId) return false;
+    dispatch(projectActions.deletePending(projectId));
+
+    try {
+      await projectApi.deleteProject(projectId);
+      dispatch(projectActions.deleteSucceeded(projectId));
+      return true;
+    } catch (e) {
+      /*
+        The row stays in the list on failure. Dropping it would misrepresent the server's
+        state, and the project would reappear on the next load with nothing to explain
+        why (FR-2.8).
+      */
+      dispatch(projectActions.deleteFailed(errMsg(e) || 'The project could not be deleted.'));
+      return false;
     }
   };

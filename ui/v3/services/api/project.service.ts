@@ -25,4 +25,10 @@ export const projectApi = {
    * region and timestamps are server-assigned (FR-7.8).
    */
   createProject: (body: CreateProjectBody) => apiClient.post(projectBase, body),
+
+  /**
+   * Deletes a project and its exported content (cs-project-lifecycle API-1).
+   * The id is the only input — scope comes from the session on the server.
+   */
+  deleteProject: (projectId: string) => apiClient.delete(`${projectBase}/${projectId}`),
 };

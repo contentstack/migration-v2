@@ -58,3 +58,19 @@ const safeSegment = (value: string): string => {
  */
 export const stackDataDir = (projectId: string, stackId: string): string =>
   path.join(migrationDataDir(), safeSegment(projectId), safeSegment(stackId));
+
+/**
+ * Everything one project has exported: `exportData/<projectId>/`.
+ *
+ * The parent of `stackDataDir`, exposed as its own function rather than derived by
+ * the caller — deriving it would mean string-manipulating a path (`path.dirname` of a
+ * `stackDataDir` result), which bypasses the `safeSegment` sanitisation that is the
+ * only thing keeping a recursive delete inside this tree. Resolves TQ-1 in
+ * `docs/features/cs-project-lifecycle/trd.md`.
+ *
+ * ⚠️ Its caller DELETES this directory recursively, so `safeSegment` is load-bearing
+ * here in a way it is not for a read: an id that escaped would take unrelated
+ * directories with it.
+ */
+export const projectDataDir = (projectId: string): string =>
+  path.join(migrationDataDir(), safeSegment(projectId));

@@ -18,7 +18,7 @@ import {
 import { stackDataDir } from "../utils/migrationData.util.js";
 import { getUploadMeta, getUploadZipPath } from "../models/upload.store.js";
 import { getCliCredential } from "../models/auth.store.js";
-import { setV3Graph } from "../models/project.store.js";
+import { setV3Graph, isV3ProjectLive } from "../models/project.store.js";
 import { V3Source } from "../models/types.js";
 
 /*
@@ -422,6 +422,23 @@ async function runStackCliExport(
         ? `Contentstack CLI export failed on module "${result.failedModule}": ${result.error ?? "unknown error"}`
         : `Contentstack CLI export failed: ${result.error ?? "unknown error"}`
     );
+  }
+
+  /*
+    ⚠️ LIVENESS RE-CHECK before anything is published (cs-project-lifecycle FR-1.11).
+
+    This job captured `projectId` when it started. A CLI export takes minutes, and the
+    operator can delete the project while it runs — which removes `exportData/<id>/`.
+    Finalising regardless would move the temp folder straight back into that path,
+    silently resurrecting the data a deletion had just reclaimed, and then persist a
+    graph for a project that no longer exists.
+
+    The temp folder is removed on this path too: skipping only the rename would leave a
+    full export's worth of bytes behind under a `.partial-` name that nothing ever reads.
+  */
+  if (!(await isV3ProjectLive(projectId))) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw new Error("This project was deleted while its export was running.");
   }
 
   /*

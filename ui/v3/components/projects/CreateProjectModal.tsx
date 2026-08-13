@@ -20,9 +20,15 @@ const CreateProjectModal: FC<{
   open: boolean;
   creating: boolean;
   error?: string;
+  /**
+   * Names already visible in the loaded project list, for the pre-submit clash hint
+   * (cs-project-lifecycle FR-4.4). An affordance only — the server rule is the
+   * contract (FR-3.7), so this never blocks a submission.
+   */
+  existingNames?: string[];
   onSubmit: (input: { name: string; description: string }) => void;
   onCancel: () => void;
-}> = ({ open, creating, error, onSubmit, onCancel }) => {
+}> = ({ open, creating, error, existingNames, onSubmit, onCancel }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [attempted, setAttempted] = useState(false);
@@ -48,11 +54,26 @@ const CreateProjectModal: FC<{
 
   // Length problems surface immediately; the required-name message waits for an
   // attempt, so an untouched form is not shouting at the user.
+  /*
+    Pre-submit clash hint (FR-4.4). Uses the SAME comparison the server does — trimmed
+    and case-folded, ends only — so the two cannot disagree: a hint that collapsed inner
+    whitespace would warn about a name the server would happily accept.
+
+    Deliberately NOT part of `invalid`, so it never blocks submission. The server rule is
+    the contract (FR-3.7); this is an affordance, and a client-side gate would become a
+    second, divergent rule the moment the list on screen went stale.
+  */
+  const normaliseName = (value: string) => value.trim().toLowerCase();
+  const nameClashes =
+    !!name.trim() &&
+    (existingNames ?? []).some((existing) => normaliseName(existing) === normaliseName(name));
+
   const message =
     (nameTooLong && NAME_TOO_LONG) ||
     (nameLeadingSpace && NAME_LEADING_SPACE) ||
     (descriptionTooLong && DESCRIPTION_TOO_LONG) ||
     (attempted && nameMissing && 'Project name is required') ||
+    (nameClashes && 'A project with that name already exists') ||
     error ||
     '';
 

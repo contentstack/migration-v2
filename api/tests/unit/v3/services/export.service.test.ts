@@ -85,9 +85,18 @@ const emptyDetails = () => ({
   entriesByContentType: [],
 });
 
-const { mockSetGraph } = vi.hoisted(() => ({ mockSetGraph: vi.fn() }));
+const { mockSetGraph, mockIsLive } = vi.hoisted(() => ({
+  mockSetGraph: vi.fn(),
+  /*
+    cs-project-lifecycle FR-1.11: the job holds a projectId captured when it started,
+    so it must re-check that the project is still live before its final writes. Without
+    that check the atomic rename recreates the export folder a deletion just removed.
+  */
+  mockIsLive: vi.fn(() => Promise.resolve(true)),
+}));
 vi.mock("../../../../v3/models/project.store.js", () => ({
   setV3Graph: mockSetGraph,
+  isV3ProjectLive: mockIsLive,
 }));
 
 /*
@@ -214,6 +223,7 @@ beforeEach(() => {
   mockReadCts.mockImplementation(() => []);
   mockExistsSync.mockImplementation(() => false);
   mockRenameSync.mockImplementation(() => {});
+  mockIsLive.mockImplementation(() => Promise.resolve(true));
 });
 
 describe("v3 export.service", () => {
@@ -989,5 +999,104 @@ describe("v3 export.service — stack mode via the Contentstack CLI", () => {
     expect(job.status).toBe("failed");
     expect(job.error).toMatch(/no modules|nothing selected/i);
     expect(mockRunCliExport).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * cs-project-lifecycle, Phase 1 tranche 1d — TC_PL_039–042.
+ *
+ * A project can be deleted while its export is still running. The job captured the
+ * project id at start, so by the time it finalises, the folder it is about to move
+ * into place may have been deliberately removed. Recreating it would silently
+ * resurrect a deleted project's data on disk and persist a graph for a project the
+ * operator no longer has.
+ */
+describe("v3 export.service — a project deleted while its export runs", () => {
+  it("TC_PL_039 (positive): persists no content graph when the project was deleted mid-export", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(false));
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(mockSetGraph).not.toHaveBeenCalled();
+    expect(job.status).toBe("failed");
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state) inverted: a LIVE project must still get
+    its graph. Paired so "persists no graph" cannot be satisfied by a job that stopped
+    persisting graphs altogether.
+  */
+  it("TC_PL_039 (negative): still persists the graph when the project is live", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(true));
+
+    await settle(startExportJob(stackInput() as any));
+
+    expect(mockSetGraph).toHaveBeenCalledTimes(1);
+  });
+
+  it("TC_PL_040 (positive): does not move the temp folder into the destination for a deleted project", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(false));
+
+    await settle(startExportJob(stackInput() as any));
+
+    expect(mockRenameSync).not.toHaveBeenCalledWith(expect.anything(), "/fake/exportData/P1/blt1");
+  });
+
+  /*
+    Negative — taxonomy #4: the rename DOES happen for a live project. Without this the
+    positive could be satisfied by an export that never finalises anything.
+  */
+  it("TC_PL_040 (negative): still moves the temp folder into place for a live project", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(true));
+
+    await settle(startExportJob(stackInput() as any));
+
+    expect(mockRenameSync).toHaveBeenCalledWith(expect.anything(), "/fake/exportData/P1/blt1");
+  });
+
+  it("TC_PL_041 (positive): removes its temporary working folder when abandoning a deleted project", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(false));
+
+    await settle(startExportJob(stackInput() as any));
+
+    const tempDir = (mockRunCliExport.mock.calls[0][0] as any).dataDir;
+    expect(mockRmSync).toHaveBeenCalledWith(tempDir, expect.objectContaining({ recursive: true }));
+  });
+
+  /*
+    Negative — taxonomy #1 (missing cleanup): abandoning must not leave the temp folder
+    behind. Asserted as "the destination was never written" alongside the cleanup, so a
+    job that skipped the rename but kept a half-written folder still fails.
+  */
+  it("TC_PL_041 (negative): leaves no partial export at the destination after abandoning", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(false));
+
+    await settle(startExportJob(stackInput() as any));
+
+    expect(mockStampExportedAt).not.toHaveBeenCalled();
+    expect(mockRenameSync).not.toHaveBeenCalledWith(expect.anything(), "/fake/exportData/P1/blt1");
+  });
+
+  it("TC_PL_042 (positive): completes normally for a project that is not deleted", async () => {
+    mockIsLive.mockImplementation(() => Promise.resolve(true));
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("succeeded");
+    expect(job.progress).toBe(100);
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): the liveness check must not be able to
+    fail an otherwise good export by accident. If the check itself throws, the export
+    must not silently report success with no data — it fails loudly instead.
+  */
+  it("TC_PL_042 (negative): fails the job rather than reporting success if the liveness check throws", async () => {
+    mockIsLive.mockImplementation(() => Promise.reject(new Error("store unavailable")));
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("failed");
+    expect(mockSetGraph).not.toHaveBeenCalled();
   });
 });

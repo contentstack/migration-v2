@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { V3_BASE } from '../../constants';
 import CreateProjectModal from '../../components/projects/CreateProjectModal';
 import ProjectCard from '../../components/projects/ProjectCard';
+import DeleteProjectDialog from '../../components/projects/DeleteProjectDialog';
 import ProjectsTopBar from '../../components/projects/ProjectsTopBar';
 import {
   FirstRunEmptyState,
@@ -14,7 +15,7 @@ import {
 import { WIZARD_STEPS } from '../../components/wizard/steps';
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
 import { filterProjects, projectActions } from '../../store/slice/project.slice';
-import { createProject, loadProjects } from '../../store/thunks/project.thunks';
+import { createProject, deleteProject, loadProjects } from '../../store/thunks/project.thunks';
 import { loadUser } from '../../store/thunks/session.thunks';
 
 /**
@@ -34,7 +35,7 @@ const ProjectsV3: FC = () => {
   const [params] = useSearchParams();
 
   const user = useV3Selector((s) => s.session.user);
-  const { items, loading, error, creating, createError, unauthorized } = useV3Selector(
+  const { items, loading, error, creating, createError, deletingId, deleteError, unauthorized } = useV3Selector(
     (s) => s.project
   );
 
@@ -42,6 +43,8 @@ const ProjectsV3: FC = () => {
   // search the user left behind (FR-6.3).
   const [search, setSearch] = useState(() => (params.get('search') ?? '').trim());
   const [modalOpen, setModalOpen] = useState(false);
+  /** The project awaiting delete confirmation, or null when the dialog is closed. */
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Fixed for the lifetime of one page view so every card formats its date against
   // the same instant — two cards rendered a tick apart must not disagree about
@@ -279,7 +282,20 @@ const ProjectsV3: FC = () => {
 
           {!loading &&
             !failed &&
-            visible.map((p) => <ProjectCard key={p.id} project={p} now={now} onOpen={openProject} />)}
+            visible.map((p) => (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                now={now}
+                onOpen={openProject}
+                onDelete={(id) => {
+                  // Carries the NAME through for the dialog's copy, and the ID for the
+                  // action — two projects can share a name (FR-2.3).
+                  dispatch(projectActions.deleteReset());
+                  setPendingDelete({ id, name: p.name });
+                }}
+              />
+            ))}
 
           {/*
             Exactly one empty state can show, and the choice is made here in one
@@ -298,9 +314,33 @@ const ProjectsV3: FC = () => {
         open={modalOpen}
         creating={creating}
         error={createError}
+        /* Only the names already on screen. The server rule is the contract; this
+           just saves a round trip when the clash is visible (FR-4.4). */
+        existingNames={items.map((p) => p.name)}
         onSubmit={submitCreate}
         onCancel={closeModal}
       />
+
+      {pendingDelete && (
+        <DeleteProjectDialog
+          project={pendingDelete}
+          deleting={deletingId === pendingDelete.id}
+          error={deleteError}
+          onConfirm={async (id) => {
+            const ok = await dispatch(deleteProject(id));
+            /*
+              The dialog stays open on failure so the operator can see why and retry from
+              where they are (FR-2.8). Closing it and surfacing the error elsewhere would
+              lose the context of which project failed.
+            */
+            if (ok) setPendingDelete(null);
+          }}
+          onCancel={() => {
+            dispatch(projectActions.deleteReset());
+            setPendingDelete(null);
+          }}
+        />
+      )}
     </div>
   );
 };

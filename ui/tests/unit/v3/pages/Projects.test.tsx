@@ -22,10 +22,11 @@ import { Provider } from 'react-redux';
  * components run. The router is mocked so the query string and the navigation
  * target are both controllable.
  */
-const { mockGetProjects, mockCreateProject, mockGetUser, mockNavigate, mockSearch } = vi.hoisted(
+const { mockGetProjects, mockCreateProject, mockDeleteProject, mockGetUser, mockNavigate, mockSearch } = vi.hoisted(
   () => ({
     mockGetProjects: vi.fn(),
     mockCreateProject: vi.fn(),
+    mockDeleteProject: vi.fn(),
     mockGetUser: vi.fn(),
     mockNavigate: vi.fn(),
     mockSearch: { current: '' },
@@ -33,7 +34,11 @@ const { mockGetProjects, mockCreateProject, mockGetUser, mockNavigate, mockSearc
 );
 
 vi.mock('../../../../v3/services/api/project.service', () => ({
-  projectApi: { getProjects: mockGetProjects, createProject: mockCreateProject },
+  projectApi: {
+    getProjects: mockGetProjects,
+    createProject: mockCreateProject,
+    deleteProject: mockDeleteProject,
+  },
 }));
 vi.mock('../../../../v3/services/api/user.service', () => ({
   userApi: { getUser: mockGetUser },
@@ -90,6 +95,7 @@ beforeEach(() => {
   v3Store.dispatch(projectActions.reset());
   mockSearch.current = '';
   mockNavigate.mockReset();
+  mockDeleteProject.mockReset().mockResolvedValue({ data: { deleted: true, id: 'P1' } });
   mockGetUser
     .mockReset()
     .mockResolvedValue({ data: { user: { firstName: 'Chirag', lastName: 'Nair' } } });
@@ -935,5 +941,192 @@ describe('v3 Projects page — accessibility', () => {
 
     expect(reachable).toContain(searchField());
     expect(reachable).toContain(newProject());
+  });
+});
+
+/**
+ * cs-project-lifecycle, tranche 1e — TC_PL_055–059 (FR-2.6, FR-2.7, FR-2.8).
+ *
+ * The dashboard's side of the deletion: the list reflects the removal, one
+ * confirmation cannot issue two deletions, and a failure keeps the row visible rather
+ * than optimistically dropping a project that still exists.
+ */
+describe('cs-project-lifecycle — deleting from the dashboard', () => {
+  /** Opens the confirmation dialog for the first listed card. */
+  const openDialogForFirst = async () => {
+    const del = screen.getAllByRole('button', { name: /delete/i })[0];
+    await userEvent.click(del);
+    return screen.getByRole('dialog');
+  };
+  /*
+    Found by testid, not by text: the confirm control's label becomes "Deleting…" while
+    the request is in flight, so a /delete/i text match stops matching it at exactly the
+    moment the in-flight assertions need it.
+  */
+  const confirmControl = () =>
+    screen.getByTestId('delete-project-confirm') as HTMLButtonElement;
+  const confirmDelete = async () => {
+    await userEvent.click(confirmControl());
+  };
+
+  it('TC_PL_055 (positive): drops the deleted project from the list without a reload', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE.slice(1) } });
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(cards()).toHaveLength(2));
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): a FAILED delete must not drop the row.
+    An optimistic removal would show the operator a dashboard that disagrees with the
+    server, and the project would reappear on the next load with no explanation.
+  */
+  it('TC_PL_055 (negative): keeps the project listed when the delete request fails', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockDeleteProject.mockRejectedValue(new Error('boom'));
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(cards()).toHaveLength(3));
+  });
+
+  it('TC_PL_056 (positive): disables the confirm control while the delete is in flight', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    let release: (v: unknown) => void = () => {};
+    mockDeleteProject.mockImplementation(() => new Promise((r) => { release = r; }));
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(confirmControl()).toBeDisabled());
+    release({ data: { deleted: true, id: 'P1' } });
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): the control must be usable again once the request
+    settles, or a failed delete leaves the operator with a dialog they cannot retry from.
+  */
+  it('TC_PL_056 (negative): re-enables the confirm control after a failed delete', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockDeleteProject.mockRejectedValue(new Error('boom'));
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(confirmControl()).not.toBeDisabled());
+  });
+
+  it('TC_PL_057 (positive): issues exactly one delete request for a double activation', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    let release: (v: unknown) => void = () => {};
+    mockDeleteProject.mockImplementation(() => new Promise((r) => { release = r; }));
+
+    await openDialogForFirst();
+    const confirm = confirmControl();
+    // Both presses land while the first request is still outstanding — sequential
+    // awaits would let the first complete and legitimately allow a second.
+    await Promise.all([userEvent.click(confirm), userEvent.click(confirm)]);
+
+    expect(mockDeleteProject).toHaveBeenCalledTimes(1);
+    release({ data: { deleted: true, id: 'P1' } });
+  });
+
+  /*
+    Negative — taxonomy #7 (conflict): two DIFFERENT projects deleted in turn must issue
+    two requests. A guard that blocked all repeat activations would leave the operator
+    unable to delete more than one project per page load.
+  */
+  it('TC_PL_057 (negative): issues a request for each of two different projects', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+
+    await openDialogForFirst();
+    await confirmDelete();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const remaining = screen.getAllByRole('button', { name: /delete/i });
+    await userEvent.click(remaining[remaining.length - 1]);
+    await confirmDelete();
+
+    await waitFor(() => expect(mockDeleteProject).toHaveBeenCalledTimes(2));
+  });
+
+  it('TC_PL_058 (positive): keeps the project visible after a failed delete', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockDeleteProject.mockRejectedValue(new Error('server said no'));
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    /*
+      Scoped to the CARDS. The dialog stays open on failure and renders the project's
+      name too, so an unscoped getByText now matches twice — the requirement is that the
+      project is still LISTED, which is what the card count states.
+    */
+    await waitFor(() => expect(cards()).toHaveLength(3));
+    expect(cards().some((c) => c.textContent?.includes('Marketing stack sync'))).toBe(true);
+  });
+
+  /*
+    Negative — taxonomy #6: a SUCCESSFUL delete does remove it. Paired so "keeps the
+    project visible" cannot be satisfied by a dashboard that never removes anything.
+  */
+  it('TC_PL_058 (negative): removes the project after a successful delete', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE.slice(1) } });
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(cards()).toHaveLength(2));
+    expect(cards().some((c) => c.textContent?.includes('Marketing stack sync'))).toBe(false);
+  });
+
+  it('TC_PL_059 (positive): surfaces the failure to the operator', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockDeleteProject.mockRejectedValue(new Error('server said no'));
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): a successful delete must NOT show an error.
+    A dashboard that reported a failure after every deletion would train the operator to
+    ignore the message entirely.
+  */
+  it('TC_PL_059 (negative): shows no failure message after a successful delete', async () => {
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE } });
+    renderPage();
+    await settled();
+    mockGetProjects.mockResolvedValue({ data: { projects: THREE.slice(1) } });
+
+    await openDialogForFirst();
+    await confirmDelete();
+
+    await waitFor(() => expect(cards()).toHaveLength(2));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
