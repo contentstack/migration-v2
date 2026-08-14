@@ -1,7 +1,7 @@
 import { FC } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { destinationActions } from '../../store/slice/destination.slice';
+import { destinationActions, isDestinationComplete } from '../../store/slice/destination.slice';
 import { LockedValue, MapDash, MAP_GRID, MapSelect, MappingHeader } from './MappingRow';
 
 /**
@@ -17,6 +17,13 @@ const LanguageMapping: FC = () => {
   const { masterLocaleMapping, additionalLanguageMappings, locales } = useV3Selector(
     (s) => s.destination
   );
+  /*
+    Every control in this block writes to the committed destination document, so all of
+    them freeze together: the master-locale select, each mapped row, the row-remove
+    buttons and the add-row button. Leaving add/remove live would let the shape of a
+    saved mapping change even with the selects locked.
+  */
+  const frozen = useV3Selector((s) => isDestinationComplete(s.destination));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -39,6 +46,7 @@ const LanguageMapping: FC = () => {
           value={masterLocaleMapping.destLocale}
           placeholder="Select a locale…"
           options={locales}
+          disabled={frozen}
           onChange={(v) => dispatch(destinationActions.setDestMasterLocale(v))}
         />
         <span />
@@ -57,6 +65,7 @@ const LanguageMapping: FC = () => {
             value={row.srcLocale}
             placeholder="Select a locale…"
             options={locales}
+            disabled={frozen}
             onChange={(v) =>
               dispatch(destinationActions.setLanguageRow({ index: i, field: 'srcLocale', value: v }))
             }
@@ -67,6 +76,7 @@ const LanguageMapping: FC = () => {
             value={row.destLocale}
             placeholder="Select a locale…"
             options={locales}
+            disabled={frozen}
             onChange={(v) =>
               dispatch(destinationActions.setLanguageRow({ index: i, field: 'destLocale', value: v }))
             }
@@ -76,6 +86,7 @@ const LanguageMapping: FC = () => {
             className="v3-rowremove"
             aria-label={`Remove language mapping ${i + 1}`}
             title="Remove"
+            disabled={frozen}
             onClick={() => dispatch(destinationActions.removeLanguageRow(i))}
             style={{
               width: 28,
@@ -99,6 +110,7 @@ const LanguageMapping: FC = () => {
         <button
           type="button"
           className="v3-addrow"
+          disabled={frozen}
           onClick={() => dispatch(destinationActions.addLanguageRow())}
           style={{
             display: 'inline-flex',

@@ -28,6 +28,8 @@ import {
 } from '../../utils/auditDecisions';
 import { WIZARD_STEPS, statusLineFor } from '../wizard/steps';
 import { useRegisterStepGate } from '../wizard/StepGateContext';
+import { isDestinationComplete } from '../../store/slice/destination.slice';
+import { loadPersistedDestination } from '../../store/thunks/destination.thunks';
 import AuditImpact from './AuditImpact';
 import AuditCategoryCard from './AuditCategoryCard';
 import AuditInfoCard from './AuditInfoCard';
@@ -240,6 +242,12 @@ const CHECK_STATE_LABEL: Record<AuditCheckView['state'], string> = {
 const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
   const dispatch = useDispatch<V3Dispatch>();
   const audit = useSelector((s: V3RootState) => s.audit);
+  /*
+    Audit freezes with the DESTINATION, not with its own completion — the two steps lock
+    together. Until the destination is committed the operator must be able to revise
+    include/exclude decisions, which is exactly what they revisit before choosing one.
+  */
+  const frozen = useSelector((s: V3RootState) => isDestinationComplete(s.destination));
   const {
     phase, error, checks, totals, variantsInspected, decisions,
     tableOpen, filter, search, page, pageCount, total, counts, items, saving,
@@ -248,6 +256,16 @@ const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
   useEffect(() => {
     if (phase === 'idle') dispatch(loadAuditFindings(projectId) as never);
   }, [dispatch, phase, projectId]);
+
+  /*
+    Audit's freeze is decided by the DESTINATION document, which is not otherwise fetched
+    when the operator lands here directly (a reload, or a link into the wizard). Without
+    this the page would render fully editable on a project whose destination is long
+    since committed. The thunk is a read-only loader and a no-op when nothing is saved.
+  */
+  useEffect(() => {
+    dispatch(loadPersistedDestination(projectId) as never);
+  }, [dispatch, projectId]);
 
   const impact = useMemo(
     () => deriveImpact(totals?.denominator ?? 0, checks, decisions),
@@ -522,17 +540,46 @@ const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
         </div>
         <button
           type="button"
+          disabled={frozen}
           onClick={() => {
             // Announced at the click, so the acknowledgement belongs to the interaction
             // rather than to the scan completing (TC_AR_140).
             dispatch(toastActions.show('Re-scanning your source export'));
             dispatch(rerunAudit(projectId) as never);
           }}
-          style={secondaryButton}
+          /*
+            Muted while frozen so the control does not merely fail silently on click.
+            Same tokens the rest of v3 uses for a disabled control.
+          */
+          style={
+            frozen
+              ? {
+                  ...secondaryButton,
+                  color: 'var(--text-subtle)',
+                  borderColor: 'var(--border-subtle)',
+                  cursor: 'default',
+                }
+              : secondaryButton
+          }
         >
           Re-run audit
         </button>
       </div>
+
+      {/*
+        Shown only while frozen. The reason for the lock lives on the NEXT page, so
+        without this line a whole page of dead controls reads as a broken audit rather
+        than a completed decision. Suppressed before the freeze, where it would be noise.
+      */}
+      {frozen && (
+        <p data-testid="audit-frozen-notice" style={helperStrip}>
+          <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>🔒</span>
+          <span>
+            These choices are locked because your destination stack is already set up. To
+            change what comes over, start a new migration.
+          </span>
+        </p>
+      )}
 
       <AuditImpact impact={impact} />
 
@@ -561,6 +608,7 @@ const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
             variantCaveat={c.id === 'unusedAssets' && !variantsInspected}
             onToggle={() => onToggleCategory(c.id)}
             onReview={() => onReviewItems(c.id)}
+            readOnly={frozen}
           />
         ))}
       </section>
@@ -609,6 +657,7 @@ const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
         onSearch={onSearch}
         onPage={onPage}
         onToggleItem={onToggleItem}
+        readOnly={frozen}
         onBulk={onBulk}
       />
 

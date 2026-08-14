@@ -1,7 +1,7 @@
 import { FC } from 'react';
 
 import { useV3Dispatch, useV3Selector } from '../../store/hooks';
-import { destinationActions } from '../../store/slice/destination.slice';
+import { destinationActions, isDestinationComplete } from '../../store/slice/destination.slice';
 import { LockedValue, MapDash, MAP_GRID, MapSelect, MappingHeader } from './MappingRow';
 
 const MAIN_ONLY = [{ value: 'main', label: 'main' }];
@@ -17,6 +17,12 @@ const MAIN_ONLY = [{ value: 'main', label: 'main' }];
 const BranchMapping: FC = () => {
   const dispatch = useV3Dispatch();
   const { branchMapping, branches, stackWasCreated } = useV3Selector((s) => s.destination);
+  /*
+    The mapping is part of the committed destination, not a scratch field, so it freezes
+    with it. Read from the same shared rule the panel uses rather than taking a prop, so
+    the two can never disagree about whether the step is done.
+  */
+  const frozen = useV3Selector((s) => isDestinationComplete(s.destination));
 
   const options = stackWasCreated || branches.length === 0 ? MAIN_ONLY : branches;
 
@@ -39,6 +45,7 @@ const BranchMapping: FC = () => {
           value={branchMapping.destBranch}
           placeholder="Select a branch…"
           options={options}
+          disabled={frozen}
           onChange={(v) => dispatch(destinationActions.setDestBranch(v))}
         />
         <span />

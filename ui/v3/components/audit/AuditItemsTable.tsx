@@ -182,10 +182,16 @@ const AuditItemsTable: FC<{
   onPage: (next: number) => void;
   onToggleItem: (key: string, category: AuditCategory) => void;
   onBulk: () => void;
+  /**
+   * Frozen because the destination is saved. Applies to the DECISION controls only —
+   * search, the filter chips and pagination stay live, because reading the findings is
+   * still useful once they can no longer be changed.
+   */
+  readOnly?: boolean;
 }> = ({
   open, items, page, pageCount, total, counts, filter, search, decisions,
   anyExclusion, bulkAvailable, onToggleOpen, onFilter, onSearch, onPage,
-  onToggleItem, onBulk,
+  onToggleItem, onBulk, readOnly,
 }) => (
   <section style={shell} aria-label="All flagged items">
     <div style={headRow}>
@@ -194,7 +200,7 @@ const AuditItemsTable: FC<{
       </h3>
       <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{total} flagged</span>
       {bulkAvailable && (
-        <button type="button" style={bulkButton(anyExclusion)} onClick={onBulk}>
+        <button type="button" style={bulkButton(anyExclusion)} onClick={onBulk} disabled={readOnly}>
           {anyExclusion ? 'Include everything' : 'Exclude all flagged'}
         </button>
       )}
@@ -322,7 +328,10 @@ const AuditItemsTable: FC<{
                           type="button"
                           role="checkbox"
                           aria-checked={!excluded}
-                          disabled={locked}
+                          /* `locked` means the item can never be excluded; `readOnly`
+                             means no decision can change any more. Different reasons,
+                             same disabled state. */
+                          disabled={locked || readOnly}
                           // Names the ITEM, not just its state: fifty checkboxes reading
                           // "Included" tell a screen-reader user nothing (NFR-8).
                           aria-label={

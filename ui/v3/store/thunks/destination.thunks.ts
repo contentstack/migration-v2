@@ -281,7 +281,19 @@ export const loadPersistedDestination =
   (projectId: string) => async (dispatch: V3Dispatch) => {
     try {
       const { data } = await destinationApi.getDestination(projectId);
-      if (data?.destination) dispatch(destinationActions.hydrate(data.destination));
+      if (data?.destination) {
+        dispatch(destinationActions.hydrate(data.destination));
+        /*
+          A document that came back from the server IS a committed destination, so the
+          completion flag is restored with the fields. Without this, `proceeded` was only
+          ever set in-session after a successful persist, and reopening a finished project
+          restored every field with the flag still false — the same lost-on-restart trap
+          that made the Source panel key on a persisted graph rather than a job status.
+
+          Set here rather than inside `hydrate` so seeding fields never implies commitment.
+        */
+        dispatch(destinationActions.setProceeded(true));
+      }
     } catch {
       // A 404 is the normal first-visit state, not an error (AC-5.1's negative).
     }

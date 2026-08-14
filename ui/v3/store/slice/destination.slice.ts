@@ -362,11 +362,43 @@ const destinationSlice = createSlice({
           (m: LocaleMapping) => ({ ...m })
         );
       }
+      /*
+        ⚠️ Deliberately does NOT touch `proceeded`. This reducer is a plain field setter,
+        used both by the restore path and by tests/callers that just need to seed a few
+        fields — an earlier version marked the destination complete here, which silently
+        froze the panel for every such caller (it disabled the language-mapping remove
+        button in TC_DEST_037, which seeds rows this way).
+
+        "A document came back from the server, therefore this destination is committed" is
+        knowledge that belongs to `loadPersistedDestination`, which is the only caller that
+        actually knows it. It dispatches `setProceeded(true)` alongside this.
+      */
     },
 
     reset: () => initialState,
   },
 });
+
+/**
+ * Whether this project's destination is settled, and the Audit and Destination steps
+ * should therefore both be frozen.
+ *
+ * One definition, consumed by both panels. `proceeded` is true after a successful persist
+ * in-session and after `hydrate` restores a persisted document on a later visit.
+ *
+ * ⚠️ No "failed" override, unlike the Source panel's equivalent — and that asymmetry is
+ * deliberate, not an omission. `proceedToContentMapping` mints the management token BEFORE
+ * persisting and returns false having written nothing if the mint throws, so a failure
+ * leaves no destination document at all. Failure and completion cannot coexist here, where
+ * on the Source side a graph from an earlier success could sit alongside a later failure.
+ *
+ * The Audit step reads this rather than its own completion: an operator must be able to
+ * revise include/exclude decisions right up until the destination is committed, so both
+ * steps lock at the same moment and that moment is this one.
+ */
+export const isDestinationComplete = (
+  d: Pick<DestinationState, 'proceeded'> | undefined
+): boolean => !!d?.proceeded;
 
 /**
  * FR-6.1 gate: every required field set AND the persisted source ready.

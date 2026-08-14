@@ -414,3 +414,126 @@ describe('v3 DestinationPanel — Destination summary', () => {
     expect(screen.getByTestId('summary-locales').textContent).not.toBe(before);
   });
 });
+
+/**
+ * Freezing the destination once it has been saved — rows TC_DEST_059–061.
+ *
+ * Added 2026-08-13 as a direct change. Unlike Source, no "failed" override is needed:
+ * `proceedToContentMapping` mints the management token BEFORE persisting and returns false
+ * having persisted nothing if the mint throws, so a failure leaves no destination document
+ * and therefore cannot coexist with the frozen state.
+ *
+ * ⚠️ `proceeded` alone was not enough. It was set only in-session after a successful
+ * persist, so a reload restored the fields with the flag still false — the same
+ * lost-on-restart trap that made Source key on a persisted graph. `hydrate` now sets it,
+ * which is sound because `loadPersistedDestination` only dispatches `hydrate` when the
+ * server actually returned a document.
+ */
+describe('v3 DestinationPanel — frozen once the destination is saved', () => {
+  it('TC_DEST_062 (positive): disables the destination branch dropdown once saved', () => {
+    renderPanel((s) => {
+      seedComplete(s);
+      s.dispatch(destinationActions.setProceeded(true));
+    });
+
+    expect(screen.getByLabelText('Destination branch')).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): the branch dropdown must stay OPERABLE before
+    the destination is saved. Freezing it early would block the mapping the operator has to
+    complete in order to proceed at all — the control is a precondition of its own freeze.
+  */
+  it('TC_DEST_062 (negative): leaves the destination branch dropdown editable before saving', () => {
+    renderPanel(seedComplete);
+
+    expect(screen.getByLabelText('Destination branch')).not.toBeDisabled();
+  });
+
+  it('TC_DEST_063 (positive): disables the locale mapping selects and the auth cards once saved', () => {
+    renderPanel((s) => {
+      seedComplete(s);
+      s.dispatch(destinationActions.setProceeded(true));
+    });
+
+    // Guard against a vacuous pass: assert the controls EXIST before asserting they are
+    // all disabled, or an empty list would satisfy `.every`.
+    const locales = screen.getAllByLabelText(/^destination (master )?locale/i);
+    expect(locales.length).toBeGreaterThan(0);
+    locales.forEach((el) => expect(el).toBeDisabled());
+
+    /*
+      The auth cards are `role="radio"` divs, not form controls, so `toBeDisabled()` does
+      not apply — jest-dom deliberately ignores `aria-disabled`. The real contract for a
+      non-form widget is therefore asserted directly: announced as disabled, removed from
+      the tab order, and inert when activated. That is stricter than `toBeDisabled()`,
+      which would have said nothing about whether the click still worked.
+    */
+    const authCards = screen.getAllByRole('radio');
+    expect(authCards.length).toBeGreaterThan(0);
+    authCards.forEach((el) => {
+      expect(el).toHaveAttribute('aria-disabled', 'true');
+      expect(el).toHaveAttribute('tabindex', '-1');
+    });
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): same reasoning as the branch dropdown — both
+    are required before proceeding, so neither may be frozen until the destination is saved.
+  */
+  it('TC_DEST_063 (negative): leaves the locale mapping and auth cards editable before saving', () => {
+    renderPanel(seedComplete);
+
+    const locales = screen.getAllByLabelText(/^destination (master )?locale/i);
+    expect(locales.length).toBeGreaterThan(0);
+    locales.forEach((el) => expect(el).not.toBeDisabled());
+    screen.getAllByRole('radio').forEach((el) => {
+      expect(el).not.toHaveAttribute('aria-disabled', 'true');
+      expect(el).toHaveAttribute('tabindex', '0');
+    });
+  });
+
+  it('TC_DEST_060 (positive): disables the region, org and stack selects once saved', () => {
+    renderPanel((s) => {
+      seedComplete(s);
+      s.dispatch(destinationActions.setProceeded(true));
+    });
+
+    expect(screen.getByLabelText('Region')).toBeDisabled();
+    expect(screen.getByLabelText('Organization')).toBeDisabled();
+    expect(screen.getByLabelText('Stack')).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state) inverted: a complete-but-unsaved selection
+    must stay editable. This is the state the operator sits in just before proceeding, so
+    freezing it would make the panel impossible to correct.
+  */
+  it('TC_DEST_060 (negative): leaves the selects editable while the destination is unsaved', () => {
+    renderPanel(seedComplete);
+
+    expect(screen.getByLabelText('Region')).not.toBeDisabled();
+    expect(screen.getByLabelText('Stack')).not.toBeDisabled();
+  });
+
+  it('TC_DEST_061 (positive): shows "Destination saved" on a disabled action', () => {
+    renderPanel((s) => {
+      seedComplete(s);
+      s.dispatch(destinationActions.setProceeded(true));
+    });
+
+    const btn = screen.getByRole('button', { name: /destination saved/i });
+    expect(btn).toBeDisabled();
+  });
+
+  /*
+    Negative — taxonomy #1 (missing state): before saving, the action still offers to
+    proceed. Pinning both labels stops the saved state becoming the only one the button
+    ever shows.
+  */
+  it('TC_DEST_061 (negative): still offers the proceed action before saving', () => {
+    renderPanel(seedComplete);
+
+    expect(screen.queryByRole('button', { name: /destination saved/i })).toBeNull();
+  });
+});

@@ -119,13 +119,16 @@ export const MapSelect: FC<{
   placeholder: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
-}> = ({ label, value, placeholder, options, onChange }) => (
+  /** Set once the destination is committed — the mapping is part of that decision. */
+  disabled?: boolean;
+}> = ({ label, value, placeholder, options, onChange, disabled }) => (
   <div style={{ minWidth: 0 }}>
     <V3Select
       ariaLabel={label}
       value={value}
       placeholder={placeholder}
       options={options}
+      disabled={disabled}
       onChange={onChange}
     />
   </div>

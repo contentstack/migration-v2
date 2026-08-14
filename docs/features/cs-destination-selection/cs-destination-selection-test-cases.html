@@ -196,7 +196,12 @@
     ["TC_DEST_055", "Non-functional", "Usability", "Keyboard operability", "Navigate the region-switch login modal, import-authentication method cards, and locale/branch dropdowns using only the keyboard", "All controls are operable without a mouse (NFR-3)", "N", "Not Run"],
     ["TC_DEST_056", "Non-functional", "Usability", "Screen-reader announces locked fields", "Use a screen reader to inspect the locked source-branch and master-locale displays", "Both are announced as read-only, not as editable fields (NFR-3)", "N", "Not Run"],
     ["TC_DEST_057", "Non-functional", "Usability", "WCAG 2.1 AA", "Audit the new Destination panel controls against WCAG 2.1 AA", "All new controls meet WCAG 2.1 AA (NFR-3)", "N", "Not Run"],
-    ["TC_DEST_058", "Non-functional", "Usability", "Observability logging", "Perform region-set, org-set, auth-method-chosen, proceed-clicked, and proceed-blocked actions", "Each event is logged with project identifiers, excluding any secret values (NFR-6)", "N", "Not Run"]
+    ["TC_DEST_058", "Non-functional", "Usability", "Observability logging", "Perform region-set, org-set, auth-method-chosen, proceed-clicked, and proceed-blocked actions", "Each event is logged with project identifiers, excluding any secret values (NFR-6)", "N", "Not Run"],
+    ["TC_DEST_059", "Destination lock", "Functional", "Post-commit freeze", "Save the destination stack, then revisit the Destination panel", "The Region, Organization and Stack controls are disabled and the proceed control reads 'Destination saved'", "Y", "Not Run"],
+    ["TC_DEST_060", "Destination lock", "Functional", "Restored lock", "Reload the wizard on a project whose destination was saved in an earlier session, and open the Destination panel", "The panel restores as locked from the persisted destination document, without re-committing anything", "Y", "Not Run"],
+    ["TC_DEST_061", "Destination lock", "Negative", "Pre-commit editability", "Open the Destination panel on a project that has no saved destination", "Every control stays enabled and no lock notice is shown", "Y", "Not Run"],
+    ["TC_DEST_062", "Destination lock", "Functional", "Branch mapping frozen", "Save the destination stack, then revisit the Destination panel and inspect the branch mapping row", "The destination branch dropdown is disabled", "Y", "Not Run"],
+    ["TC_DEST_063", "Destination lock", "Functional", "Locale mapping and auth frozen", "Save the destination stack, then inspect the locale mapping rows and the import-authentication cards", "Every locale select, the add-row and remove-row controls are disabled, and each auth card is announced as disabled and removed from the tab order", "Y", "Not Run"]
   ];
 
   function esc(s){
