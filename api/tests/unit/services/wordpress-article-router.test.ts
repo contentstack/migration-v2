@@ -777,7 +777,8 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
   it('references a flexible_layouts side entry from page_sections and fills title/url', async () => {
     const { entry, sideEntries } = await runPage();
     expect(entry.title).toBe('A Landing Page');
-    expect(entry.url).toBe('https://scaledagile.com/landing/');
+    // url field holds the site-relative path (domain stripped), not the full permalink.
+    expect(entry.url).toBe('/landing/');
     expect(Array.isArray(entry.page_sections)).toBe(true);
     expect(entry.page_sections).toHaveLength(1);
     const block = entry.page_sections[0];
@@ -871,5 +872,66 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     });
     const marketo = entry.page_sections.find((s: any) => s.marketo_form)?.marketo_form;
     expect(marketo.form_id).toBe('2402');
+  });
+});
+
+describe('Entry field hygiene (taxonomy allow-list + url path)', () => {
+  const taxCt = {
+    uid: 'review_videos',
+    schema: [
+      { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
+      { uid: 'url', data_type: 'text' },
+      { uid: 'video_taxonomies', data_type: 'taxonomy', taxonomies: [{ taxonomy_uid: 'topic' }, { taxonomy_uid: 'industry' }] },
+    ],
+  };
+  const item = { title: 'V', link: 'https://scaledagile.com/videos/leading-safe/', 'wp:post_id': '7', 'wp:post_type': 'videos', 'wp:postmeta': [] };
+
+  it('keeps only taxonomies the content type field whitelists', () => {
+    const e = buildEntryFromSchema(taxCt, [], item, {
+      ...engineCtx,
+      taxonomies: [
+        { taxonomy_uid: 'topic', term_uid: 'agile' },
+        { taxonomy_uid: 'category', term_uid: 'foo' }, // not whitelisted → dropped
+        { taxonomy_uid: 'size', term_uid: 'enterprise' }, // not whitelisted → dropped
+        { taxonomy_uid: 'industry', term_uid: 'finance' },
+      ],
+    });
+    expect(e.video_taxonomies).toEqual([
+      { taxonomy_uid: 'topic', term_uid: 'agile' },
+      { taxonomy_uid: 'industry', term_uid: 'finance' },
+    ]);
+  });
+
+  it('populates the SEO global field regardless of its uid (seo or review_seo)', () => {
+    const seoItem = {
+      ...item,
+      'wp:postmeta': [
+        { 'wp:meta_key': '_yoast_wpseo_title', 'wp:meta_value': 'My SEO Title' },
+        { 'wp:meta_key': '_yoast_wpseo_metadesc', 'wp:meta_value': 'My meta description' },
+      ],
+    };
+    const mk = (gfUid: string) => ({
+      uid: 'x',
+      schema: [
+        { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
+        { uid: 'seo', data_type: 'global_field', reference_to: gfUid },
+      ],
+    });
+    const runSeo = (gfUid: string) =>
+      buildEntryFromSchema(mk(gfUid), [], seoItem, { ...engineCtx, link: seoItem.link, taxonomies: [] });
+    // Both the migration's `seo` and the authored `review_seo` resolve to the SEO fill path.
+    expect(runSeo('seo').seo).toBeTruthy();
+    expect(runSeo('seo').seo.meta_title).toBe('My SEO Title');
+    expect(runSeo('review_seo').seo).toBeTruthy();
+    expect(runSeo('review_seo').seo.meta_title).toBe('My SEO Title');
+  });
+
+  it('stores the site-relative path in url (domain stripped, query/hash kept)', () => {
+    const e = buildEntryFromSchema(taxCt, [], item, { ...engineCtx, link: item.link, taxonomies: [] });
+    expect(e.url).toBe('/videos/leading-safe/');
+    const e2 = buildEntryFromSchema(taxCt, [], item, { ...engineCtx, link: 'https://scaledagile.com/a/b?x=1#s', taxonomies: [] });
+    expect(e2.url).toBe('/a/b?x=1#s');
+    const e3 = buildEntryFromSchema(taxCt, [], item, { ...engineCtx, link: '/already/relative', taxonomies: [] });
+    expect(e3.url).toBe('/already/relative');
   });
 });

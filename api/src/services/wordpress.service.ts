@@ -474,6 +474,22 @@ function unwrapSingleChildGroup(block: any): any {
  * string for Contentstack `isodate` fields. Returns undefined for missing/invalid values so the
  * caller can skip the field rather than write garbage.
  */
+/**
+ * Reduce a WordPress permalink to the site-relative path stored in an entry's `url` field: strip the
+ * scheme + host (the site domain), keep the path onward (query/hash preserved). A value that is already
+ * relative or unparseable is returned unchanged. e.g. `https://scaledagile.com/a/b?x=1` → `/a/b?x=1`.
+ */
+function toEntryUrlPath(raw: string): string {
+  const s = String(raw ?? '').trim();
+  if (!s) return s;
+  try {
+    const u = new URL(s);
+    return `${u.pathname}${u.search}${u.hash}` || '/';
+  } catch {
+    return s;
+  }
+}
+
 function toIsoDate(value: any): string | undefined {
   const raw = String(value ?? '').trim();
   if (!raw || raw.startsWith('0000-00-00')) return undefined;
@@ -1188,12 +1204,14 @@ function providerFromUrl(url: string): string | undefined {
  * referenced global field's schema, which would lose the value. Returns undefined when the SEO global
  * field or its mapping isn't present, so callers skip filtering and preserve prior behavior.
  */
+/** A global field whose uid is `seo` or ends in `_seo` (e.g. `review_seo`) is the SEO global field. */
+const isSeoUid = (uid: unknown): boolean => /(^|_)seo$/i.test(String(uid ?? ''));
+
 function seoAllowedSubUids(contentTypes: any[]): Set<string> | undefined {
   const seoGf = Array.isArray(contentTypes)
     ? contentTypes.find(
         (c: any) =>
-          c?.type === 'global_field' &&
-          (c?.contentstackUid === 'seo' || c?.otherCmsUid === 'seo'),
+          c?.type === 'global_field' && (isSeoUid(c?.contentstackUid) || isSeoUid(c?.otherCmsUid)),
       )
     : undefined;
   const mapping = seoGf?.fieldMapping;
@@ -2373,7 +2391,8 @@ export function buildEntryFromSchema(
     } else if (dt === 'reference' && referenceTargets(field).includes('author')) {
       if (ctx.authorData?.length) entry[uid] = ctx.authorData;
     } else if (dt === 'global_field') {
-      if (referenceTargets(field).includes('seo')) {
+      if (referenceTargets(field).some(isSeoUid)) {
+        // SEO global field regardless of its uid (`seo`, `review_seo`, …): fill from Yoast postmeta.
         if (seo && Object.keys(seo).length) entry[uid] = seo;
       } else {
         // Non-SEO global field (e.g. course/review `metadata` → review_metadata): fill its declared
@@ -2386,7 +2405,20 @@ export function buildEntryFromSchema(
         }
       }
     } else if (dt === 'taxonomy') {
-      if (ctx.taxonomies?.length) entry[uid] = ctx.taxonomies;
+      // Contentstack rejects an entry that references a taxonomy the content type's taxonomy field is
+      // not configured to accept. Keep only the taxonomy_uids this field whitelists (when it declares
+      // any), so a WP item tagged with domains beyond the field's allow-list never fails the import.
+      if (ctx.taxonomies?.length) {
+        const allowed = new Set(
+          (Array.isArray(field?.taxonomies) ? field.taxonomies : [])
+            .map((t: any) => t?.taxonomy_uid)
+            .filter(Boolean),
+        );
+        const filtered = allowed.size
+          ? ctx.taxonomies.filter((t: any) => allowed.has(t?.taxonomy_uid))
+          : ctx.taxonomies;
+        if (filtered.length) entry[uid] = filtered;
+      }
     } else if (dt === 'group') {
       const g = fillDeclaredFields(field?.schema);
       if (Object.keys(g).length) entry[uid] = g;
@@ -2415,7 +2447,7 @@ export function buildEntryFromSchema(
       } else if (uid === 'title') {
         entry[uid] = item?.title;
       } else if (uid === 'url') {
-        entry[uid] = permalink;
+        entry[uid] = toEntryUrlPath(permalink);
       } else if (uid === 'excerpt' && excerptText) {
         entry[uid] = excerptText;
       } else if (isDropdownField(field)) {
@@ -3406,7 +3438,7 @@ async function readWxrXml(inputPath: string): Promise<string> {
   return fs.promises.readFile(inputPath, 'utf8');
 }
 
-async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>, allowedSeoUids?: Set<string>) {
+async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>, allowedSeoUids?: Set<string>, ctMappingUids: string[] = []) {
   console.info("saveEntry");
   const locale = getLocale(master_locale, project) || master_locale;
   const mapperKeys = project?.mapperKeys || {};
@@ -3453,11 +3485,36 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
   // course body). Keyed by target content type uid → { entryUid: entry }. Written to their own
   // entries/<ct>/<locale>/<locale>.json after the main loop.
   const sideEntries: Record<string, Record<string, any>> = {};
-  /** Whether the content type an item maps to declares a taxonomy field (default true when unknown). */
+  // Taxonomy uid → whether authored, matched loosely (case- and separator-insensitive) so a WP post
+  // type / mapper uid resolves to its authored content type even when they differ by `-` vs `_`.
+  const normUid = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const authoredTaxByNorm = new Map<string, boolean>();
+  for (const [uid, has] of authoredHasTaxonomy) authoredTaxByNorm.set(normUid(uid), has);
+  // Does the mapper for THIS content type declare a taxonomy field? (Positive signal for CTs that
+  // aren't in the authored model but were built with one.)
+  const mapperDeclaresTaxonomy =
+    Array.isArray(fields) &&
+    fields.some(
+      (f: any) =>
+        f?.contentstackFieldType === 'taxonomy' ||
+        f?.data_type === 'taxonomy' ||
+        (typeof f?.contentstackFieldUid === 'string' && getLastUid(f.contentstackFieldUid) === 'taxonomies'),
+    );
+  /**
+   * Whether the content type an item maps to declares a taxonomy field. Contentstack rejects an entry
+   * carrying `taxonomies` when its content type has no taxonomy field, so we attach ONLY when the field
+   * is positively confirmed — via the authored schema (by POST_TYPE_TARGETS or the mapping's own uids)
+   * or the mapper — and default to NOT attaching otherwise. Prevents "content type '<uid>' does not have
+   * a taxonomy field" for unmapped types (e.g. external → external-links).
+   */
   const contentTypeHasTaxonomyField = (postType: string | undefined): boolean => {
     const ctUid = targetForPostType(postType)?.contentType;
     if (ctUid && authoredHasTaxonomy.has(ctUid)) return authoredHasTaxonomy.get(ctUid)!;
-    return true;
+    for (const cand of [postType, ...ctMappingUids]) {
+      const has = authoredTaxByNorm.get(normUid(cand));
+      if (has !== undefined) return has;
+    }
+    return mapperDeclaresTaxonomy;
   };
 
   try {
@@ -3928,7 +3985,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       return matchesType && matchesStatus;
     });
 
-      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings, allowedSeoUids) || {};
+      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings, allowedSeoUids, [contentstackUid, otherCmsUid, contentTypeUid, mappedTarget?.contentType].filter(Boolean) as string[]) || {};
 
       const filePath = path.join(postFolderPath,  `${locale}.json`);
       // Article is fed by more than one WP post type; merge into any entries already written to the
