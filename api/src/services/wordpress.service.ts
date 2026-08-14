@@ -3677,7 +3677,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           );
           await fs.promises.mkdir(blocksOutDir, { recursive: true });
           await fs.promises.writeFile(
-            path.join(blocksOutDir, `${i}_${String(item?.title || 'untitled').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().replace(/\s+/g, '_').slice(0, 80)}.json`),
+            path.join(blocksOutDir, `${uid}_${String(item?.title || 'untitled').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().replace(/\s+/g, '_').slice(0, 80)}.json`),
             JSON.stringify(blocksJson, null, 2),
             'utf8'
           );

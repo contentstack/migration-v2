@@ -555,7 +555,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         await mkdirp(typeDir);
         const blocksOutPath = path.join(
           typeDir,
-          `${itemIndex}_${sanitizeBlocksJsonFileName(data?.title)}.json`
+          `${postId}_${sanitizeBlocksJsonFileName(data?.title)}.json`
         );
         await fs.promises.writeFile(
           blocksOutPath,

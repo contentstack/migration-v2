@@ -120,10 +120,8 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
     }
       
       
-    return [
-      ...readJsonFilesFromFolder(contentTypeFolderPath),
-      ...readGlobalFieldsFromFolder(globalFieldsFolderPath)
-    ];
+    return readJsonFilesFromFolder(contentTypeFolderPath);
+    
   } catch (error : any) {
     console.error('Error during WordPress content type extraction:', error?.message);
   }
