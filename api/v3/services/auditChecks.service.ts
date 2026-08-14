@@ -16,7 +16,8 @@ export type AuditCategory =
   | "unusedAssets"
   | "unpublishedEntries"
   | "emptyContentTypes"
-  | "unusedGlobalFields";
+  | "unusedGlobalFields"
+  | "unusedTaxonomies";
 
 export interface AuditFlaggedItem {
   /** `entry:<ct>:<uid>:<locale>` or `asset:<uid>` — see feature.md FR-7.3. */
@@ -63,6 +64,7 @@ const LABELS: Record<AuditCategory, string> = {
   unpublishedEntries: "Unpublished entries — has publish details?",
   emptyContentTypes: "Empty content types — any entries at all?",
   unusedGlobalFields: "Unused global fields — referenced by a schema?",
+  unusedTaxonomies: "Unused taxonomies — any term referenced by an entry?",
 };
 
 const CHECK_ORDER: AuditCategory[] = [
@@ -70,6 +72,7 @@ const CHECK_ORDER: AuditCategory[] = [
   "unpublishedEntries",
   "emptyContentTypes",
   "unusedGlobalFields",
+  "unusedTaxonomies",
 ];
 
 /**
@@ -201,6 +204,28 @@ const collectGlobalFieldRefs = (schema: any[], into: Set<string>): void => {
   }
 };
 
+// ───────────────────────── taxonomy term references ─────────────────────────
+
+/**
+ * Every `<taxonomy_uid>:<term_uid>` pair an entry's top-level `taxonomies` array
+ * names — e.g. `[{ taxonomy_uid: "product_area", term_uid: "personalize" }]`.
+ *
+ * Usage is derived by scanning entries ourselves, the same way `unusedAssetsCheck`
+ * and `unusedGlobalFieldsCheck` do, rather than trusting a `referenced_entries_count`
+ * supplied by an export producer. The real Contentstack CLI export never populates
+ * that field at all, so relying on it made this check silently report zero unused
+ * taxonomies regardless of the real data.
+ */
+const collectTaxonomyRefs = (entry: any, into: Set<string>): void => {
+  const rows = entry?.taxonomies;
+  if (!Array.isArray(rows)) return;
+  for (const row of rows) {
+    if (typeof row?.taxonomy_uid === "string" && typeof row?.term_uid === "string") {
+      into.add(`${row.taxonomy_uid}:${row.term_uid}`);
+    }
+  }
+};
+
 // ───────────────────────── the checks ─────────────────────────
 
 /**
@@ -319,11 +344,41 @@ const unusedGlobalFieldsCheck = (data: AuditExportData): AuditCheck => {
   return check("unusedGlobalFields", "done", items);
 };
 
+/**
+ * Unused taxonomies — no term in the taxonomy is referenced by any entry (FR-2.6's
+ * "bias toward used" rule applies here too, via the same entry-scan `collectTaxonomyRefs`
+ * uses for assets and global fields: a term only counts as used when an entry actually
+ * names it, so a scan gap can only under-report, never wrongly flag a taxonomy that's
+ * genuinely in use).
+ */
+const unusedTaxonomiesCheck = (data: AuditExportData): AuditCheck => {
+  if (data.errors.taxonomies) return check("unusedTaxonomies", "unavailable");
+  if (!data.modules.taxonomies) return check("unusedTaxonomies", "notPresent");
+
+  const referenced = new Set<string>();
+  for (const r of data.records) collectTaxonomyRefs(r.entry, referenced);
+  for (const r of data.variantRecords) collectTaxonomyRefs(r.entry, referenced);
+
+  const items = data.taxonomies
+    .filter((tax) => tax.terms.length > 0 && tax.terms.every((t) => !referenced.has(`${tax.uid}:${t.uid}`)))
+    .map<AuditFlaggedItem>((tax) => ({
+      key: `taxonomy:${tax.uid}`,
+      category: "unusedTaxonomies",
+      type: "Taxonomy",
+      title: tax.name ?? tax.uid,
+      uid: tax.uid,
+      status: "Unused",
+    }));
+
+  return check("unusedTaxonomies", "done", items);
+};
+
 const RUNNERS: Record<AuditCategory, (d: AuditExportData) => AuditCheck> = {
   unusedAssets: unusedAssetsCheck,
   unpublishedEntries: unpublishedCheck,
   emptyContentTypes: emptyContentTypesCheck,
   unusedGlobalFields: unusedGlobalFieldsCheck,
+  unusedTaxonomies: unusedTaxonomiesCheck,
 };
 
 export const runAuditChecks = (data: AuditExportData): AuditChecksResult => {

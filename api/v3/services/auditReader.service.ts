@@ -26,6 +26,20 @@ export interface AuditModulePresence {
   globalFields: boolean;
   assets: boolean;
   entries: boolean;
+  taxonomies: boolean;
+}
+
+/**
+ * One taxonomy's full term tree. Real Contentstack exports (both the CLI and
+ * this repo's own writer) nest the per-taxonomy term file under a locale folder —
+ * `taxonomies/<locale>/<uid>.json` — rather than flat under `taxonomies/<uid>.json`;
+ * `readAuditExport` resolves that path for us.
+ */
+export interface AuditTaxonomy {
+  uid: string;
+  name?: string;
+  description?: string;
+  terms: { uid: string; name?: string }[];
 }
 
 export interface AuditExportData {
@@ -37,6 +51,7 @@ export interface AuditExportData {
   contentTypes: any[];
   globalFields: any[];
   assets: Record<string, any>;
+  taxonomies: AuditTaxonomy[];
   /** Fallback records already dropped (TR-2). */
   records: AuditExportRecord[];
   entryRecordCount: number;
@@ -186,6 +201,7 @@ const NO_MODULES: AuditModulePresence = {
   globalFields: false,
   assets: false,
   entries: false,
+  taxonomies: false,
 };
 
 export const readAuditExport = (exportDir: string): AuditExportData => {
@@ -197,6 +213,7 @@ export const readAuditExport = (exportDir: string): AuditExportData => {
       contentTypes: [],
       globalFields: [],
       assets: {},
+      taxonomies: [],
       records: [],
       entryRecordCount: 0,
       variantRecords: [],
@@ -293,6 +310,49 @@ export const readAuditExport = (exportDir: string): AuditExportData => {
     { records: [], variantRecords: [], variantsPresent: false, fileCount: 0 }
   );
 
+  const taxonomies = module<AuditTaxonomy[]>(
+    "taxonomies",
+    () => {
+      const dir = path.join(root, "taxonomies");
+      const indexFile = path.join(dir, "taxonomies.json");
+      if (!fs.existsSync(indexFile)) return [];
+      const index = readJson(indexFile);
+      if (!index || typeof index !== "object") return [];
+
+      // The real Contentstack CLI export writes each taxonomy's term file under a
+      // locale subfolder — `taxonomies/en-us/<uid>.json` — never flat under
+      // `taxonomies/<uid>.json`. Every taxonomy resolved to zero terms here until
+      // this was added, which silently made the unused-taxonomies check see an
+      // empty taxonomy list and never flag anything.
+      const localeDirs = listDir(dir).filter((name) => isDir(path.join(dir, name)));
+      const findTermsFile = (uid: string): string | undefined => {
+        const flat = path.join(dir, `${uid}.json`);
+        if (fs.existsSync(flat)) return flat;
+        for (const locale of localeDirs) {
+          const nested = path.join(dir, locale, `${uid}.json`);
+          if (fs.existsSync(nested)) return nested;
+        }
+        return undefined;
+      };
+
+      return Object.keys(index as Record<string, any>)
+        .map((uid): AuditTaxonomy | null => {
+          const file = findTermsFile(uid);
+          if (!file) return null;
+          const parsed = readJson(file) as any;
+          const terms = Array.isArray(parsed?.terms) ? parsed.terms : [];
+          return {
+            uid,
+            name: parsed?.taxonomy?.name ?? (index as Record<string, any>)[uid]?.name,
+            description: parsed?.taxonomy?.description ?? (index as Record<string, any>)[uid]?.description,
+            terms,
+          };
+        })
+        .filter((t): t is AuditTaxonomy => t !== null);
+    },
+    []
+  );
+
   /** A module is present when a data file for it exists on disk (FR-1.6). */
   const fileExists = (...parts: string[]) => fs.existsSync(path.join(root, ...parts));
   const anyDataFile = (dirName: string) => {
@@ -322,10 +382,15 @@ export const readAuditExport = (exportDir: string): AuditExportData => {
       // reporting it present would make the unpublished check say 0 of 0 — a clean
       // result for a module nobody looked at (FR-2.11).
       entries: entries.fileCount > 0,
+      // A taxonomies.json holding no keys means the module was exported (or
+      // stubbed pre-fix) but the stack genuinely has none — not "not present".
+      // "Not present" is reserved for no taxonomies.json at all.
+      taxonomies: fileExists("taxonomies", "taxonomies.json"),
     },
     contentTypes,
     globalFields,
     assets,
+    taxonomies,
     records: entries.records,
     entryRecordCount: entries.records.length,
     variantRecords: entries.variantRecords,

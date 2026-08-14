@@ -105,6 +105,7 @@ export const startAuditScan =
             { id: 'unpublishedEntries', label: 'Unpublished entries — has publish details?', state: 'queued' },
             { id: 'emptyContentTypes', label: 'Empty content types — any entries at all?', state: 'queued' },
             { id: 'unusedGlobalFields', label: 'Unused global fields — referenced by a schema?', state: 'queued' },
+            { id: 'unusedTaxonomies', label: 'Unused taxonomies — any term referenced by an entry?', state: 'queued' },
           ],
         })
       );

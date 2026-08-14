@@ -2,6 +2,14 @@ import { CSSProperties, FC } from 'react';
 
 import type { AuditCategory } from '../../store/slice/audit.slice';
 
+const CATEGORY_ICON: Record<AuditCategory, string> = {
+  unusedAssets: '🖼',
+  unpublishedEntries: '📄',
+  unusedTaxonomies: '🏷',
+  emptyContentTypes: '📁',
+  unusedGlobalFields: '🌐',
+};
+
 /**
  * A "Worth a look" card — one of the two categories a user may act on
  * (cs-audit-report FR-4.1 … FR-4.6).
@@ -102,7 +110,7 @@ const AuditCategoryCard: FC<{
   <div style={card(excluded)} role="group" aria-label={title} data-category={id}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
       <span style={iconTile} aria-hidden="true">
-        {id === 'unusedAssets' ? '🖼' : '📄'}
+        {CATEGORY_ICON[id]}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-strong)' }}>{title}</p>

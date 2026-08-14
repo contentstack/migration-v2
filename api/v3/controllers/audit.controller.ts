@@ -35,6 +35,7 @@ const FILTER_TO_CATEGORY: Record<string, string | null> = {
   assets: "unusedAssets",
   contentTypes: "emptyContentTypes",
   globalFields: "unusedGlobalFields",
+  taxonomies: "unusedTaxonomies",
 };
 
 const scopeOf = (req: Request): V3ProjectScope => {
@@ -207,6 +208,7 @@ const getItems = async (req: Request, res: Response) => {
     assets: all.filter((i) => i.category === "unusedAssets").length,
     contentTypes: all.filter((i) => i.category === "emptyContentTypes").length,
     globalFields: all.filter((i) => i.category === "unusedGlobalFields").length,
+    taxonomies: all.filter((i) => i.category === "unusedTaxonomies").length,
   };
 
   const category = FILTER_TO_CATEGORY[filter];
@@ -266,7 +268,7 @@ const putDecisions = async (req: Request, res: Response) => {
 
   // Keys are the contract Content mapping will read (FR-7.3, INT-4), so malformed ones
   // are kept out of the store rather than normalised into something plausible.
-  const keyShape = /^(entry:[^:]+:[^:]+:[^:]+|asset:.+)$/;
+  const keyShape = /^(entry:[^:]+:[^:]+:[^:]+|asset:.+|taxonomy:.+)$/;
   for (const key of Object.keys(itemOverrides)) {
     if (!keyShape.test(key)) return badRequest(res, `Malformed override key '${key}'.`);
     if (itemOverrides[key] !== "include" && itemOverrides[key] !== "exclude") {

@@ -25,13 +25,22 @@ import type {
 export const EXCLUDABLE_CATEGORIES: AuditCategory[] = [
   'unpublishedEntries',
   'unusedAssets',
+  'unusedTaxonomies',
 ];
 
 export const isExcludable = (category: AuditCategory): boolean =>
   EXCLUDABLE_CATEGORIES.includes(category);
 
 const isKnownKeyShape = (key: string): boolean =>
-  /^entry:[^:]+:[^:]+:[^:]+$/.test(key) || /^asset:.+$/.test(key);
+  /^entry:[^:]+:[^:]+:[^:]+$/.test(key) || /^asset:.+$/.test(key) || /^taxonomy:.+$/.test(key);
+
+/** The item-key prefix each excludable category owns — mirrors
+ * api/v3/services/auditDecisions.service.ts's CATEGORY_KEY_PREFIX. */
+const CATEGORY_KEY_PREFIX: Partial<Record<AuditCategory, string>> = {
+  unusedAssets: 'asset:',
+  unpublishedEntries: 'entry:',
+  unusedTaxonomies: 'taxonomy:',
+};
 
 export interface AuditItemLike {
   key: string;
@@ -83,8 +92,8 @@ export const countExcluded = (
     const overridesForCategory = Object.entries(decisions.itemOverrides).filter(
       ([key, state]) => {
         if (!isKnownKeyShape(key)) return false;
-        const belongs =
-          check.id === 'unusedAssets' ? key.startsWith('asset:') : key.startsWith('entry:');
+        const prefix = CATEGORY_KEY_PREFIX[check.id];
+        const belongs = !!prefix && key.startsWith(prefix);
         return belongs && !!state;
       }
     );
@@ -120,8 +129,10 @@ export const deriveImpact = (
 };
 
 /** Keys belonging to one category, by prefix — the client's only available signal. */
-const belongsToCategory = (key: string, category: AuditCategory): boolean =>
-  category === 'unusedAssets' ? key.startsWith('asset:') : key.startsWith('entry:');
+const belongsToCategory = (key: string, category: AuditCategory): boolean => {
+  const prefix = CATEGORY_KEY_PREFIX[category];
+  return !!prefix && key.startsWith(prefix);
+};
 
 /**
  * Sets a category's state and clears that category's overrides (FR-7.2a).

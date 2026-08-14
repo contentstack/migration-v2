@@ -58,7 +58,11 @@ export interface AuditPanelProps {
 
 const auditStep = () => WIZARD_STEPS.find((s) => s.id === 'audit')!;
 
-const EXCLUDABLE_ORDER: AuditCategory[] = ['unpublishedEntries', 'unusedAssets'];
+const EXCLUDABLE_ORDER: AuditCategory[] = [
+  'unpublishedEntries',
+  'unusedAssets',
+  'unusedTaxonomies',
+];
 const INFORMATIONAL_ORDER: AuditCategory[] = ['emptyContentTypes', 'unusedGlobalFields'];
 
 /** Card copy the design specifies. Kept beside the categories they describe. */
@@ -80,6 +84,10 @@ const CARD_COPY: Record<AuditCategory, { noun: string; guidance: string }> = {
     noun: 'global fields',
     guidance: 'Every global field is referenced. Nothing to do.',
   },
+  unusedTaxonomies: {
+    noun: 'taxonomies',
+    guidance: 'No term in these taxonomies is referenced by any entry. Usually safe to leave behind.',
+  },
 };
 
 const CATEGORY_TITLE: Record<AuditCategory, string> = {
@@ -87,6 +95,7 @@ const CATEGORY_TITLE: Record<AuditCategory, string> = {
   unusedAssets: 'unused assets',
   emptyContentTypes: 'empty content types',
   unusedGlobalFields: 'unused global fields',
+  unusedTaxonomies: 'unused taxonomies',
 };
 
 /*
@@ -269,8 +278,14 @@ const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
     );
   };
 
+  const REVIEW_FILTER: Partial<Record<AuditCategory, AuditFilter>> = {
+    unusedAssets: 'assets',
+    unpublishedEntries: 'entries',
+    unusedTaxonomies: 'taxonomies',
+  };
+
   const onReviewItems = (id: AuditCategory) => {
-    const next: AuditFilter = id === 'unusedAssets' ? 'assets' : 'entries';
+    const next: AuditFilter = REVIEW_FILTER[id] ?? 'entries';
     dispatch(auditActions.setTableOpen(true));
     dispatch(auditActions.setFilter(next));
     dispatch(loadAuditItems({ projectId, filter: next, q: search, page: 1 }) as never);
@@ -443,7 +458,7 @@ const AuditPanel: FC<AuditPanelProps> = ({ projectId }) => {
             <span
               style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}
             >
-              {resolvedCheckCount(checks)} of 4 checks
+              {resolvedCheckCount(checks)} of 5 checks
             </span>
           </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>

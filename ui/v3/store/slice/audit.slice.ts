@@ -26,7 +26,8 @@ export type AuditCategory =
   | 'unusedAssets'
   | 'unpublishedEntries'
   | 'emptyContentTypes'
-  | 'unusedGlobalFields';
+  | 'unusedGlobalFields'
+  | 'unusedTaxonomies';
 
 export type DecisionState = 'include' | 'exclude';
 
@@ -67,7 +68,8 @@ export type AuditFilter =
   | 'entries'
   | 'assets'
   | 'contentTypes'
-  | 'globalFields';
+  | 'globalFields'
+  | 'taxonomies';
 
 export interface AuditState {
   phase: AuditPhase;
@@ -107,7 +109,7 @@ const initialState: AuditState = {
   page: 1,
   pageCount: 1,
   total: 0,
-  counts: { all: 0, entries: 0, assets: 0, contentTypes: 0, globalFields: 0 },
+  counts: { all: 0, entries: 0, assets: 0, contentTypes: 0, globalFields: 0, taxonomies: 0 },
   items: [],
   itemsLoading: false,
   saving: false,
@@ -205,6 +207,6 @@ const auditSlice = createSlice({
 export const auditActions = auditSlice.actions;
 export default auditSlice.reducer;
 
-/** How many checks have resolved — drives the "{n} of 4 checks" counter. */
+/** How many checks have resolved — drives the "{n} of 5 checks" counter. */
 export const resolvedCheckCount = (checks: AuditCheckView[]): number =>
   checks.filter((c) => c.state !== 'queued' && c.state !== 'checking').length;

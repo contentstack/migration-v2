@@ -30,6 +30,7 @@ const PILLS: { id: AuditFilter; label: string }[] = [
   { id: 'assets', label: 'Assets' },
   { id: 'contentTypes', label: 'Content types' },
   { id: 'globalFields', label: 'Global fields' },
+  { id: 'taxonomies', label: 'Taxonomies' },
 ];
 
 /*
@@ -58,6 +59,7 @@ const TYPE_STYLE: Record<string, { bg: string; color: string }> = {
   Entry: { bg: 'var(--brand-subtle-2)', color: 'var(--brand-stronger)' },
   'Content type': { bg: 'var(--surface-inset)', color: 'var(--text-body)' },
   'Global field': { bg: 'var(--surface-inset)', color: 'var(--text-body)' },
+  Taxonomy: { bg: 'var(--surface-inset)', color: 'var(--text-body)' },
 };
 
 const shell: CSSProperties = {

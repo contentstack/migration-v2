@@ -23,11 +23,20 @@ import type {
  */
 export type DecisionState = "include" | "exclude";
 
-/** The two categories a user may act on. Content types and global fields never. */
+/** The categories a user may act on. Content types and global fields never. */
 export const EXCLUDABLE_CATEGORIES: AuditCategory[] = [
   "unpublishedEntries",
   "unusedAssets",
+  "unusedTaxonomies",
 ];
+
+/** The item-key prefix each excludable category owns — `entry:<ct>:<uid>:<locale>`,
+ * `asset:<uid>` or `taxonomy:<uid>` (see feature.md FR-7.3 and auditChecks.service.ts). */
+const CATEGORY_KEY_PREFIX: Partial<Record<AuditCategory, string>> = {
+  unusedAssets: "asset:",
+  unpublishedEntries: "entry:",
+  unusedTaxonomies: "taxonomy:",
+};
 
 export interface AuditDecisions {
   /** Category-level standing policy (FR-7.4). */
@@ -48,7 +57,7 @@ const isExcludable = (category: AuditCategory): boolean =>
 
 /** A structurally valid override key. Anything else is ignored (TC_AR_112 negative). */
 const isKnownKeyShape = (key: string): boolean =>
-  /^entry:[^:]+:[^:]+:[^:]+$/.test(key) || /^asset:.+$/.test(key);
+  /^entry:[^:]+:[^:]+:[^:]+$/.test(key) || /^asset:.+$/.test(key) || /^taxonomy:.+$/.test(key);
 
 /**
  * The keys of every item currently resolved as excluded.
@@ -130,12 +139,9 @@ export const toggleCategory = (
   for (const key of Object.keys(out.itemOverrides)) {
     // With findings to hand, clear precisely. Without them, fall back to the key's own
     // prefix — an asset key can only belong to unusedAssets, an entry key only to
-    // unpublishedEntries.
-    const belongs = owned.size
-      ? owned.has(key)
-      : category === "unusedAssets"
-      ? key.startsWith("asset:")
-      : key.startsWith("entry:");
+    // unpublishedEntries, a taxonomy key only to unusedTaxonomies.
+    const prefix = CATEGORY_KEY_PREFIX[category];
+    const belongs = owned.size ? owned.has(key) : !!prefix && key.startsWith(prefix);
     if (belongs) delete out.itemOverrides[key];
   }
   return out;

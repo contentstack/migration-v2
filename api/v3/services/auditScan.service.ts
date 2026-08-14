@@ -80,6 +80,7 @@ const CHECK_IDS = [
   "unpublishedEntries",
   "emptyContentTypes",
   "unusedGlobalFields",
+  "unusedTaxonomies",
 ] as const;
 
 /** Process-local, lost on restart by design (DM-4, TRR-1). */
