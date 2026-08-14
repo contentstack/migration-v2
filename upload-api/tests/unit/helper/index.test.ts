@@ -66,6 +66,7 @@ import {
   deleteFolderSync,
   saveZip,
   updateConfigFile,
+  filterMediaDocsToReferenced,
 } from '../../../src/helper/index';
 
 describe('helper/index', () => {
@@ -149,6 +150,48 @@ describe('helper/index', () => {
       mockParseStringPromise.mockRejectedValueOnce(new Error('parse error'));
       const result = await parseXmlToJson('bad');
       expect(result).toBe(false);
+    });
+  });
+
+  describe('filterMediaDocsToReferenced', () => {
+    const doc = (items: any[]) => ({ rss: { channel: { item: items } } });
+    const attachment = (id: string, url: string) => ({
+      'wp:post_id': id,
+      'wp:post_type': 'attachment',
+      'wp:attachment_url': url,
+    });
+
+    it('keeps only media attachments referenced by structured postmeta, drops the rest', () => {
+      const content = doc([
+        {
+          'wp:post_id': '900',
+          'wp:post_type': 'case_study',
+          'wp:postmeta': [
+            { 'wp:meta_key': 'customer_logo', 'wp:meta_value': '12423' },
+            { 'wp:meta_key': '_thumbnail_id', 'wp:meta_value': '555' },
+            { 'wp:meta_key': 'case_study_content', 'wp:meta_value': '5' }, // numeric but NOT a reference key
+          ],
+        },
+      ]);
+      const media = doc([
+        attachment('12423', 'https://x/logo.png'),
+        attachment('555', 'https://x/hero.jpg'),
+        attachment('5', 'https://x/unrelated.jpg'), // matches a counter value, but key wasn't a ref key
+        attachment('99999', 'https://x/unreferenced.jpg'),
+      ]);
+      const { docs, kept, dropped } = filterMediaDocsToReferenced([content], [media]);
+      expect(kept).toBe(2);
+      expect(dropped).toBe(2);
+      const keptIds = docs[0].rss.channel.item.map((i: any) => i['wp:post_id']).sort();
+      expect(keptIds).toEqual(['12423', '555']);
+    });
+
+    it('returns no docs when nothing is referenced', () => {
+      const content = doc([{ 'wp:post_id': '1', 'wp:post_type': 'post', 'wp:postmeta': [] }]);
+      const media = doc([attachment('12423', 'https://x/logo.png')]);
+      const { docs, kept } = filterMediaDocsToReferenced([content], [media]);
+      expect(kept).toBe(0);
+      expect(docs).toHaveLength(0);
     });
   });
 

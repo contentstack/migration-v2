@@ -82,6 +82,7 @@ export const POST_TYPE_TARGETS: Record<string, PostTypeTarget> = {
   videos: { contentType: "review_videos" },
   event: { contentType: "event" },
   course: { contentType: "course" },
+  page: { contentType: "generic_pages" },
 };
 
 /**
@@ -1657,6 +1658,407 @@ function parseCardGridGroup(groupBlock: any): Array<{ iconId?: number; title: st
   return cards;
 }
 
+// --- Reference-section (generic_pages) support ------------------------------------------------
+// Some content types model their body as an ordered list of REFERENCES to standalone "section"
+// content types (e.g. generic_pages.page_sections → hero_section / cards_section / flexible_layouts).
+// There is no direct rich-text block to fold prose into, so the router must instead create a side
+// entry in the referenced section type and reference it. Everything below is shape-driven (data_type
+// + field role), never keyed to a content-type or field uid, so it works for any similarly-shaped
+// model without a mapping table.
+
+interface RefSectionDef { blockUid: string; refField: string; refCtUid: string; refCt: any; }
+
+/**
+ * Detect the reference-wrapping blocks of a `blocks` field: each block whose schema owns a reference
+ * field points at a section content type migrated as its own side entry. Returns one def per such
+ * block, in declared order.
+ */
+function findReferenceSectionDefs(blocksField: any, ctByUid?: Map<string, any>): RefSectionDef[] {
+  const out: RefSectionDef[] = [];
+  for (const b of Array.isArray(blocksField?.blocks) ? blocksField.blocks : []) {
+    const refField = (b?.schema || []).find(
+      (f: any) => f?.data_type === 'reference' && referenceTargets(f).length,
+    );
+    if (!refField) continue;
+    const refCtUid = referenceTargets(refField)[0];
+    out.push({ blockUid: b.uid, refField: refField.uid, refCtUid, refCt: ctByUid?.get(refCtUid) });
+  }
+  return out;
+}
+
+/** The first modular-blocks field a content type declares — its variant list (e.g. `variants`). */
+function variantsBlocksField(ct: any): any | null {
+  return (Array.isArray(ct?.schema) ? ct.schema : []).find((f: any) => f?.data_type === 'blocks') || null;
+}
+
+const firstFieldOfType = (schema: any[], dt: string): any =>
+  (Array.isArray(schema) ? schema : []).find((f: any) => f?.data_type === dt);
+const jsonSubUid = (schema: any[]): string | undefined => firstFieldOfType(schema, 'json')?.uid;
+const fileSubUid = (schema: any[]): string | undefined => firstFieldOfType(schema, 'file')?.uid;
+const urlTextSubUid = (schema: any[]): string | undefined =>
+  (Array.isArray(schema) ? schema : []).find(
+    (f: any) => f?.data_type === 'text' && /embed|url|video|link/i.test(f?.uid || ''),
+  )?.uid;
+
+type VariantRole = 'prose' | 'image' | 'video' | 'quote';
+
+/**
+ * Choose the variant block best suited to a role, scored purely by field shape:
+ *  - prose  → a json (rich-text) field and no file field (e.g. text_cta)
+ *  - image  → a file field, richer when it also has a json/text caption (e.g. text_image)
+ *  - video  → a url-ish text field, richer when it also has a file thumbnail (e.g. text_video)
+ *  - quote  → a global-field (the quotes GF), richer when it also has a json body (e.g. text_quote)
+ * Returns null when the variants field declares nothing suitable.
+ */
+function pickVariantByRole(variantsField: any, role: VariantRole, exclude?: Set<string>): any | null {
+  const blocks = Array.isArray(variantsField?.blocks) ? variantsField.blocks : [];
+  const has = (schema: any[], dt: string) => (schema || []).some((f: any) => f?.data_type === dt);
+  let best: any = null;
+  let bestScore = -1;
+  for (const b of blocks) {
+    if (exclude?.has(b?.uid)) continue;
+    const schema: any[] = Array.isArray(b?.schema) ? b.schema : [];
+    let score = -1;
+    if (role === 'prose') {
+      if (has(schema, 'json') && !has(schema, 'file')) score = 3;
+      else if (has(schema, 'json')) score = 1;
+    } else if (role === 'image') {
+      if (has(schema, 'file') && has(schema, 'json')) score = 3;
+      else if (has(schema, 'file') && has(schema, 'text')) score = 2;
+      else if (has(schema, 'file')) score = 1;
+    } else if (role === 'video') {
+      if (urlTextSubUid(schema)) score = has(schema, 'file') ? 3 : 2;
+    } else if (role === 'quote') {
+      // A dedicated quote variant embeds a global field (the quotes GF) and is text-only (no file),
+      // which distinguishes it from a generic prose block that also happens to carry a GF + json.
+      if (has(schema, 'global_field') && has(schema, 'json') && !has(schema, 'file')) score = 3;
+      else if (has(schema, 'global_field') && has(schema, 'json')) score = 2;
+      else if (has(schema, 'global_field')) score = 1;
+    }
+    if (score > bestScore) { bestScore = score; best = b; }
+  }
+  return best;
+}
+
+/** Get (creating if needed) the side-entry bucket for a content type. */
+function sideStoreFor(ctx: any, ctUid: string): Record<string, any> | undefined {
+  if (!ctx?.sideEntries) return undefined;
+  return ctx.sideEntries[ctUid] ?? (ctx.sideEntries[ctUid] = {});
+}
+
+/** Resolve a media URL to a downloaded Contentstack asset by base-key match (mirrors derivePostmeta). */
+function resolveAssetByUrl(assetData: any, url: string | undefined): any {
+  if (!url) return undefined;
+  const key = assetBaseKey(String(url), '');
+  return Object.values(assetData ?? {}).find((a: any) => a?.url && assetBaseKey(a.url, '') === key);
+}
+
+/** Plain (non-enum) text sub-field uids in declared order — the title/subtitle roles of a variant. */
+function plainTextSubUids(schema: any[]): string[] {
+  return (Array.isArray(schema) ? schema : [])
+    .filter((f: any) => f?.data_type === 'text' && !f?.enum)
+    .map((f: any) => f.uid);
+}
+
+/**
+ * A hero-shaped variant: a background/file image + a plain text title + a cta global field, and no
+ * rich-text (json) field — which is what distinguishes a hero layout from a flexible text_image block.
+ */
+function pickHeroVariant(variantsField: any): any | null {
+  const blocks = Array.isArray(variantsField?.blocks) ? variantsField.blocks : [];
+  let best: any = null;
+  let bestScore = -1;
+  for (const b of blocks) {
+    const s: any[] = Array.isArray(b?.schema) ? b.schema : [];
+    const hasFile = s.some((f: any) => f?.data_type === 'file');
+    const hasTitle = s.some((f: any) => f?.data_type === 'text' && !f?.enum);
+    const hasJson = s.some((f: any) => f?.data_type === 'json');
+    if (!hasFile || !hasTitle || hasJson) continue;
+    const hasCta = s.some((f: any) => f?.data_type === 'global_field');
+    const score = (hasCta ? 2 : 0) + plainTextSubUids(s).length;
+    if (score > bestScore) { bestScore = score; best = b; }
+  }
+  return best;
+}
+
+/** The reference section (other than the prose sink) whose target CT declares a hero-shaped variant. */
+function findHeroSection(
+  refSections: RefSectionDef[],
+  flexSection: RefSectionDef,
+): { def: RefSectionDef; variant: any; vfUid: string } | null {
+  for (const r of refSections) {
+    if (r.refCtUid === flexSection.refCtUid) continue;
+    const vf = variantsBlocksField(r.refCt);
+    const variant = vf ? pickHeroVariant(vf) : null;
+    if (variant) return { def: r, variant, vfUid: vf.uid };
+  }
+  return null;
+}
+
+const HERO_COVER_INNER = new Set([
+  'core/heading', 'core/paragraph', 'core/buttons', 'core/button', 'core/spacer', 'core/separator',
+]);
+/**
+ * A cover whose overlay is only heading/paragraph/buttons (or image-only) — safe to route wholesale to
+ * a hero section. Covers containing other structured blocks are left to linearize as transparent
+ * wrappers so their inner content still flows into flexible layouts (no loss).
+ */
+function isHeroShapedCover(block: any): boolean {
+  if (block?.blockName !== 'core/cover') return false;
+  const leaves = Array.from(linearizeContentBlocks(block?.innerBlocks || []));
+  if (!leaves.length) return true;
+  return leaves.every((b: any) => HERO_COVER_INNER.has((b as any)?.blockName));
+}
+
+/** Build a `cta` global-field value from a WP button block, honoring the gf's declared `type` enum. */
+function buildCtaGfValue(typeChoices: string[], block: any): Record<string, any> | null {
+  const p = parseButtonAnchor(block);
+  if (!p) return null;
+  const val: Record<string, any> = { title_url: { title: p.label, href: p.href || '' }, open_in_new_tab: p.newTab };
+  const primary = typeChoices.find((c) => /primary/i.test(c)) || typeChoices[0];
+  if (primary) val.type = primary;
+  return val;
+}
+
+/**
+ * An inline (non-reference) page-section block that models a marketo/embed form — detected by a text
+ * sub-field whose uid looks like a form id. Returns the block uid and that field's uid.
+ */
+function findFormBlockDef(blocksField: any): { blockUid: string; formIdUid: string } | null {
+  for (const b of Array.isArray(blocksField?.blocks) ? blocksField.blocks : []) {
+    if ((b?.schema || []).some((f: any) => f?.data_type === 'reference')) continue;
+    const formField = (b?.schema || []).find(
+      (f: any) => f?.data_type === 'text' && /form.?id|form/i.test(f?.uid || ''),
+    );
+    if (formField) return { blockUid: b.uid, formIdUid: formField.uid };
+  }
+  return null;
+}
+
+/**
+ * Build the body of a reference-section model (e.g. generic_pages.page_sections). Every Gutenberg block
+ * lands in a `flexible_layouts`-style side entry so NO authored content is dropped: prose/heading/list/
+ * html fold into the prose variant (json RTE, heading-aware 30KB split); images, videos and quotes are
+ * routed to their typed variants when the section type declares one, else they too fold into prose.
+ * The single side entry is referenced once from the flexible-layout page block, preserving order.
+ */
+function buildReferenceSectionBody(
+  blocksField: any,
+  blocks: any[],
+  assetData: any,
+  ctx: any,
+  refSections: RefSectionDef[],
+): any[] {
+  const sections: any[] = [];
+  // The prose sink: the reference section whose target CT owns a prose variant (a json field). This is
+  // the `flexible_layout → flexible_layouts` slot for generic_pages, found by shape.
+  const flexSection = refSections.find((r) => {
+    const vf = variantsBlocksField(r.refCt);
+    return vf && pickVariantByRole(vf, 'prose');
+  });
+  if (!flexSection) return sections; // no sink declared → nothing we can safely build
+  const vf = variantsBlocksField(flexSection.refCt);
+  const proseVar = pickVariantByRole(vf, 'prose');
+  const imageVar = pickVariantByRole(vf, 'image');
+  const videoVar = pickVariantByRole(vf, 'video');
+  // The quote sink must differ from the prose sink — both can carry a json + global_field, so exclude
+  // the variant already claimed for prose to avoid folding quotes into plain prose.
+  const quoteVar = pickVariantByRole(vf, 'quote', proseVar ? new Set([proseVar.uid]) : undefined);
+  const proseSubUid = jsonSubUid(proseVar?.schema);
+
+  // Semantic sections that interrupt the flexible-layout run and become their own page section:
+  //  - hero  ← a hero-shaped cover (bg image + overlay heading/subtitle/buttons) → hero_section ref
+  //  - form  ← a marketo/embed form block → the inline marketo_form page block
+  const heroSection = findHeroSection(refSections, flexSection);
+  const formDef = findFormBlockDef(blocksField);
+  const ctaTypeChoices: string[] = (() => {
+    const s = heroSection?.variant?.schema || [];
+    const ctaField = s.find((f: any) => f?.data_type === 'global_field' && f?.multiple)
+      || s.find((f: any) => f?.data_type === 'global_field');
+    const gfUid = ctaField ? referenceTargets(ctaField)[0] : undefined;
+    const gfDef = gfUid ? ctx?.globalFieldsByUid?.get(gfUid) : undefined;
+    const typeField = (gfDef?.schema || []).find((f: any) => f?.data_type === 'text' && f?.enum);
+    return typeField ? choiceValues({ schema: [typeField] }, typeField.uid) : [];
+  })();
+
+  let variants: any[] = [];
+  let buffer: string[] = [];
+  let firstHeading = '';
+  let flexSeq = 0;
+  let heroSeq = 0;
+
+  const flushBuffer = () => {
+    if (!buffer.length || !proseVar || !proseSubUid) { buffer = []; return; }
+    const packed = packRichTextSections(buffer, RteJsonConverter, (v) => ({ [proseVar.uid]: { [proseSubUid]: v } }));
+    variants.push(...packed);
+    buffer = [];
+  };
+
+  // Finalize the pending flexible_layouts entry (if any variants) and reference it from page_sections.
+  const flushFlex = () => {
+    flushBuffer();
+    if (!variants.length) { firstHeading = ''; return; }
+    const entryUid = idCorrector(`${ctx?.uid || 'page'}_flex_${flexSeq++}`);
+    const store = sideStoreFor(ctx, flexSection.refCtUid);
+    if (store) {
+      store[entryUid] = {
+        uid: entryUid,
+        title: firstHeading || 'Content',
+        [vf.uid]: variants,
+        locale: ctx?.locale || 'en-us',
+        publish_details: [],
+      };
+    }
+    sections.push({
+      [flexSection.blockUid]: { [flexSection.refField]: [{ uid: entryUid, _content_type_uid: flexSection.refCtUid }] },
+    });
+    variants = [];
+    firstHeading = '';
+  };
+
+  // Build a hero_section side entry from a hero-shaped cover; returns false when nothing usable parses.
+  const emitHero = (cover: any): boolean => {
+    if (!heroSection) return false;
+    const s: any[] = heroSection.variant.schema || [];
+    const fileUid = fileSubUid(s);
+    const textUids = plainTextSubUids(s);
+    const ctaField = s.find((f: any) => f?.data_type === 'global_field' && f?.multiple)
+      || s.find((f: any) => f?.data_type === 'global_field');
+    const idAttr = Number(cover?.attrs?.id);
+    let bg = Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined;
+    if (!bg) bg = resolveAssetByUrl(assetData, cover?.attrs?.url);
+    let title = '';
+    const subParts: string[] = [];
+    const ctas: any[] = [];
+    for (const lf of Array.from(linearizeContentBlocks(cover?.innerBlocks || []))) {
+      const nm = (lf as any)?.blockName;
+      if (nm === 'core/heading' && !title) title = stripHtmlTags(serializeBlockToHtml(lf)).replace(/\s+/g, ' ').trim();
+      else if (nm === 'core/paragraph') {
+        const tx = stripHtmlTags(serializeBlockToHtml(lf)).replace(/\s+/g, ' ').trim();
+        if (tx) subParts.push(tx);
+      } else if (nm === 'core/button') {
+        const c = buildCtaGfValue(ctaTypeChoices, lf);
+        if (c) ctas.push(c);
+      }
+    }
+    const sub: Record<string, any> = {};
+    if (fileUid && bg) sub[fileUid] = bg;
+    if (textUids[0] && title) sub[textUids[0]] = title;
+    if (textUids[1] && subParts.length) sub[textUids[1]] = subParts.join(' ');
+    if (ctaField && ctas.length) sub[ctaField.uid] = ctaField.multiple ? ctas : ctas[0];
+    if (!Object.keys(sub).length) return false;
+    const entryUid = idCorrector(`${ctx?.uid || 'page'}_hero_${heroSeq++}`);
+    const store = sideStoreFor(ctx, heroSection.def.refCtUid);
+    if (store) {
+      store[entryUid] = {
+        uid: entryUid,
+        title: title || 'Hero',
+        [heroSection.vfUid]: [{ [heroSection.variant.uid]: sub }],
+        locale: ctx?.locale || 'en-us',
+        publish_details: [],
+      };
+    }
+    sections.push({
+      [heroSection.def.blockUid]: { [heroSection.def.refField]: [{ uid: entryUid, _content_type_uid: heroSection.def.refCtUid }] },
+    });
+    return true;
+  };
+
+  const keepWhole = (b: any) => !!heroSection && isHeroShapedCover(b);
+
+  for (const raw of Array.from(linearizeContentBlocks(blocks, keepWhole))) {
+    const name = raw?.blockName;
+    const semantic = WP_BLOCK_TO_SEMANTIC[name];
+    const html = serializeBlockToHtml(raw);
+
+    // Hero-shaped cover → its own hero_section reference. Falls back to buffering the overlay content
+    // (so nothing is lost) when no usable hero fields parse.
+    if (name === 'core/cover' && heroSection) {
+      flushFlex();
+      if (!emitHero(raw)) {
+        for (const ib of Array.from(linearizeContentBlocks(raw?.innerBlocks || []))) {
+          const h = serializeBlockToHtml(ib);
+          if (h && h.trim()) buffer.push(h);
+        }
+      }
+      continue;
+    }
+
+    // Marketo / embed form → the inline marketo_form page block (form id from the block's inner markup).
+    if (name === 'salsa-blocks/marketo-form' && formDef) {
+      const id = html.match(/form-?id=["']?(\d+)/i)?.[1];
+      if (id) {
+        flushFlex();
+        sections.push({ [formDef.blockUid]: { [formDef.formIdUid]: id } });
+        continue;
+      }
+    }
+
+    // Image → text_image variant (asset + caption). Falls back to prose when the asset can't be
+    // resolved, so the <img> src is never lost.
+    if (name === 'core/image' && imageVar) {
+      const fUid = fileSubUid(imageVar.schema);
+      const jUid = jsonSubUid(imageVar.schema);
+      const idAttr = Number(raw?.attrs?.id);
+      let asset = Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined;
+      if (!asset) asset = resolveAssetByUrl(assetData, html.match(/src=["']([^"']+)["']/i)?.[1]);
+      const caption = cheerio.load(html)('figcaption').first().text().replace(/\s+/g, ' ').trim();
+      if (asset || caption) {
+        const sub: Record<string, any> = {};
+        if (fUid && asset) sub[fUid] = asset;
+        if (jUid && caption) sub[jUid] = RteJsonConverter(`<p>${caption}</p>`);
+        if (Object.keys(sub).length) { flushBuffer(); variants.push({ [imageVar.uid]: sub }); continue; }
+      }
+      if (html && html.trim()) buffer.push(html);
+      continue;
+    }
+
+    // Video / embed / vidyard → text_video variant (embed url + optional thumbnail asset).
+    if (semantic === 'video_embed' && videoVar) {
+      const parsed = parseVideoBlock(raw);
+      const urlUid = urlTextSubUid(videoVar.schema);
+      if (parsed?.video_url && urlUid) {
+        const sub: Record<string, any> = { [urlUid]: parsed.video_url };
+        const thumbUid = fileSubUid(videoVar.schema);
+        const thumbAsset = thumbUid ? resolveAssetByUrl(assetData, parsed.thumbnail) : undefined;
+        if (thumbUid && thumbAsset) sub[thumbUid] = thumbAsset;
+        flushBuffer();
+        variants.push({ [videoVar.uid]: sub });
+        continue;
+      }
+      if (html && html.trim()) buffer.push(html);
+      continue;
+    }
+
+    // Quote / pullquote → text_quote variant (json body + quotes global field).
+    if (semantic === 'quote' && quoteVar) {
+      const pq = parseQuoteBlock(raw);
+      if (pq?.quote_text) {
+        const jUid = jsonSubUid(quoteVar.schema);
+        const gf = firstFieldOfType(quoteVar.schema, 'global_field');
+        const sub: Record<string, any> = {};
+        if (jUid) sub[jUid] = RteJsonConverter(`<p>${pq.quote_text}</p>`);
+        if (gf) {
+          const gfVal: Record<string, any> = { quote: pq.quote_text };
+          if (pq.attribution) gfVal.author = pq.attribution;
+          sub[gf.uid] = gfVal;
+        }
+        if (Object.keys(sub).length) { flushBuffer(); variants.push({ [quoteVar.uid]: sub }); continue; }
+      }
+      if (html && html.trim()) buffer.push(html);
+      continue;
+    }
+
+    if (name === 'core/spacer' || name === 'core/separator') continue; // decorative
+    if (html && html.trim()) {
+      if (!firstHeading && /^\s*<h[1-6]/i.test(html)) firstHeading = stripHtmlTags(html).replace(/\s+/g, ' ').trim();
+      buffer.push(html);
+    }
+  }
+  flushFlex();
+  return sections;
+}
+
 /**
  * Build a modular-blocks array for `blocksField`, routing each Gutenberg block to a block the target
  * declares. Blocks the target does not declare fold into rich_text (or drop, for spacer/separator).
@@ -1669,6 +2071,12 @@ function buildModularBody(
 ): any[] {
   const defByUid = new Map<string, any>((blocksField?.blocks || []).map((b: any) => [b?.uid, b]));
   const rtDef = findRichTextBlockDef(blocksField);
+  // Reference-section model (e.g. generic_pages): no direct rich-text block, sections are references to
+  // standalone section content types. Route through the side-entry builder instead of the flat router.
+  if (!rtDef) {
+    const refSections = findReferenceSectionDefs(blocksField, ctx?.contentTypesByUid);
+    if (refSections.length) return buildReferenceSectionBody(blocksField, blocks, assetData, ctx, refSections);
+  }
   const rtBlockUid = rtDef?.uid;
   const rtSlot = rtDef ? richTextSlot(rtDef) : null;
   const ctaResolved = findCtaBlockDef(blocksField);

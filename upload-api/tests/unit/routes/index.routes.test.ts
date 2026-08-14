@@ -13,6 +13,11 @@ const {
   mockFsCp,
   mockFsMkdir,
   mockFsReaddir,
+  mockFsReadFile,
+  mockParseXmlToJson,
+  mockSaveJson,
+  mockMergeWordpressJson,
+  mockFilterMediaDocsToReferenced,
   mockRunningInDocker,
 } = vi.hoisted(() => ({
   mockStatSync: vi.fn(),
@@ -25,6 +30,11 @@ const {
   mockFsCp: vi.fn(),
   mockFsMkdir: vi.fn(),
   mockFsReaddir: vi.fn(),
+  mockFsReadFile: vi.fn(),
+  mockParseXmlToJson: vi.fn(),
+  mockSaveJson: vi.fn(),
+  mockMergeWordpressJson: vi.fn(),
+  mockFilterMediaDocsToReferenced: vi.fn(),
   mockRunningInDocker: vi.fn(),
   mockConfig: {
     cmsType: 'wordpress',
@@ -50,6 +60,7 @@ vi.mock('fs', () => ({
     cp: (...args: any[]) => mockFsCp(...args),
     mkdir: (...args: any[]) => mockFsMkdir(...args),
     readdir: (...args: any[]) => mockFsReaddir(...args),
+    readFile: (...args: any[]) => mockFsReadFile(...args),
   },
   default: {
     createReadStream: (...args: any[]) => mockCreateReadStream(...args),
@@ -69,6 +80,10 @@ vi.mock('../../../src/helper', () => ({
   fileOperationLimiter: (_req: any, _res: any, next: any) => next(),
   deleteFolderSync: vi.fn(),
   updateConfigFile: vi.fn().mockImplementation(() => Promise.resolve(mockConfig)),
+  parseXmlToJson: (...args: any[]) => mockParseXmlToJson(...args),
+  saveJson: (...args: any[]) => mockSaveJson(...args),
+  mergeWordpressJson: (...args: any[]) => mockMergeWordpressJson(...args),
+  filterMediaDocsToReferenced: (...args: any[]) => mockFilterMediaDocsToReferenced(...args),
 }));
 
 vi.mock('../../../src/services/fileProcessing', () => ({
@@ -317,30 +332,41 @@ describe('routes/index', () => {
   });
 
   describe('GET /validator — directory path', () => {
-    it('should handle directory and call mapper on 200', async () => {
+    it('merges a WordPress folder, extracts referenced media, and calls mapper on 200', async () => {
       mockConfig.localPath = '/tmp/content-dir';
       mockStatSync.mockReturnValue({ isDirectory: () => true });
-      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK' });
+      mockFsReaddir.mockResolvedValue(['posts.xml', 'media.xml']);
+      mockFsReadFile.mockResolvedValue('<xml/>');
+      // posts.xml → a content doc; media.xml → a pure-attachment (media library) doc.
+      mockParseXmlToJson
+        .mockResolvedValueOnce({ rss: { channel: { item: [{ 'wp:post_type': 'post' }] } } })
+        .mockResolvedValueOnce({ rss: { channel: { item: [{ 'wp:post_type': 'attachment', 'wp:post_id': '12423' }] } } });
+      mockFilterMediaDocsToReferenced.mockReturnValue({ docs: [{ rss: { channel: { item: [] } } }], kept: 1, dropped: 5 });
+      mockMergeWordpressJson.mockReturnValue({ rss: { channel: { item: [] } } });
+      mockSaveJson.mockResolvedValue(true);
 
       const handler = getHandler(router, 'get', '/validator');
       const res = mockRes();
       await handler(mockReq(), res);
 
-      expect(mockHandleFileProcessing).toHaveBeenCalledWith('folder', '/tmp/content-dir', 'wordpress', 'content-dir');
+      // The media-library doc must be held aside and run through referenced-asset extraction, not merged whole.
+      expect(mockFilterMediaDocsToReferenced).toHaveBeenCalled();
+      expect(mockMergeWordpressJson).toHaveBeenCalled();
       expect(mockCreateMapper).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('should not call mapper when directory validation fails', async () => {
+    it('should not call mapper when the folder has no XML files', async () => {
       mockConfig.localPath = '/tmp/bad';
       mockStatSync.mockReturnValue({ isDirectory: () => true });
-      mockHandleFileProcessing.mockResolvedValue({ status: 400, message: 'Bad' });
+      mockFsReaddir.mockResolvedValue([]); // no .xml → 400
 
       const handler = getHandler(router, 'get', '/validator');
       const res = mockRes();
       await handler(mockReq(), res);
 
       expect(mockCreateMapper).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('should return 500 on stat error', async () => {

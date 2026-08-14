@@ -107,6 +107,7 @@ vi.mock('../../../src/services/wordpress.service.js', () => ({
     createEntry: vi.fn().mockResolvedValue(undefined),
     createLocale: vi.fn().mockResolvedValue(undefined),
     createVersionFile: vi.fn().mockResolvedValue(undefined),
+    dropInArticleContentTypes: vi.fn().mockResolvedValue(undefined),
   },
 }));
 vi.mock('../../../src/services/contentful.service.js', () => ({
