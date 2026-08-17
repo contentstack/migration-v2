@@ -128,6 +128,31 @@ export const ACF_FIELD_ALIASES: Record<string, string> = {
   is_featured: 'eventFeatured'
 };
 
+/**
+ * course.template_variant ← WP post id, per the "Components, Pages, and Post Types" content-inventory
+ * doc's 4 layout groupings (Latest design / Outdated design / Micro-Credentials / AI-Native). There is no
+ * WordPress field this maps from — it's purely a fixed list of the 30 known course post ids, keyed by
+ * which of the 3 template variants that doc assigns each one to. "Outdated design template" entries also
+ * get `safe_course` (the field's own description: "Adapted legacy pages use safe_course with fewer
+ * sections" — same template, just fewer sections at render time, not a distinct variant).
+ */
+export const COURSE_TEMPLATE_VARIANT_BY_POST_ID: Record<string, string> = {
+  // Latest design template
+  '203900': 'safe_course', '203869': 'safe_course', '203363': 'safe_course', '203915': 'safe_course',
+  '203388': 'safe_course', '203182': 'safe_course', '203399': 'safe_course', '203583': 'safe_course',
+  '204099': 'safe_course', '203141': 'safe_course',
+  // Outdated design template (same variant, fewer sections)
+  '195572': 'safe_course', '201776': 'safe_course', '195849': 'safe_course', '195018': 'safe_course',
+  '196090': 'safe_course', '196164': 'safe_course', '196193': 'safe_course', '196109': 'safe_course',
+  '194374': 'safe_course', '201272': 'safe_course',
+  // Micro-Credentials/Simple template
+  '182670': 'micro_credential', '184241': 'micro_credential', '143560': 'micro_credential',
+  '192720': 'micro_credential', '189648': 'micro_credential', '3671': 'micro_credential',
+  '187272': 'micro_credential',
+  // AI-Native template
+  '201038': 'ai_native', '204316': 'ai_native', '199131': 'ai_native',
+};
+
 /** Returns the migration target for a WordPress post type, or undefined when it is not mapped. */
 function targetForPostType(postType: string | undefined): PostTypeTarget | undefined {
   const key = String(postType ?? "").toLowerCase().trim();
@@ -2520,6 +2545,42 @@ function parseColumnsImageText(
 }
 
 /**
+ * A `core/group` or `core/columns` wrapping exactly one image plus one quote — a portrait/logo authored
+ * beside its attributed quote — is one visual unit and must become ONE text_quote entry (image in the
+ * quote GF's `logo` field), not two disconnected entries (an orphan text_image plus a text_quote missing
+ * its portrait). Real example: "SAFe Explained eBook" authors this as `core/group > core/image,
+ * core/quote`; other pages author the same pairing as `core/columns > core/column > core/image` /
+ * `core/column > core/quote`. Requires EXACTLY one image and EXACTLY one quote among the linearized
+ * leaves (through columns), with nothing else meaningful — a heading/paragraph alongside would mean this
+ * is ordinary page content that merely happens to sit near a quote, not the pairing itself.
+ */
+function isImageQuotePair(block: any): boolean {
+  if (block?.blockName !== 'core/group' && block?.blockName !== 'core/columns') return false;
+  const leaves = Array.from(linearizeContentBlocks(block?.innerBlocks || []));
+  const meaningful = leaves.filter((b: any) => !['core/spacer', 'core/separator'].includes((b as any)?.blockName));
+  const imageCount = meaningful.filter((b: any) => (b as any)?.blockName === 'core/image').length;
+  const quoteCount = meaningful.filter((b: any) => /^core\/(quote|pullquote)$/.test((b as any)?.blockName ?? '')).length;
+  return imageCount === 1 && quoteCount === 1 && meaningful.length === 2;
+}
+
+/** Parse an image+quote pair (see isImageQuotePair) into the quote's parsed fields plus the paired image. */
+function parseImageQuotePair(block: any, assetData: any): (Record<string, any> & { asset?: any }) | null {
+  const leaves = Array.from(linearizeContentBlocks(block?.innerBlocks || []));
+  const imgBlock: any = leaves.find((b: any) => (b as any)?.blockName === 'core/image');
+  const quoteBlock: any = leaves.find((b: any) => /^core\/(quote|pullquote)$/.test((b as any)?.blockName ?? ''));
+  const pq = quoteBlock ? parseQuoteBlock(quoteBlock) : null;
+  if (!pq?.quote_text) return null;
+  let asset: any;
+  if (imgBlock) {
+    const idAttr = Number(imgBlock?.attrs?.id);
+    const src = imgBlock?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(imgBlock));
+    asset = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
+      || resolveAssetByUrl(assetData, src);
+  }
+  return { ...pq, asset };
+}
+
+/**
  * A `core/columns` row where each column is a self-contained "card": one heading (the card title)
  * followed by one or more paragraphs (the card's feature-bullet body), no image, no button. Real example:
  * course pages' "Benefits of ... Certification" 2-up cards ("Career Development & Community" / "Continued
@@ -3383,6 +3444,23 @@ function findTabSectionDef(refSections: RefSectionDef[], flexSection: RefSection
   return null;
 }
 
+/**
+ * gutena/tabs (the Gutena Blocks plugin's tabs block) is a REAL tabbed-content block, not the jump-nav
+ * heuristic above — each gutena/tab child is one tab's content, and the parent's `titleTabs` attr carries
+ * every tab's label in order. Not a transparent wrapper, so without dedicated handling the whole block
+ * (every tab's content run together) falls to the default rich_text fallback with no tab boundaries.
+ */
+function parseGutenaTabs(block: any): Array<{ title: string; html: string }> {
+  const titleTabs = Array.isArray(block?.attrs?.titleTabs) ? block.attrs.titleTabs : [];
+  const tabs = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'gutena/tab');
+  return tabs
+    .map((t: any, i: number) => ({
+      title: String(titleTabs[i]?.text ?? '').trim() || `Tab ${i + 1}`,
+      html: serializeBlockToHtml(t),
+    }))
+    .filter((t: any) => t.title || hasMeaningfulHtmlContent(t.html));
+}
+
 const normalizeForMatch = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 /**
@@ -3482,6 +3560,48 @@ function parseStatsColumns(block: any): Array<{ number: string; subtitle: string
     const number = heading ? stripHtmlTags(serializeBlockToHtml(heading)).replace(/\s+/g, ' ').trim() : '';
     const subtitle = para ? stripHtmlTags(serializeBlockToHtml(para)).replace(/\s+/g, ' ').trim() : '';
     if (number || subtitle) stats.push({ number, subtitle });
+  }
+  return stats;
+}
+
+/**
+ * A stats-band row authored with an eyebrow "badge" label above each number (e.g. "Enterprise" / "20K+" /
+ * "Over two million trained professionals…") instead of isStatsColumns' plain heading+paragraph shape —
+ * the number itself is also a paragraph (metadata.name "Stat"), not a heading. WordPress nests the badge
+ * in its own group and the number/subtitle pair in a further core/columns inside each outer column, but
+ * both wrappers are transparent (unwrapped by linearize), so each outer column reduces to a flat 2- or
+ * 3-paragraph sequence, one of which is recognizably the number.
+ */
+function isStatsCardColumns(block: any): boolean {
+  if (block?.blockName !== 'core/columns') return false;
+  const columns = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'core/column');
+  if (columns.length < 2) return false;
+  return columns.every((col: any) => {
+    const leaves = Array.from(linearizeContentBlocks(col?.innerBlocks || [])).filter(
+      (b: any) => !['core/spacer', 'core/separator'].includes((b as any)?.blockName),
+    ) as any[];
+    if (leaves.length < 2 || leaves.length > 3) return false;
+    if (!leaves.every((b: any) => b?.blockName === 'core/paragraph')) return false;
+    return leaves.some((b: any) => looksLikeStatNumber(stripHtmlTags(serializeBlockToHtml(b)).replace(/\s+/g, ' ').trim()));
+  });
+}
+
+/** Parse a badge/number/subtitle stats-band row (see isStatsCardColumns) into {title?, number, subtitle} per column. */
+function parseStatsCardColumns(block: any): Array<{ title?: string; number: string; subtitle: string }> {
+  const columns = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'core/column');
+  const stats: Array<{ title?: string; number: string; subtitle: string }> = [];
+  for (const col of columns) {
+    const leaves = Array.from(linearizeContentBlocks(col?.innerBlocks || [])).filter(
+      (b: any) => !['core/spacer', 'core/separator'].includes((b as any)?.blockName),
+    ) as any[];
+    const texts = leaves.map((b) => stripHtmlTags(serializeBlockToHtml(b)).replace(/\s+/g, ' ').trim());
+    const numberIdx = texts.findIndex((t) => looksLikeStatNumber(t));
+    if (numberIdx === -1) continue;
+    const number = texts[numberIdx];
+    const rest = texts.filter((_, i) => i !== numberIdx);
+    const title = texts.length === 3 ? rest[0] : undefined;
+    const subtitle = texts.length === 3 ? rest[1] : rest[0];
+    if (number || subtitle) stats.push({ title, number, subtitle });
   }
   return stats;
 }
@@ -3592,11 +3712,87 @@ function buildModularBody(
   const flexImageVar = flexVf ? pickVariantByRole(flexVf, 'image') : null;
   const flexVideoVar = flexVf ? pickVariantByRole(flexVf, 'video') : null;
   const flexQuoteVar = flexVf ? pickVariantByRole(flexVf, 'quote', flexProseVar ? new Set([flexProseVar.uid]) : undefined) : null;
+  // Shared by the plain core/quote handler and the image+quote pairing (isImageQuotePair) below — builds
+  // the quote variant's sub-object from a parsed quote, filling the GF's logo/image field when one is
+  // resolved. Sub-fields are resolved from the GF definition, never assumed: in the shipped model the
+  // quotes GF spells attribution as `author`, a REFERENCE to the author content type, so the raw
+  // `<cite>` text (a name + role) must never be written there — a bare string in a reference field makes
+  // the CLI audit's fixMissingReferences JSON.parse throw, which fails the audit and aborts the import.
+  // Attribution is stored only when the model gives it a TEXT home; otherwise it's folded into the quote
+  // text so the authored content still survives.
+  const buildQuoteFlexSub = (pq: Record<string, any>, asset?: any): Record<string, any> | null => {
+    if (!flexQuoteVar || !pq?.quote_text) return null;
+    const gf = firstFieldOfType(flexQuoteVar.schema, 'global_field');
+    const sub: Record<string, any> = {};
+    if (gf) {
+      const gfDef = ctx?.globalFieldsByUid?.get(referenceTargets(gf)[0]);
+      const gfSchema: any[] = Array.isArray(gfDef?.schema) ? gfDef.schema : [];
+      const isPlainText = (f: any) => f?.data_type === 'text' && !f?.enum;
+      const quoteTextField =
+        gfSchema.find((f: any) => isPlainText(f) && /quote|text/i.test(f?.uid || '')) ||
+        gfSchema.find(isPlainText);
+      const attributionField = gfSchema.find(
+        (f: any) =>
+          isPlainText(f) &&
+          f?.uid !== quoteTextField?.uid &&
+          /author|attribution|cite|name/i.test(f?.uid || ''),
+      );
+      const logoField = gfSchema.find((f: any) => f?.data_type === 'file');
+      const gfVal: Record<string, any> = {};
+      gfVal[quoteTextField?.uid || 'quote'] =
+        pq.attribution && !attributionField ? `${pq.quote_text} — ${pq.attribution}` : pq.quote_text;
+      if (attributionField && pq.attribution) gfVal[attributionField.uid] = pq.attribution;
+      if (logoField && asset) gfVal[logoField.uid] = asset;
+      sub[gf.uid] = gfVal;
+    }
+    return Object.keys(sub).length ? sub : null;
+  };
   const flexCtaVar = flexVf ? pickVariantByRole(flexVf, 'cta', flexProseVar ? new Set([flexProseVar.uid]) : undefined) : null;
   const flexTableVar = flexVf ? findTableVariant(flexVf) : null;
   const flexProseSubUid = jsonSubUid(flexProseVar?.schema);
   const heroSection = flexSection ? findHeroSection(refSections, flexSection) : null;
   const statsSection = flexSection ? findStatsSection(refSections, flexSection) : null;
+  // Shared by both stats-band shapes (isStatsColumns' heading+paragraph and isStatsCardColumns' badge
+  // label+paragraph-number). Builds and pushes the stats_section side entry; returns whether it emitted.
+  const emitStatsSection = (parsed: Array<{ title?: string; number: string; subtitle: string }>): boolean => {
+    if (!statsSection || !parsed.length) return false;
+    const gfField = (statsSection.variant.schema || []).find((f: any) => f?.uid === statsSection.statsUid);
+    const gfDef = ctx?.globalFieldsByUid?.get(referenceTargets(gfField)[0]);
+    const gfSchema: any[] = Array.isArray(gfDef?.schema) ? gfDef.schema : [];
+    const numberField = gfSchema.find((f: any) => /number|headline|value/i.test(f?.uid || '')) || gfSchema[0];
+    const subtitleField = gfSchema.find(
+      (f: any) => f?.uid !== numberField?.uid && /subtitle|description|label/i.test(f?.uid || ''),
+    );
+    const titleField = gfSchema.find(
+      (f: any) => f?.uid !== numberField?.uid && f?.uid !== subtitleField?.uid && /title|name|eyebrow/i.test(f?.uid || ''),
+    );
+    const statsArr = parsed
+      .map((s) => {
+        const it: Record<string, any> = {};
+        if (titleField && s.title) it[titleField.uid] = s.title;
+        if (numberField && s.number) it[numberField.uid] = s.number;
+        if (subtitleField && s.subtitle) it[subtitleField.uid] = s.subtitle;
+        return it;
+      })
+      .filter((s) => Object.keys(s).length);
+    if (!statsArr.length) return false;
+    flush();
+    const entryUid = idCorrector(`${ctx?.uid || 'entry'}_stats_${statsSeq++}`);
+    const store = sideStoreFor(ctx, statsSection.def.refCtUid);
+    if (store) {
+      store[entryUid] = {
+        uid: entryUid,
+        title: sectionEntryTitle(statsSection.def.refCtUid, 'Stats'),
+        [statsSection.vfUid]: [{ [statsSection.variant.uid]: { [statsSection.statsUid]: statsArr } }],
+        locale: ctx?.locale || 'en-us',
+        publish_details: [],
+      };
+    }
+    sections.push({
+      [statsSection.def.blockUid]: { [statsSection.def.refField]: [{ uid: entryUid, _content_type_uid: statsSection.def.refCtUid }] },
+    });
+    return true;
+  };
   const tabSectionDef = flexSection ? findTabSectionDef(refSections, flexSection) : null;
   const jumpNavTabs = tabSectionDef ? extractJumpNavTabs(blocks) : null;
   const slideCards = refSections.length ? findSlideCardsSection(refSections) : null;
@@ -3815,6 +4011,9 @@ function buildModularBody(
     // A stats-band row (a number heading + label paragraph, repeated across columns) is detected by
     // shape alone, same reasoning as the people-grid row below.
     if (statsSection && isStatsColumns(block)) return true;
+    // Same stats-band section, authored with a badge label + paragraph-based number instead of a plain
+    // heading — detected by shape alone, same reasoning as isStatsColumns above.
+    if (statsSection && isStatsCardColumns(block)) return true;
     // A people-grid row (photo + name + role, repeated across columns) is detected by shape alone, not
     // by the section being named "leadership"/"team" — keep it whole so its column boundaries survive
     // instead of being flattened away like an ordinary layout column.
@@ -3833,6 +4032,9 @@ function buildModularBody(
     if (iconCardsDef && isColumnsTierCardPair(block)) return true;
     // A heading/paragraph + button "CTA banner" authored as columns (any column count) — same reasoning
     // as above, checked before the core/group-only gate below since core/columns has no pattern name.
+    // An image paired with a quote (portrait/logo beside its attribution) — same visual unit whether
+    // authored as one core/group or split across two core/columns — belongs in ONE text_quote entry.
+    if (flexQuoteVar && isImageQuotePair(block)) return true;
     if (block?.blockName === 'core/columns') {
       if (flexCtaVar && isGroupTextCta(block)) return true;
       return false;
@@ -3974,6 +4176,7 @@ function buildModularBody(
   // be skipped and the whole tabs entry is emitted the first time one of them is reached (preserving its
   // position in document order).
   let tabsEmitted = false;
+  let gutenaTabsSeq = 0;
   const emitJumpNavTabs = () => {
     if (!jumpNavTabs || !tabSectionDef) return;
     const tabsSide = jumpNavTabs.tabs
@@ -4027,6 +4230,45 @@ function buildModularBody(
       continue;
     }
 
+    // A real gutena/tabs block (see parseGutenaTabs) → its own tabs entry, same mechanism jump-nav tabs
+    // use above. Each tab's content becomes that tab's prose body instead of every tab running together
+    // in one undifferentiated rich_text chunk with no tab boundaries.
+    if (name === 'gutena/tabs' && tabSectionDef) {
+      const tabs = parseGutenaTabs(raw);
+      const tabsSide = tabs
+        .map((tab) => {
+          const jUid = jsonSubUid(tabSectionDef.variant.schema);
+          const variantSub: Record<string, any> = {};
+          if (jUid && hasMeaningfulHtmlContent(tab.html)) variantSub[jUid] = RteJsonConverter(tab.html);
+          const tabSub: Record<string, any> = { [tabSectionDef.tabTitleUid]: tab.title };
+          if (Object.keys(variantSub).length) tabSub[tabSectionDef.variantsUid] = [{ [tabSectionDef.variant.uid]: variantSub }];
+          return { [tabSectionDef.tabBlockUid]: tabSub };
+        })
+        .filter((t) => {
+          const sub = t[tabSectionDef.tabBlockUid];
+          return sub[tabSectionDef.tabTitleUid] || (sub[tabSectionDef.variantsUid] || []).length;
+        });
+      if (tabsSide.length) {
+        flush();
+        const entryUid = idCorrector(`${ctx?.uid || 'entry'}_gtabs_${gutenaTabsSeq++}`);
+        const store = sideStoreFor(ctx, tabSectionDef.def.refCtUid);
+        if (store) {
+          store[entryUid] = {
+            uid: entryUid,
+            title: sectionEntryTitle(tabSectionDef.def.refCtUid, 'Tabs'),
+            [tabSectionDef.tabsUid]: tabsSide,
+            locale: ctx?.locale || 'en-us',
+            publish_details: [],
+          };
+        }
+        sections.push({
+          [tabSectionDef.def.blockUid]: { [tabSectionDef.def.refField]: [{ uid: entryUid, _content_type_uid: tabSectionDef.def.refCtUid }] },
+        });
+        speakerSection = null;
+        continue;
+      }
+    }
+
     // Hero-shaped cover (kept whole by linearize above) → its own hero_section reference. Falls back to
     // buffering the overlay content so nothing is lost when no usable hero fields parse.
     if (name === 'core/cover' && heroSection) {
@@ -4048,43 +4290,13 @@ function buildModularBody(
     // Stats-band row (kept whole by linearize above because it matched the shape) → its own stats_section
     // reference entry, the same mechanism hero_section uses.
     if (name === 'core/columns' && statsSection && isStatsColumns(raw)) {
-      const parsed = parseStatsColumns(raw);
-      if (parsed.length) {
-        flush();
-        const gfField = (statsSection.variant.schema || []).find((f: any) => f?.uid === statsSection.statsUid);
-        const gfDef = ctx?.globalFieldsByUid?.get(referenceTargets(gfField)[0]);
-        const gfSchema: any[] = Array.isArray(gfDef?.schema) ? gfDef.schema : [];
-        const numberField = gfSchema.find((f: any) => /number|headline|value/i.test(f?.uid || '')) || gfSchema[0];
-        const subtitleField = gfSchema.find(
-          (f: any) => f?.uid !== numberField?.uid && /subtitle|description|label/i.test(f?.uid || ''),
-        );
-        const statsArr = parsed
-          .map((s) => {
-            const it: Record<string, any> = {};
-            if (numberField && s.number) it[numberField.uid] = s.number;
-            if (subtitleField && s.subtitle) it[subtitleField.uid] = s.subtitle;
-            return it;
-          })
-          .filter((s) => Object.keys(s).length);
-        if (statsArr.length) {
-          const entryUid = idCorrector(`${ctx?.uid || 'entry'}_stats_${statsSeq++}`);
-          const store = sideStoreFor(ctx, statsSection.def.refCtUid);
-          if (store) {
-            store[entryUid] = {
-              uid: entryUid,
-              title: sectionEntryTitle(statsSection.def.refCtUid, 'Stats'),
-              [statsSection.vfUid]: [{ [statsSection.variant.uid]: { [statsSection.statsUid]: statsArr } }],
-              locale: ctx?.locale || 'en-us',
-              publish_details: [],
-            };
-          }
-          sections.push({
-            [statsSection.def.blockUid]: { [statsSection.def.refField]: [{ uid: entryUid, _content_type_uid: statsSection.def.refCtUid }] },
-          });
-          speakerSection = null;
-          continue;
-        }
-      }
+      if (emitStatsSection(parseStatsColumns(raw))) { speakerSection = null; continue; }
+    }
+    // Same section authored with a badge label above a paragraph-based number (isStatsCardColumns) —
+    // checked after the plain heading-based shape above so a genuinely simpler stats row is never
+    // reparsed through the badge-aware path.
+    if (name === 'core/columns' && statsSection && !isStatsColumns(raw) && isStatsCardColumns(raw)) {
+      if (emitStatsSection(parseStatsCardColumns(raw))) { speakerSection = null; continue; }
     }
 
     // People-grid row (kept whole by linearize above because it matched the shape) → accumulate its
@@ -4809,43 +5021,20 @@ function buildModularBody(
 
       if (semantic === 'quote' && flexQuoteVar) {
         const pq = parseQuoteBlock(raw);
-        if (pq?.quote_text) {
-          const gf = firstFieldOfType(flexQuoteVar.schema, 'global_field');
-          const sub: Record<string, any> = {};
-          // The variant's own top-level `description` (json) field is left unset here: WP's core/quote
-          // only ever yields ONE piece of text (the quotation, via parseQuoteBlock). Writing quote_text
-          // into both `description` and the quote GF's `quote` field duplicated the same string in two
-          // places; the GF's `quote` field is the semantically correct, single home for it.
-          if (gf) {
-            // Sub-fields are resolved from the GF definition, never assumed. In the shipped model the
-            // quotes GF spells attribution as `author`, a REFERENCE to the author content type — so the
-            // raw `<cite>` text (a name + role, e.g. "Em Campbell-Pretty, Founder, pretty agile") must
-            // never be written there. A bare string in a reference field makes the CLI audit's
-            // fixMissingReferences JSON.parse throw, which fails the audit and aborts the whole import.
-            // Attribution is stored only when the model gives it a TEXT home; otherwise it is folded
-            // into the quote text so the authored content is still preserved.
-            const gfDef = ctx?.globalFieldsByUid?.get(referenceTargets(gf)[0]);
-            const gfSchema: any[] = Array.isArray(gfDef?.schema) ? gfDef.schema : [];
-            const isPlainText = (f: any) => f?.data_type === 'text' && !f?.enum;
-            const quoteTextField =
-              gfSchema.find((f: any) => isPlainText(f) && /quote|text/i.test(f?.uid || '')) ||
-              gfSchema.find(isPlainText);
-            const attributionField = gfSchema.find(
-              (f: any) =>
-                isPlainText(f) &&
-                f?.uid !== quoteTextField?.uid &&
-                /author|attribution|cite|name/i.test(f?.uid || ''),
-            );
-            const gfVal: Record<string, any> = {};
-            gfVal[quoteTextField?.uid || 'quote'] =
-              pq.attribution && !attributionField
-                ? `${pq.quote_text} — ${pq.attribution}`
-                : pq.quote_text;
-            if (attributionField && pq.attribution) gfVal[attributionField.uid] = pq.attribution;
-            sub[gf.uid] = gfVal;
-          }
-          if (Object.keys(sub).length) { flush(); reserveFlexSlot(); flexVariants.push({ [flexQuoteVar.uid]: sub }); speakerSection = null; continue; }
-        }
+        // The variant's own top-level `description` (json) field is left unset here: WP's core/quote
+        // only ever yields ONE piece of text (the quotation, via parseQuoteBlock). Writing quote_text
+        // into both `description` and the quote GF's `quote` field duplicated the same string in two
+        // places; the GF's `quote` field is the semantically correct, single home for it.
+        const sub = pq ? buildQuoteFlexSub(pq) : null;
+        if (sub) { flush(); reserveFlexSlot(); flexVariants.push({ [flexQuoteVar.uid]: sub }); speakerSection = null; continue; }
+      }
+      // An image paired with its quote (kept whole by isImageQuotePair/linearize above) — one text_quote
+      // entry with the image filling the quote GF's logo field, instead of an orphan text_image entry
+      // plus a text_quote entry with no portrait.
+      if ((name === 'core/group' || name === 'core/columns') && flexQuoteVar && isImageQuotePair(raw)) {
+        const pq = parseImageQuotePair(raw, assetData);
+        const sub = pq ? buildQuoteFlexSub(pq, pq.asset) : null;
+        if (sub) { flush(); reserveFlexSlot(); flexVariants.push({ [flexQuoteVar.uid]: sub }); speakerSection = null; continue; }
       }
     }
 
@@ -5099,6 +5288,12 @@ export function buildEntryFromSchema(
         entry[uid] = toEntryUrlPath(permalink);
       } else if (uid === 'excerpt' && excerptText) {
         entry[uid] = excerptText;
+      } else if (ct?.uid === 'course' && uid === 'template_variant') {
+        // No WP field carries this — it's a fixed per-post-id assignment from the content-inventory doc's
+        // 4 layout groupings (see COURSE_TEMPLATE_VARIANT_BY_POST_ID). A course post id not in that list
+        // (e.g. a newly authored course outside the original 30) is left unset rather than guessed.
+        const variant = COURSE_TEMPLATE_VARIANT_BY_POST_ID[String(item?.['wp:post_id'] ?? '')];
+        if (variant) entry[uid] = variant;
       } else if (isDropdownField(field)) {
         // Dropdown fed by postmeta (e.g. course_level ← `level`): normalize to a valid choice value,
         // skipping out-of-range values so we never write an invalid enum.
