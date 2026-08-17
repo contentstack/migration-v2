@@ -1,7 +1,50 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import path from 'path';
 import { setupWordPressBlocks } from '../../../src/utils/wordpressParseUtil.js';
+
+/**
+ * Resolve an authored definition from the export-data model by its UID, scanning the folder rather
+ * than assuming a filename — the model files get renamed (`article (8).json` → `article.json`) and the
+ * migration itself classifies by content, not by name.
+ */
+const MODEL_ROOT = path.resolve(process.cwd(), '..', 'export-data');
+const modelByUid = (() => {
+  const cts = new Map<string, any>();
+  const gfs = new Map<string, any>();
+  for (const sub of ['content-types', 'global-fields']) {
+    const dir = path.join(MODEL_ROOT, sub);
+    let files: string[] = [];
+    try {
+      files = readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const f of files) {
+      if (!f.endsWith('.json')) continue;
+      let def: any;
+      try {
+        def = JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
+      } catch {
+        continue;
+      }
+      const node = def.content_type || def.global_field || def;
+      if (!node?.uid || !Array.isArray(node.schema)) continue;
+      (node.options ? cts : gfs).set(node.uid, node);
+    }
+  }
+  return { cts, gfs };
+})();
+const modelCt = (uid: string) => {
+  const ct = modelByUid.cts.get(uid);
+  if (!ct) throw new Error(`content type '${uid}' not found in ${MODEL_ROOT}`);
+  return ct;
+};
+const modelGf = (uid: string) => {
+  const gf = modelByUid.gfs.get(uid);
+  if (!gf) throw new Error(`global field '${uid}' not found in ${MODEL_ROOT}`);
+  return gf;
+};
 import { buildBodySections, buildArticleEntry, buildEntryFromSchema, nestHierarchicalTerms } from '../../../src/services/wordpress.service.js';
 
 /**
@@ -317,7 +360,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
     expect((ar.body_sections || []).some((s: any) => s.rich_text)).toBe(true);
   });
 
-  it('fills a case_study_details group: customer_name/logo(file)/key_takeaways(json) from postmeta', async () => {
+  it('fills a case_study_details group: customer_name/logo(file) from postmeta, key_takeaways/quick_facts(text) from body headings, never from the stale case_study_results ACF field', async () => {
     const csCt = {
       uid: 'article', options: { is_page: true },
       schema: [
@@ -326,6 +369,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
           { uid: 'customer_name', data_type: 'text' },
           { uid: 'customer_logo', data_type: 'file' },
           { uid: 'industry', data_type: 'text' },
+          { uid: 'quick_facts', data_type: 'text' },
           { uid: 'key_takeaways', data_type: 'json', field_metadata: { allow_json_rte: true } },
         ] },
       ],
@@ -335,17 +379,26 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
       'wp:postmeta': [
         { 'wp:meta_key': 'page_header_title', 'wp:meta_value': 'Swisscom' },
         { 'wp:meta_key': 'customer_logo', 'wp:meta_value': '117534' }, // attachment id
-        { 'wp:meta_key': 'case_study_results', 'wp:meta_value': '<ul><li>Faster delivery</li><li>Lower cost</li></ul>' },
+        // Stale/cloned ACF leftover from an unrelated original post (the real bug this session found on
+        // ~24 real case studies) — must NEVER end up in key_takeaways.
+        { 'wp:meta_key': 'case_study_results', 'wp:meta_value': '<ul><li>Unrelated cloned content</li></ul>' },
       ],
     };
-    const blocks = await setupWordPressBlocks(richTextMarkup);
+    const markup = `<!-- wp:heading --><h3>Quick Facts:</h3><!-- /wp:heading -->
+<!-- wp:list --><ul><!-- wp:list-item --><li>50,000 employees</li><!-- /wp:list-item --><!-- wp:list-item --><li>20 countries</li><!-- /wp:list-item --></ul><!-- /wp:list -->
+<!-- wp:heading --><h3>Key Takeaways:</h3><!-- /wp:heading -->
+<!-- wp:list --><ul><!-- wp:list-item --><li>Faster delivery</li><!-- /wp:list-item --><!-- wp:list-item --><li>Lower cost</li><!-- /wp:list-item --></ul><!-- /wp:list -->`;
+    const blocks = await setupWordPressBlocks(markup);
     const assetData = { assets_117534: { uid: 'bltLOGO', filename: 'swisscom.png' } };
     const e = buildEntryFromSchema(csCt, blocks, item, { ...engineCtx, assetData, contentKind: 'case_study' });
     const g = e.case_study_details;
     expect(g).toBeTruthy();
     expect(g.customer_name).toBe('Swisscom'); // alias page_header_title
     expect(g.customer_logo).toEqual({ uid: 'bltLOGO', filename: 'swisscom.png' }); // attachment id → asset
-    expect(typeof g.key_takeaways).toBe('object'); // HTML → JSON RTE
+    expect(g.quick_facts).toBe('50,000 employees; 20 countries'); // from the "Quick Facts:" body heading
+    expect(typeof g.key_takeaways).toBe('object'); // from the "Key Takeaways:" body heading, HTML → JSON RTE
+    expect(JSON.stringify(g.key_takeaways)).toContain('Faster delivery');
+    expect(JSON.stringify(g.key_takeaways)).not.toContain('Unrelated cloned content'); // never the stale ACF field
     expect(g.industry).toBeUndefined(); // no source → left empty, not invented
   });
 
@@ -723,15 +776,9 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
   // Load the REAL exported content models so the test validates against the shipped schema shapes,
   // not a hand-authored stand-in. generic_pages.page_sections references standalone section content
   // types; flexible_layouts is the prose/media sink.
-  const loadCt = (file: string) => {
-    const raw = JSON.parse(
-      readFileSync(path.resolve(process.cwd(), '..', 'export-data', 'content-types', file), 'utf8'),
-    );
-    return raw.content_type || raw.global_field || raw;
-  };
-  const genericPagesCt = loadCt('generic_pages.json');
-  const flexibleLayoutsCt = loadCt('flexible_layouts.json');
-  const heroSectionCt = loadCt('hero_section.json');
+  const genericPagesCt = modelCt('generic_pages');
+  const flexibleLayoutsCt = modelCt('flexible_layouts');
+  const heroSectionCt = modelCt('hero_section');
   const contentTypesByUid = new Map<string, any>([
     ['generic_pages', genericPagesCt],
     ['flexible_layouts', flexibleLayoutsCt],
@@ -769,6 +816,7 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
       taxonomies: [],
       locale: 'en-us',
       contentTypesByUid,
+      globalFieldsByUid: modelByUid.gfs,
       sideEntries,
     });
     return { entry, sideEntries };
@@ -797,7 +845,8 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     const variants: any[] = flexEntry.variants;
     const kinds = variants.map((v) => Object.keys(v)[0]);
     // Prose (heading+intro), image, video, quote, and trailing prose all land as typed variants.
-    expect(kinds).toContain('text_cta');
+    // Arbitrary prose goes to the model's dedicated rich_text variant, not a composite text block.
+    expect(kinds).toContain('rich_text');
     expect(kinds).toContain('text_image');
     expect(kinds).toContain('text_video');
     expect(kinds).toContain('text_quote');
@@ -817,10 +866,15 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     const vid = variants.find((v) => v.text_video)?.text_video;
     expect(vid.embed_url).toBe('https://vimeo.com/348453636');
 
-    // Quote variant carries the quote body + quotes global field (quote + author).
+    // Quote variant carries the quote body + quotes global field. `author` is a REFERENCE in the
+    // shipped quotes GF, so the `<cite>` attribution must never be written there as a bare string —
+    // that crashes the CLI audit and aborts the import. The GF also declares a plain-text
+    // `author_name` field, so attribution lands there instead of the reference field or being folded
+    // into the quote body.
     const q = variants.find((v) => v.text_quote)?.text_quote;
     expect(q.quote.quote).toContain('great product review');
-    expect(q.quote.author).toBe('Jane Doe');
+    expect(q.quote.author_name).toContain('Jane Doe');
+    expect(q.quote.author).toBeUndefined();
 
     // Every emitted variant is non-empty (no placeholder shells).
     for (const v of variants) expect(Object.keys(Object.values(v)[0] as object).length).toBeGreaterThan(0);
@@ -872,6 +926,423 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     });
     const marketo = entry.page_sections.find((s: any) => s.marketo_form)?.marketo_form;
     expect(marketo.form_id).toBe('2402');
+  });
+});
+
+describe('Section-reference bodies against the real export-data model', () => {
+  const articleCtReal = modelCt('article');
+  const eventCtReal = modelCt('event_revised');
+  const genericPagesCtReal = modelCt('generic_pages');
+  const ctMap = new Map<string, any>([
+    ['article', articleCtReal],
+    ['event_revised', eventCtReal],
+    ['flexible_layouts', modelCt('flexible_layouts')],
+    ['hero_section', modelCt('hero_section')],
+  ]);
+  const gfMap = new Map<string, any>([['cta', modelGf('cta')]]);
+  const baseCtx = (sideEntries: any, uid: string) => ({
+    uid, link: 'https://scaledagile.com/x/', assetData: {}, authorData: [], taxonomies: [],
+    locale: 'en-us', contentTypesByUid: ctMap, globalFieldsByUid: gfMap, sideEntries,
+  });
+  const item = { title: 'T', link: 'https://scaledagile.com/x/', 'wp:post_id': '1', 'wp:post_type': 'post', 'wp:postmeta': [] };
+
+  it('fills article.body_section (top-level reference) with flexible_layouts entry refs', async () => {
+    const md = `<!-- wp:heading --><h2>Intro</h2><!-- /wp:heading -->
+<!-- wp:paragraph --><p>Some body prose.</p><!-- /wp:paragraph -->
+<!-- wp:quote --><blockquote><!-- wp:paragraph --><p>Great quote.</p><!-- /wp:paragraph --><cite>Jane</cite></blockquote><!-- /wp:quote -->`;
+    const sideEntries: Record<string, Record<string, any>> = {};
+    const e = buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(md), item, baseCtx(sideEntries, 'posts_1') as any);
+    // body_section is a reference array, not modular blocks.
+    expect(Array.isArray(e.body_section)).toBe(true);
+    expect(e.body_section[0]._content_type_uid).toBe('flexible_layouts');
+    const flex = Object.values(sideEntries.flexible_layouts)[0] as any;
+    expect(Object.keys(sideEntries.flexible_layouts)).toContain(e.body_section[0].uid);
+    // Prose and quote both survive, in their typed variants.
+    const kinds = flex.variants.map((v: any) => Object.keys(v)[0]);
+    expect(kinds).toContain('rich_text');
+    expect(kinds).toContain('text_quote');
+    const dump = JSON.stringify(flex.variants);
+    expect(dump).toContain('Some body prose');
+    expect(dump).toContain('Great quote');
+  });
+
+  it('titles a section entry from the item title only (never the heading), else the slug', async () => {
+    const withHeading = `<!-- wp:heading --><h2>Why choose SAFe?</h2><!-- /wp:heading --><!-- wp:paragraph --><p>Body.</p><!-- /wp:paragraph -->`;
+    const noHeading = `<!-- wp:paragraph --><p>Body with no leading heading.</p><!-- /wp:paragraph -->`;
+
+    // 1) a leading heading is IGNORED for the title — a bare heading like "Share:"/"Industry:" repeats
+    // across many unrelated pages, and title is unique+mandatory on flexible_layouts, so importing it
+    // verbatim (or appended to the parent title) would still collide once two pages share that heading.
+    // The parent item's own title is used unchanged instead.
+    let side: Record<string, Record<string, any>> = {};
+    await buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(withHeading), item, baseCtx(side, 'p1') as any);
+    expect((Object.values(side.flexible_layouts)[0] as any).title).toBe('T');
+
+    // 2) no heading → the parent item's title (not the generic 'Content')
+    side = {};
+    await buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(noHeading), { ...item, title: 'Airbus Case Study' }, baseCtx(side, 'p2') as any);
+    expect((Object.values(side.flexible_layouts)[0] as any).title).toBe('Airbus Case Study');
+
+    // 3) no heading AND an empty item title → humanized slug
+    side = {};
+    await buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(noHeading), { ...item, title: '', 'wp:post_name': 'jp-training' }, baseCtx(side, 'p3') as any);
+    expect((Object.values(side.flexible_layouts)[0] as any).title).toBe('Jp Training');
+  });
+
+  it('creates exactly ONE flexible_layouts entry per item, even when sections interrupt the body', async () => {
+    // Prose, then a hero (its own section), then more prose. The two prose runs must accumulate into a
+    // single flexible-layout document — an entry must never reference several of them.
+    const md = `<!-- wp:paragraph --><p>First chunk.</p><!-- /wp:paragraph -->
+<!-- wp:cover {"url":"https://x/bg.png","id":9} --><div class="wp-block-cover"><div class="wp-block-cover__inner-container"><!-- wp:heading --><h2>Hero</h2><!-- /wp:heading --></div></div><!-- /wp:cover -->
+<!-- wp:paragraph --><p>Second chunk.</p><!-- /wp:paragraph -->`;
+    const side: Record<string, Record<string, any>> = {};
+    const entry = buildEntryFromSchema(genericPagesCtReal, await setupWordPressBlocks(md), { ...item, title: 'Repeated' }, baseCtx(side, 'p4') as any);
+
+    expect(Object.keys(side.flexible_layouts)).toHaveLength(1);
+    const flex = Object.values(side.flexible_layouts)[0] as any;
+    // Both prose runs live inside that one entry.
+    const dump = JSON.stringify(flex.variants);
+    expect(dump).toContain('First chunk');
+    expect(dump).toContain('Second chunk');
+
+    // page_sections references it exactly once, and still in document order (before the hero).
+    const refs = entry.page_sections.filter((s: any) => s.flexible_layout);
+    expect(refs).toHaveLength(1);
+    const kinds = entry.page_sections.map((s: any) => Object.keys(s)[0]);
+    expect(kinds.indexOf('flexible_layout')).toBeLessThan(kinds.indexOf('hero_block'));
+  });
+
+  it('emits no flexible_layouts entry (and no dangling reference) when there is no body content', async () => {
+    const side: Record<string, Record<string, any>> = {};
+    const entry = buildEntryFromSchema(genericPagesCtReal, await setupWordPressBlocks(''), item, baseCtx(side, 'p5') as any);
+    expect(Object.keys(side.flexible_layouts || {})).toHaveLength(0);
+    expect((entry.page_sections || []).some((s: any) => s == null)).toBe(false);
+  });
+
+  it('keeps inline blocks (speaker) alongside reference sections in a mixed model (event_revised)', async () => {
+    const md = `<!-- wp:heading --><h2>About</h2><!-- /wp:heading -->
+<!-- wp:paragraph --><p>Event intro text.</p><!-- /wp:paragraph -->
+<!-- wp:media-text --><div class="wp-block-media-text"><figure><img src="https://scaledagile.com/wp-content/uploads/spk.png"/></figure><div class="wp-block-media-text__content"><!-- wp:heading --><h3>Jane Speaker</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Chief Agilist</p><!-- /wp:paragraph --></div></div><!-- /wp:media-text -->`;
+    const sideEntries: Record<string, Record<string, any>> = {};
+    const e = buildEntryFromSchema(eventCtReal, await setupWordPressBlocks(md), { ...item, 'wp:post_type': 'event' }, baseCtx(sideEntries, 'posts_2') as any);
+    const kinds = (e.content_blocks || []).map((s: any) => Object.keys(s)[0]);
+    // The inline speaker block must NOT be swallowed by the reference-section path...
+    expect(kinds).toContain('speaker');
+    // ...and the prose still lands in a flexible_layouts reference, ordered before the speaker.
+    expect(kinds).toContain('rich_text_section');
+    expect(kinds.indexOf('rich_text_section')).toBeLessThan(kinds.indexOf('speaker'));
+    expect(Object.keys(sideEntries.flexible_layouts || {}).length).toBe(1);
+  });
+});
+
+describe('page-remap.json (per-page content-type overrides)', () => {
+  const remap = JSON.parse(
+    readFileSync(path.resolve(process.cwd(), '..', 'export-data', 'page-remap.json'), 'utf8'),
+  );
+
+  it('is scoped to the page post type with generic_pages as the default', () => {
+    expect(remap.postType).toBe('page');
+    expect(remap.defaultContentType).toBe('generic_pages');
+  });
+
+  it('routes every rule to a content type authored in the model', () => {
+    const authored = new Set(
+      readdirSync(path.resolve(process.cwd(), '..', 'export-data', 'content-types'))
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => {
+          const raw = JSON.parse(
+            readFileSync(path.resolve(process.cwd(), '..', 'export-data', 'content-types', f), 'utf8'),
+          );
+          return (raw.content_type || raw).uid;
+        }),
+    );
+    for (const [slug, rule] of Object.entries<any>(remap.rules)) {
+      expect(authored.has(rule.contentType), `${slug} -> ${rule.contentType}`).toBe(true);
+      expect(typeof rule.reason).toBe('string'); // every override must justify itself
+    }
+  });
+
+  it('distributes the 170 pages as analysed (127 generic + 43 remapped)', () => {
+    const counts: Record<string, number> = {};
+    for (const rule of Object.values<any>(remap.rules)) {
+      counts[rule.contentType] = (counts[rule.contentType] || 0) + 1;
+    }
+    expect(Object.keys(remap.rules)).toHaveLength(43);
+    expect(counts).toEqual({
+      article: 17,
+      case_studies: 11,
+      course: 11,
+      review_videos: 3,
+      event_revised: 1,
+    });
+  });
+});
+
+describe('No-data-loss edge cases', () => {
+  const flexCt = modelCt('flexible_layouts');
+  const articleCt2 = modelCt('article');
+  const ctMap2 = new Map<string, any>([
+    ['article', articleCt2],
+    ['flexible_layouts', flexCt],
+  ]);
+  const it0 = { title: 'T', link: 'https://scaledagile.com/x/', 'wp:post_id': '1', 'wp:post_type': 'post', 'wp:postmeta': [] };
+
+  const buildBlob = async (markup: string) => {
+    const side: Record<string, Record<string, any>> = {};
+    const e = buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+      uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [], locale: 'en-us',
+      contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    return JSON.stringify([e, side]);
+  };
+
+  it('keeps <figcaption> text (the RTE serializer drops the element outright)', async () => {
+    // Raw <figure> with no Gutenberg comment — flows through the RTE converter, where htmlToJson has
+    // no mapping for <figcaption> and would silently discard the caption with its text.
+    const markup = `<figure class="wp-block-image"><img src="https://scaledagile.com/wp-content/uploads/1-b.jpeg" alt="a"/><figcaption class="wp-element-caption"><em>Figure 1. Definition of ready maturity model</em></figcaption></figure>`;
+    const blob = await buildBlob(markup);
+    expect(blob).toContain('Definition of ready maturity model');
+    expect(blob).toContain('1-b.jpeg'); // the image itself still survives too
+  });
+
+  it('routes core/media-text to the text_image variant, not the prose sink', async () => {
+    const markup = `<!-- wp:media-text {"mediaId":12345,"mediaPosition":"right"} --><div class="wp-block-media-text"><figure class="wp-block-media-text__media"><img src="https://scaledagile.com/wp-content/uploads/hero.png"/></figure><div class="wp-block-media-text__content"><!-- wp:heading --><h3>Build Your Blueprint</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Customized in-person training.</p><!-- /wp:paragraph --></div></div><!-- /wp:media-text -->`;
+    const side: Record<string, Record<string, any>> = {};
+    const asset = { uid: 'blt_img', url: 'https://scaledagile.com/wp-content/uploads/hero.png' };
+    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+      uid: 'p', link: it0.link, assetData: { assets_12345: asset }, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    const flex = Object.values(side.flexible_layouts)[0] as any;
+    const kinds = flex.variants.map((v: any) => Object.keys(v)[0]);
+    expect(kinds).toContain('text_image');
+    expect(kinds).not.toContain('text_cta'); // must NOT be dumped into the generic RTE sink
+    const ti = flex.variants.find((v: any) => v.text_image).text_image;
+    expect(ti.image).toEqual(asset);
+    expect(ti.title).toBe('Build Your Blueprint');
+    expect(ti.image_aligment).toBe('Right'); // model spells this field `aligment` (sic)
+    expect(JSON.stringify(ti.description)).toContain('Customized in-person training');
+  });
+
+  it('fills image_aligment from mediaPosition or align, ignoring width keywords', async () => {
+    const asset = { uid: 'blt1', url: 'https://x/a.png' };
+    const align = async (markup: string) => {
+      const side: Record<string, Record<string, any>> = {};
+      buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+        uid: 'p', link: it0.link, assetData: { assets_1: asset }, authorData: [], taxonomies: [],
+        locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
+      } as any);
+      const flex = Object.values(side.flexible_layouts)[0] as any;
+      return flex.variants.find((v: any) => v.text_image)?.text_image?.image_aligment;
+    };
+    const mt = (attrs: string) =>
+      `<!-- wp:media-text ${attrs} --><div class="wp-block-media-text"><figure class="wp-block-media-text__media"><img src="https://x/a.png" class="wp-image-1"/></figure><div class="wp-block-media-text__content"><p>Body.</p></div></div><!-- /wp:media-text -->`;
+    const img = (attrs: string) =>
+      `<!-- wp:image ${attrs} --><figure class="wp-block-image"><img src="https://x/a.png" class="wp-image-1"/></figure><!-- /wp:image -->`;
+
+    expect(await align(mt('{"mediaId":1,"mediaPosition":"right"}'))).toBe('Right');
+    expect(await align(mt('{"mediaId":1,"mediaPosition":"left"}'))).toBe('Left');
+    // `align` is a WIDTH keyword here — must not be written into the select…
+    expect(await align(mt('{"mediaId":1,"align":"wide"}'))).toBe('Left'); // …falls back to WP's default
+    // …and a real mediaPosition still wins over the width keyword.
+    expect(await align(mt('{"mediaId":1,"align":"wide","mediaPosition":"right"}'))).toBe('Right');
+    expect(await align(mt('{"mediaId":1}'))).toBe('Left'); // WordPress default media position
+
+    expect(await align(img('{"id":1,"align":"right"}'))).toBe('Right');
+    expect(await align(img('{"id":1,"align":"left"}'))).toBe('Left');
+    // A standalone image has no implied side: invalid/absent alignment stays unset.
+    expect(await align(img('{"id":1,"align":"center"}'))).toBeUndefined();
+    expect(await align(img('{"id":1}'))).toBeUndefined();
+  });
+
+  it('falls back to prose (keeping the img URL) when the media asset is not downloaded', async () => {
+    const markup = `<!-- wp:media-text {"mediaId":999} --><div class="wp-block-media-text"><figure class="wp-block-media-text__media"><img src="https://scaledagile.com/wp-content/uploads/missing.png"/></figure><div class="wp-block-media-text__content"><p>Body text here.</p></div></div><!-- /wp:media-text -->`;
+    const blob = await buildBlob(markup); // no assetData → asset cannot resolve
+    // A file field can't hold a bare URL, so the block must degrade to rich text rather than lose the image.
+    expect(blob).toContain('missing.png');
+    expect(blob).toContain('Body text here');
+  });
+
+  it('keeps a non-hero cover background image (the wrapper is unwrapped, its attrs are not)', async () => {
+    // A cover whose overlay is structured content is treated as a transparent wrapper, so its
+    // background — which lives only in the block's own attrs — must still be emitted.
+    const markup = `<!-- wp:cover {"url":"https://scaledagile.com/wp-content/uploads/bg_7.png","id":1} --><div class="wp-block-cover"><div class="wp-block-cover__inner-container"><!-- wp:columns --><div class="wp-block-columns"><!-- wp:column --><div class="wp-block-column"><!-- wp:paragraph --><p>Overlay copy.</p><!-- /wp:paragraph --></div><!-- /wp:column --></div><!-- /wp:columns --></div></div><!-- /wp:cover -->`;
+
+    // Asset downloaded → linked as a real asset reference on the image variant.
+    const side: Record<string, Record<string, any>> = {};
+    const asset = { uid: 'blt_bg', url: 'https://scaledagile.com/wp-content/uploads/bg_7.png' };
+    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+      uid: 'p', link: it0.link, assetData: { assets_1: asset }, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    const flex = Object.values(side.flexible_layouts)[0] as any;
+    expect(JSON.stringify(flex.variants)).toContain('blt_bg');
+    expect(JSON.stringify(flex.variants)).toContain('Overlay copy'); // overlay content still flows
+
+    // Asset NOT downloaded → the background URL must still survive as rich text.
+    const blob = await buildBlob(markup);
+    expect(blob).toContain('bg_7.png');
+    expect(blob).toContain('Overlay copy');
+  });
+
+  it('routes a slider to cards_section.sliding_cards, hoisting a shared heading', async () => {
+    const gp = modelCt('generic_pages');
+    const ctMap3 = new Map<string, any>([
+      ['generic_pages', gp],
+      ['flexible_layouts', modelCt('flexible_layouts')],
+      ['cards_section', modelCt('cards_section')],
+      ['hero_section', modelCt('hero_section')],
+    ]);
+    const slide = (h: string, quote: string, cite = '') =>
+      `<!-- wp:salsa-blocks/slider-item --><salsa-carousel-slide><!-- wp:heading --><h3>${h}</h3><!-- /wp:heading --><!-- wp:quote --><blockquote><p>${quote}</p>${cite ? `<cite>${cite}</cite>` : ''}</blockquote><!-- /wp:quote --></salsa-carousel-slide><!-- /wp:salsa-blocks/slider-item -->`;
+
+    // Per-slide headings stay on the cards; attribution lands in `description`.
+    const perSlide = `<!-- wp:salsa-blocks/slider -->${slide('Product Development', 'Great culture.')}${slide('Sales', 'Amazing team.', '—Adam')}<!-- /wp:salsa-blocks/slider -->`;
+    const side: Record<string, Record<string, any>> = {};
+    const entry = buildEntryFromSchema(gp, await setupWordPressBlocks(perSlide), it0, {
+      uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    expect(entry.page_sections.map((s: any) => Object.keys(s)[0])).toContain('card_collection_block');
+    const cs = Object.values(side.cards_section)[0] as any;
+    const variant: any = Object.values(cs.variants[0])[0];
+    expect(variant.cards).toHaveLength(2);
+    expect(variant.cards[0].title).toBe('Product Development');
+    expect(variant.cards[0].subtitle).toContain('Great culture');
+    expect(variant.cards[1].description).toBe('—Adam');
+
+    // A heading repeated on every slide is the SECTION title, so cards carry no redundant title. The
+    // side entry's own title is still just the parent item's title, unchanged — cards_section.title is
+    // also unique+mandatory, and a shared heading like this one is exactly the kind of generic label
+    // that repeats across unrelated pages, so it's never folded into the title.
+    const shared = `<!-- wp:salsa-blocks/slider -->${slide('How companies win', 'Quote one.')}${slide('How companies win', 'Quote two.')}<!-- /wp:salsa-blocks/slider -->`;
+    const side2: Record<string, Record<string, any>> = {};
+    buildEntryFromSchema(gp, await setupWordPressBlocks(shared), it0, {
+      uid: 'p2', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side2,
+    } as any);
+    const cs2 = Object.values(side2.cards_section)[0] as any;
+    const variant2: any = Object.values(cs2.variants[0])[0];
+    expect(cs2.title).toBe('T');
+    expect(variant2.cards.every((c: any) => c.title === undefined)).toBe(true);
+  });
+
+  it('routes core/table to the table variant, keeping every cell of a wide table', async () => {
+    const two = `<!-- wp:table --><figure class="wp-block-table"><table><tbody><tr><td>Name:</td><td>Scaled Agile, Inc.</td></tr><tr><td>Role:</td><td>Controller</td></tr></tbody></table></figure><!-- /wp:table -->`;
+    const side: Record<string, Record<string, any>> = {};
+    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(two), it0, {
+      uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    const flex = Object.values(side.flexible_layouts)[0] as any;
+    const table = flex.variants.find((v: any) => v.table)?.table;
+    expect(table.table_columns).toHaveLength(1);
+    expect(table.table_columns[0].rows).toEqual([
+      { title: 'Name:', subtitle: 'Scaled Agile, Inc.' },
+      { title: 'Role:', subtitle: 'Controller' },
+    ]);
+
+    // A 3-column table becomes two column groups, each pairing the row label with that column's value,
+    // so no cell is truncated by the model's 2-slot rows.
+    const three = `<!-- wp:table --><figure class="wp-block-table"><table><thead><tr><th>Purpose</th><th>Data</th><th>Basis</th></tr></thead><tbody><tr><td>Billing</td><td>Card</td><td>Contract</td></tr></tbody></table></figure><!-- /wp:table -->`;
+    const side2: Record<string, Record<string, any>> = {};
+    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(three), it0, {
+      uid: 'p2', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side2,
+    } as any);
+    const t2 = (Object.values(side2.flexible_layouts)[0] as any).variants.find((v: any) => v.table).table;
+    expect(t2.table_columns.map((c: any) => c.title)).toEqual(['Data', 'Basis']);
+    expect(JSON.stringify(t2)).toContain('Card');
+    expect(JSON.stringify(t2)).toContain('Contract');
+  });
+
+  it('leaves a table containing links as rich text (text cells cannot hold an href)', async () => {
+    const md = `<!-- wp:table --><figure class="wp-block-table"><table><tbody><tr><td>Contact:</td><td><a href="mailto:support@scaledagile.com">support@scaledagile.com</a></td></tr></tbody></table></figure><!-- /wp:table -->`;
+    const side: Record<string, Record<string, any>> = {};
+    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(md), it0, {
+      uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    const flex = Object.values(side.flexible_layouts)[0] as any;
+    expect(flex.variants.map((v: any) => Object.keys(v)[0])).not.toContain('table');
+    expect(JSON.stringify(flex.variants)).toContain('mailto:support@scaledagile.com');
+  });
+
+  it('routes an accordion to the plain cards section (course has no vertical_tabs reference)', async () => {
+    const courseCt = modelCt('course');
+    const ctMap3 = new Map<string, any>([
+      ['course', courseCt],
+      ['flexible_layouts', modelCt('flexible_layouts')],
+      ['cards_section', modelCt('cards_section')],
+      ['hero_section', modelCt('hero_section')],
+      ['stats_section', modelCt('stats_section')],
+    ]);
+    const child = (t: string, b: string) =>
+      `<!-- wp:esab/accordion-child --><div class="wp-block-esab-accordion-child"><div class="esab__head"><div class="esab__heading_txt"><p class="esab__heading_tag">${t}</p></div><div class="esab__icon"><svg viewBox="0 0 24 24"><path d="m1 1"/></svg></div></div><div class="esab__body"><p>${b}</p></div></div><!-- /wp:esab/accordion-child -->`;
+    const md = `<!-- wp:esab/accordion -->${child('Optimize flow', 'Apply advanced XP and Kanban frameworks.')}${child('Drive teams', 'Build high-performing teams.')}<!-- /wp:esab/accordion -->`;
+    const side: Record<string, Record<string, any>> = {};
+    const entry = buildEntryFromSchema(courseCt, await setupWordPressBlocks(md), { ...it0, 'wp:post_type': 'course' }, {
+      uid: 'c', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    expect(entry.page_sections.map((s: any) => Object.keys(s)[0])).toContain('card_grid');
+    const cs = Object.values(side.cards_section)[0] as any;
+    const variant: any = Object.values(cs.variants[0])[0];
+    expect(variant.cards).toHaveLength(2);
+    expect(variant.cards[0].title).toBe('Optimize flow');
+    expect(variant.cards[0].subtitle).toContain('Kanban frameworks');
+    // The expand/collapse chrome must not leak into the card text.
+    expect(JSON.stringify(variant.cards)).not.toContain('svg');
+  });
+
+  it('falls back to the WordPress excerpt for a differently-named standfirst field', () => {
+    // event_revised calls its standfirst `summary`; with no postmeta of that name the excerpt would
+    // otherwise be dropped entirely.
+    const ct = {
+      uid: 'x',
+      schema: [
+        { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
+        { uid: 'summary', data_type: 'text' },
+      ],
+    };
+    const withExcerpt = { ...it0, 'excerpt:encoded': '<p>Insights about how LACEs operate.</p>' };
+    const e = buildEntryFromSchema(ct, [], withExcerpt, {
+      uid: 'e', link: it0.link, assetData: {}, authorData: [], taxonomies: [], locale: 'en-us',
+      contentTypesByUid: new Map(), globalFieldsByUid: new Map(), sideEntries: {},
+    } as any);
+    expect(e.summary).toBe('Insights about how LACEs operate.');
+
+    // A real postmeta value still wins over the excerpt fallback.
+    const withMeta = { ...withExcerpt, 'wp:postmeta': [{ 'wp:meta_key': 'summary', 'wp:meta_value': 'From ACF' }] };
+    const e2 = buildEntryFromSchema(ct, [], withMeta, {
+      uid: 'e', link: it0.link, assetData: {}, authorData: [], taxonomies: [], locale: 'en-us',
+      contentTypesByUid: new Map(), globalFieldsByUid: new Map(), sideEntries: {},
+    } as any);
+    expect(e2.summary).toBe('From ACF');
+  });
+
+  it('does not turn plain buttons into a form section', async () => {
+    // `marketo_form` carries a cta global field, so a loose CTA matcher would emit a bogus form for
+    // every button on the page.
+    const gp = modelCt('generic_pages');
+    const ctMap3 = new Map<string, any>([['generic_pages', gp], ['flexible_layouts', modelCt('flexible_layouts')]]);
+    const md = `<!-- wp:buttons --><div class="wp-block-buttons"><!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link" href="https://scaledagile.com/case_study/fedex/">Read more</a></div><!-- /wp:button --></div><!-- /wp:buttons -->`;
+    const side: Record<string, Record<string, any>> = {};
+    const entry = buildEntryFromSchema(gp, await setupWordPressBlocks(md), it0, {
+      uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
+      locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side,
+    } as any);
+    expect(entry.page_sections.map((s: any) => Object.keys(s)[0])).not.toContain('marketo_form');
+    const blob = JSON.stringify([entry, side]);
+    expect(blob).toContain('case_study/fedex'); // the link itself is still preserved
+    expect(blob).toContain('Read more');
+  });
+
+  it('keeps <noscript> fallback content (widget no-JS fallbacks)', async () => {
+    const markup = `<div class="wp-block-column"><noscript><a href="https://www.eventbrite.com/e/safe-connect-sydney-tickets-624932629317">Buy Tickets on Eventbrite</a></noscript></div>`;
+    const blob = await buildBlob(markup);
+    expect(blob).toContain('safe-connect-sydney-tickets-624932629317');
+    expect(blob).toContain('Buy Tickets');
   });
 });
 

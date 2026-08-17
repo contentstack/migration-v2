@@ -95,13 +95,18 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
         .get("ContentTypesMappers")
         .find({ id: contentId, projectId: safeProjectId })
         .value();
+      // A tool-generated near-duplicate of an authored content type must not be CREATED (the authored
+      // one already covers it), but the row is still needed downstream: createEntry iterates the
+      // returned list to generate entries, so dropping it here would silently produce no entries for
+      // that post type. Skip only the creation, then keep the row.
       if (isToolDuplicateOfAuthored(contentType)) {
         await customLogger(
           safeProjectId,
           safeDestinationStackId,
           "info",
-          `Skipping tool-generated content type '${contentType?.contentstackUid}' — already provided by export-data model`,
+          `Skipping creation of tool-generated content type '${contentType?.contentstackUid}' — already provided by export-data model (entries still generated)`,
         );
+        contentTypes?.push?.(contentType);
         continue;
       }
       if (contentType?.fieldMapping?.length) {
