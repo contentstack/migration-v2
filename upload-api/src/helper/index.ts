@@ -230,10 +230,17 @@ const mergeWordpressJson = (parsedDocs: any[]): any => {
 // case_study_content=5) for asset ids.
 const REFERENCE_META_KEY_RE = /(logo|image|thumb|thumbnail|photo|icon|media|badge|avatar|gallery|banner|file|_id)$|(logo|image|thumb|photo|icon|media|badge|avatar|gallery|banner)/i;
 
+// WordPress stamps the attachment id of an inline image straight onto the <img> tag as a
+// `wp-image-{id}` CSS class (added by the classic/block editor whenever media-library media is
+// inserted into post body content). Postmeta scanning alone misses these — the id never lands on
+// a postmeta row when the image was dropped into the body instead of a featured-image/ACF field.
+const WP_IMAGE_CLASS_RE = /wp-image-(\d+)/g;
+
 /**
  * Collect the attachment ids referenced by structured fields (postmeta) across the given WXR docs —
- * e.g. `customer_logo`, `_thumbnail_id` (featured image), ACF image fields. Used to pull just the
- * referenced assets out of an otherwise-excluded media-library export.
+ * e.g. `customer_logo`, `_thumbnail_id` (featured image), ACF image fields — plus any attachment ids
+ * embedded inline in post body content via the `wp-image-{id}` class WordPress adds to `<img>` tags.
+ * Used to pull just the referenced assets out of an otherwise-excluded media-library export.
  */
 const collectReferencedAttachmentIds = (docs: any[]): Set<string> => {
   const ids = new Set<string>();
@@ -246,6 +253,10 @@ const collectReferencedAttachmentIds = (docs: any[]): Set<string> => {
         if (typeof key !== 'string' || !REFERENCE_META_KEY_RE.test(key)) continue;
         const s = String(m?.['wp:meta_value'] ?? '').trim();
         if (/^\d+$/.test(s)) ids.add(s);
+      }
+      const content = it?.['content:encoded'];
+      if (typeof content === 'string') {
+        for (const match of content.matchAll(WP_IMAGE_CLASS_RE)) ids.add(match[1]);
       }
     }
   }

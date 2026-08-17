@@ -193,6 +193,27 @@ describe('helper/index', () => {
       expect(kept).toBe(0);
       expect(docs).toHaveLength(0);
     });
+
+    it('keeps attachments referenced only inline via a wp-image-{id} class in post body content', () => {
+      const content = doc([
+        {
+          'wp:post_id': '900',
+          'wp:post_type': 'page',
+          'wp:postmeta': [],
+          'content:encoded':
+            '<p>Some copy <img class="wp-image-146258 size-full" src="https://x/logo.gif" /></p>',
+        },
+      ]);
+      const media = doc([
+        attachment('146258', 'https://x/logo.gif'),
+        attachment('99999', 'https://x/unreferenced.jpg'),
+      ]);
+      const { docs, kept, dropped } = filterMediaDocsToReferenced([content], [media]);
+      expect(kept).toBe(1);
+      expect(dropped).toBe(1);
+      const keptIds = docs[0].rss.channel.item.map((i: any) => i['wp:post_id']);
+      expect(keptIds).toEqual(['146258']);
+    });
   });
 
   describe('deleteFolderSync', () => {

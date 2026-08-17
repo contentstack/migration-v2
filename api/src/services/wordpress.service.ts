@@ -3717,12 +3717,17 @@ function buildModularBody(
     const textUids = plainTextSubUids(s);
     const ctaField = s.find((f: any) => f?.data_type === 'global_field' && f?.multiple)
       || s.find((f: any) => f?.data_type === 'global_field');
+    // Video embed (e.g. Vidyard) authored inline inside the hero cover — same field-discovery approach
+    // used for flexible_layouts' text_video variant, so this works whatever the field is actually named
+    // (embed_url, video_url, …) as long as it's a plain text field with one of those words in its uid.
+    const embedUrlUid = urlTextSubUid(s);
     const idAttr = Number(cover?.attrs?.id);
     let bg = Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined;
     if (!bg) bg = resolveAssetByUrl(assetData, cover?.attrs?.url);
     let title = '';
     const subParts: string[] = [];
     const ctas: any[] = [];
+    let embedUrl = '';
     for (const lf of Array.from(linearizeContentBlocks(cover?.innerBlocks || []))) {
       const nm = (lf as any)?.blockName;
       if (nm === 'core/heading' && !title) {
@@ -3747,6 +3752,12 @@ function buildModularBody(
         const imgId = Number((lf as any)?.attrs?.id);
         bg = (Number.isFinite(imgId) && imgId > 0 ? assetData?.[`assets_${imgId}`] : undefined)
           || resolveAssetByUrl(assetData, (lf as any)?.attrs?.url);
+      } else if (!embedUrl && WP_BLOCK_TO_SEMANTIC[nm] === 'video_embed') {
+        // A video (e.g. Vidyard) authored inside the same cover block used for the hero — previously
+        // dropped entirely since the hero builder had no branch for it (only heading/paragraph/list/
+        // button/image were recognized). Only used when the target variant declares a field for it.
+        const parsed = embedUrlUid ? parseVideoBlock(lf) : null;
+        if (parsed?.video_url) embedUrl = parsed.video_url;
       }
     }
     const sub: Record<string, any> = {};
@@ -3754,6 +3765,7 @@ function buildModularBody(
     if (textUids[0] && title) sub[textUids[0]] = title;
     if (textUids[1] && subParts.length) sub[textUids[1]] = subParts.join(' ');
     if (ctaField && ctas.length) sub[ctaField.uid] = ctaField.multiple ? ctas : ctas[0];
+    if (embedUrlUid && embedUrl) sub[embedUrlUid] = embedUrl;
     if (!Object.keys(sub).length) return false;
     const heroIndex = heroSeq++;
     const entryUid = idCorrector(`${ctx?.uid || 'entry'}_hero_${heroIndex}`);
