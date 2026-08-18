@@ -210,6 +210,11 @@ export function reconcile(
   const sourceTypeToCtUid = new Map<string, string>();
   for (const [uid, srcType] of ctByUid) sourceTypeToCtUid.set(srcType, uid);
 
+  // The real migration hook always calls reconcile() with the authoritative
+  // contentTypes array, so this is only ever true for the standalone CLI run
+  // by hand without --content-types.
+  const isHeuristic = !contentTypes?.length;
+
   const { master, all: declaredLocales, names: localeNames } = loadLocales(migrationDir);
   const assetIndex = readJson(path.join(migrationDir, ASSETS_DIR_NAME, 'index.json')) ?? {};
 
@@ -242,12 +247,23 @@ export function reconcile(
     const ctUid = sourceTypeToCtUid.get(sourceType) ?? null;
     if (!ctUid) {
       // The customer-data guard: a source type nobody mapped is a whole class of
-      // content silently absent from the destination.
+      // content silently absent from the destination. BUT in heuristic mode this
+      // can also mean the content type was renamed during "Map Content Fields" —
+      // heuristic mode guesses the source type from the CONTENTSTACK display
+      // name (content_types/*.json's "title", which real production code always
+      // writes as the possibly-renamed name, never the original SAP type), so a
+      // rename alone reproduces this exact shape with zero actual data loss.
+      // Confirmed live: a renamed ContentPage was migrated correctly and showed
+      // as unmapped ONLY in heuristic mode, never in authoritative mode. Since
+      // authoritative mode (what every real migration uses) cannot produce this
+      // false positive, only heuristic mode's own guess is ever downgraded here.
       add({
-        severity: 'critical',
+        severity: isHeuristic ? 'warning' : 'critical',
         check: 'type.unmapped',
         sourceType,
-        detail: `${block.rows.length} source rows of type "${sourceType}" produced NO content type — every one of these items is missing from the destination.`,
+        detail: isHeuristic
+          ? `${block.rows.length} source rows of type "${sourceType}" produced no content type under heuristic mode's guess — this may be a false positive if the content type was renamed during "Map Content Fields", not real data loss. Re-run with --content-types for a reliable answer.`
+          : `${block.rows.length} source rows of type "${sourceType}" produced NO content type — every one of these items is missing from the destination.`,
       });
       perType.push({ sourceType, sourceRows: block.rows.length, entries: 0, contentTypeUid: null });
       continue;
@@ -290,7 +306,7 @@ export function reconcile(
   return {
     sourcePath: inputPath,
     migrationDir,
-    typeMappingSource: contentTypes?.length ? 'authoritative' : 'heuristic',
+    typeMappingSource: isHeuristic ? 'heuristic' : 'authoritative',
     summary: {
       sourceTypes: blocks.size,
       sourceRows: sourceRowTotal,

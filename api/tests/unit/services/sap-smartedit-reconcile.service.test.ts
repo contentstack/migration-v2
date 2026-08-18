@@ -127,12 +127,57 @@ describe('reconcile — a genuine migration reports clean', () => {
 });
 
 describe('reconcile — detects a whole type going missing', () => {
-  it('flags a source type that produced no content type', () => {
+  it('flags a source type that produced no content type, in AUTHORITATIVE mode as CRITICAL', () => {
+    // Authoritative mode gets its mapping from the passed contentTypes array,
+    // not from disk — so "genuinely missing" here means removed from that
+    // array, not a deleted file. This mapping cannot be fooled by a rename
+    // (it doesn't guess from a display name at all), so it must always stay
+    // CRITICAL.
     const dir = cloneBaseline('unmapped');
-    fs.rmSync(path.join(dir, 'content_types', 'cs_cmsparagraphcomponent.json'));
-    const r = reconcile(FIXTURE, dir);
+    const withoutParagraph = CONTENT_TYPES.filter((ct) => ct.otherCmsTitle !== 'CMSParagraphComponent');
+    const r = reconcile(FIXTURE, dir, withoutParagraph);
     const f = r.findings.find((x) => x.check === 'type.unmapped' && x.sourceType === 'CMSParagraphComponent');
     expect(f).toBeDefined();
+    expect(f?.severity).toBe('critical');
+  });
+});
+
+/**
+ * Regression test for a real finding: heuristic mode (the standalone CLI run
+ * BY HAND without --content-types) guesses a source type's name from
+ * content_types/*.json's "title" field — but real production code always
+ * writes the CONTENTSTACK-side title there, which can legitimately differ
+ * from the SAP source name after a rename during "Map Content Fields". A
+ * renamed content type reproduces the EXACT same signal as a genuinely
+ * missing one (both end up absent from heuristic mode's guessed map), so
+ * heuristic mode cannot tell them apart — confirmed live against a real
+ * rename, where the entry migrated correctly but heuristic mode still
+ * reported "type.unmapped" as if it were data loss. Since authoritative mode
+ * (what every real migration uses) is never fooled this way, only heuristic
+ * mode's OWN guess needs to be downgraded.
+ */
+describe('reconcile — heuristic mode is honest about its own uncertainty', () => {
+  it('downgrades type.unmapped to a warning when running without --content-types', () => {
+    const dir = cloneBaseline('unmapped-heuristic');
+    fs.rmSync(path.join(dir, 'content_types', 'cs_cmsparagraphcomponent.json'));
+    const r = reconcile(FIXTURE, dir); // no contentTypes -> heuristic mode
+    const f = r.findings.find((x) => x.check === 'type.unmapped' && x.sourceType === 'CMSParagraphComponent');
+    expect(f).toBeDefined();
+    expect(f?.severity).toBe('warning');
+    expect(f?.detail).toMatch(/renamed|false positive/i);
+    // Not asserting r.summary.critical === 0 overall: this fixture has its own
+    // unrelated, deliberate CRITICAL (a genuinely unresolvable asset) — only
+    // this specific type.unmapped finding is what the fix changes.
+    expect(r.findings.filter((x) => x.check === 'type.unmapped')).not.toContainEqual(
+      expect.objectContaining({ severity: 'critical' }),
+    );
+  });
+
+  it('still reports type.unmapped at CRITICAL when a real content-types mapping is given', () => {
+    const dir = cloneBaseline('unmapped-authoritative');
+    const withoutParagraph = CONTENT_TYPES.filter((ct) => ct.otherCmsTitle !== 'CMSParagraphComponent');
+    const r = reconcile(FIXTURE, dir, withoutParagraph);
+    const f = r.findings.find((x) => x.check === 'type.unmapped' && x.sourceType === 'CMSParagraphComponent');
     expect(f?.severity).toBe('critical');
   });
 });
