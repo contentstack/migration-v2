@@ -8174,76 +8174,77 @@ async function getAllAssets(
       await getAsset(dedupedAttachments, affix, destinationStackId, projectId, baseSiteUrl);
     }
 
-    // NOTE: content:encoded image download is intentionally DISABLED — only attachment posts are
-    // migrated as assets. Inline body images are no longer pulled into the stack. Re-enable the
-    // block below to restore downloading images referenced from content:encoded fields.
+    // Fallback pass: pick up images referenced in content:encoded that have no attachment record
+    // at all (deleted attachment post, never-attached inline background image, externally-hosted
+    // embed thumbnail, …) — attachment posts remain the primary source; this only fills the gap
+    // for images an attachment-only pass can never resolve.
     //
-    // // Extract and download assets from content:encoded fields
-    // const allImageUrls = new Set<string>();
-    //
-    // // Seed with the base keys of already-downloaded assets (the attachments) so their WordPress size/
-    // // scaled variants embedded in content:encoded are skipped instead of re-downloaded as duplicates.
-    // // The same set also dedups variants of one image across content:encoded fields.
-    // const seenAssetKeys = new Set<string>();
-    // for (const asset of Object.values(assetData)) {
-    //   const u = (asset as any)?.url;
-    //   if (u) seenAssetKeys.add(assetBaseKey(u, baseSiteUrl));
-    // }
-    // let skippedVariantCount = 0;
-    //
-    // // Process all items to extract image URLs from content:encoded
-    // for (const item of assets) {
-    //   const contentEncoded = item["content:encoded"];
-    //   if (contentEncoded && typeof contentEncoded === 'string' && item?.['wp:status'] !== 'draft') {
-    //     const imageUrls = extractImageUrlsFromContent(contentEncoded, baseSiteUrl);
-    //     imageUrls.forEach((url) => {
-    //       const key = assetBaseKey(url, baseSiteUrl);
-    //       if (seenAssetKeys.has(key)) {
-    //         skippedVariantCount++;
-    //         return; // duplicate of an attachment (or another content image) at a different size
-    //       }
-    //       seenAssetKeys.add(key);
-    //       allImageUrls.add(url);
-    //     });
-    //   }
-    // }
-    // if (skippedVariantCount > 0) {
-    //   await customLogger(
-    //     projectId,
-    //     destinationStackId,
-    //     'info',
-    //     getLogMessage('getAllAssets', `Skipped ${skippedVariantCount} content:encoded image(s) that duplicate an attachment or another image at a different size/resolution.`, {}),
-    //   );
-    // }
-    //
-    // // Download all unique image URLs found in content:encoded
-    // if (allImageUrls.size > 0) {
-    //   const imageUrlArray = Array.from(allImageUrls);
-    //   const BATCH_SIZE = 5; // Process 5 URLs at a time
-    //   const message = getLogMessage(
-    //     "getAllAssets",
-    //     `Found ${imageUrlArray.length} unique image URLs in content:encoded fields. Starting download...`,
-    //     {}
-    //   );
-    //   await customLogger(projectId, destinationStackId, 'info', message);
-    //
-    //   for (let i = 0; i < imageUrlArray.length; i += BATCH_SIZE) {
-    //     const batch = imageUrlArray.slice(i, i + BATCH_SIZE);
-    //
-    //     await Promise.allSettled(
-    //       batch.map(async (url) => {
-    //         await saveAssetFromUrl(url, affix, destinationStackId, projectId, baseSiteUrl);
-    //       })
-    //     );
-    //   }
-    //
-    //   const completionMessage = getLogMessage(
-    //     "getAllAssets",
-    //     `Completed downloading assets from content:encoded fields.`,
-    //     {}
-    //   );
-    //   await customLogger(projectId, destinationStackId, 'info', completionMessage);
-    // }
+    // Extract and download assets from content:encoded fields
+    const allImageUrls = new Set<string>();
+
+    // Seed with the base keys of already-downloaded assets (the attachments) so their WordPress size/
+    // scaled variants embedded in content:encoded are skipped instead of re-downloaded as duplicates.
+    // The same set also dedups variants of one image across content:encoded fields.
+    const seenAssetKeys = new Set<string>();
+    for (const asset of Object.values(assetData)) {
+      const u = (asset as any)?.url;
+      if (u) seenAssetKeys.add(assetBaseKey(u, baseSiteUrl));
+    }
+    let skippedVariantCount = 0;
+
+    // Process all items to extract image URLs from content:encoded
+    for (const item of assets) {
+      const contentEncoded = item["content:encoded"];
+      if (contentEncoded && typeof contentEncoded === 'string' && item?.['wp:status'] !== 'draft') {
+        const imageUrls = extractImageUrlsFromContent(contentEncoded, baseSiteUrl);
+        imageUrls.forEach((url) => {
+          const key = assetBaseKey(url, baseSiteUrl);
+          if (seenAssetKeys.has(key)) {
+            skippedVariantCount++;
+            return; // duplicate of an attachment (or another content image) at a different size
+          }
+          seenAssetKeys.add(key);
+          allImageUrls.add(url);
+        });
+      }
+    }
+    if (skippedVariantCount > 0) {
+      await customLogger(
+        projectId,
+        destinationStackId,
+        'info',
+        getLogMessage('getAllAssets', `Skipped ${skippedVariantCount} content:encoded image(s) that duplicate an attachment or another image at a different size/resolution.`, {}),
+      );
+    }
+
+    // Download all unique image URLs found in content:encoded
+    if (allImageUrls.size > 0) {
+      const imageUrlArray = Array.from(allImageUrls);
+      const BATCH_SIZE = 5; // Process 5 URLs at a time
+      const message = getLogMessage(
+        "getAllAssets",
+        `Found ${imageUrlArray.length} unique image URLs in content:encoded fields with no attachment record. Starting download...`,
+        {}
+      );
+      await customLogger(projectId, destinationStackId, 'info', message);
+
+      for (let i = 0; i < imageUrlArray.length; i += BATCH_SIZE) {
+        const batch = imageUrlArray.slice(i, i + BATCH_SIZE);
+
+        await Promise.allSettled(
+          batch.map(async (url) => {
+            await saveAssetFromUrl(url, affix, destinationStackId, projectId, baseSiteUrl);
+          })
+        );
+      }
+
+      const completionMessage = getLogMessage(
+        "getAllAssets",
+        `Completed downloading assets from content:encoded fields.`,
+        {}
+      );
+      await customLogger(projectId, destinationStackId, 'info', completionMessage);
+    }
 
     return;
   } catch (error) {
