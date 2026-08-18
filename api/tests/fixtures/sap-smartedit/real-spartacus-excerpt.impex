@@ -1,0 +1,144 @@
+# =============================================================================
+# REGRESSION FIXTURE — excerpts of genuine SAP ImpEx
+# =============================================================================
+# Assembled from real rows in SAP's `spartacussampledata` 2105 extension
+# (Apache Software License v2). Every construct below appeared in that data and
+# broke the parser at some point; each is now pinned by a test in
+# tests/unit/migration-sap-smartedit/helper.parseImpex.test.ts.
+#
+# Do NOT "tidy" this file — the odd spacing, trailing `;;`, quoted values and
+# script directives are the point. An identical copy lives in
+# api/tests/fixtures/sap-smartedit/ because the two packages have independent
+# parsers and test runners.
+# =============================================================================
+
+$contentCatalog=electronics-spaContentCatalog
+$contentCV=catalogVersion(CatalogVersion.catalog(Catalog.id[default=$contentCatalog]),CatalogVersion.version[default=Staged])[default=$contentCatalog:Staged]
+$siteResource=jar:de.hybris.platform.spartacussampledata.constants.SpartacussampledataConstants&/spartacussampledata/import/contentCatalogs/electronicsContentCatalog
+
+
+# Media: the binary lives in an `@`-prefixed translator column pointing at a
+# `jar:` resource, NOT a fetchable URL. Trailing `;;` padding is in the original.
+INSERT_UPDATE Media;$contentCV[unique=true];code[unique=true];mime;realfilename;@media[translator=de.hybris.platform.impex.jalo.media.MediaDataTranslator][forceWrite=true];folder(qualifier)[default='images'];;
+;;homepagePreview-spa;image/png;Homepage.png;$siteResource/images/Homepage.png;;;
+
+
+# Quoted HTML content, including a doubled "" escape for a literal quote.
+INSERT_UPDATE CMSParagraphComponent;$contentCV[unique=true];uid[unique=true];name;content
+;;PageNotFoundParagraphComponent;Page Not Found Paragraph Component;"<h2>Oops!</h2><h3>We couldn't find the page you are looking for.</h3>"
+;;SaleParagraphComponent;Sale Paragraph Component;"Sale"
+;;QuotedInnerParagraph;Quoted Inner Paragraph;"He said ""hello"" loudly"
+
+
+# `&`-prefixed document-id aliases are ImpEx-internal, not real attributes.
+INSERT_UPDATE CMSLinkComponent;$contentCV[unique=true];uid[unique=true];name;url;&linkRef;&componentRef;target(code)[default='sameWindow']
+;;CartLink;Contact Us Link;/cart;CartLink;CartLink
+
+
+# A column left empty because the header carries a [default=...]; the value slot
+# must still be consumed so later cells stay aligned.
+INSERT_UPDATE ContentSlotForTemplate;$contentCV[unique=true];uid[unique=true];position[unique=true];pageTemplate(uid,$contentCV)[unique=true][default='ProductBackInStockNotificationEmailTemplate'];contentSlot(uid,$contentCV)[unique=true];allowOverwrite
+;;TopContent-ProductBackInStockNotificationEmail;TopContent;;ProductBackInStockNotificationEmailTopSlot;true
+
+
+# Type-level [modifier] on the item type itself, and a header whose only
+# following line is a macro definition — so the block has ZERO data rows.
+UPDATE GenericItem[processor=de.hybris.platform.commerceservices.impex.impl.ConfigPropertyImportProcessor];pk[unique=true]
+$emailResource=$config-emailResourceValue
+
+
+# A multi-line ImpEx script directive: the opening line is QUOTED, so it does not
+# start with '#' and escapes the comment check. Its body must not become rows.
+INSERT_UPDATE Customer;groups(uid);uid[unique=true];name;customerId
+"#% beforeEach:
+import java.util.UUID;
+line.put(Integer.valueOf(5), UUID.randomUUID().toString());
+"
+;"customergroup";"reviewer1@hybris.com";"Kenneth Reviewer";;
+
+
+# REMOVE blocks are deletion instructions — their rows must not become entries.
+REMOVE ContentSlot;$contentCV[unique=true];uid[unique=true]
+;;RemovedSlotOne
+;;RemovedSlotTwo
+
+# REMOVE *and* a type-level modifier. This type appears nowhere else, so it must
+# not show up as a parsed type at all.
+REMOVE JspIncludeComponent[batchmode=true];$contentCV[unique=true];uid[unique=true]
+;;RemovedJspComponent
+
+
+# Backoffice CSV-style exports render an empty reference as the literal "Null".
+INSERT_UPDATE Page;uid[unique=true];name;originalPage
+;withNullRef;Page With Null Reference;Null
+;withRealRef;Page With Real Reference;withNullRef
+
+
+# -----------------------------------------------------------------------------
+# Cases below cover types keyed on something OTHER than uid/code, nested macros,
+# and a Media binary referenced as a platform resource path.
+# -----------------------------------------------------------------------------
+
+# Nested macro: $syncJob's own definition references $contentCatalog, so a single
+# expansion pass leaves the inner reference literal.
+$syncJob=sync $contentCatalog:Staged->Online
+
+# Keyed on `code`, whose VALUE is a macro. Left unexpanded, three catalogs would all
+# share the id "$syncJob" and collapse into one entry.
+UPDATE CatalogVersionSyncJob; code[unique=true]; syncPrincipals(uid)[mode=append]; syncPrincipalsOnly[default=false];
+;$syncJob;cmsmanagergroup;true
+
+# No uid and no code: the unique key is name + template. Copied from the real
+# powertools catalog, where `template` is BLANK on some rows because the header
+# defaults it — SAP applies that default, so those rows do have a template.
+# `name` also repeats, so it is not a usable entry title on its own.
+INSERT_UPDATE ContentSlotName;name[unique=true];template(uid,$contentCV)[unique=true][default='CpqConfigurationTemplate'];validComponentTypes(code);compTypeGroup(code)
+;CpqConfigExitButton;;;wide
+;SiteContext;ProductDetailsPageTemplate;CMSSiteContextComponent;;
+;SiteContext;ErrorPageTemplate;CMSSiteContextComponent;;
+
+# Keyed on `id`, with a genuinely distinct name per row — the name SHOULD win as title.
+INSERT_UPDATE ContentCatalog;id[unique=true];name[lang=en]
+;demoCatalogOne;Demo Catalog One
+;demoCatalogTwo;Demo Catalog Two
+
+# A Media whose binary is a resource path resolvable inside this fixture directory.
+INSERT_UPDATE Media;$contentCV[unique=true];code[unique=true];mime;realfilename;@media[translator=de.hybris.platform.impex.jalo.media.MediaDataTranslator][forceWrite=true];folder(qualifier)[default='images']
+;;demoLocalAsset;image/png;demo-asset.png;$siteResource/images/demo-asset.png;
+
+
+# -----------------------------------------------------------------------------
+# Lookup columns that are NOT item references, plus a localized-column clash.
+# -----------------------------------------------------------------------------
+
+# `approvalStatus(code)` and `target(code)` look identical in the header to a real
+# reference like `template(uid,$contentCV)`, but they resolve against ENUMS — there is
+# no entry named "approved" or "sameWindow" to point at. `masterTemplate` IS a real
+# reference (LandingPage2Template is declared below).
+INSERT_UPDATE PageTemplate;$contentCV[unique=true];uid[unique=true];name;active
+;;LandingPage2Template;Landing Page 2 Template;true
+
+INSERT_UPDATE ContentPage;$contentCV[unique=true];uid[unique=true];name;masterTemplate(uid,$contentCV);approvalStatus(code)[default='approved'];target(code)[default='sameWindow']
+;;enumDemoPage;Enum Demo Page;LandingPage2Template;;
+
+# Same attribute declared in two languages: both resolve to one field, so the second
+# would silently overwrite the first.
+INSERT_UPDATE CMSNavigationNode;$contentCV[unique=true];uid[unique=true];title[lang=en];title[lang=de]
+;;localizedNode;English Title;Deutscher Titel
+
+# A SECOND Media row reusing the SAME code as another, but pointing at a different
+# file — exactly what the real data does (each catalog declares `homepagePreview-spa`
+# for its own Homepage.png). Only one row can own the code, so the file belonging to the
+# row that loses must still be picked up by the export sweep instead of vanishing.
+INSERT_UPDATE Media;$contentCV[unique=true];code[unique=true];mime;realfilename;@media[translator=de.hybris.platform.impex.jalo.media.MediaDataTranslator][forceWrite=true];folder(qualifier)[default='images']
+;;sharedMediaCode;image/svg+xml;undeclared.svg;images/undeclared.svg;
+;;sharedMediaCode;image/svg+xml;undeclared.svg;images/nested/undeclared.svg;
+
+# A ContentSlot referencing components of TWO DIFFERENT types (a paragraph and a
+# link) — the closest real ImpEx analog to Contentstack's modular_blocks. Kept as
+# a plain multi-value reference field (referenceMultiple), not modular_blocks —
+# see schemaMapper.ts's header comment: ImpEx is flat, so groups/modular-blocks
+# are deliberately not expanded here. This proves that decision against real
+# heterogeneous data rather than leaving it untested.
+INSERT_UPDATE ContentSlot;$contentCV[unique=true];uid[unique=true];name;cmsComponents(uid,$contentCV)
+;;MixedTypeSlot;Mixed Type Slot;PageNotFoundParagraphComponent,CartLink

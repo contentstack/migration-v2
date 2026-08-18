@@ -104,9 +104,35 @@ const MULTILINE_THRESHOLD = 100;
  * Classify an ImpEx column into a source type consumed by schemaMapper, using
  * the header-derived flags plus the observed cell values for that column.
  */
-function classifyColumn(col: ImpexColumnDef, values: string[]): string {
+/**
+ * Decide whether a `(lookup)` column really points at another migrated item.
+ *
+ * An ImpEx lookup qualifier says which ATTRIBUTE to match on, not what kind of thing
+ * is being matched. `approvalStatus(code)`, `target(code)`, `language(isocode)` and
+ * `validComponentTypes(code)` all look identical to `template(uid,$contentCV)` in the
+ * header, but the first four resolve against ENUMS and type codes — there is no entry
+ * to point at. Typing them as references produced empty reference fields in
+ * Contentstack (values like `approved`, `en`, `sameWindow` silently vanished) and
+ * 2417 phantom "unresolved reference" warnings on real SAP data.
+ *
+ * Decided from the data: a lookup is an item reference when at least one of its values
+ * matches a declared item id, or when the column is a known reference by name. A column
+ * whose targets all live outside the export becomes plain text, which preserves the
+ * value instead of dropping it into an unresolvable reference.
+ */
+function isItemReference(col: ImpexColumnDef, values: string[], itemIds: Set<string>): boolean {
+  if (REF_TARGETS[col.name.toLowerCase()]) return true;
+  return values.some((v) =>
+    String(v)
+      .split(',')
+      .map((s) => s.trim())
+      .some((id) => id !== '' && itemIds.has(id)),
+  );
+}
+
+function classifyColumn(col: ImpexColumnDef, values: string[], itemIds: Set<string>): string {
   if (col.isMedia) return 'file';
-  if (col.isReference) {
+  if (col.isReference && isItemReference(col, values, itemIds)) {
     const multiple =
       col.name.toLowerCase() === 'cmscomponents' || values.some((v) => v.includes(','));
     return multiple ? 'referenceMultiple' : 'reference';
@@ -186,6 +212,18 @@ async function extractContentTypes(
     const { blocks } = parseImpexPath(filePath);
     const prefix = affix ? `${affix}_` : '';
 
+    // Every declared item id in the export, mirroring how the api side builds its
+    // reference lookup (uid/code only). Used to tell a genuine item reference from an
+    // enum/type-code lookup that happens to share the same header syntax.
+    const itemIds = new Set<string>();
+    for (const [type, block] of blocks) {
+      if (ASSET_TYPES.has(type)) continue;
+      for (const row of block.rows) {
+        const id = row.uid ?? row.code;
+        if (id) itemIds.add(id);
+      }
+    }
+
     for (const [type, block] of blocks) {
       if (ASSET_TYPES.has(type)) {
         console.info(`ℹ️  "${type}" → handled as assets (skipped as content type)`);
@@ -196,7 +234,7 @@ async function extractContentTypes(
       for (const [name, col] of block.columns) {
         if (DROP_COLUMNS.has(name.toLowerCase())) continue; // uid/uuid: not content fields
         const values = block.rows.map((r) => r[name]).filter((v) => v !== undefined);
-        const sourceType = classifyColumn(col, values);
+        const sourceType = classifyColumn(col, values, itemIds);
         const field = mapField(name, sourceType);
 
         if (sourceType === 'reference' || sourceType === 'referenceMultiple') {

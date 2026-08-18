@@ -50,6 +50,30 @@ interface Errors {
   org_uid?: string[];
 }
 
+/**
+ * Whether the "Create Test Stack" button should be disabled.
+ *
+ * A project needs its test stack created ONCE — it is then reused for subsequent test runs.
+ * The previous condition re-enabled the button after a test migration succeeded, so every
+ * completed test run re-opened stack creation; that is what left a trail of
+ * "<project>-Test-1" stacks in the org and eventually tripped Contentstack's
+ * stack-creation rate limit (HTTP 429) mid-migration.
+ *
+ * Exported so the rule can be tested without mounting the whole step.
+ */
+export const shouldDisableCreateTestStack = (newMigrationData: any): boolean => {
+  const hasTestStack =
+    Boolean(newMigrationData?.test_migration?.stack_api_key) ||
+    (newMigrationData?.testStacks?.length ?? 0) > 0;
+
+  return Boolean(
+    hasTestStack ||
+      newMigrationData?.test_migration?.isMigrationStarted ||
+      newMigrationData?.migration_execution?.migrationStarted ||
+      newMigrationData?.migration_execution?.migrationCompleted
+  );
+};
+
 const TestMigration = () => {
   // Access Redux state for migration data and selected organization
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
@@ -97,20 +121,7 @@ const TestMigration = () => {
    * to disable Create Test Stack and Start Test Migration buttons as per isMigrated state
    */
   useEffect(() => {
-    // Check if the stack_api_key exists and evaluate the logic
-    const shouldDisable =
-      newMigrationData?.test_migration?.stack_api_key &&
-      !newMigrationData?.migration_execution?.migrationCompleted
-        ? !newMigrationData?.testStacks?.some(
-            (stack) =>
-              stack?.stackUid === newMigrationData?.test_migration?.stack_api_key &&
-              stack?.isMigrated
-          ) || newMigrationData?.test_migration?.isMigrationStarted
-        : newMigrationData?.migration_execution?.migrationCompleted ||
-          newMigrationData?.migration_execution?.migrationStarted ||
-          false;
-
-    setDisableCreateStack(shouldDisable);
+    setDisableCreateStack(shouldDisableCreateTestStack(newMigrationData));
 
     if (
       newMigrationData?.testStacks?.find(
@@ -129,7 +140,9 @@ const TestMigration = () => {
       (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
     )?.isMigrated !== true) {
       setDisableTestMigration(savedState?.isTestMigrationStarted);
-      setDisableCreateStack(savedState?.isTestMigrationStarted);
+      // Restore only the "in progress" tightening — never re-enable Create Test Stack from
+      // saved state, or a reload after a finished test run would re-open stack creation.
+      if (savedState?.isTestMigrationStarted) setDisableCreateStack(true);
     }
   }, []);
 
@@ -300,7 +313,10 @@ const TestMigration = () => {
 
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
-    setDisableCreateStack(newState);
+    // Only ever tighten Create Test Stack, never re-open it. This fires with `false` when a
+    // test migration finishes (TestMigrationLogViewer), which previously re-enabled stack
+    // creation and let another "<project>-Test-1" be minted on every completed test run.
+    if (newState) setDisableCreateStack(true);
     if (
       newMigrationData?.testStacks?.find(
         (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key

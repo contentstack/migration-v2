@@ -49,13 +49,51 @@ import {
 } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 import { sapSmarteditService } from './sap-smartedit.service.js';
+import { reconcile, summarizeForLog } from './sap-smartedit-reconcile.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
 import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
 import { removeExistingAssets, saveAssetMetadata, AssetUpdate } from '../utils/asset-update.utils.js';
 
 /**
- * Creates a test stack.  
+ * Reconcile a just-completed SAP SmartEdit migration against its source, and log
+ * the result into the SAME execution log the UI already renders — so "did this
+ * real migration lose anything" is answered automatically, every time, without
+ * anyone having to remember to run the standalone script.
+ *
+ * ADVISORY ONLY: this never throws and never blocks the migration. The
+ * reconciler is new and could have its own bugs (it already had one, a false
+ * negative, caught before this was wired in) — a false alarm here must not be
+ * able to strand a real customer migration. It logs loudly instead, at 'error'/
+ * 'warn' level so it is visually highlighted in the execution log exactly like
+ * the CLI's own WARN/ERROR lines.
+ */
+async function runSapReconciliation(
+  file_path: string,
+  packagePath: string,
+  destinationStackId: string,
+  projectId: string,
+  contentTypes: any,
+  mapperKeys: any,
+): Promise<void> {
+  try {
+    const migrationDir = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+    const report = reconcile(file_path || packagePath, migrationDir, contentTypes, mapperKeys);
+    for (const line of summarizeForLog(report)) {
+      await customLogger(projectId, destinationStackId, line.level, line.message);
+    }
+  } catch (err: any) {
+    await customLogger(
+      projectId,
+      destinationStackId,
+      'warn',
+      `Reconciliation could not run (${err?.message ?? err}); migration data was NOT automatically verified — consider running scripts/reconcile-sap.ts manually.`,
+    );
+  }
+}
+
+/**
+ * Creates a test stack.
  *
  * @param req - The request object containing the necessary parameters.
  * @returns A promise that resolves to a LoginServiceType object.
@@ -600,6 +638,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
           project?.current_test_stack_id,
           projectId
         );
+        await runSapReconciliation(
+          file_path,
+          packagePath,
+          project?.current_test_stack_id,
+          projectId,
+          contentTypes,
+          project?.mapperKeys
+        );
         break;
       }
 
@@ -928,7 +974,12 @@ const startMigration = async (req: Request): Promise<any> => {
     });
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
-      existingStackId: project?.source_stack_id,
+      // existingStackId is the stack whose extensions we check for reuse — that's always
+      // the destination stack. project?.source_stack_id only exists for CS-to-CS migrations
+      // (where the source is itself a Contentstack stack) and is empty for every legacy-CMS
+      // connector (SAP SmartEdit, Drupal, Sitecore, ...), which sent an empty api_key to
+      // Contentstack's Extensions API and crashed startMigration before any entry was created.
+      existingStackId: project?.destination_stack_id,
       token_payload: {
         region,
         user_id,
@@ -1074,6 +1125,14 @@ const startMigration = async (req: Request): Promise<any> => {
         await sapSmarteditService?.createVersionFile(
           project?.destination_stack_id,
           projectId
+        );
+        await runSapReconciliation(
+          file_path,
+          packagePath,
+          project?.destination_stack_id,
+          projectId,
+          contentTypes,
+          project?.mapperKeys
         );
         break;
       }

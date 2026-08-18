@@ -20,6 +20,12 @@ type MigrationFlowHeaderProps = {
   legacyCMSRef: React.MutableRefObject<any>;
   projectData: MigrationResponse;
   finalExecutionStarted?: boolean;
+  /**
+   * Starts a new (delta) iteration once a migration has completed. Offered as a separate
+   * secondary control rather than by turning the primary CTA into "Restart Migration", so a
+   * finished migration cannot be re-run by clicking the button you just clicked.
+   */
+  onStartNewIteration?: () => void;
 };
 
 /**
@@ -33,7 +39,8 @@ const MigrationFlowHeader = ({
   projectData,
   handleOnClick,
   isLoading,
-  finalExecutionStarted
+  finalExecutionStarted,
+  onStartNewIteration
 }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -81,16 +88,10 @@ const MigrationFlowHeader = ({
   useEffect(() => {
     let newStepValue;
     
-    // Check conditions in priority order.
-    // "Restart Migration" only applies on the final Execute step once a migration has completed —
-    // not while navigating back through earlier (completed) steps in a delta iteration.
-    if (
-      params?.stepId === EXECUTE_MIGRATION_STEP &&
-      newMigrationData?.legacy_cms?.projectStatus === 5 &&
-      newMigrationData?.migration_execution?.migrationCompleted
-    ) {
-      newStepValue = 'Restart Migration';
-    } else if (params?.stepId === EXECUTE_MIGRATION_STEP) {
+    // Check conditions in priority order. The execute step always reads "Start Migration" —
+    // it is never relabelled to "Restart Migration" on completion, because a completed
+    // migration must not be re-runnable from the primary CTA (it goes disabled instead).
+    if (params?.stepId === EXECUTE_MIGRATION_STEP) {
       newStepValue = 'Start Migration';
     } else if (isMappingContinueStep) {
       newStepValue = 'Continue';
@@ -137,19 +138,19 @@ const MigrationFlowHeader = ({
     parseInt(params?.stepId) < newMigrationData?.project_current_step &&
     !isProjectStatusDraft;
 
-  // Migration is actively running: it has been started (locally or in redux) but not yet completed.
-  // While in progress the CTA must be disabled; once completed it re-enables as "Restart Migration".
+  const isOnExecuteStep = params?.stepId === EXECUTE_MIGRATION_STEP;
+  const isMigrationComplete = Boolean(newMigrationData?.migration_execution?.migrationCompleted);
+
+  // Migration is actively running: started (locally or in redux) but not yet completed.
   const isMigrationInProgress =
     (finalExecutionStarted || newMigrationData?.migration_execution?.migrationStarted) &&
-    !newMigrationData?.migration_execution?.migrationCompleted;
+    !isMigrationComplete;
 
-  // Disable the Start Migration button while the start request is in flight / after a successful
-  // start (driven by the local finalExecutionStarted flag from the click handler, NOT by the
-  // migration-completed flag — so the live logs still show while migration runs).
-  const isStartMigrationDisabled =
-    params?.stepId === EXECUTE_MIGRATION_STEP &&
-    !!finalExecutionStarted &&
-    newMigrationData?.stepValue !== 'Restart Migration';
+  // Disable the Start Migration button while the start request is in flight / after a
+  // successful start, and keep it disabled once the migration has COMPLETED — a finished
+  // migration must not be re-runnable from this button. Starting another (delta) iteration
+  // is a separate, deliberate action via the secondary control below.
+  const isStartMigrationDisabled = isOnExecuteStep && (!!finalExecutionStarted || isMigrationComplete);
 
   const destinationStackMigrated =
     params?.stepId === EXECUTE_MIGRATION_STEP &&
@@ -179,6 +180,28 @@ const MigrationFlowHeader = ({
         )}
       </div>
 
+      <div className="d-flex align-items-center">
+        {/*
+          Delta migrations (iteration >= 2) begin by starting a new iteration, and this is the
+          only entry point to that flow. Kept deliberately secondary so it reads as a distinct
+          action rather than as "click the same button again".
+        */}
+        {isOnExecuteStep && isMigrationComplete && onStartNewIteration && (
+          <Tooltip
+            content="Begin another migration round for this project, migrating only what has changed since the last run."
+            position="bottom"
+            version={'v2'}
+          >
+            <Button
+              buttonType="tertiary"
+              onClick={onStartNewIteration}
+              version="v2"
+              aria-label="Start New Iteration"
+            >
+              Start New Iteration
+            </Button>
+          </Tooltip>
+        )}
       <Button
         buttonType="primary"
         className="ml-10"
@@ -198,6 +221,7 @@ const MigrationFlowHeader = ({
       >
         {newMigrationData?.stepValue || 'Save and Continue'}
         </Button>
+      </div>
     </div>
   );
 };

@@ -118,12 +118,6 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
   useBlockNavigation(isModalOpen);
   
-  useEffect(() => {
-    if (newMigrationData?.migration_execution?.migrationCompleted) {
-      dispatch(updateNewMigrationData({ stepValue: 'Restart Migration' }));
-    }
-  }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
-
   // Reset notification flag when a new migration starts
   useEffect(() => {
     if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
@@ -205,8 +199,10 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               ...newMigrationData?.migration_execution,
               migrationStarted: false,
               migrationCompleted: true
-            },
-            stepValue: 'Restart Migration'
+            }
+            // stepValue is deliberately NOT changed here: the execute-step CTA stays
+            // "Start Migration" and goes disabled on completion, rather than becoming a
+            // "Restart Migration" button that invites re-running a finished migration.
           };
 
           dispatch(updateNewMigrationData(newMigrationDataObj));

@@ -409,7 +409,13 @@ const Migration = () => {
         selectedCms: selectedCmsData,
         selectedFileFormat: selectedFileFormatData,
         affix:  projectData?.legacy_cms?.affix ,
-        uploadedFile: projectData?.legacy_cms?.is_fileValid ? {
+        // Show this project's OWN stored file whenever it has one, even if is_fileValid is
+        // false (e.g. pending re-validation) — gating solely on is_fileValid let ANY project
+        // with that flag false fall through to the shared local dev config's file path
+        // (getConfig()/uploadObj below), so opening an unrelated completed project could show
+        // whatever file another project/local test run last configured. Only fall back to the
+        // shared config for a genuinely fresh project with no stored file_path at all.
+        uploadedFile: (projectData?.legacy_cms?.is_fileValid || projectData?.legacy_cms?.file_path) ? {
           ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
           file_details: {
             localPath: projectData?.legacy_cms?.file_path,
@@ -896,55 +902,53 @@ const Migration = () => {
   const handleOnClickMigrationExecution = async () => {
     setIsLoading(true);
 
-    if (newMigrationData?.stepValue !== 'Restart Migration') {
-      // Disable the Start Migration button immediately on click; keep it disabled on success
-      // (migration is now running) and only re-enable it if the API call fails.
-      setDisableMigration(true);
-      try {
-        const migrationRes = await startMigration(
-          newMigrationData?.destination_stack?.selectedOrg?.value,
-          projectId
-        );
+    // Only ever starts a migration. Restarting is no longer reachable from this CTA — once a
+    // migration completes the button stays disabled, and a new (delta) iteration is started
+    // from the separate "Start New Iteration" control in MigrationFlowHeader.
+    // Disable the Start Migration button immediately on click; keep it disabled on success
+    // (migration is now running) and only re-enable it if the API call fails.
+    setDisableMigration(true);
+    try {
+      const migrationRes = await startMigration(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId
+      );
 
-        if (migrationRes?.status === 200) {
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            migration_execution: {
-              ...newMigrationData?.migration_execution,
-              migrationStarted: true
-            }
-          };
-          dispatch(updateNewMigrationData(newMigrationDataObj));
+      if (migrationRes?.status === 200) {
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          migration_execution: {
+            ...newMigrationData?.migration_execution,
+            migrationStarted: true
+          }
+        };
+        dispatch(updateNewMigrationData(newMigrationDataObj));
 
-          Notification({
-            notificationContent: { text: 'Migration Execution process started' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'message'
-          });
-        } else {
-          setDisableMigration(false);
-          Notification({
-            notificationContent: {
-              text: migrationRes?.data?.error?.message || 'Failed to start migration'
-            },
-            type: 'error'
-          });
-        }
-      } catch (error) {
-        console.error(error);
+        Notification({
+          notificationContent: { text: 'Migration Execution process started' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'message'
+        });
+      } else {
         setDisableMigration(false);
         Notification({
-          notificationContent: { text: 'Failed to start migration' },
+          notificationContent: {
+            text: migrationRes?.data?.error?.message || 'Failed to start migration'
+          },
           type: 'error'
         });
-      } finally {
-        setIsLoading(false);
       }
-    } else {
-      await handleRestartMigration();
+    } catch (error) {
+      console.error(error);
+      setDisableMigration(false);
+      Notification({
+        notificationContent: { text: 'Failed to start migration' },
+        type: 'error'
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -1032,6 +1036,7 @@ const Migration = () => {
           isCompleted={isCompleted}
           legacyCMSRef={legacyCMSRef}
           finalExecutionStarted={disableMigration}
+          onStartNewIteration={handleRestartMigration}
         />
       )}
       <div className="steps-wrapper">

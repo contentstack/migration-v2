@@ -55,6 +55,65 @@ const stripAnsiCodes = (text: string): string => {
 };
 
 /**
+ * @contentstack/cli-cm-import ships extremely conservative defaults
+ * (concurrency: 1, rateLimit: 5) intended to be safe for any org's API limits.
+ * At real migration volume (e.g. 10k entries x 4 locales = ~40k entry
+ * operations) that throughput means a full import needs 12+ hours — and the
+ * CLI process exits 0 after whatever it manages to process in one run rather
+ * than guaranteeing completion, so a single invocation silently under-imports.
+ * A moderate bump cuts wall-clock time substantially while staying well under
+ * typical Management API limits (which are usually far higher than these
+ * defaults). Written to a temp file and passed via `-c` on every invocation.
+ */
+export function writeFastImportConfig(backupPath: string): string {
+  const configPath = path.join(backupPath, 'cli-import-config.json');
+  const config = {
+    concurrency: 3,
+    rateLimit: 8,
+    importConcurrency: 8,
+    fetchConcurrency: 8,
+    writeConcurrency: 8,
+  };
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+  return configPath;
+}
+
+/**
+ * Every (content type, locale) pair present in the source data must have a
+ * matching folder under the CLI's own `--backup-dir`/mapper/entries tree —
+ * that is how the CLI itself tracks which entries it has actually created or
+ * localized. Its absence means the CLI never even attempted that pair, not
+ * that it tried and silently failed (confirmed against a real run where
+ * fr-fr/es-es were simply missing from the mapper for every bulk content
+ * type, while the CLI still exited with code 0 claiming success).
+ */
+export function findIncompleteLocalePairs(
+  sourcePath: string,
+  backupPath: string
+): Array<{ type: string; locale: string }> {
+  const missing: Array<{ type: string; locale: string }> = [];
+  const entriesDir = path.join(sourcePath, 'entries');
+  if (!fs.existsSync(entriesDir)) return missing;
+
+  for (const type of fs.readdirSync(entriesDir)) {
+    const typeDir = path.join(entriesDir, type);
+    if (!fs.statSync(typeDir).isDirectory()) continue;
+    for (const locale of fs.readdirSync(typeDir)) {
+      const localeDir = path.join(typeDir, locale);
+      if (!fs.statSync(localeDir).isDirectory()) continue;
+      const hasEntries = fs.readdirSync(localeDir).some((f) => f.endsWith('.json'));
+      if (!hasEntries) continue; // an empty locale folder has nothing to import
+      const mapperDir = path.join(backupPath, 'mapper', 'entries', type, locale);
+      if (!fs.existsSync(mapperDir)) {
+        missing.push({ type, locale });
+      }
+    }
+  }
+  return missing;
+}
+
+/**
  * Executes CLI commands and provides real-time output
  * Uses Node's spawn to run commands asynchronously
  */
@@ -217,21 +276,62 @@ export const runCli = async (
       // await watchLogs(loggerPath, transformePath);
 
       // Execute the stack import command
-      await runCommand(
-        'npx',
-        [
-          '@contentstack/cli',
-          'cm:stacks:import',
-          '-k',
-          stack_uid,
-          '-d',
-          sourcePath.includes(' ') ? `"${sourcePath}"` : sourcePath,
-          '--backup-dir',
-          backupPath.includes(' ') ? `"${backupPath}"` : backupPath,
-          '--yes',
-        ],
-        transformePath
-      ); // Pass the log file path here
+      const fastConfigPath = writeFastImportConfig(backupPath);
+      const importArgs = (moduleOnly?: string) => [
+        '@contentstack/cli',
+        'cm:stacks:import',
+        '-k',
+        stack_uid,
+        '-d',
+        sourcePath.includes(' ') ? `"${sourcePath}"` : sourcePath,
+        '--backup-dir',
+        backupPath.includes(' ') ? `"${backupPath}"` : backupPath,
+        '-c',
+        fastConfigPath.includes(' ') ? `"${fastConfigPath}"` : fastConfigPath,
+        ...(moduleOnly ? ['-m', moduleOnly] : []),
+        '--yes',
+      ];
+
+      await runCommand('npx', importArgs(), transformePath);
+
+      // The CLI exits 0 as soon as it stops running, NOT necessarily when every
+      // (content type, locale) pair has actually been imported — confirmed on a
+      // real 10k-row run where it silently left fr-fr/es-es untouched for every
+      // large content type. Re-invoke, scoped to just the entries module (assets/
+      // content-types/etc already succeeded), relying on the CLI's own mapper
+      // state to skip what's done and continue with what isn't, until nothing is
+      // missing or a bounded number of attempts is exhausted.
+      const MAX_ENTRY_IMPORT_ATTEMPTS = 6;
+      let attempt = 0;
+      let incomplete = findIncompleteLocalePairs(sourcePath, backupPath);
+      while (incomplete.length && attempt < MAX_ENTRY_IMPORT_ATTEMPTS) {
+        attempt += 1;
+        const retryLogEntry = {
+          level: 'warn',
+          message: `Entries import incomplete after attempt ${attempt}/${MAX_ENTRY_IMPORT_ATTEMPTS}: ${incomplete.length} (content type, locale) pair(s) still missing (e.g. ${incomplete
+            .slice(0, 3)
+            .map((p) => `${p.type}/${p.locale}`)
+            .join(', ')}). Retrying entries import.`,
+          timestamp: new Date().toISOString(),
+        };
+        fs.appendFileSync(transformePath, JSON.stringify(retryLogEntry) + '\n');
+
+        await runCommand('npx', importArgs('entries'), transformePath);
+        incomplete = findIncompleteLocalePairs(sourcePath, backupPath);
+      }
+
+      if (incomplete.length) {
+        const failureLogEntry = {
+          level: 'error',
+          message: `Entries import still incomplete after ${MAX_ENTRY_IMPORT_ATTEMPTS} attempts: ${incomplete.length} (content type, locale) pair(s) never imported (e.g. ${incomplete
+            .slice(0, 5)
+            .map((p) => `${p.type}/${p.locale}`)
+            .join(', ')}). Migration is NOT fully complete.`,
+          timestamp: new Date().toISOString(),
+        };
+        fs.appendFileSync(transformePath, JSON.stringify(failureLogEntry) + '\n');
+        throw new Error(failureLogEntry.message);
+      }
 
       // After the import command completes
 

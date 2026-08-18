@@ -21,6 +21,14 @@ jobs:
       - run: npm ci
       - run: npm install @rollup/rollup-linux-x64-gnu --no-save
       - run: npm run test:coverage
+      - name: SAP SmartEdit reconciliation gate
+        # Runs the full connector pipeline (getAllAssets -> createLocale ->
+        # createEntry) against the checked-in real-SAP fixture and fails the build
+        # if anything was lost. Distinct from the unit tests above: it exercises
+        # the wiring BETWEEN those functions the way a real migration does, so a
+        # regression in that wiring fails here even if every function's own
+        # isolated unit tests still pass.
+        run: npx tsx scripts/ci-reconcile-check.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:

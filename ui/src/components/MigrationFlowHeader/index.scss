@@ -4,8 +4,13 @@
   background-color: $color-base-white-10;
   border-bottom: 1px solid $color-base-gray-40;
   padding: $space-16 $space-20;
-  position: fixed;
-  width: calc(100% - 56px);
+  // `sticky` (not `fixed`) so the header always starts at its correct
+  // in-flow position — `fixed` with no `top` set relies on an ambiguous
+  // "static position" fallback that depends on ancestor margins exactly
+  // matching the header's rendered height, and any mismatch clips the
+  // header's own content (seen consistently across every migration step).
+  position: sticky;
+  top: 0;
   z-index: 9;
   .back-btn {
     padding: 0;

@@ -19,9 +19,11 @@ const ProjectsHeader = ({
   const [disableCreateProject, setDisableCreateProject] = useState<boolean>(false);
 
   useEffect(() => {
-    allProject?.forEach((project: ProjectsObj) => {
-      setDisableCreateProject(project?.isMigrationStarted && !project?.isMigrationCompleted);
-    });
+    setDisableCreateProject(
+      allProject?.some(
+        (project: ProjectsObj) => project?.isMigrationStarted && !project?.isMigrationCompleted
+      ) ?? false
+    );
   }, [allProject]);
 
   let interval: ReturnType<typeof setTimeout>;

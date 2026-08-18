@@ -113,18 +113,26 @@
 }
 
 /******************* Custom Classes *******************/
+// Previously `position: fixed; margin-top: 73px;` — a hand-tuned magic-number
+// offset that assumed migration-flow-header stayed `position: fixed` (so it
+// contributed zero height to normal flow). Now that the header is `sticky`
+// (occupies its real height in-flow — see MigrationFlowHeader/index.scss),
+// this element flows normally right after it instead, with no guessed offset
+// to keep in sync.
 .stepper-position {
   background-color: $color-brand-white-base;
-  margin-top: 73px;
   padding: 24px 40px;
-  position: fixed;
-  width: calc(100% - 56px);
   z-index: 9;
 }
 .stepContent {
   background-color: $color-base-white-10;
   height: calc(100vh - 56px);
-  padding-top: 190px;
+  // Was `190px` — a magic number covering both migration-flow-header and
+  // .stepper-position stacked as independent `fixed` elements. Neither is
+  // `fixed` anymore (see the notes above and in MigrationFlowHeader/index.scss),
+  // so normal document flow already provides correct spacing; this is just
+  // ordinary breathing room between the stepper row and the step content.
+  padding-top: 24px;
 }
 .iconClass {
   &:hover {
