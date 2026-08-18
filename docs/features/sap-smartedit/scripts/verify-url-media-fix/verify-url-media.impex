@@ -1,0 +1,19 @@
+$catalogId = myContentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$catalogId]),CatalogVersion.version[default=Online])[default=$catalogId:Online]
+
+# ---- Manual verification of the URL-media fetch fix ------------------------
+# 1. happyUrl        -> real, reachable URL. Should resolve normally.
+# 2. notFoundUrl      -> real domain, 404. Should fail fast with "HTTP 404".
+# 3. hangingUrl       -> your local hang-server.py. Should fail with
+#                        "asset fetch timed out after 30s" after ~30 REAL
+#                        seconds — not hang forever.
+INSERT_UPDATE Media; code[unique=true]; mime; realfilename; URL
+                    ; verifyHappyUrl; image/png; verify-happy.png; https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png
+                    ; verifyNotFoundUrl; image/png; verify-404.png; https://www.google.com/this-path-does-not-exist-verify-404
+                    ; verifyHangingUrl; image/png; verify-hanging.png; http://127.0.0.1:8123/hang.png
+
+# ---- One real content type, so "Map Content Fields" has something to map --
+# (Media/assets are never their own content type — the wizard needs at least
+# one of these to proceed past step 3.)
+INSERT_UPDATE ContentPage; uid[unique=true]; name
+                          ; verifyPage001; "Verify URL Media Page"

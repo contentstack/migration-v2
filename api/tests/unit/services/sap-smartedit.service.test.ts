@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { sapSmarteditService } from '../../../src/services/sap-smartedit.service.js';
@@ -565,5 +565,178 @@ describe('sap-smartedit createLocale — locales the export actually uses', () =
       ...(Object.values(readJson('locales.json') ?? {}) as any[]).map((l) => l.code),
     ]);
     for (const loc of entryLocales) expect(created.has(loc)).toBe(true);
+  });
+});
+
+/**
+ * Regression test for a real finding: a genuinely unrecognized/custom language
+ * code (in neither Contentstack's live locale list nor the small fallback
+ * table) fell all the way through nameFor() to the code itself as the locale's
+ * display `name`. A locale named identically to its own code makes the
+ * Contentstack CLI import block on an un-suppressable interactive prompt —
+ * exactly the failure mode the comment above nameFor() already documents for
+ * the master locale, just unguarded for this specific fallback path. Confirmed
+ * live via the reconciler's `locale.name` check against a `title[lang=zz]`
+ * column.
+ */
+describe('sap-smartedit createLocale — unrecognized/custom locale codes', () => {
+  const STACK_CUSTOM = 'test-stack-sap-smartedit-custom-locale';
+  const OUT_CUSTOM = path.join(process.cwd(), './cmsMigrationData', STACK_CUSTOM);
+  const CUSTOM_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/custom-locale.impex');
+
+  beforeAll(async () => {
+    await sapSmarteditService.createLocale(CUSTOM_FIXTURE, STACK_CUSTOM, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_CUSTOM, { recursive: true, force: true });
+  });
+
+  it('still creates the custom locale — custom locales are supported and expected', () => {
+    const locales = JSON.parse(
+      fs.readFileSync(path.join(OUT_CUSTOM, 'locales', 'locales.json'), 'utf8'),
+    );
+    const codes = (Object.values(locales) as any[]).map((l) => l.code);
+    expect(codes).toContain('zz-zz');
+  });
+
+  it('does NOT name it after its own code', () => {
+    const locales = JSON.parse(
+      fs.readFileSync(path.join(OUT_CUSTOM, 'locales', 'locales.json'), 'utf8'),
+    );
+    const zz = (Object.values(locales) as any[]).find((l) => l.code === 'zz-zz');
+    expect(zz).toBeDefined();
+    expect(zz.name).not.toBe(zz.code);
+    expect(zz.name).not.toBe('');
+  });
+});
+
+/**
+ * Regression coverage for a real, previously-untested code path: getAllAssets'
+ * `fetch(url)` branch, taken when a Media row declares a real URL instead of a
+ * local/platform-resource binary. Every other asset test exercises the local
+ * path only. Verified live against real reachable URLs first (a real PNG, a
+ * real SVG, a real 404, and a genuinely unreachable domain — all resolved or
+ * failed correctly, no hang), then pinned here with a mocked fetch so the
+ * suite doesn't depend on live network/external services.
+ */
+describe('sap-smartedit getAllAssets — Media sourced from a real URL', () => {
+  const STACK_URL = 'test-stack-sap-smartedit-url-media';
+  const OUT_URL = path.join(process.cwd(), './cmsMigrationData', STACK_URL);
+  const URL_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/url-media.impex');
+  const REAL_PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]); // real PNG magic number
+
+  let originalFetch: typeof fetch;
+
+  beforeAll(async () => {
+    originalFetch = global.fetch;
+    global.fetch = vi.fn(async (input: any) => {
+      const url = String(input);
+      if (url === 'https://example.test/happy.png') {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+          arrayBuffer: async () => REAL_PNG_BYTES.buffer.slice(
+            REAL_PNG_BYTES.byteOffset,
+            REAL_PNG_BYTES.byteOffset + REAL_PNG_BYTES.byteLength,
+          ),
+        } as any;
+      }
+      if (url === 'https://example.test/not-found.png') {
+        return { ok: false, status: 404, headers: { get: () => null } } as any;
+      }
+      if (url === 'https://example.test/unreachable.png') {
+        throw new TypeError('fetch failed');
+      }
+      throw new Error(`unexpected URL in test: ${url}`);
+    }) as any;
+
+    fs.rmSync(OUT_URL, { recursive: true, force: true });
+    await sapSmarteditService.getAllAssets(URL_FIXTURE, '', STACK_URL, 'test-project');
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+    fs.rmSync(OUT_URL, { recursive: true, force: true });
+  });
+
+  const readIndex = () => {
+    const f = path.join(OUT_URL, 'assets', 'index.json');
+    return fs.existsSync(f) ? (JSON.parse(fs.readFileSync(f, 'utf8')) as Record<string, any>) : {};
+  };
+  const readFailures = () => {
+    const f = path.join(OUT_URL, 'assets', 'logs', 'assets', 'cs_failed.json');
+    return fs.existsSync(f) ? (JSON.parse(fs.readFileSync(f, 'utf8')) as Record<string, string>) : {};
+  };
+
+  it('downloads the real bytes and uses the content-type from the HTTP response header', () => {
+    const asset = readIndex()['assets_urlMediaHappy'];
+    expect(asset).toBeDefined();
+    expect(asset.content_type).toBe('image/png');
+    const onDisk = path.join(OUT_URL, 'assets', 'files', 'assets_urlMediaHappy', asset.filename);
+    expect(fs.readFileSync(onDisk).equals(REAL_PNG_BYTES)).toBe(true);
+  });
+
+  it('records a non-2xx response as a failure, not a crash', () => {
+    const failures = readFailures();
+    expect(failures['assets_urlMediaHttpError']).toContain('404');
+    expect(readIndex()['assets_urlMediaHttpError']).toBeUndefined();
+  });
+
+  it('records a network-level exception as a failure, not a crash', () => {
+    const failures = readFailures();
+    expect(failures['assets_urlMediaNetworkError']).toBeDefined();
+    expect(readIndex()['assets_urlMediaNetworkError']).toBeUndefined();
+  });
+});
+
+/**
+ * Regression test for a real gap found while testing the URL path above: a
+ * connection that's accepted but never responds (a slow CDN, an outage) hung
+ * `await fetch(url)` forever, with no way to recover short of killing the
+ * process — this loop is sequential, so ONE bad URL anywhere in a real
+ * customer's catalog could stall the entire migration indefinitely.
+ *
+ * Uses a real (but tiny, 50ms) timeout via SAP_ASSET_FETCH_TIMEOUT_MS rather
+ * than mocking global timers — an earlier attempt with vi.useFakeTimers()
+ * fought with the rest of the async runtime (fs.promises, fetch internals)
+ * and hung the test itself. A real short wait is simpler and just as valid.
+ */
+describe('sap-smartedit getAllAssets — a hanging URL fetch does not hang forever', () => {
+  const STACK_HANG = 'test-stack-sap-smartedit-url-media-hang';
+  const OUT_HANG = path.join(process.cwd(), './cmsMigrationData', STACK_HANG);
+  const HANG_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/url-media-hang.impex');
+  let originalFetch: typeof fetch;
+
+  afterEach(() => {
+    delete process.env.SAP_ASSET_FETCH_TIMEOUT_MS;
+    global.fetch = originalFetch;
+    fs.rmSync(OUT_HANG, { recursive: true, force: true });
+  });
+
+  it('times out instead of hanging, and records it as a failure', async () => {
+    originalFetch = global.fetch;
+    process.env.SAP_ASSET_FETCH_TIMEOUT_MS = '50';
+    // Never resolves on its own — only settles if aborted, exactly like a
+    // connection that's accepted but the server never responds.
+    global.fetch = vi.fn((_input: any, init?: any) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const err: any = new Error('This operation was aborted');
+          err.name = 'AbortError';
+          reject(err);
+        });
+      });
+    }) as any;
+
+    fs.rmSync(OUT_HANG, { recursive: true, force: true });
+    await sapSmarteditService.getAllAssets(HANG_FIXTURE, '', STACK_HANG, 'test-project');
+
+    const failuresFile = path.join(OUT_HANG, 'assets', 'logs', 'assets', 'cs_failed.json');
+    const failures = JSON.parse(fs.readFileSync(failuresFile, 'utf8'));
+    expect(failures['assets_urlMediaHanging']).toContain('timed out');
   });
 });

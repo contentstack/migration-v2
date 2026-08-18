@@ -111,6 +111,19 @@ const assetKey = (code: string): string => `assets_${String(code).replace(/[^a-z
  * Deliberately an allowlist: an SAP export also ships `.impex`, `.properties`, `.xml`,
  * `.vm`/`.vt` templates and `.java`, none of which are content assets.
  */
+/**
+ * A Media row backed by a real URL is fetched with no timeout by default — a
+ * connection that's accepted but never responds (a slow CDN, an outage) would
+ * otherwise hang this AWAIT forever. This loop is sequential, so one bad URL
+ * anywhere in a real customer's catalog would stall the entire migration with
+ * no way to recover short of killing the process. DNS/connection failures
+ * already fail fast on their own; this only bounds the "accepted but silent"
+ * case. Read fresh on every call (not a module-level constant) so tests can
+ * override it via env var to a real, tiny timeout instead of mocking global
+ * timers, which fought with the rest of the async runtime.
+ */
+const assetFetchTimeoutMs = (): number => Number(process.env.SAP_ASSET_FETCH_TIMEOUT_MS) || 30_000;
+
 const ASSET_EXTENSIONS = new Set([
   'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tif', 'tiff',
   'pdf', 'mp4', 'webm', 'mov', 'mp3', 'wav', 'woff', 'woff2', 'ttf', 'otf', 'zip',
@@ -835,7 +848,20 @@ async function getAllAssets(
         let sourceForRecord = url;
 
         if (url) {
-          const res = await fetch(url);
+          const timeoutMs = assetFetchTimeoutMs();
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+          let res: Response;
+          try {
+            res = await fetch(url, { signal: controller.signal });
+          } catch (fetchErr: any) {
+            if (fetchErr?.name === 'AbortError') {
+              throw new Error(`asset fetch timed out after ${timeoutMs / 1000}s`);
+            }
+            throw fetchErr;
+          } finally {
+            clearTimeout(timeoutId);
+          }
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           buf = Buffer.from(await res.arrayBuffer());
           headerType = res.headers.get('content-type')?.split(';')[0]?.trim();
@@ -981,8 +1007,13 @@ async function createLocale(file_path: string, destinationStackId: string, _proj
   if (localeErr) {
     console.error(`[sap-smartedit] could not fetch Contentstack locale names (${localeErr?.message ?? localeErr}); falling back to built-in names.`);
   }
+  // A genuinely unrecognized/custom code (in neither Contentstack's own locale
+  // list nor the fallback table above) must NOT fall back to the code itself —
+  // that reproduces the exact "name equals code" shape this function exists to
+  // avoid. The locale is still created (custom locales are supported and
+  // expected), just under a name that can't collide with its own code.
   const nameFor = (code: string): string =>
-    (localeNames as Record<string, string>)?.[code] || FALLBACK_LOCALE_NAMES[code] || code;
+    (localeNames as Record<string, string>)?.[code] || FALLBACK_LOCALE_NAMES[code] || `Custom Locale (${code})`;
 
   const uid = newUid();
   await fs.promises.writeFile(

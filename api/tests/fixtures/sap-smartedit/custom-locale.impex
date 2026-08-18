@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE CMSNavigationNode; uid[unique=true]; title[lang=en]; title[lang=zz]
+                                ; customLocaleNode1; English Title; Custom Zz Value

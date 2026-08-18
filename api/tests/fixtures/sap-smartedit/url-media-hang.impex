@@ -1,0 +1,5 @@
+$catalogId = myContentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$catalogId]),CatalogVersion.version[default=Online])[default=$catalogId:Online]
+
+INSERT_UPDATE Media; code[unique=true]; mime; realfilename; URL
+                    ; urlMediaHanging; image/png; url-media-hanging.png; https://example.test/hanging.png
