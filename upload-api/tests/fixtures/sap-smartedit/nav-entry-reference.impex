@@ -1,0 +1,8 @@
+$catalogId = myContentCatalog
+$contentCV = catalogVersion(CatalogVersion.catalog(Catalog.id[default=$catalogId]),CatalogVersion.version[default=Online])[default=$catalogId:Online]
+
+INSERT_UPDATE CMSNavigationNode; uid[unique=true]; title[lang=en]
+                                ; navNodeFixtureA; "Nav Node A"
+
+INSERT_UPDATE CMSNavigationEntry; uid[unique=true]; navigationNode(uid,$contentCV); item(&componentRef)
+                                 ; navEntryFixture1; navNodeFixtureA; navNodeFixtureA

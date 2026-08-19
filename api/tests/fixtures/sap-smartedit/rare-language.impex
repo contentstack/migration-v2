@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE CMSNavigationNode; uid[unique=true]; title[lang=en]; title[lang=cs]
+                                ; czechNode1; English Value; Czech Value

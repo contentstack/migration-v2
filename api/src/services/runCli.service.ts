@@ -482,8 +482,26 @@ export const runCli = async (
     } else {
       console.info('User not found.');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('🚀 ~ runCli ~ error:', error);
+    // Previously swallowed here with no rethrow, so the caller always saw a
+    // resolved promise regardless of whether the Contentstack import (or the
+    // incomplete-entries retry loop above) actually completed — a real
+    // migration could fail outright (bad token, network drop, org quota, or
+    // entries still incomplete after every retry) and still be treated as a
+    // success by migration.service.ts. Write a loud, UI-visible entry into
+    // the SAME execution log the rest of this function already writes to,
+    // then rethrow so the caller can react instead of the failure vanishing
+    // into the server's own stdout.
+    try {
+      const failureLogEntry = {
+        level: 'error',
+        message: `Migration import failed: ${error?.message ?? error}`,
+        timestamp: new Date().toISOString(),
+      };
+      fs.appendFileSync(transformePath, JSON.stringify(failureLogEntry) + '\n');
+    } catch { /* best effort — do not mask the original error with a logging failure */ }
+    throw error;
   }
 };
 

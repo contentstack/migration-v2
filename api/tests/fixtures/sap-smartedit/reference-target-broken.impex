@@ -1,0 +1,5 @@
+INSERT_UPDATE PageTemplate; uid[unique=true]; name
+                           ; refBrokenTemplate1; "Ref Broken Template"
+
+INSERT_UPDATE ContentPage; uid[unique=true]; name; masterTemplate(uid); navTarget(uid)
+                          ; refBrokenPage1; "Ref Broken Page"; refBrokenTemplate1; refBrokenTemplate1

@@ -621,28 +621,42 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
 
       case CMS.SAP_SMARTEDIT: {
-        await sapSmarteditService?.getAllAssets(
-          file_path,
-          packagePath,
-          project?.current_test_stack_id,
-          projectId
-        );
-        await sapSmarteditService?.createLocale(
-          file_path,
-          project?.current_test_stack_id,
-          projectId,
-          project
-        );
-        await sapSmarteditService?.createEntry(
-          file_path,
-          packagePath,
-          project?.current_test_stack_id,
-          projectId,
-          contentTypes,
-          project?.mapperKeys,
-          project?.stackDetails?.master_locale,
-          project
-        );
+        try {
+          await sapSmarteditService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await sapSmarteditService?.createLocale(
+            file_path,
+            project?.current_test_stack_id,
+            projectId,
+            project
+          );
+          await sapSmarteditService?.createEntry(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+        } catch (err: any) {
+          // getAllAssets/createEntry now rethrow instead of swallowing a crash
+          // partway through — stop here rather than proceeding to
+          // createVersionFile/reconciliation/CLI import on top of whatever
+          // partial (or entirely missing) local data was left behind.
+          await customLogger(
+            projectId,
+            project?.current_test_stack_id,
+            'error',
+            `SAP SmartEdit migration failed while building local migration data: ${err?.message ?? err}`,
+          );
+          return;
+        }
         await sapSmarteditService?.createVersionFile(
           project?.current_test_stack_id,
           projectId
@@ -776,14 +790,28 @@ const startTestMigration = async (req: Request): Promise<any> => {
         destinationStackId: project?.current_test_stack_id,
       });
     }
-    await utilsCli?.runCli(
-      region,
-      user_id,
-      project?.current_test_stack_id,
-      projectId,
-      true,
-      loggerPath
-    );
+    try {
+      await utilsCli?.runCli(
+        region,
+        user_id,
+        project?.current_test_stack_id,
+        projectId,
+        true,
+        loggerPath
+      );
+    } catch (err: any) {
+      // startTestMigration is invoked fire-and-forget by the controller (it never
+      // awaits this promise), so letting runCli's now-rethrown failure propagate
+      // out of here would become an unhandled rejection instead of a message
+      // anyone can see. Surface it through the same execution log the rest of
+      // this migration already writes to.
+      await customLogger(
+        projectId,
+        project?.current_test_stack_id,
+        'error',
+        `Test migration import failed: ${err?.message ?? err}`,
+      );
+    }
   }
 };
 
@@ -1109,28 +1137,42 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.SAP_SMARTEDIT: {
-        await sapSmarteditService?.getAllAssets(
-          file_path,
-          packagePath,
-          project?.destination_stack_id,
-          projectId
-        );
-        await sapSmarteditService?.createLocale(
-          file_path,
-          project?.destination_stack_id,
-          projectId,
-          project
-        );
-        await sapSmarteditService?.createEntry(
-          file_path,
-          packagePath,
-          project?.destination_stack_id,
-          projectId,
-          contentTypes,
-          project?.mapperKeys,
-          project?.stackDetails?.master_locale,
-          project
-        );
+        try {
+          await sapSmarteditService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await sapSmarteditService?.createLocale(
+            file_path,
+            project?.destination_stack_id,
+            projectId,
+            project
+          );
+          await sapSmarteditService?.createEntry(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+        } catch (err: any) {
+          // getAllAssets/createEntry now rethrow instead of swallowing a crash
+          // partway through — stop here rather than proceeding to
+          // createVersionFile/reconciliation/CLI import on top of whatever
+          // partial (or entirely missing) local data was left behind.
+          await customLogger(
+            projectId,
+            project?.destination_stack_id,
+            'error',
+            `SAP SmartEdit migration failed while building local migration data: ${err?.message ?? err}`,
+          );
+          return;
+        }
         await sapSmarteditService?.createVersionFile(
           project?.destination_stack_id,
           projectId
@@ -1367,14 +1409,29 @@ const startMigration = async (req: Request): Promise<any> => {
       console.info('Config file written to:', configFilePath);
       }
 
-    await utilsCli?.runCli(
-      region,
-      user_id,
-      project?.destination_stack_id,
-      projectId,
-      false,
-      loggerPath
-    );
+    try {
+      await utilsCli?.runCli(
+        region,
+        user_id,
+        project?.destination_stack_id,
+        projectId,
+        false,
+        loggerPath
+      );
+    } catch (err: any) {
+      // startMigration is invoked fire-and-forget by the controller (it never
+      // awaits this promise), so letting runCli's now-rethrown failure escape
+      // here would become an unhandled rejection instead of a message anyone
+      // can see. Log it visibly and stop: the delta config/update steps below
+      // assume a completed import and must not run against one that failed.
+      await customLogger(
+        projectId,
+        destinationStackId,
+        'error',
+        `Migration import failed: ${err?.message ?? err}`,
+      );
+      return;
+    }
 
     // Make sure an update config exists when there are asset updates but no
     // entry updates, so the asset-replace step still runs.

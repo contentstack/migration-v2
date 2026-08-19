@@ -1,0 +1,8 @@
+INSERT_UPDATE CMSLinkComponent; uid[unique=true]; name
+                               ; sharedRef123; "Colliding Link"
+
+INSERT_UPDATE ContentPage; uid[unique=true]; name
+                          ; sharedRef123; "Colliding Page"
+
+INSERT_UPDATE Page; uid[unique=true]; name; target; related
+                   ; pageWithRef; "Page With Ref"; sharedRef123; sharedRef123

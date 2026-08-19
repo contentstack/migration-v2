@@ -25,7 +25,14 @@ const REF_TARGETS: Record<string, string[]> = {
   template: ['PageTemplate'],
   page: ['ContentPage', 'CategoryPage', 'ProductPage'],
   contentslot: ['ContentSlot'],
-  navigationnode: ['NavigationNode'],
+  // The real, standard SAP/Hybris CMS type is "CMSNavigationNode" (the "CMS"
+  // prefix is not something a customer renames away) — this previously named
+  // a plain "NavigationNode" type that never actually gets created, so the
+  // resulting reference_to pointed at nothing and every navigationNode value
+  // silently failed to import. Confirmed live: identical across every SAP
+  // SmartEdit project in the local database, because this default is
+  // generated once here and then copied into each project's field mapping.
+  navigationnode: ['CMSNavigationNode'],
 };
 
 const TITLE_CANDIDATES = ['title', 'name', 'label', 'heading'];
@@ -130,6 +137,33 @@ function isItemReference(col: ImpexColumnDef, values: string[], itemIds: Set<str
   );
 }
 
+/**
+ * A reference field's real destination type(s), inferred from what its
+ * values actually point at — the same idToTypes map isItemReference already
+ * uses to tell whether the column is a reference at all, just also read for
+ * WHICH type(s) it resolves to. Correctly returns every distinct type found
+ * (a genuinely polymorphic column like `cmsComponents` or `item` naturally
+ * resolves to more than one), and does not depend on the column's name at
+ * all, unlike REF_TARGETS.
+ *
+ * Falls back to REF_TARGETS only when the data itself can't answer the
+ * question — every value on this column failed to resolve to any known id
+ * (e.g. the destination type's own rows are missing from this particular
+ * export, a real cross-catalog-reference scenario) — and finally leaves it
+ * unresolved for a human when neither source has an answer, exactly as
+ * before.
+ */
+function inferReferenceTargets(colName: string, values: string[], idToTypes: Map<string, Set<string>>): string[] {
+  const found = new Set<string>();
+  for (const v of values) {
+    for (const id of String(v).split(',').map((s) => s.trim()).filter(Boolean)) {
+      for (const t of idToTypes.get(id) ?? []) found.add(t);
+    }
+  }
+  if (found.size) return [...found].sort();
+  return REF_TARGETS[colName.toLowerCase()] ?? [];
+}
+
 function classifyColumn(col: ImpexColumnDef, values: string[], itemIds: Set<string>): string {
   if (col.isMedia) return 'file';
   if (col.isReference && isItemReference(col, values, itemIds)) {
@@ -212,17 +246,26 @@ async function extractContentTypes(
     const { blocks } = parseImpexPath(filePath);
     const prefix = affix ? `${affix}_` : '';
 
-    // Every declared item id in the export, mirroring how the api side builds its
-    // reference lookup (uid/code only). Used to tell a genuine item reference from an
-    // enum/type-code lookup that happens to share the same header syntax.
-    const itemIds = new Set<string>();
+    // Every declared item id in the export -> the SAP type(s) that declare it
+    // (a plain Set of ids used to be enough here, mirroring how the api side
+    // builds its OWN reference lookup, since this was only ever used to tell
+    // a genuine item reference from an enum/type-code lookup sharing the same
+    // header syntax). Tracking the TYPE too lets a reference column's actual
+    // destination(s) be inferred from what its values really point at,
+    // instead of only from the small hardcoded REF_TARGETS table below — a
+    // uid can legitimately belong to more than one type (a real, if rare,
+    // cross-type uid collision), hence a Set of types per id, not a single one.
+    const idToTypes = new Map<string, Set<string>>();
     for (const [type, block] of blocks) {
       if (ASSET_TYPES.has(type)) continue;
       for (const row of block.rows) {
         const id = row.uid ?? row.code;
-        if (id) itemIds.add(id);
+        if (!id) continue;
+        if (!idToTypes.has(id)) idToTypes.set(id, new Set());
+        idToTypes.get(id)!.add(type);
       }
     }
+    const itemIds = new Set(idToTypes.keys());
 
     for (const [type, block] of blocks) {
       if (ASSET_TYPES.has(type)) {
@@ -238,8 +281,8 @@ async function extractContentTypes(
         const field = mapField(name, sourceType);
 
         if (sourceType === 'reference' || sourceType === 'referenceMultiple') {
-          const targets = REF_TARGETS[name.toLowerCase()];
-          if (targets) field.refrenceTo = targets.map((t) => toCtUid(`${prefix}${t}`));
+          const targets = inferReferenceTargets(name, values, idToTypes);
+          if (targets.length) field.refrenceTo = targets.map((t) => toCtUid(`${prefix}${t}`));
         }
 
         guardReservedUid(field);

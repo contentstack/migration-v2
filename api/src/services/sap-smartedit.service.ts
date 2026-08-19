@@ -52,17 +52,35 @@ const newUid = (): string => randomBytes(16).toString('hex');
 /**
  * Map a SAP ImpEx language code (`$lang = xx` or a `[lang=xx]` column modifier)
  * to a Contentstack locale code. SAP codes are bare ISO 639-1 (`en`, `de`, `fr`);
- * Contentstack needs a language-region code. Common languages are mapped
- * explicitly; anything else falls back to `<code>-<code>` — a documented guess,
- * not authoritative (wrong for e.g. `zh` -> `zh-cn`, `ja` -> `ja-jp`).
+ * Contentstack needs a language-region code. Deliberately broad (not just the
+ * languages seen in any one sample catalog) — a customer's real content can be
+ * localized into anything, and a language missing from this table falls back to
+ * `<code>-<code>`, a documented guess that is frequently wrong (e.g. Czech would
+ * become `cs-cs` instead of the real `cs-cz`). Every entry here is the
+ * conventional default region for that language (matching what Contentstack's
+ * own locale list and most CMS/browser locale tables use); a handful of
+ * languages have no single obvious default region (e.g. Esperanto) and are
+ * intentionally left to the generic fallback rather than guessing one.
  * Duplicated in migration-sap-smartedit/libs/extractLocale.ts — this file has
  * no cross-package dependency on upload-api, by existing convention.
  */
 const LOCALE_MAP: Record<string, string> = {
-  en: 'en-us', de: 'de-de', fr: 'fr-fr', es: 'es-es', it: 'it-it',
-  pt: 'pt-pt', nl: 'nl-nl', ja: 'ja-jp', zh: 'zh-cn', ko: 'ko-kr',
-  ru: 'ru-ru', pl: 'pl-pl', sv: 'sv-se', da: 'da-dk', fi: 'fi-fi',
-  nb: 'nb-no', tr: 'tr-tr', ar: 'ar-sa', hi: 'hi-in', th: 'th-th',
+  af: 'af-za', am: 'am-et', ar: 'ar-sa', az: 'az-az', be: 'be-by',
+  bg: 'bg-bg', bn: 'bn-bd', bs: 'bs-ba', ca: 'ca-es', cs: 'cs-cz',
+  cy: 'cy-gb', da: 'da-dk', de: 'de-de', el: 'el-gr', en: 'en-us',
+  es: 'es-es', et: 'et-ee', eu: 'eu-es', fa: 'fa-ir', fi: 'fi-fi',
+  fil: 'fil-ph', fr: 'fr-fr', ga: 'ga-ie', gl: 'gl-es', gu: 'gu-in',
+  he: 'he-il', hi: 'hi-in', hr: 'hr-hr', hu: 'hu-hu', hy: 'hy-am',
+  id: 'id-id', is: 'is-is', it: 'it-it', ja: 'ja-jp', ka: 'ka-ge',
+  kk: 'kk-kz', km: 'km-kh', kn: 'kn-in', ko: 'ko-kr', lo: 'lo-la',
+  lt: 'lt-lt', lv: 'lv-lv', mk: 'mk-mk', ml: 'ml-in', mn: 'mn-mn',
+  mr: 'mr-in', ms: 'ms-my', mt: 'mt-mt', my: 'my-mm', nb: 'nb-no',
+  ne: 'ne-np', nl: 'nl-nl', nn: 'nn-no', pa: 'pa-in', pl: 'pl-pl',
+  ps: 'ps-af', pt: 'pt-pt', ro: 'ro-ro', ru: 'ru-ru', si: 'si-lk',
+  sk: 'sk-sk', sl: 'sl-si', sq: 'sq-al', sr: 'sr-rs', sv: 'sv-se',
+  sw: 'sw-ke', ta: 'ta-in', te: 'te-in', th: 'th-th', tr: 'tr-tr',
+  uk: 'uk-ua', ur: 'ur-pk', uz: 'uz-uz', vi: 'vi-vn', zh: 'zh-cn',
+  zu: 'zu-za',
 };
 const toContentstackLocale = (code: string): string => {
   const c = code.trim().toLowerCase();
@@ -74,19 +92,47 @@ const toContentstackLocale = (code: string): string => {
  * when the live locale list cannot be fetched. A locale written with its CODE as its
  * name makes the importer block on an un-suppressable interactive prompt (see
  * createLocale), so a wrong-but-plausible name is worse than useless here — these
- * are the exact strings Contentstack uses.
+ * are the exact strings Contentstack uses. One entry per LOCALE_MAP value.
  */
 const FALLBACK_LOCALE_NAMES: Record<string, string> = {
-  'en-us': 'English - United States', 'de-de': 'German - Germany',
-  'fr-fr': 'French - France', 'es-es': 'Spanish - Spain',
-  'it-it': 'Italian - Italy', 'pt-pt': 'Portuguese - Portugal',
-  'nl-nl': 'Dutch - Netherlands', 'ja-jp': 'Japanese - Japan',
-  'zh-cn': 'Chinese - China', 'ko-kr': 'Korean - Korea',
-  'ru-ru': 'Russian - Russia', 'pl-pl': 'Polish - Poland',
-  'sv-se': 'Swedish - Sweden', 'da-dk': 'Danish - Denmark',
-  'fi-fi': 'Finnish - Finland', 'nb-no': 'Norwegian Bokmål - Norway',
-  'tr-tr': 'Turkish - Turkey', 'ar-sa': 'Arabic - Saudi Arabia',
-  'hi-in': 'Hindi - India', 'th-th': 'Thai - Thailand',
+  'af-za': 'Afrikaans - South Africa', 'am-et': 'Amharic - Ethiopia',
+  'ar-sa': 'Arabic - Saudi Arabia', 'az-az': 'Azerbaijani - Azerbaijan',
+  'be-by': 'Belarusian - Belarus', 'bg-bg': 'Bulgarian - Bulgaria',
+  'bn-bd': 'Bengali - Bangladesh', 'bs-ba': 'Bosnian - Bosnia and Herzegovina',
+  'ca-es': 'Catalan - Spain', 'cs-cz': 'Czech - Czech Republic',
+  'cy-gb': 'Welsh - United Kingdom', 'da-dk': 'Danish - Denmark',
+  'de-de': 'German - Germany', 'el-gr': 'Greek - Greece',
+  'en-us': 'English - United States', 'es-es': 'Spanish - Spain',
+  'et-ee': 'Estonian - Estonia', 'eu-es': 'Basque - Spain',
+  'fa-ir': 'Persian - Iran', 'fi-fi': 'Finnish - Finland',
+  'fil-ph': 'Filipino - Philippines', 'fr-fr': 'French - France',
+  'ga-ie': 'Irish - Ireland', 'gl-es': 'Galician - Spain',
+  'gu-in': 'Gujarati - India', 'he-il': 'Hebrew - Israel',
+  'hi-in': 'Hindi - India', 'hr-hr': 'Croatian - Croatia',
+  'hu-hu': 'Hungarian - Hungary', 'hy-am': 'Armenian - Armenia',
+  'id-id': 'Indonesian - Indonesia', 'is-is': 'Icelandic - Iceland',
+  'it-it': 'Italian - Italy', 'ja-jp': 'Japanese - Japan',
+  'ka-ge': 'Georgian - Georgia', 'kk-kz': 'Kazakh - Kazakhstan',
+  'km-kh': 'Khmer - Cambodia', 'kn-in': 'Kannada - India',
+  'ko-kr': 'Korean - Korea', 'lo-la': 'Lao - Laos',
+  'lt-lt': 'Lithuanian - Lithuania', 'lv-lv': 'Latvian - Latvia',
+  'mk-mk': 'Macedonian - North Macedonia', 'ml-in': 'Malayalam - India',
+  'mn-mn': 'Mongolian - Mongolia', 'mr-in': 'Marathi - India',
+  'ms-my': 'Malay - Malaysia', 'mt-mt': 'Maltese - Malta',
+  'my-mm': 'Burmese - Myanmar', 'nb-no': 'Norwegian Bokmål - Norway',
+  'ne-np': 'Nepali - Nepal', 'nl-nl': 'Dutch - Netherlands',
+  'nn-no': 'Norwegian Nynorsk - Norway', 'pa-in': 'Punjabi - India',
+  'pl-pl': 'Polish - Poland', 'ps-af': 'Pashto - Afghanistan',
+  'pt-pt': 'Portuguese - Portugal', 'ro-ro': 'Romanian - Romania',
+  'ru-ru': 'Russian - Russia', 'si-lk': 'Sinhala - Sri Lanka',
+  'sk-sk': 'Slovak - Slovakia', 'sl-si': 'Slovenian - Slovenia',
+  'sq-al': 'Albanian - Albania', 'sr-rs': 'Serbian - Serbia',
+  'sv-se': 'Swedish - Sweden', 'sw-ke': 'Swahili - Kenya',
+  'ta-in': 'Tamil - India', 'te-in': 'Telugu - India',
+  'th-th': 'Thai - Thailand', 'tr-tr': 'Turkish - Turkey',
+  'uk-ua': 'Ukrainian - Ukraine', 'ur-pk': 'Urdu - Pakistan',
+  'uz-uz': 'Uzbek - Uzbekistan', 'vi-vn': 'Vietnamese - Vietnam',
+  'zh-cn': 'Chinese - China', 'zu-za': 'Zulu - South Africa',
 };
 
 /**
@@ -521,6 +567,14 @@ function parseImpexAll(inputPath: string): Map<string, ImpexBlock> {
 interface DocRef { type: string; uid: string }
 
 /**
+ * The destination content-type uid(s) a reference field was scoped to during
+ * "Map Content Fields" — the same convention aem.service.ts's reference
+ * resolution already relies on (`field.referenceTo`). Both spellings exist in
+ * the field-mapper data because of a legacy typo (see drupal/content-types.service.ts).
+ */
+const referenceTargets = (field: any): string[] => field?.referenceTo ?? field?.refrenceTo ?? [];
+
+/**
  * The source identifier for a row: `uid`/`code` when present, otherwise the values
  * of the columns the header marked `[unique=true]`, joined.
  *
@@ -543,7 +597,7 @@ interface Counters { assetsSkipped: number; refsSkipped: number }
 function transformField(
   value: string,
   field: any,
-  docIndex: Record<string, DocRef>,
+  docIndex: Record<string, DocRef[]>,
   ctUidByType: Record<string, string>,
   assetLookup: Record<string, any>,
   counters: Counters,
@@ -581,10 +635,26 @@ function transformField(
     case 'reference': {
       // ImpEx references are uid strings; lists are comma-separated.
       const ids = String(value).split(',').map((s) => s.trim()).filter(Boolean);
+      const allowedCtUids = referenceTargets(field);
       const out: any[] = [];
       for (const id of ids) {
-        const target = docIndex[id];
-        if (!target) { counters.refsSkipped += 1; continue; }
+        const candidates = docIndex[id];
+        if (!candidates?.length) { counters.refsSkipped += 1; continue; }
+        // The common case: this uid belongs to exactly one SAP item type, so
+        // there is nothing to disambiguate. Only when the SAME uid was used by
+        // more than one type does it matter which one this field actually
+        // means — use the field's own declared reference target(s) to pick the
+        // right one. Without that declaration (or without a match in it),
+        // guessing would silently attach the wrong content type to a
+        // structurally valid-looking reference, which nothing downstream would
+        // ever catch; skipping instead leaves it absent, which the
+        // reconciliation harness DOES catch as field.missing.
+        let target = candidates[0];
+        if (candidates.length > 1) {
+          const match = candidates.find((c) => allowedCtUids.includes(ctUidByType[c.type]));
+          if (!match) { counters.refsSkipped += 1; continue; }
+          target = match;
+        }
         const ctUid = ctUidByType[target.type];
         if (ctUid) out.push({ uid: target.uid, _content_type_uid: ctUid });
         else counters.refsSkipped += 1;
@@ -669,8 +739,15 @@ async function createEntry(
       assetLookup = JSON.parse(await fs.promises.readFile(idxPath, 'utf8')) || {};
     } catch { /* no assets generated -> file fields skipped */ }
 
-    // index every non-asset record by its uid: uid -> { type, entryUid }
-    const docIndex: Record<string, DocRef> = {};
+    // index every non-asset record by its uid: uid -> every candidate {type, entryUid}
+    // sharing it. SAP Commerce only enforces uid uniqueness WITHIN a type, not
+    // across all of them, so two distinct types legitimately using the same uid
+    // (e.g. a ContentSlotName and a Page both named "homepage") is real data, not
+    // a hypothetical — a flat last-write-wins map silently pointed every reference
+    // to "homepage" at whichever type happened to be processed last, regardless of
+    // which one it actually meant. Keeping every candidate lets transformField
+    // disambiguate using the referencing field's own declared target type(s).
+    const docIndex: Record<string, DocRef[]> = {};
     for (const [type, block] of blocks) {
       if (type === ASSET_TYPE) continue;
       for (const row of block.rows) {
@@ -679,7 +756,7 @@ async function createEntry(
         // references point at a uid, and adding joined keys to this lookup could make
         // an unrelated cell value resolve to the wrong entry.
         const id = row.uid ?? row.code;
-        if (id) docIndex[id] = { type, uid: toEntryUid(id) };
+        if (id) (docIndex[id] ??= []).push({ type, uid: toEntryUid(id) });
       }
     }
 
@@ -825,6 +902,14 @@ async function createEntry(
     }
   } catch (err: any) {
     console.error(`[sap-smartedit] createEntry failed for project ${projectId}:`, err?.message ?? err);
+    // Previously swallowed here, so a crash partway through (a bad row, a full
+    // disk, an OOM on a large catalog) left whatever content types had already
+    // been written, but the caller proceeded straight to createVersionFile and
+    // then the CLI import as if nothing were missing — the reconciler run
+    // right after would flag the gap, but it is deliberately advisory-only and
+    // never blocks anything. Rethrow so the migration step that called this
+    // can stop instead of importing a silently partial migration.
+    throw err;
   }
 }
 
@@ -1022,6 +1107,12 @@ async function getAllAssets(
     );
   } catch (err: any) {
     console.error(`[sap-smartedit] getAllAssets failed:`, err?.message ?? err);
+    // Previously swallowed here — createEntry runs right after this and reads
+    // back whatever assets/index.json this function managed to write before
+    // crashing, so a partial or entirely-missing asset index was silently
+    // treated as "no assets" rather than as the failure it actually is.
+    // Rethrow so the migration step that called this can stop.
+    throw err;
   }
 }
 

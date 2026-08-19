@@ -614,6 +614,53 @@ describe('sap-smartedit createLocale — unrecognized/custom locale codes', () =
 });
 
 /**
+ * Regression test for a real finding: LOCALE_MAP only covered ~20 languages,
+ * so anything else (a large fraction of real-world languages a customer's SAP
+ * catalog could genuinely be localized into) fell back to the naive
+ * `<code>-<code>` guess — wrong for the vast majority of them (Czech would
+ * become "cs-cs" instead of the real "cs-cz"). Expanded to ~75 languages using
+ * their conventional default region. Czech is a representative example: it
+ * was NOT in the original 20-entry table.
+ */
+describe('sap-smartedit — a language outside the original 20-entry LOCALE_MAP resolves correctly', () => {
+  const STACK_RARE = 'test-stack-sap-smartedit-rare-language';
+  const OUT_RARE = path.join(process.cwd(), './cmsMigrationData', STACK_RARE);
+  const RARE_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/rare-language.impex');
+
+  const navNodeCt = {
+    otherCmsTitle: 'CMSNavigationNode', contentstackUid: 'cs_cmsnavigationnode',
+    fieldMapping: [{ otherCmsField: 'title', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' }],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_RARE, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(RARE_FIXTURE, STACK_RARE, 'test-project', {
+      stackDetails: { master_locale: 'en-us' },
+    });
+    await sapSmarteditService.createEntry(RARE_FIXTURE, '', STACK_RARE, 'test-project', [navNodeCt], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_RARE, { recursive: true, force: true });
+  });
+
+  it('creates the real Czech locale code (cs-cz), not the naive cs-cs guess', () => {
+    const locales = JSON.parse(fs.readFileSync(path.join(OUT_RARE, 'locales', 'locales.json'), 'utf8'));
+    const codes = (Object.values(locales) as any[]).map((l) => l.code);
+    expect(codes).toContain('cs-cz');
+    expect(codes).not.toContain('cs-cs');
+  });
+
+  it('writes the Czech translation under the cs-cz entries folder, not cs-cs', () => {
+    const entryLocales = fs.readdirSync(path.join(OUT_RARE, 'entries', 'cs_cmsnavigationnode')).filter((d) => d !== 'index.json');
+    expect(entryLocales).toContain('cs-cz');
+    expect(entryLocales).not.toContain('cs-cs');
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_RARE, 'entries', 'cs_cmsnavigationnode', 'cs-cz', 'cs-cz.json'), 'utf8'));
+    expect((Object.values(entries)[0] as any).title).toBe('Czech Value');
+  });
+});
+
+/**
  * Regression coverage for a real, previously-untested code path: getAllAssets'
  * `fetch(url)` branch, taken when a Media row declares a real URL instead of a
  * local/platform-resource binary. Every other asset test exercises the local
@@ -841,5 +888,109 @@ describe('sap-smartedit createEntry — a partially-translated row does not leak
     const entry = Object.values(entries)[0] as any;
     expect(entry.title).toBe('English Title');
     expect(entry.content).toBe('English Content');
+  });
+});
+
+/**
+ * Regression test for a real finding: SAP Commerce only enforces `uid`
+ * uniqueness WITHIN one item type, not across all of them, so two distinct
+ * types legitimately sharing a uid (here: ContentPage and CMSLinkComponent
+ * both using "sharedRef123") is real, plausible customer data — not a
+ * hypothetical. docIndex used to be a flat `id -> {type, uid}` map, so the
+ * type processed LAST silently overwrote the first, and every reference to
+ * that id resolved to whichever type happened to win the race, regardless of
+ * which one the field actually meant. Fixed to keep every candidate and
+ * disambiguate using the referencing field's own declared `referenceTo`
+ * target(s) (the same convention aem.service.ts's reference resolution
+ * already relies on).
+ */
+describe('sap-smartedit createEntry — a uid shared across two different SAP types does not misroute references', () => {
+  const STACK_COLLIDE = 'test-stack-sap-smartedit-uid-collision';
+  const OUT_COLLIDE = path.join(process.cwd(), './cmsMigrationData', STACK_COLLIDE);
+  const COLLISION_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/cross-type-uid-collision.impex');
+
+  const CT_CONTENT_PAGE = {
+    otherCmsTitle: 'ContentPage', contentstackUid: 'cs_contentpage',
+    fieldMapping: [{ otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' }],
+  };
+  const CT_LINK_COMPONENT = {
+    otherCmsTitle: 'CMSLinkComponent', contentstackUid: 'cs_cmslinkcomponent',
+    fieldMapping: [{ otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' }],
+  };
+  const CT_PAGE = {
+    otherCmsTitle: 'Page', contentstackUid: 'cs_page',
+    fieldMapping: [
+      { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+      // Declares it only ever points at CMSLinkComponent entries.
+      { otherCmsField: 'target', contentstackFieldUid: 'target', contentstackFieldType: 'reference', referenceTo: ['cs_cmslinkcomponent'] },
+      // No referenceTo declared at all -> the collision is genuinely ambiguous.
+      { otherCmsField: 'related', contentstackFieldUid: 'related', contentstackFieldType: 'reference' },
+    ],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_COLLIDE, { recursive: true, force: true });
+    await sapSmarteditService.createEntry(
+      COLLISION_FIXTURE, '', STACK_COLLIDE, 'test-project',
+      [CT_CONTENT_PAGE, CT_LINK_COMPONENT, CT_PAGE], {}, 'en-us', {},
+    );
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_COLLIDE, { recursive: true, force: true });
+  });
+
+  const pageEntry = () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_COLLIDE, 'entries', 'cs_page', 'en-us', 'en-us.json'), 'utf8'));
+    return Object.values(entries)[0] as any;
+  };
+
+  it('resolves the reference to the type its own referenceTo declares, not whichever type was processed last', () => {
+    const entry = pageEntry();
+    expect(entry.target).toBeDefined();
+    expect(entry.target[0]._content_type_uid).toBe('cs_cmslinkcomponent');
+  });
+
+  it('drops (rather than guesses) a reference to the same colliding uid with no referenceTo declared', () => {
+    const entry = pageEntry();
+    expect('related' in entry).toBe(false);
+  });
+
+  it('both colliding entries still exist independently, unaffected by each other', () => {
+    const pages = JSON.parse(fs.readFileSync(path.join(OUT_COLLIDE, 'entries', 'cs_contentpage', 'en-us', 'en-us.json'), 'utf8'));
+    const links = JSON.parse(fs.readFileSync(path.join(OUT_COLLIDE, 'entries', 'cs_cmslinkcomponent', 'en-us', 'en-us.json'), 'utf8'));
+    expect(Object.values(pages)[0]).toMatchObject({ title: 'Colliding Page' });
+    expect(Object.values(links)[0]).toMatchObject({ title: 'Colliding Link' });
+  });
+});
+
+/**
+ * Regression test for a real finding: createEntry/getAllAssets used to wrap
+ * their ENTIRE body in one try/catch that only did console.error, with no
+ * rethrow — a crash partway through (bad row, disk full, OOM on a large
+ * catalog) left whatever was written before the crash, but the caller
+ * (migration.service.ts) always saw a resolved promise and proceeded straight
+ * to createVersionFile, reconciliation, and the CLI import as if nothing were
+ * missing. Fixed to log AND rethrow, so a genuine failure is distinguishable
+ * from success.
+ */
+describe('sap-smartedit createEntry/getAllAssets — a genuine crash is not swallowed', () => {
+  const STACK_CRASH = 'test-stack-sap-smartedit-crash';
+  const MISSING_PATH = '/does/not/exist/nowhere.impex';
+
+  afterEach(() => {
+    fs.rmSync(path.join(process.cwd(), './cmsMigrationData', STACK_CRASH), { recursive: true, force: true });
+  });
+
+  it('createEntry rejects instead of resolving when the source export cannot be located', async () => {
+    await expect(
+      sapSmarteditService.createEntry(MISSING_PATH, '', STACK_CRASH, 'test-project', [], {}, 'en-us', {}),
+    ).rejects.toThrow(/Could not locate the export/);
+  });
+
+  it('getAllAssets rejects instead of resolving when the source export cannot be located', async () => {
+    await expect(
+      sapSmarteditService.getAllAssets(MISSING_PATH, '', STACK_CRASH, 'test-project'),
+    ).rejects.toThrow(/Could not locate the export/);
   });
 });

@@ -144,6 +144,14 @@ vi.mock('../../../src/services/taxonomy.service.js', () => ({
 vi.mock('../../../src/services/runCli.service.js', () => ({
   utilsCli: { runCli: vi.fn().mockResolvedValue(undefined) },
 }));
+vi.mock('../../../src/services/sap-smartedit.service.js', () => ({
+  sapSmarteditService: {
+    getAllAssets: vi.fn().mockResolvedValue(undefined),
+    createEntry: vi.fn().mockResolvedValue(undefined),
+    createLocale: vi.fn().mockResolvedValue(undefined),
+    createVersionFile: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 vi.mock('../../../src/utils/field-attacher.utils.js', () => ({
   fieldAttacher: vi.fn().mockResolvedValue([]),
 }));
@@ -184,6 +192,9 @@ vi.mock('../../../src/utils/sanitize-path.utils.js', async (importOriginal) => {
 });
 
 import { migrationService } from '../../../src/services/migration.service.js';
+import { utilsCli } from '../../../src/services/runCli.service.js';
+import { sapSmarteditService } from '../../../src/services/sap-smartedit.service.js';
+import customLogger from '../../../src/utils/custom-logger.utils.js';
 
 const createMockReq = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -536,6 +547,78 @@ describe('migration.service', () => {
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
     });
+
+    it('logs and still resolves cleanly when runCli fails (the controller never awaits this promise)', async () => {
+      const projectWithTestStack = {
+        ...mockProjects[0],
+        current_test_stack_id: 'test-stack-1',
+        extract_path: '/tmp/extract',
+        legacy_cms: { cms: 'wordpress', file_path: '/tmp/wp' },
+        stackDetails: { master_locale: 'en-us' },
+        mapperKeys: {},
+      };
+
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(projectWithTestStack) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      (utilsCli.runCli as any).mockRejectedValueOnce(new Error('Migration import failed: exit code 1'));
+
+      const req = createMockReq({
+        params: { orgId: 'org-123', projectId: 'proj-1' },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
+      });
+
+      // The controller calls startTestMigration fire-and-forget (no await, no
+      // .catch()) — so this promise resolving cleanly, not rejecting, is what
+      // keeps a real import failure from becoming an unhandled rejection.
+      await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
+      expect(customLogger).toHaveBeenCalledWith(
+        'proj-1',
+        'test-stack-1',
+        'error',
+        expect.stringContaining('Test migration import failed'),
+      );
+    });
+
+    it('stops before the CLI import when building the SAP SmartEdit migration data fails', async () => {
+      const projectWithTestStack = {
+        ...mockProjects[0],
+        current_test_stack_id: 'test-stack-1',
+        extract_path: '/tmp/extract',
+        legacy_cms: { cms: 'sap-smartedit', file_path: '/tmp/sap.impex' },
+        stackDetails: { master_locale: 'en-us' },
+        mapperKeys: {},
+      };
+
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(projectWithTestStack) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      // getAllAssets/createEntry now rethrow on a genuine crash instead of
+      // swallowing it (see sap-smartedit.service.ts) — simulate that here.
+      (sapSmarteditService.getAllAssets as any).mockRejectedValueOnce(new Error('disk full'));
+
+      const req = createMockReq({
+        params: { orgId: 'org-123', projectId: 'proj-1' },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
+      });
+
+      await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
+
+      expect(customLogger).toHaveBeenCalledWith(
+        'proj-1',
+        'test-stack-1',
+        'error',
+        expect.stringContaining('SAP SmartEdit migration failed while building local migration data'),
+      );
+      // Must not proceed to write a version file, run reconciliation, or kick
+      // off the CLI import on top of the now-partial local migration data.
+      expect(sapSmarteditService.createVersionFile).not.toHaveBeenCalled();
+      expect(utilsCli.runCli).not.toHaveBeenCalled();
+    });
   });
 
   describe('startMigration', () => {
@@ -612,6 +695,101 @@ describe('migration.service', () => {
       await migrationService.startMigration(req);
 
       expect(mockProjectUpdate).toHaveBeenCalled();
+    });
+
+    it('logs, stops delta processing, and still resolves cleanly when runCli fails', async () => {
+      const projectWithDest = {
+        ...mockProjects[0],
+        destination_stack_id: 'dest-stack-1',
+        extract_path: '/tmp/extract',
+        legacy_cms: { cms: 'wordpress', file_path: '/tmp/wp' },
+        stackDetails: { master_locale: 'en-us' },
+        mapperKeys: {},
+      };
+
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(projectWithDest) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      const migrationDataBase = path.resolve(process.cwd(), MIGRATION_DATA_CONFIG.DATA);
+      const assetsIndexPath = path.join(
+        migrationDataBase,
+        'dest-stack-1',
+        MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME,
+        MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE,
+      );
+
+      mockFsPromisesLstat.mockResolvedValueOnce({
+        isSymbolicLink: () => false,
+        isFile: () => true,
+      });
+      mockFsPromisesRealpath.mockImplementation(async (p: string | URL) => {
+        const s = path.normalize(String(p));
+        if (s === path.normalize(assetsIndexPath)) {
+          return assetsIndexPath;
+        }
+        throw new Error('File not found');
+      });
+      mockFsPromisesReadFile.mockImplementation(async (p: string | URL) => {
+        const s = path.normalize(String(p));
+        if (s === path.normalize(assetsIndexPath)) {
+          return '{}';
+        }
+        return '';
+      });
+
+      (utilsCli.runCli as any).mockRejectedValueOnce(new Error('Migration import failed: exit code 1'));
+
+      const req = createMockReq({
+        params: { orgId: 'org-123', projectId: 'proj-1' },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
+      });
+
+      // Same fire-and-forget contract as startTestMigration: the controller
+      // never awaits this, so a genuine import failure must be logged and
+      // absorbed here, not left to reject and become an unhandled rejection.
+      await expect(migrationService.startMigration(req)).resolves.not.toThrow();
+      expect(customLogger).toHaveBeenCalledWith(
+        'proj-1',
+        'dest-stack-1',
+        'error',
+        expect.stringContaining('Migration import failed'),
+      );
+    });
+
+    it('stops before the CLI import when building the SAP SmartEdit migration data fails', async () => {
+      const projectWithDest = {
+        ...mockProjects[0],
+        destination_stack_id: 'dest-stack-1',
+        extract_path: '/tmp/extract',
+        legacy_cms: { cms: 'sap-smartedit', file_path: '/tmp/sap.impex' },
+        stackDetails: { master_locale: 'en-us' },
+        mapperKeys: {},
+      };
+
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(projectWithDest) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      (sapSmarteditService.createEntry as any).mockRejectedValueOnce(new Error('bad row crashed the transform'));
+
+      const req = createMockReq({
+        params: { orgId: 'org-123', projectId: 'proj-1' },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
+      });
+
+      await expect(migrationService.startMigration(req)).resolves.not.toThrow();
+
+      expect(customLogger).toHaveBeenCalledWith(
+        'proj-1',
+        'dest-stack-1',
+        'error',
+        expect.stringContaining('SAP SmartEdit migration failed while building local migration data'),
+      );
+      expect(sapSmarteditService.createVersionFile).not.toHaveBeenCalled();
+      expect(utilsCli.runCli).not.toHaveBeenCalled();
     });
   });
 

@@ -481,3 +481,162 @@ describe('reconcile — an ambiguous label\'s OWN primary-locale value is not a 
     expect(r.findings.some((f) => f.check === 'locale.valueMissing' && f.locale === 'de-de')).toBe(false);
   });
 });
+
+describe('reconcile — checkRows is not fooled by the SAP $lang macro disagreeing with master_locale', () => {
+  // Reproduces a false positive found against a real migration (stack
+  // blt8c4ba20ee575289e) built specifically to exercise the createEntry fix for
+  // this exact mismatch (see sap-smartedit.service.ts's localizedValueOf). The
+  // source file declares `$lang = de`, so parseImpex's raw row default for
+  // `title` holds the DE text — but the project's real master_locale is en-us,
+  // so createEntry correctly writes the EN text into the master entry.
+  // checkRows used to compare the raw (DE) default against the (correctly EN)
+  // master entry and flag it as field.missing. It must instead compare against
+  // the row's own value for the real primary language.
+  const STACK_LANGMISMATCH = 'test-stack-sap-reconcile-langmismatch';
+  const OUT_LANGMISMATCH = path.join(process.cwd(), './cmsMigrationData', STACK_LANGMISMATCH);
+  const LANGMISMATCH_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/lang-macro-mismatch.impex');
+
+  const navNodeCt = {
+    otherCmsTitle: 'CMSNavigationNode',
+    otherCmsUid: 'cs_cmsnavigationnode',
+    contentstackTitle: 'CMSNavigationNode',
+    contentstackUid: 'cs_cmsnavigationnode',
+    type: 'content_type',
+    fieldMapping: [field('title')],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_LANGMISMATCH, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(LANGMISMATCH_FIXTURE, STACK_LANGMISMATCH, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+    await sapSmarteditService.createEntry(
+      LANGMISMATCH_FIXTURE,
+      '',
+      STACK_LANGMISMATCH,
+      'test-project',
+      [navNodeCt],
+      {},
+      LOCALE,
+      {},
+    );
+    const ctDir = path.join(OUT_LANGMISMATCH, 'content_types');
+    fs.mkdirSync(ctDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ctDir, 'cs_cmsnavigationnode.json'),
+      JSON.stringify({ title: 'CMSNavigationNode', uid: 'cs_cmsnavigationnode', schema: [] }),
+    );
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_LANGMISMATCH, { recursive: true, force: true });
+  });
+
+  it('does not flag field.missing for a row whose $lang-macro default disagrees with the real master locale', () => {
+    const r = reconcile(LANGMISMATCH_FIXTURE, OUT_LANGMISMATCH, [navNodeCt]);
+    const falsePositive = r.findings.find(
+      (f) => f.check === 'field.missing' && f.sourceType === 'CMSNavigationNode',
+    );
+    expect(falsePositive).toBeUndefined();
+  });
+
+  it('the master entry genuinely holds the primary-language text, not the $lang-macro default', () => {
+    const file = readEntryFile(OUT_LANGMISMATCH, 'cs_cmsnavigationnode', LOCALE);
+    const entries = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.title).toBe('English Value');
+  });
+});
+
+/**
+ * Regression test for a real, live-confirmed finding: a reference field's
+ * schema `reference_to` was empty (never configured in the field mapping) or
+ * stale (pointed at a content-type uid from before a rename), and Contentstack
+ * silently dropped every value written to it — not a bug in the CLI import,
+ * but the field's own schema declaring that it can point at nothing.
+ * checkRows already caught the SYMPTOM (field.missing, one finding per
+ * affected row); this checks the CAUSE once per field, which is what a human
+ * would actually need to go fix.
+ */
+describe('reconcile — a reference field with a misconfigured destination target', () => {
+  const STACK_REFBROKEN = 'test-stack-sap-reconcile-refbroken';
+  const OUT_REFBROKEN = path.join(process.cwd(), './cmsMigrationData', STACK_REFBROKEN);
+  const REFBROKEN_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/reference-target-broken.impex');
+
+  const templateCt = {
+    otherCmsTitle: 'PageTemplate', contentstackUid: 'cs_pagetemplate',
+    fieldMapping: [field('name')],
+  };
+  const pageCt = {
+    otherCmsTitle: 'ContentPage', contentstackUid: 'cs_contentpage',
+    fieldMapping: [
+      field('name'),
+      { ...field('masterTemplate'), contentstackFieldType: 'reference', referenceTo: ['cs_pagetemplate'] },
+      { ...field('navTarget'), contentstackFieldType: 'reference', referenceTo: ['cs_pagetemplate'] },
+      // Declared in the mapping but never a column in the source at all —
+      // exercises "misconfigured but nothing actually uses it".
+      { ...field('unusedRef'), contentstackFieldType: 'reference', referenceTo: ['cs_pagetemplate'] },
+    ],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_REFBROKEN, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(REFBROKEN_FIXTURE, STACK_REFBROKEN, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+    await sapSmarteditService.createEntry(REFBROKEN_FIXTURE, '', STACK_REFBROKEN, 'test-project', [templateCt, pageCt], {}, LOCALE, {});
+    const ctDir = path.join(OUT_REFBROKEN, 'content_types');
+    fs.mkdirSync(ctDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ctDir, 'cs_pagetemplate.json'),
+      JSON.stringify({ title: 'PageTemplate', uid: 'cs_pagetemplate', schema: [{ uid: 'name', data_type: 'text' }] }),
+    );
+    fs.writeFileSync(
+      path.join(ctDir, 'cs_contentpage.json'),
+      JSON.stringify({
+        title: 'ContentPage',
+        uid: 'cs_contentpage',
+        schema: [
+          { uid: 'name', data_type: 'text' },
+          // Never configured at all.
+          { uid: 'mastertemplate', data_type: 'reference', reference_to: [] },
+          // Configured, but pointing at a content type this migration never mapped —
+          // the exact shape a stale rename produces.
+          { uid: 'navtarget', data_type: 'reference', reference_to: ['cs_pagetemplate_old_name'] },
+          { uid: 'unusedref', data_type: 'reference', reference_to: [] },
+        ],
+      }),
+    );
+  });
+
+  afterAll(() => fs.rmSync(OUT_REFBROKEN, { recursive: true, force: true }));
+
+  it('flags an empty reference_to as CRITICAL when a real source row has a value for it', () => {
+    const r = reconcile(REFBROKEN_FIXTURE, OUT_REFBROKEN, [templateCt, pageCt]);
+    const f = r.findings.find((x) => x.check === 'reference.targetMisconfigured' && x.detail.includes('"mastertemplate"'));
+    expect(f).toBeDefined();
+    expect(f?.severity).toBe('critical');
+    expect(f?.detail).toContain('reference_to is empty');
+    expect(f?.detail).toMatch(/1 source row/);
+  });
+
+  it('flags a reference_to pointing at an unmapped (stale) content type as CRITICAL too', () => {
+    const r = reconcile(REFBROKEN_FIXTURE, OUT_REFBROKEN, [templateCt, pageCt]);
+    const f = r.findings.find((x) => x.check === 'reference.targetMisconfigured' && x.detail.includes('"navtarget"'));
+    expect(f).toBeDefined();
+    expect(f?.severity).toBe('critical');
+    expect(f?.detail).toContain('cs_pagetemplate_old_name');
+  });
+
+  it('does not flag a misconfigured field that no source row actually uses', () => {
+    const r = reconcile(REFBROKEN_FIXTURE, OUT_REFBROKEN, [templateCt, pageCt]);
+    expect(r.findings.some((x) => x.check === 'reference.targetMisconfigured' && x.detail.includes('"unusedref"'))).toBe(false);
+  });
+
+  it('downgrades to a warning in heuristic mode, since row-level usage cannot be confirmed without the live field mapping', () => {
+    const r = reconcile(REFBROKEN_FIXTURE, OUT_REFBROKEN); // no contentTypes -> heuristic
+    const findings = r.findings.filter((x) => x.check === 'reference.targetMisconfigured');
+    expect(findings.length).toBeGreaterThan(0);
+    for (const f of findings) expect(f.severity).toBe('warning');
+  });
+});

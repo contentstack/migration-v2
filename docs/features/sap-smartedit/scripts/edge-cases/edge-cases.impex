@@ -120,3 +120,22 @@ INSERT_UPDATE ContentSlotForTemplate; uid[unique=true]; position[unique=true]; p
 # file structurally complete without needing full page-render coverage.
 INSERT_UPDATE ContentSlotForPage; uid[unique=true]; position[unique=true]; page(uid,$contentCV); contentSlot(uid,$contentCV)
                                  ; body-edgePageUnicodeEmoji; Body; edgePageUnicodeEmoji; edgeSlotNormal
+
+# ---- SAP $lang macro vs the project's real master locale ------------------
+# Everything above this line was parsed under no $lang macro at all. From here
+# on, the file declares its own internal working language as German — while
+# the migration project itself should still be configured with master_locale
+# = en-us (same as every other test in this file). This is a real, legitimate
+# combination: SAP's internal working language and the destination stack's
+# master locale are two independent settings. Before the fix, the master
+# (en-us) entry would have silently shown the German text instead.
+$lang = de
+INSERT_UPDATE ContentPage; uid[unique=true]; name; title[lang=en]; title[lang=de]; masterTemplate(uid,$contentCV); label; defaultPage; approvalStatus(code)
+                          ; edgeLangMismatchPage; "Edge Lang Mismatch Page"; "English Edge Title"; "Deutscher Edge Titel"; edgeTemplateNormal; edge-lang-mismatch; false; approved
+
+# ---- Partial translation: title translated, content is not ----------------
+# Tests that an untranslated field on an otherwise genuinely-translated row
+# gets OMITTED from the secondary-locale entry, not filled in with the
+# English default (which used to make it look translated when it wasn't).
+INSERT_UPDATE CMSParagraphComponent; &componentRef; uid[unique=true]; name; title[lang=en]; title[lang=de]; content[lang=en]; content[lang=de]
+                                    ; edgePartialTranslation; edgePartialTranslation; "Edge Partial Translation"; "English Partial Title"; "Deutscher Partial Titel"; "English Partial Content"; 

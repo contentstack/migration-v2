@@ -210,6 +210,22 @@ export function reconcile(
   const sourceTypeToCtUid = new Map<string, string>();
   for (const [uid, srcType] of ctByUid) sourceTypeToCtUid.set(srcType, uid);
 
+  // Every content-type uid this migration actually mapped something to — a
+  // reference field pointing anywhere outside this set can never resolve,
+  // the same way createEntry's own docIndex lookup never could either.
+  const mappedCtUids = new Set(ctByUid.keys());
+
+  // ctUid -> fieldMapping[], resolved the exact same way createEntry resolves
+  // it, so checkReferenceFieldTargets can find which SOURCE column feeds a
+  // given schema field. Only available in authoritative mode; heuristic mode
+  // has no fieldMapping data at all.
+  const fieldMappingByCtUid = new Map<string, any[]>();
+  for (const ct of contentTypes ?? []) {
+    if (ct?.type === 'global_field') continue;
+    const ctUid = mapperKeys?.[ct?.contentstackUid] ?? ct?.contentstackUid;
+    if (ctUid) fieldMappingByCtUid.set(ctUid, ct?.fieldMapping ?? []);
+  }
+
   // The real migration hook always calls reconcile() with the authoritative
   // contentTypes array, so this is only ever true for the standalone CLI run
   // by hand without --content-types.
@@ -292,8 +308,9 @@ export function reconcile(
       }
     }
 
-    checkRows(block, sourceType, ctUid, masterEntries, add);
+    checkRows(block, sourceType, ctUid, masterEntries, master, add);
     checkLocalizedValues(block, sourceType, ctUid, migrationDir, declaredLocales, master, add);
+    checkReferenceFieldTargets(block, sourceType, ctUid, migrationDir, mappedCtUids, fieldMappingByCtUid.get(ctUid), add);
   }
 
   // ---- assets --------------------------------------------------------------
@@ -330,10 +347,19 @@ function checkRows(
   sourceType: string,
   ctUid: string,
   entries: Record<string, any>,
+  master: string | null,
   add: (f: Finding) => void,
 ): void {
   const seenUids = new Set<string>();
   const titles = new Map<string, string[]>();
+  // The SAP export's own $lang macro is independent from the project's real
+  // master locale (see sap-smartedit.service.ts's localizedValueOf) — the raw
+  // parsed default for a row can therefore hold a DIFFERENT language's text
+  // than what createEntry actually writes into the master entry. This must
+  // resolve the exact same way createEntry does, or a source row translated
+  // under a mismatched $lang gets flagged as "field.missing" for correctly
+  // NOT containing the wrong language's text.
+  const primaryLangCode = (master ?? '').split('-')[0];
 
   for (const row of block.rows) {
     const id = rowSourceId(row, block);
@@ -372,10 +398,20 @@ function checkRows(
     // the entry, however it was mapped/transformed.
     const present = collectStrings(entry);
     const label = row.title ?? row.name;
+    const rowLocalized = block.localizedValues.get(row);
     for (const [col, val] of Object.entries(row)) {
       if (isEmpty(val)) continue;
       if (col.startsWith('@')) continue; // binary pointer, not content
-      if (isValueRepresented(String(val), present)) continue;
+
+      // When this field genuinely has a per-language breakdown for this row,
+      // the value actually expected in the master entry is the row's OWN
+      // value for the real primary language — NOT the raw parsed default,
+      // which reflects whichever language the source file's own $lang macro
+      // happened to prefer.
+      const genuinePrimaryValue = rowLocalized?.[col]?.[primaryLangCode];
+      const expected = genuinePrimaryValue ?? String(val);
+
+      if (isValueRepresented(expected, present)) continue;
 
       // Known, deliberate trade rather than an unexplained disappearance: when a
       // label is shared by several rows the entry title falls back to the row's
@@ -399,7 +435,7 @@ function checkRows(
         check: 'field.missing',
         sourceType,
         id,
-        detail: `Source value for "${col}" is not present in the entry: ${JSON.stringify(String(val).slice(0, 120))}`,
+        detail: `Source value for "${col}" is not present in the entry: ${JSON.stringify(expected.slice(0, 120))}`,
       });
     }
   }
@@ -552,6 +588,71 @@ function checkLocalizedValues(
         }
       }
     }
+  }
+}
+
+/**
+ * A reference field whose schema `reference_to` is empty, or names a content
+ * type this migration never mapped anything to, can NEVER hold a value —
+ * Contentstack has no target to resolve it against, so every value written
+ * to it is silently dropped, exactly as if the field did not exist at all.
+ * checkRows already catches the per-row SYMPTOM of this (field.missing), but
+ * only after wading through one finding per affected row; this catches the
+ * CAUSE once per field, which is what actually needs fixing — a mis-set (or
+ * never-set) reference target in the field mapping, either never configured
+ * or left stale after a content type was renamed during "Map Content Fields"
+ * (confirmed live: a `navigationNode` field pointed at "cs_navigationnode"
+ * long after that content type's real uid became "cs_cmsnavigationnode").
+ */
+function checkReferenceFieldTargets(
+  block: ImpexBlock,
+  sourceType: string,
+  ctUid: string,
+  migrationDir: string,
+  mappedCtUids: Set<string>,
+  fieldMapping: any[] | undefined,
+  add: (f: Finding) => void,
+): void {
+  const schema = readJson(path.join(migrationDir, CONTENT_TYPES_DIR_NAME, `${ctUid}.json`));
+  const fields = Array.isArray(schema?.schema) ? schema.schema : [];
+
+  for (const field of fields) {
+    if (field?.data_type !== 'reference') continue;
+    const refTo: string[] = Array.isArray(field?.reference_to) ? field.reference_to : field?.reference_to ? [field.reference_to] : [];
+    const isBroken = refTo.length === 0 || !refTo.some((t) => mappedCtUids.has(t));
+    if (!isBroken) continue;
+
+    const why = refTo.length === 0
+      ? 'reference_to is empty — no destination content type was ever configured for it'
+      : `reference_to (${refTo.join(', ')}) names a content type this migration never mapped anything to — likely left stale after a rename`;
+
+    // Without the live fieldMapping (heuristic mode, or a field the mapper
+    // never recorded), there is no way to know whether any SOURCE row
+    // actually carries data for this field — flag it as a warning worth
+    // checking rather than a confirmed loss.
+    const mapped = fieldMapping?.find((f) => f?.contentstackFieldUid === field.uid);
+    if (!mapped) {
+      add({
+        severity: 'warning',
+        check: 'reference.targetMisconfigured',
+        sourceType,
+        detail: `"${field.uid}" is a reference field whose ${why}. Cannot confirm from here whether real source data is affected — re-run with --content-types for a definite answer.`,
+      });
+      continue;
+    }
+
+    const affectedRows = block.rows.filter((row) => !isEmpty(row[mapped.otherCmsField])).length;
+    if (!affectedRows) continue; // misconfigured, but nothing in THIS export actually uses it
+
+    // Finding fieldMapping at all means contentTypes was passed, i.e. this is
+    // authoritative mode — the same mode every real migration uses, so this
+    // is a confirmed loss, not a heuristic guess.
+    add({
+      severity: 'critical',
+      check: 'reference.targetMisconfigured',
+      sourceType,
+      detail: `"${field.uid}" is a reference field whose ${why}. ${affectedRows} source row(s) have a value for it, and EVERY one of them will be silently dropped on import.`,
+    });
   }
 }
 
