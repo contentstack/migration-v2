@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { reconcile, formatReport } from '../src/services/sap-smartedit-reconcile.service.js';
+import { generateReconcileReportDocx } from '../src/utils/reconcile-report-docx.utils.js';
 
 /**
  * Extracted so it can be unit-tested without spawning the CLI as a subprocess.
@@ -49,7 +50,7 @@ export function parseArgs(args: string[]): {
   return { sourcePath: positional[0], migrationDir: positional[1], jsonOut, ctPath };
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const { sourcePath, migrationDir, jsonOut, ctPath } = parseArgs(process.argv.slice(2));
   if (!sourcePath || !migrationDir) {
     console.error('Usage: npx tsx scripts/reconcile-sap.ts <source.impex|sourceFolder> <migrationDataDir> [--json out.json] [--content-types contentTypes.json]');
@@ -71,6 +72,15 @@ function main(): void {
   if (jsonOut) {
     fs.writeFileSync(jsonOut, JSON.stringify(report, null, 2), 'utf8');
     console.log(`\nMachine-readable report: ${jsonOut}`);
+  }
+
+  try {
+    const docxPath = await generateReconcileReportDocx(report);
+    console.log(`Word report: ${docxPath}`);
+  } catch (docErr: any) {
+    // The doc is a convenience artifact, not the check itself — a failure here
+    // must never change the CLI's own pass/fail exit code.
+    console.error(`Could not generate the .docx report: ${docErr?.message ?? docErr}`);
   }
 
   const { critical, error } = report.summary;
@@ -104,5 +114,8 @@ function isRunDirectly(): boolean {
 }
 
 if (isRunDirectly()) {
-  main();
+  main().catch((err) => {
+    console.error('reconcile-sap crashed:', err);
+    process.exit(2);
+  });
 }

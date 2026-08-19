@@ -50,6 +50,7 @@ import {
 import { aemService } from './aem.service.js';
 import { sapSmarteditService } from './sap-smartedit.service.js';
 import { reconcile, summarizeForLog } from './sap-smartedit-reconcile.service.js';
+import { generateReconcileReportDocx } from '../utils/reconcile-report-docx.utils.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
 import { clearStaleEntries, enrichConfigWithAssetMapping, enrichConfigWithAssetUpdates, ensureUpdateConfigFile, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
@@ -81,6 +82,14 @@ async function runSapReconciliation(
     const report = reconcile(file_path || packagePath, migrationDir, contentTypes, mapperKeys);
     for (const line of summarizeForLog(report)) {
       await customLogger(projectId, destinationStackId, line.level, line.message);
+    }
+    try {
+      const docxPath = await generateReconcileReportDocx(report);
+      await customLogger(projectId, destinationStackId, 'info', `Reconciliation report saved: ${docxPath}`);
+    } catch (docErr: any) {
+      // The report is a convenience artifact, not the check itself — a failure
+      // here must never be mistaken for the reconciliation having failed.
+      await customLogger(projectId, destinationStackId, 'warn', `Reconciliation report (.docx) could not be generated: ${docErr?.message ?? docErr}`);
     }
   } catch (err: any) {
     await customLogger(

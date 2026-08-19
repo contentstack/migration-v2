@@ -46,6 +46,7 @@
     "cors": "^2.8.5",
     "dayjs": "^1.11.18",
     "diff": "^5.2.2",
+    "docx": "^9.7.1",
     "dotenv": "^16.6.1",
     "express": "^4.22.0",
     "express-validator": "^7.3.1",
