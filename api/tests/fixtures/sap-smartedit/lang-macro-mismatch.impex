@@ -1,0 +1,3 @@
+$lang = de
+INSERT_UPDATE CMSNavigationNode; uid[unique=true]; title[lang=en]; title[lang=de]
+                                ; langMismatchNode1; English Value; Deutscher Wert

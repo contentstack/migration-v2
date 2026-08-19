@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE CMSParagraphComponent; &componentRef; uid[unique=true]; name; title[lang=en]; title[lang=de]; content[lang=en]; content[lang=de]
+                                    ; partialParaRef; partialTranslationRow; partial row; English Title; Deutscher Titel; English Content; 

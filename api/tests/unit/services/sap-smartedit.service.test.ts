@@ -740,3 +740,106 @@ describe('sap-smartedit getAllAssets — a hanging URL fetch does not hang forev
     expect(failures['assets_urlMediaHanging']).toContain('timed out');
   });
 });
+
+/**
+ * Regression test for a real finding: a SAP export's own `$lang` macro (its
+ * internal "working language") is a property of the SOURCE file, completely
+ * independent from the Contentstack PROJECT's configured master locale — a
+ * SAP working language of "de" with a project master locale of "en-us" is a
+ * legitimate, real combination. parseImpex's row default assignment prefers
+ * whichever [lang=xx] column matches the file's own $lang, so when the two
+ * disagree, the primary/master-locale entry silently got the WRONG
+ * language's text. Confirmed live: reverting the fix reproduced the master
+ * (en-us) entry showing German text instead of English.
+ */
+describe('sap-smartedit createEntry — SAP $lang macro vs the project\'s real master locale', () => {
+  const STACK_LANG = 'test-stack-sap-smartedit-lang-mismatch';
+  const OUT_LANG = path.join(process.cwd(), './cmsMigrationData', STACK_LANG);
+  const LANG_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/lang-macro-mismatch.impex');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_LANG, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(LANG_FIXTURE, STACK_LANG, 'test-project', {
+      stackDetails: { master_locale: 'en-us' },
+    });
+    await sapSmarteditService.createEntry(LANG_FIXTURE, '', STACK_LANG, 'test-project', [
+      {
+        otherCmsTitle: 'CMSNavigationNode', contentstackUid: 'cs_cmsnavigationnode',
+        fieldMapping: [{ otherCmsField: 'title', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' }],
+      },
+    ], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_LANG, { recursive: true, force: true });
+  });
+
+  it('gives the master (en-us) entry the ENGLISH value, not the SAP file\'s own $lang=de value', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_LANG, 'entries', 'cs_cmsnavigationnode', 'en-us', 'en-us.json'), 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.title).toBe('English Value');
+    expect(entry.title).not.toBe('Deutscher Wert');
+  });
+
+  it('still gives the de-de entry the genuine German value', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_LANG, 'entries', 'cs_cmsnavigationnode', 'de-de', 'de-de.json'), 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.title).toBe('Deutscher Wert');
+  });
+});
+
+/**
+ * Regression test for a real finding: a row that genuinely translates ONE
+ * field (so it correctly gets a secondary-locale entry at all) still had
+ * every OTHER, untranslated field filled in with the primary-language
+ * default value — writing English text into a "German" field makes it look
+ * genuinely translated, defeating Contentstack's own locale-fallback display
+ * for that field. The row-level skip (no entry at all when NOTHING is
+ * translated) already existed; this is the same principle applied per field
+ * once an entry is created at all.
+ */
+describe('sap-smartedit createEntry — a partially-translated row does not leak default text into its OTHER fields', () => {
+  const STACK_PARTIAL = 'test-stack-sap-smartedit-partial-translation';
+  const OUT_PARTIAL = path.join(process.cwd(), './cmsMigrationData', STACK_PARTIAL);
+  const PARTIAL_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/partial-translation.impex');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_PARTIAL, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(PARTIAL_FIXTURE, STACK_PARTIAL, 'test-project', {
+      stackDetails: { master_locale: 'en-us' },
+    });
+    await sapSmarteditService.createEntry(PARTIAL_FIXTURE, '', STACK_PARTIAL, 'test-project', [
+      {
+        otherCmsTitle: 'CMSParagraphComponent', contentstackUid: 'cs_cmsparagraphcomponent',
+        fieldMapping: [
+          { otherCmsField: 'title', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+          { otherCmsField: 'content', contentstackFieldUid: 'content', contentstackFieldType: 'single_line_text' },
+        ],
+      },
+    ], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_PARTIAL, { recursive: true, force: true });
+  });
+
+  it('still creates the de-de entry, since SOMETHING (title) was genuinely translated', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_PARTIAL, 'entries', 'cs_cmsparagraphcomponent', 'de-de', 'de-de.json'), 'utf8'));
+    expect(Object.keys(entries)).toHaveLength(1);
+    expect((Object.values(entries)[0] as any).title).toBe('Deutscher Titel');
+  });
+
+  it('omits the untranslated "content" field entirely, rather than leaking the English default', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_PARTIAL, 'entries', 'cs_cmsparagraphcomponent', 'de-de', 'de-de.json'), 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect('content' in entry).toBe(false);
+    expect(entry.content).not.toBe('English Content');
+  });
+
+  it('the primary (en-us) entry is unaffected and still has both fields', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_PARTIAL, 'entries', 'cs_cmsparagraphcomponent', 'en-us', 'en-us.json'), 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.title).toBe('English Title');
+    expect(entry.content).toBe('English Content');
+  });
+});

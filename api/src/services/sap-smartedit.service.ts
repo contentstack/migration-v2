@@ -649,6 +649,11 @@ async function createEntry(
 ): Promise<void> {
   try {
     const primaryLocale = master_locale || 'en-us';
+    // The Contentstack PROJECT's configured master locale, not the ImpEx file's
+    // own `$lang` macro — these are two independent things that usually agree
+    // but are not guaranteed to (a SAP working-language of "de" with a project
+    // master locale of "en-us" is a legitimate, real combination).
+    const primaryLangCode = primaryLocale.split('-')[0];
     const blocks = parseImpexAll(resolveInputPath(file_path, packagePath));
 
     // Discover every SAP language actually used via [lang=xx] columns, across every
@@ -736,8 +741,20 @@ async function createEntry(
           const unambiguousDefault = defaultLabel && labelOwners.get(defaultLabel)?.size === 1;
           // A field's per-locale value when this row/attribute genuinely has one for
           // the CURRENT destination locale, else its ordinary default value.
+          //
+          // For the PRIMARY locale specifically (sapLang undefined), the row's
+          // parsed default (row[field]) is NOT reliably in the project's actual
+          // master language — parseImpex prefers whichever [lang=xx] column
+          // matches the FILE's OWN `$lang` macro, which is a property of the
+          // source export, not of the destination project. When the two differ,
+          // row[field] silently holds the wrong language's text. Checking the
+          // row's genuine per-language value for the project's real primary
+          // language FIRST avoids that — it only changes anything when SAP's
+          // working language and the project's master locale actually disagree;
+          // when they agree (the common case) this resolves to the exact same
+          // value row[field] already had.
           const localizedValueOf = (field: string): string | undefined =>
-            sapLang ? rowLocalized?.[field]?.[sapLang] : undefined;
+            sapLang ? rowLocalized?.[field]?.[sapLang] : rowLocalized?.[field]?.[primaryLangCode];
           const localizedLabel = localizedValueOf('title') ?? localizedValueOf('name');
 
           const entry: any = {
@@ -760,7 +777,24 @@ async function createEntry(
           for (const field of ct?.fieldMapping ?? []) {
             if (field?.isDeleted) continue;
             if (field?.contentstackFieldUid?.includes('.')) continue; // group children (n/a for ImpEx)
-            const raw = localizedValueOf(field?.otherCmsField) ?? row[field?.otherCmsField];
+            const otherCmsField = field?.otherCmsField;
+            // This row genuinely localizes THIS field (it has a [lang=xx]
+            // variant recorded for it, for at least one language) — as
+            // opposed to a purely structural/reference field this row never
+            // localizes at all (e.g. masterTemplate), which must keep using
+            // its default value in every locale (already-tested convention).
+            const isLocalizableField = otherCmsField !== undefined && rowLocalized?.[otherCmsField] !== undefined;
+            const raw =
+              sapLang && isLocalizableField
+                // Secondary locale, and this field IS one this row translates —
+                // use only the genuine translation. Falling back to the default
+                // value here (row has a title[lang=de] but no content[lang=de])
+                // used to write the primary-language content verbatim into an
+                // otherwise-real secondary-locale entry, making an untranslated
+                // field look translated and defeating Contentstack's own
+                // locale-fallback display for it.
+                ? localizedValueOf(otherCmsField)
+                : localizedValueOf(otherCmsField) ?? row[otherCmsField];
             if (raw === undefined) continue;
             const val = transformField(raw, field, docIndex, ctUidByType, assetLookup, counters);
             if (val !== undefined) entry[field.contentstackFieldUid] = val;
@@ -1007,13 +1041,20 @@ async function createLocale(file_path: string, destinationStackId: string, _proj
   if (localeErr) {
     console.error(`[sap-smartedit] could not fetch Contentstack locale names (${localeErr?.message ?? localeErr}); falling back to built-in names.`);
   }
+  // getAllLocales() genuinely resolves a code-keyed map ({"de-de": "German -
+  // Germany", ...}), confirmed by calling it directly against the real
+  // Contentstack /locales endpoint — NOT an array, despite that being a
+  // plausible-looking claim (an automated review raised it, reasoning from
+  // the Locale TS interface and how other connectors use the return value).
+  // Trusted that reasoning without checking the real response first; the
+  // direct call proved it wrong before any of it shipped.
   // A genuinely unrecognized/custom code (in neither Contentstack's own locale
   // list nor the fallback table above) must NOT fall back to the code itself —
   // that reproduces the exact "name equals code" shape this function exists to
   // avoid. The locale is still created (custom locales are supported and
   // expected), just under a name that can't collide with its own code.
   const nameFor = (code: string): string =>
-    (localeNames as Record<string, string>)?.[code] || FALLBACK_LOCALE_NAMES[code] || `Custom Locale (${code})`;
+    localeNames[code] || FALLBACK_LOCALE_NAMES[code] || `Custom Locale (${code})`;
 
   const uid = newUid();
   await fs.promises.writeFile(

@@ -88,6 +88,41 @@ export function writeFastImportConfig(backupPath: string): string {
  * fr-fr/es-es were simply missing from the mapper for every bulk content
  * type, while the CLI still exited with code 0 claiming success).
  */
+/** Every source entry uid our own connector wrote for this (type, locale). */
+function readOurEntryUids(localeDir: string, locale: string): Set<string> {
+  try {
+    const data = JSON.parse(fs.readFileSync(path.join(localeDir, `${locale}.json`), 'utf8'));
+    return new Set(Object.keys(data ?? {}));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Every entry uid the CLI itself has actually recorded as mapped for this
+ * (type, locale) — the CLI writes one or more `<batch-id>-entries.json` files
+ * per folder (confirmed: real runs commonly have 2+, one per batch), each
+ * keyed by source uid, so a single file is not enough to know the true total.
+ */
+function readMappedEntryUids(mapperDir: string): Set<string> {
+  const uids = new Set<string>();
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(mapperDir).filter((f) => f.endsWith('-entries.json'));
+  } catch {
+    return uids;
+  }
+  for (const f of files) {
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(mapperDir, f), 'utf8'));
+      for (const uid of Object.keys(data ?? {})) uids.add(uid);
+    } catch {
+      // an unreadable/corrupt batch file counts as incomplete, not as a crash here
+    }
+  }
+  return uids;
+}
+
 export function findIncompleteLocalePairs(
   sourcePath: string,
   backupPath: string
@@ -102,10 +137,17 @@ export function findIncompleteLocalePairs(
     for (const locale of fs.readdirSync(typeDir)) {
       const localeDir = path.join(typeDir, locale);
       if (!fs.statSync(localeDir).isDirectory()) continue;
-      const hasEntries = fs.readdirSync(localeDir).some((f) => f.endsWith('.json'));
-      if (!hasEntries) continue; // an empty locale folder has nothing to import
+      const ourUids = readOurEntryUids(localeDir, locale);
+      if (!ourUids.size) continue; // an empty locale folder has nothing to import
+
+      // A directory existing only proves the CLI STARTED this locale, not that
+      // it finished — a crash partway (network blip, OOM) leaves a non-empty
+      // but incomplete folder that used to read as "done". Compare the actual
+      // uid sets instead of just checking the folder exists.
       const mapperDir = path.join(backupPath, 'mapper', 'entries', type, locale);
-      if (!fs.existsSync(mapperDir)) {
+      const mappedUids = readMappedEntryUids(mapperDir);
+      const isComplete = [...ourUids].every((uid) => mappedUids.has(uid));
+      if (!isComplete) {
         missing.push({ type, locale });
       }
     }
