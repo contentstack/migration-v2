@@ -7,6 +7,7 @@ import _, { includes } from 'lodash';
 import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
 import {
+  CMS,
   LIST_EXTENSION_UID,
   COLOR_PICKER_EXTENSION_UID,
   STAR_RATING_EXTENSION_UID,
@@ -41,6 +42,7 @@ interface ContentType {
   title: string | undefined;
   uid: string | undefined;
   schema: any[]; // Replace `any` with the specific type if known
+  options?: Record<string, any>; // page-type settings; see buildCtOptions
 }
 
 const RESERVED_UIDS = new Set(['locale', 'publish_details', 'tags']);
@@ -1441,19 +1443,58 @@ function mergeSchemaFields(sourceSchema: any[], targetSchema: any[]) {
   }
 }
 
-const mergeTwoCts = async (ct: any, mergeCts: any) => {
+/**
+ * Page-type options make the CMA require a `url` field ("schema: should have a
+ * 'url' field"). For DatoCMS this is decided **per content type**:
+ *
+ * - has a `url` field (a DatoCMS `slug` named `url`) → page-type, so the field
+ *   actually behaves as a URL in the editor: path builder, url_pattern, sub_title
+ * - no `url` field → non-page, so the CMA doesn't demand one
+ *
+ * Deciding globally breaks one side or the other: `true` rejects every content
+ * type without a slug, `false` reduces real slugs to plain text boxes.
+ *
+ * Every other connector keeps its existing unconditional page behaviour.
+ */
+const hasUrlField = (schema: any[]): boolean =>
+  Array.isArray(schema) && schema.some((f: any) => f?.uid === 'url');
+
+/**
+ * `urlPrefix` is the DatoCMS slug field's own site prefix, already stripped to a
+ * path by the parser (`advanced.urlPrefix`). Without it every content type would
+ * collapse onto `/`, so an article and a video sharing a slug would produce the
+ * same URL — in the source they live under `/resources/article/` and
+ * `/resources/video/`.
+ */
+const buildCtOptions = (cms?: string, schema: any[] = [], urlPrefix?: string) => {
+  const pageOptions = {
+    is_page: true,
+    singleton: false,
+    title: 'title',
+    url_pattern: '/:title',
+    url_prefix: urlPrefix || '/',
+    sub_title: ['url'],
+  };
+  if (String(cms).toLowerCase() !== CMS.DATOCMS) return { ...pageOptions, url_prefix: '/' };
+  return hasUrlField(schema)
+    ? pageOptions
+    : { is_page: false, singleton: false, title: 'title' };
+};
+
+/**
+ * The prefix rides on the MAPPER row (`fieldMapping`), not the built Contentstack
+ * schema — `advanced` is dropped during schema construction.
+ */
+const urlPrefixFromMapping = (fieldMapping: any[] = []): string | undefined =>
+  fieldMapping.find(
+    (f: any) => f?.contentstackFieldUid === 'url' && f?.advanced?.urlPrefix,
+  )?.advanced?.urlPrefix;
+
+const mergeTwoCts = async (ct: any, mergeCts: any, cms?: string, urlPrefix?: string) => {
   const ctData: any = {
     ...ct,
     title: mergeCts?.title,
     uid: mergeCts?.uid,
-    options: {
-      is_page: true,
-      "singleton": false,
-      title: "title",
-      url_pattern: '/:title',
-      url_prefix: `/`,
-      sub_title: ['url']
-    }
   }
 
   mergeSchemaFields(ctData?.schema ?? [], mergeCts?.schema ?? []);
@@ -1464,11 +1505,15 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
   );
 
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
-  
+
+  // AFTER the merge — the destination may contribute a `url` field the migration
+  // side didn't have, and page-vs-non-page depends on the final schema.
+  ctData.options = buildCtOptions(cms, ctData.schema, urlPrefix);
+
   return ctData;
 }
 
-export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id, is_sso }: any) => {
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id, is_sso, cms }: any) => {
   const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
   const srcFunc = 'contenTypeMaker';
 
@@ -1484,6 +1529,8 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
     currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id, is_sso, type: contentType?.type});
   }
+
+  const urlPrefix = urlPrefixFromMapping(contentType?.fieldMapping || []);
 
   // Safe: ensures we never pass undefined to the builder
   const ctData: any[] = buildSchemaTree(contentType?.fieldMapping || []);
@@ -1502,7 +1549,16 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   ct.schema = removeDuplicateFields(ct.schema || []);
 
   if (currentCt?.uid) {
-    ct = await mergeTwoCts(ct, currentCt);
+    ct = await mergeTwoCts(ct, currentCt, cms, urlPrefix);
+  } else if (String(cms).toLowerCase() === CMS.DATOCMS) {
+    // FRESH content type (no merge). Without an explicit `options` block the CMA
+    // defaults to page-type, which then rejects every content type that has no
+    // `url` field: "schema: should have a 'url' field." DatoCMS models are not
+    // pages and `url` only exists where DatoCMS declares one, so the non-page
+    // options have to be written here too — `mergeTwoCts` only covers the
+    // update path. Other connectors keep the previous behaviour (no options
+    // written on create).
+    ct = { ...ct, options: buildCtOptions(cms, ct.schema, urlPrefix) } as ContentType;
   }
   if (ct?.uid && Array.isArray(ct?.schema) && ct?.schema.length) {
     if (contentType?.type === 'global_field') {

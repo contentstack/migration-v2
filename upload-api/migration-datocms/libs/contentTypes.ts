@@ -24,44 +24,112 @@ function readJsonFilesFromFolder(folderPath: string): CT[] {
 }
 
 /**
- * Contentstack REQUIRES every content type to have a `title` field, and this
- * repo's CT-update path marks every CT as a page (`mergeTwoCts` sets
- * `is_page: true`, `sub_title: ['url']`), so a `url` field is required too —
- * applied uniformly to both entry-level content types and the block types
- * emitted as `global_field` (the generic CT-writer doesn't special-case skip
- * this for global fields either). Without these rows the CMA rejects the CT
- * update at migration time:
+ * Contentstack REQUIRES every content type to have a `title` field, so one is
+ * injected when the source has no suitable candidate:
  *   "content_type: should have a 'title' field."
- *   "schema: should have a 'url' field."
+ *
+ * `url` is NOT injected. It is only present when DatoCMS actually defines one,
+ * and it is never mandatory. A `url` field is only *required* by the CMA when
+ * the content type is page-type — and for DatoCMS `mergeTwoCts`
+ * (api/src/utils/content-type-creator.utils.ts) no longer sets `is_page: true`,
+ * so content types without a source `url` field are valid without one.
  */
 const TITLE_CANDIDATES = ['title', 'name', 'label', 'heading'];
+const TITLE_TEXT_TYPES = ['single_line_text', 'multi_line_text', 'text'];
 
-function ensureMandatoryFields(fieldMapping: Field[]): void {
+/**
+ * Choose the source field whose VALUE populates an injected `title`. Only the
+ * value is copied — the chosen field keeps its own uid, label and value.
+ *
+ * Ordered; first match wins:
+ *   1. a conventional display name — `title` / `name` / `label` / `heading`
+ *   2. a field named after the model itself (`topic.topic`, `pain_point.pain_point`)
+ *      — a common DatoCMS habit, and it beats source order when a model has
+ *      several text fields
+ *   3. the first plain text field in source order
+ *
+ * Skipped throughout: fields carrying a `format` validator. A value constrained
+ * to a pattern is machine-readable, not a label — `partner_required_software.key`
+ * is `^[-0-9a-z]*$` ("fleet") while its sibling `required_software` holds the real
+ * name ("Verizon Connect Fleet"). Slug/url fields are skipped for the same reason.
+ *
+ * Returns undefined when nothing suitable exists (a model of pure references and
+ * booleans), leaving createEntry's `<model>-<id>` fallback in place.
+ */
+function pickTitleSource(
+  fieldMapping: Field[],
+  modelApiKey: string,
+  sourceFields: DatoField[],
+): Field | undefined {
+  const sourceByKey = new Map(sourceFields.map((f) => [f.api_key, f]));
+  const isDisplayText = (f: Field): boolean => {
+    if (f.uid.includes('.')) return false;
+    if (!TITLE_TEXT_TYPES.includes(f.contentstackFieldType)) return false;
+    const key = f.otherCmsField.toLowerCase();
+    if (key === 'url' || key === 'slug') return false;
+    if (sourceByKey.get(f.otherCmsField)?.validators?.format) return false;
+    return true;
+  };
+
+  return (
+    fieldMapping.find((f) => isDisplayText(f) && TITLE_CANDIDATES.includes(f.otherCmsField.toLowerCase())) ??
+    fieldMapping.find((f) => isDisplayText(f) && f.otherCmsField.toLowerCase() === modelApiKey.toLowerCase()) ??
+    fieldMapping.find(isDisplayText)
+  );
+}
+
+/**
+ * `title` then `url` first in the schema, every other field left in its original
+ * source order. `url` is only moved when the source actually defines one — it is
+ * never injected. Both are top-level and childless, so moving them can't separate
+ * a group parent from its dotted children (the api's `buildSchemaTree` joins those
+ * by uid prefix anyway, not by adjacency).
+ */
+function orderMandatoryFirst(fieldMapping: Field[]): void {
+  const take = (uid: string): Field | undefined => {
+    const i = fieldMapping.findIndex((f) => !f.uid.includes('.') && f.contentstackFieldUid === uid);
+    return i === -1 ? undefined : fieldMapping.splice(i, 1)[0];
+  };
+  const url = take('url');
+  const title = take('title');
+  if (url) fieldMapping.unshift(url);
+  if (title) fieldMapping.unshift(title);
+}
+
+function ensureMandatoryFields(
+  fieldMapping: Field[],
+  modelApiKey: string,
+  sourceFields: DatoField[],
+): void {
   const topLevel = (f: Field) => !f.uid.includes('.');
 
-  if (!fieldMapping.some((f) => topLevel(f) && f.contentstackFieldUid === 'title')) {
-    const candidate = fieldMapping.find(
-      (f) =>
-        topLevel(f) &&
-        TITLE_CANDIDATES.includes(f.otherCmsField.toLowerCase()) &&
-        ['single_line_text', 'multi_line_text', 'text'].includes(f.contentstackFieldType),
-    );
-    if (candidate) {
-      candidate.uid = candidate.contentstackFieldUid = candidate.backupFieldUid = 'title';
-      candidate.contentstackField = 'title';
-      candidate.advanced = { ...candidate.advanced, mandatory: true };
-    } else {
-      const row = baseField('title', 'text', 'single_line_text');
-      row.advanced = { mandatory: true };
-      fieldMapping.unshift(row);
-    }
+  const existingTitle = fieldMapping.find((f) => topLevel(f) && f.contentstackFieldUid === 'title');
+  if (existingTitle) {
+    // DatoCMS already defines a `title` field — use it as-is, but it still has to
+    // be mandatory: `title` is the one required field on every content type.
+    existingTitle.advanced = { ...existingTitle.advanced, mandatory: true };
+  } else {
+    // No source `title`. Contentstack still requires one, so ADD a field —
+    // never repurpose a client field. Rewriting a source field's uid to `title`
+    // would delete it from the destination schema (a DatoCMS `label` field would
+    // simply cease to exist), which is a change to the client's own data model.
+    //
+    // Instead: inject `title`, and nominate the best source field to COPY its
+    // value from via `advanced.titleValueFrom`. The api's createEntry reads that
+    // hint; the nominated field keeps its own uid, label and value untouched.
+    const candidate = pickTitleSource(fieldMapping, modelApiKey, sourceFields);
+    const row = baseField('title', 'text', 'single_line_text', undefined, undefined, 'Title');
+    row.advanced = { mandatory: true };
+    if (candidate) row.advanced.titleValueFrom = candidate.otherCmsField;
+    fieldMapping.unshift(row);
   }
 
-  if (!fieldMapping.some((f) => topLevel(f) && f.contentstackFieldUid === 'url')) {
-    const row = baseField('url', 'text', 'url');
-    row.advanced = { mandatory: true };
-    fieldMapping.push(row);
-  }
+  // A source `url` field stays exactly as DatoCMS declared it — never forced to
+  // mandatory, and never invented when the source has none.
+  const url = fieldMapping.find((f) => topLevel(f) && f.contentstackFieldUid === 'url');
+  if (url) url.advanced = { ...url.advanced, mandatory: false };
+
+  orderMandatoryFirst(fieldMapping);
 }
 
 /**
@@ -165,7 +233,7 @@ async function extractContentTypes(
       });
 
       enrichDropdownChoices(fieldMapping, recordsByTypeId.get(ct.id) ?? []);
-      ensureMandatoryFields(fieldMapping);
+      ensureMandatoryFields(fieldMapping, ct.api_key, sourceFields);
 
       const contentstackUid = blocksById.get(ct.id)!.contentstackUid;
       const contentType = {

@@ -27,7 +27,7 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
           return field;
         })
       }
-      await contenTypeMaker({ contentType, destinationStackId, projectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+      await contenTypeMaker({ contentType, destinationStackId, projectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso, cms: projectData?.legacy_cms?.cms })
       contentTypes?.push?.(contentType);
     }
   }

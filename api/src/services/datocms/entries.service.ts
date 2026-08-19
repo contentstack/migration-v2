@@ -468,6 +468,15 @@ export async function createEntry(
       const docs = records.filter((r: any) => apiKeyByItemTypeId[r?.__itemTypeId] === apiKey);
       const topFields = (ct?.fieldMapping ?? []).filter((f: any) => !f?.isDeleted && !f?.contentstackFieldUid?.includes('.'));
       const titleField = topFields.find((f: any) => f.contentstackFieldUid === 'title');
+      // An INJECTED `title` (no source field of that name) carries
+      // `advanced.titleValueFrom` naming the source field to COPY its value from —
+      // the parser never rewrites a client field's uid. Read through that field's
+      // own row so its `localized` flag is honoured. The nominated field is still
+      // written separately under its own uid, so its value appears in both places.
+      const titleSourceField =
+        (titleField?.advanced?.titleValueFrom &&
+          topFields.find((f: any) => f.otherCmsField === titleField.advanced.titleValueFrom)) ||
+        titleField;
 
       let totalWritten = 0;
       for (const destLocale of destLocales) {
@@ -478,7 +487,7 @@ export async function createEntry(
           // Block CT records are locale-specific: skip records not referenced in this locale
           if (isBlockCt && !blockRecordLocales.get(doc.id)?.has(destLocale)) continue;
           const uid = toEntryUid(blockRecordAlias.get(doc.id) ?? doc.id);
-          const rawTitle = titleField ? readRaw(doc, titleField, srcLocale) : undefined;
+          const rawTitle = titleSourceField ? readRaw(doc, titleSourceField, srcLocale) : undefined;
           const entry: any = {
             uid,
             title: typeof rawTitle === 'string' && rawTitle ? rawTitle : `${apiKey}-${uid.slice(0, 6)}`,
@@ -486,7 +495,11 @@ export async function createEntry(
             publish_details: [],
           };
           for (const field of topFields) {
-            if (field.contentstackFieldUid === 'title' || field.contentstackFieldUid === 'url') continue;
+            // `title` is set above on the entry object itself. `url` is NOT skipped:
+            // it is only ever a real DatoCMS field now (the parser stopped injecting
+            // empty ones), so skipping it dropped genuine client values — e.g. an
+            // article's slug `fleet-management-saas` never reached the entry.
+            if (field.contentstackFieldUid === 'title') continue;
             const raw = readRaw(doc, field, srcLocale);
             if (raw === undefined) continue;
             const val = transformField(
