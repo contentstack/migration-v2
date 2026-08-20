@@ -78,13 +78,13 @@ export interface PostTypeTarget {
  * transform, add its own builder and gate it in saveEntry — otherwise it falls back to the mapper path.
  */
 export const POST_TYPE_TARGETS: Record<string, PostTypeTarget> = {
-  post: { contentType: "article", contentKind: "blog" },
-  case_study: { contentType: "case_studies", contentKind: "case_study" },
-  videos: { contentType: "review_videos" },
-  event: { contentType: "event_revised" },
-  course: { contentType: "course" },
-  page: { contentType: "generic_pages" },
-  'external-links': { contentType: "external_link" },
+  post: { contentType: "article_final", contentKind: "blog" },
+  case_study: { contentType: "case_studies_final", contentKind: "case_study" },
+  videos: { contentType: "videos_final" },
+  event: { contentType: "event_final" },
+  course: { contentType: "course_final" },
+  page: { contentType: "generic_pages_final" },
+  'external-links': { contentType: "external_link_final" },
 };
 
 /**
@@ -92,7 +92,7 @@ export const POST_TYPE_TARGETS: Record<string, PostTypeTarget> = {
  * body-section transform (buildArticleEntry). Must match the uid of the authored article.json in the
  * model folder.
  */
-export const ARTICLE_TARGET_CT_UID = "article";
+export const ARTICLE_TARGET_CT_UID = "article_final";
 
 /**
  * ACF / custom-field values are stored in `wp:postmeta` keyed by the ACF field name. The engine fills
@@ -347,7 +347,7 @@ const INLINE_WRAP_TAGS = new Set([
   'A', 'STRONG', 'EM', 'SPAN', 'B', 'I', 'SMALL', 'SUB', 'SUP', 'U', 'MARK', 'CODE', 'ABBR', 'CITE', 'Q', 'TIME',
 ]);
 
-const RteJsonConverter = (html: string) => {
+const RteJsonConverter = (html: string, assetData?: any) => {
   const cleanedHtml = html
     ?.replace(/<figure[^>]*>/g, "")
     ?.replace(/<\/figure>/g, "")
@@ -374,8 +374,50 @@ const RteJsonConverter = (html: string) => {
       }
     });
   }
-  return htmlToJson(htmlDoc);
+  const json = htmlToJson(htmlDoc);
+  return assetData ? linkRteImagesToAssets(json, assetData) : json;
 
+}
+
+/**
+ * Rich text carries `<img src>` straight through to a plain RTE `img` node holding an external URL
+ * string — unlike structured file fields, nothing here ever resolved the source WP URL against the
+ * downloaded asset library, so a broken/orphaned WordPress URL (soon-to-be-decommissioned site) sat in
+ * the entry permanently even when the correct asset existed. Replace every `img` node whose source
+ * resolves to a downloaded asset with Contentstack's proper embedded-asset reference node — the same
+ * schema this codebase already uses elsewhere for real asset embeds (see `findAssestInJsoRte` in
+ * entries-field-creator.utils.ts) — rather than leaving a bare external-URL image node.
+ */
+function linkRteImagesToAssets(node: any, assetData: any): any {
+  if (Array.isArray(node)) return node.map((n) => linkRteImagesToAssets(n, assetData));
+  if (!node || typeof node !== 'object') return node;
+  if (node.type === 'img' && node.attrs?.url) {
+    const classHint = node.attrs?.['redactor-attributes']?.class;
+    const asset = resolveAssetByUrl(assetData, node.attrs.url, classHint);
+    if (asset?.uid) {
+      const alt =  asset.description || asset.title || node.attrs?.['redactor-attributes']?.alt;
+      return {
+        uid: node.uid,
+        type: 'reference',
+        attrs: {
+          'display-type': 'display',
+          'asset-uid': asset.uid,
+          'content-type-uid': 'sys_assets',
+          'asset-link': asset.urlPath,
+          'asset-name': asset.title,
+          'asset-type': asset.content_type,
+          type: 'asset',
+          'class-name': 'embedded-asset',
+          alt,
+          'asset-alt': alt,
+          inline: false,
+        },
+        children: [{ text: '' }],
+      };
+    }
+  }
+  if (node.children) node.children = linkRteImagesToAssets(node.children, assetData);
+  return node;
 }
 
 const getLocale = (master_locale: string, project: any) => {
@@ -597,6 +639,26 @@ function toEntryUrlPath(raw: string): string {
   if (!s) return s;
   try {
     const u = new URL(s);
+    return `${u.pathname}${u.search}${u.hash}` || '/';
+  } catch {
+    return s;
+  }
+}
+
+/**
+ * A CTA/button href that points at this WordPress site's own domain (scaledagile.com or any of its
+ * subdomains — beta./staging./salsa./framework./etc, all seen in real content) is stored relative, same
+ * convention as toEntryUrlPath's handling of entry.url — the destination site owns the domain, so an
+ * internal link shouldn't hardcode the source site's host. A genuinely external link (a press release,
+ * a partner site, a video host) is left absolute; already-relative/unparseable/mailto:/tel:/anchor-only
+ * hrefs pass through unchanged.
+ */
+function toRelativeCtaHref(href: string): string {
+  const s = String(href ?? '').trim();
+  if (!s) return s;
+  try {
+    const u = new URL(s);
+    if (!/(^|\.)scaledagile\.com$/i.test(u.hostname)) return s;
     return `${u.pathname}${u.search}${u.hash}` || '/';
   } catch {
     return s;
@@ -1173,7 +1235,7 @@ export function buildBodySections(blocksJson: any[]): any[] {
     const blockHtmls = buffer;
     buffer = [];
     sections.push(
-      ...packRichTextSections(blockHtmls, RteJsonConverter, (content) => ({ rich_text: { content } })),
+      ...packRichTextSections(blockHtmls, (h) => RteJsonConverter(h, assetData), (content) => ({ rich_text: { content } })),
     );
   };
 
@@ -1388,8 +1450,8 @@ function providerFromUrl(url: string): string | undefined {
  * referenced global field's schema, which would lose the value. Returns undefined when the SEO global
  * field or its mapping isn't present, so callers skip filtering and preserve prior behavior.
  */
-/** A global field whose uid is `seo` or ends in `_seo` (e.g. `review_seo`) is the SEO global field. */
-const isSeoUid = (uid: unknown): boolean => /(^|_)seo$/i.test(String(uid ?? ''));
+/** A global field whose uid is `seo`, ends in `_seo` (e.g. `review_seo`), or ends in `seo_final` is the SEO global field. */
+const isSeoUid = (uid: unknown): boolean => /(^|_)seo(_final)?$/i.test(String(uid ?? ''));
 
 function seoAllowedSubUids(contentTypes: any[]): Set<string> | undefined {
   const seoGf = Array.isArray(contentTypes)
@@ -1651,7 +1713,7 @@ function buildSpeakerSubBlock(def: any, block: any, assetData: any): Record<stri
 /** True when a block declares a `global_field` sub-field that references the `cta` global field. */
 function hasCtaGlobalField(def: any): boolean {
   return (def?.schema || []).some(
-    (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'),
+    (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'),
   );
 }
 
@@ -1701,7 +1763,7 @@ function parseButtonAnchor(block: any): { label: string; href: string; newTab: b
   const a = $('a').first();
   const label = a.text().replace(/\s+/g, ' ').trim();
   if (!label) return null;
-  const href = String(a.attr('href') ?? '').trim();
+  const href = toRelativeCtaHref(String(a.attr('href') ?? '').trim());
   const newTab = String(a.attr('target') ?? '').toLowerCase() === '_blank';
   return { label, href, newTab };
 }
@@ -1715,7 +1777,7 @@ function buildCtaGlobalFieldBlock(def: any, block: any): Record<string, any> | n
   const parsed = parseButtonAnchor(block);
   if (!parsed) return null;
   const gfSub = (def?.schema || []).find(
-    (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'),
+    (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'),
   );
   if (!gfSub) return null;
 
@@ -2024,14 +2086,43 @@ function looksLikeRoleText(text: string): boolean {
 }
 
 /**
+ * A paragraph whose entire content is a single link (e.g. "Connect on LinkedIn") and nothing else — the
+ * social-link line some people-grid cards carry below the name/role, as opposed to an ordinary text line
+ * that happens to also contain a link mid-sentence.
+ */
+function linkOnlyParagraph(block: any): { label: string; href: string; newTab: boolean } | null {
+  if (block?.blockName !== 'core/paragraph') return null;
+  const $ = cheerio.load(serializeBlockToHtml(block));
+  const body = $('body');
+  const links = body.find('a');
+  if (links.length !== 1) return null;
+  const a = links.first();
+  const label = a.text().replace(/\s+/g, ' ').trim();
+  const href = String(a.attr('href') ?? '').trim();
+  if (!label || !href) return null;
+  // The link must be effectively the whole paragraph (allow surrounding whitespace only), not one link
+  // among other text.
+  const outsideText = body.clone().find('a').remove().end().text().replace(/\s+/g, ' ').trim();
+  if (outsideText) return null;
+  const newTab = String(a.attr('target') ?? '').toLowerCase() === '_blank';
+  return { label, href: toRelativeCtaHref(href), newTab };
+}
+
+/**
  * A `core/columns` row is people-grid shaped when it has 2+ columns and every column, once flattened, is
- * just a photo plus EXACTLY TWO short text lines (name, then role) — no heading, list, embed or button.
- * The two lines may come from two separate paragraph blocks, or one paragraph with an internal `<br>`
- * (e.g. "Name<br>Company, Inc." authored as a single block) — both are genuine people-grid authoring
- * patterns. Two lines alone isn't enough, though: a benefits/icon grid (e.g. careers page — icon +
- * "Sabbatical" + "You will be eligible for a paid sabbatical of up to six consecutive weeks...") ALSO has
- * two text lines per column, but the second is a full descriptive SENTENCE, not a job title — so the
- * second line must additionally look role-shaped (see looksLikeRoleText).
+ * just a photo plus EXACTLY TWO short text lines (name, then role) — no heading, list, embed or button —
+ * optionally followed by ONE trailing social-link-only paragraph (see linkOnlyParagraph; e.g. a
+ * board-advisor row with a "Connect on LinkedIn" link under the name/region). The social line is
+ * identified by POSITION (the last paragraph, and only when there's more than one), not merely by
+ * containing a link — a person's NAME is frequently itself wrapped in a link to their bio page (e.g.
+ * `<a href="/steve-matthesen">Steve Matthesen</a>`), which must still count as the name line, not be
+ * mistaken for the social link. The two name/role lines may come from two separate paragraph blocks, or
+ * one paragraph with an internal `<br>` (e.g. "Name<br>Company, Inc." authored as a single block) — both
+ * are genuine people-grid authoring patterns. Two lines alone isn't enough, though: a benefits/icon grid
+ * (e.g. careers page — icon + "Sabbatical" + "You will be eligible for a paid sabbatical of up to six
+ * consecutive weeks...") ALSO has two text lines per column, but the second is a full descriptive
+ * SENTENCE, not a job title — so the second line must additionally look role-shaped (see
+ * looksLikeRoleText).
  */
 function isPeopleGridColumns(block: any): boolean {
   if (block?.blockName !== 'core/columns') return false;
@@ -2043,30 +2134,43 @@ function isPeopleGridColumns(block: any): boolean {
     const hasImage = meaningful.some((b: any) => (b as any)?.blockName === 'core/image');
     const paraBlocks = meaningful.filter((b: any) => (b as any)?.blockName === 'core/paragraph');
     if (!hasImage || !paraBlocks.length || paraBlocks.length + 1 !== meaningful.length) return false;
-    const lines = paraBlocks.flatMap(paragraphTextLines);
+    const hasTrailingSocial = paraBlocks.length > 1 && !!linkOnlyParagraph(paraBlocks[paraBlocks.length - 1]);
+    const textBlocks = hasTrailingSocial ? paraBlocks.slice(0, -1) : paraBlocks;
+    const lines = textBlocks.flatMap(paragraphTextLines);
     return lines.length === 2 && looksLikeRoleText(lines[1]);
   });
 }
 
-/** Parse a people-grid columns row into {thumbnailId, name, designation} per column. */
-function parsePeopleGridCards(block: any): Array<{ thumbnailId?: number; name: string; designation: string }> {
+/** Parse a people-grid columns row into {thumbnailId, name, designation, social} per column. */
+function parsePeopleGridCards(
+  block: any,
+): Array<{ thumbnailId?: number; name: string; designation: string; social?: { label: string; href: string; newTab: boolean } }> {
   const columns = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'core/column');
-  const cards: Array<{ thumbnailId?: number; name: string; designation: string }> = [];
+  const cards: Array<{ thumbnailId?: number; name: string; designation: string; social?: { label: string; href: string; newTab: boolean } }> = [];
   for (const col of columns) {
     let thumbnailId: number | undefined;
-    const textParts: string[] = [];
+    const paraBlocks: any[] = [];
     for (const lf of Array.from(linearizeContentBlocks(col?.innerBlocks || []))) {
       const nm = (lf as any)?.blockName;
       if (nm === 'core/image') {
         const id = Number((lf as any)?.attrs?.id);
         if (Number.isFinite(id) && id > 0) thumbnailId = id;
       } else if (nm === 'core/paragraph') {
-        textParts.push(...paragraphTextLines(lf));
+        paraBlocks.push(lf);
       }
     }
+    // Same rule as isPeopleGridColumns: only the LAST paragraph, and only when there's more than one,
+    // can be the trailing social link — a linked name (bio-page link) must stay the name line.
+    let social: { label: string; href: string; newTab: boolean } | undefined;
+    let textBlocks = paraBlocks;
+    if (paraBlocks.length > 1) {
+      const link = linkOnlyParagraph(paraBlocks[paraBlocks.length - 1]);
+      if (link) { social = link; textBlocks = paraBlocks.slice(0, -1); }
+    }
+    const textParts = textBlocks.flatMap(paragraphTextLines);
     const name = textParts[0] || '';
     const designation = textParts.slice(1).join(', ');
-    if (name || designation || thumbnailId) cards.push({ thumbnailId, name, designation });
+    if (name || designation || thumbnailId) cards.push({ thumbnailId, name, designation, social });
   }
   return cards;
 }
@@ -2235,7 +2339,7 @@ function pickVariantByRole(variantsField: any, role: VariantRole, exclude?: Set<
       // top-level CTA block) — prefer a variant whose global field points at the cta global field
       // itself, then one merely named for CTAs.
       const pointsAtCta = schema.some(
-        (f: any) => f?.data_type === 'global_field' && referenceTargets(f).some((t: string) => /^cta$/i.test(t)),
+        (f: any) => f?.data_type === 'global_field' && referenceTargets(f).some((t: string) => /^cta(_final)?$/i.test(t)),
       );
       const namedCta = /cta/i.test(String(b?.uid ?? ''));
       if (pointsAtCta) score = 5;
@@ -2305,11 +2409,12 @@ function parseMediaTextBlock(
   block: any,
   assetData: any,
 ): { asset?: any; imgSrc?: string; title?: string; bodyHtml: string; position?: string } | null {
-  const $ = cheerio.load(serializeBlockToHtml(block));
+  const blockHtml = serializeBlockToHtml(block);
+  const $ = cheerio.load(blockHtml);
   const idNum = Number(block?.attrs?.mediaId ?? block?.attrs?.media_id);
   let asset = Number.isFinite(idNum) && idNum > 0 ? assetData?.[`assets_${idNum}`] : undefined;
   const imgSrc = String($('.wp-block-media-text__media img').first().attr('src') || $('img').first().attr('src') || '').trim();
-  if (!asset && imgSrc) asset = resolveAssetByUrl(assetData, imgSrc);
+  if (!asset && imgSrc) asset = resolveAssetByUrl(assetData, imgSrc, blockHtml);
 
   // Only the content column — never the media figure — supplies the text. Fall back to the whole
   // fragment minus the media figure when the theme didn't emit the standard content wrapper.
@@ -2365,10 +2470,11 @@ function parseImageTextGroup(
     const nm = (lf as any)?.blockName;
     if (nm === 'core/image' && !asset) {
       const idAttr = Number((lf as any)?.attrs?.id);
-      const src = (lf as any)?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(lf));
+      const lfHtml = serializeBlockToHtml(lf);
+      const src = (lf as any)?.attrs?.url || firstImgSrcFromInnerHtml(lfHtml);
       if (!imgSrc && src) imgSrc = String(src);
       asset = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
-        || resolveAssetByUrl(assetData, src);
+        || resolveAssetByUrl(assetData, src, lfHtml);
     } else if (nm === 'core/heading' && !title) {
       title = stripHtmlTags(serializeBlockToHtml(lf)).replace(/\s+/g, ' ').trim();
     } else if (nm === 'core/paragraph' || nm === 'core/list') {
@@ -2424,8 +2530,29 @@ function parseGroupTextCta(
   return { title: title || undefined, bodyHtml: bodyParts.join(''), ctas };
 }
 
-/** Resolve a media URL to a downloaded Contentstack asset by base-key match (mirrors derivePostmeta). */
-function resolveAssetByUrl(assetData: any, url: string | undefined): any {
+/** The WordPress attachment id stamped on any `<img>` inserted from the media library, as a `wp-image-{id}`
+ * CSS class — added by the classic/block editor regardless of block type. Exact-identity match, unlike
+ * the base-key filename heuristic below. */
+function wpImageIdFromMarkup(markup: string | undefined): number | undefined {
+  const m = String(markup || '').match(/\bwp-image-(\d+)\b/);
+  const n = m ? Number(m[1]) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/**
+ * Resolve a media URL to a downloaded Contentstack asset. Tries the `wp-image-{id}` class from the
+ * surrounding markup first, when given — this catches images the base-key filename match below misses,
+ * e.g. WordPress collision-renamed duplicates like `"foo (1).jpg"` vs `"foo-1.jpg"`, which assetBaseKey
+ * deliberately does NOT treat as equivalent (see its own doc comment: collision suffixes are left
+ * untouched because two unrelated uploads could legitimately differ only by that suffix). Falls back to
+ * the loose base-key filename match (mirrors derivePostmeta) when no id is found or it doesn't resolve.
+ */
+function resolveAssetByUrl(assetData: any, url: string | undefined, markup?: string): any {
+  const wpId = wpImageIdFromMarkup(markup);
+  if (wpId) {
+    const byId = assetData?.[`assets_${wpId}`];
+    if (byId) return byId;
+  }
   if (!url) return undefined;
   const key = assetBaseKey(String(url), '');
   return Object.values(assetData ?? {}).find((a: any) => a?.url && assetBaseKey(a.url, '') === key);
@@ -2493,8 +2620,9 @@ function parseColumnsAllImages(block: any, assetData: any): any[] {
     const img = (col?.innerBlocks || []).find((b: any) => b?.blockName === 'core/image');
     if (!img) continue;
     const idAttr = Number(img?.attrs?.id);
+    const imgHtml = serializeBlockToHtml(img);
     const asset = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
-      || resolveAssetByUrl(assetData, img?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(img)));
+      || resolveAssetByUrl(assetData, img?.attrs?.url || firstImgSrcFromInnerHtml(imgHtml), imgHtml);
     if (asset) assets.push(asset);
   }
   return assets;
@@ -2515,10 +2643,11 @@ function parseColumnsImageText(
       const nm = (lf as any)?.blockName;
       if (nm === 'core/image' && !asset) {
         const idAttr = Number((lf as any)?.attrs?.id);
-        const src = (lf as any)?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(lf));
+        const lfHtml = serializeBlockToHtml(lf);
+        const src = (lf as any)?.attrs?.url || firstImgSrcFromInnerHtml(lfHtml);
         if (!imgSrc && src) imgSrc = String(src);
         asset = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
-          || resolveAssetByUrl(assetData, src);
+          || resolveAssetByUrl(assetData, src, lfHtml);
       } else if (nm === 'core/heading') {
         if (!title) {
           title = stripHtmlTags(serializeBlockToHtml(lf)).replace(/\s+/g, ' ').trim();
@@ -2573,9 +2702,10 @@ function parseImageQuotePair(block: any, assetData: any): (Record<string, any> &
   let asset: any;
   if (imgBlock) {
     const idAttr = Number(imgBlock?.attrs?.id);
-    const src = imgBlock?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(imgBlock));
+    const imgHtml = serializeBlockToHtml(imgBlock);
+    const src = imgBlock?.attrs?.url || firstImgSrcFromInnerHtml(imgHtml);
     asset = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
-      || resolveAssetByUrl(assetData, src);
+      || resolveAssetByUrl(assetData, src, imgHtml);
   }
   return { ...pq, asset };
 }
@@ -2885,7 +3015,7 @@ function parseCoreBlockResourceList(
       return {
         title: heading?.text,
         description: colTextByNum.get(num),
-        url: btn?.url,
+        url: btn?.url ? toRelativeCtaHref(btn.url) : btn?.url,
         linkLabel: btn?.text || 'Read More',
       };
     })
@@ -2999,7 +3129,7 @@ function findSlideCardsSection(refSections: RefSectionDef[]): SlideCardsDef | nu
       const subtitleUid = texts.find((u: string) => /sub|body|text/i.test(u) && u !== descUid);
       if (!descUid || !titleUid) continue; // not the sliding-cards shape
       const ctaField = sub.find(
-        (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'),
+        (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'),
       );
       return {
         def: r,
@@ -3047,7 +3177,7 @@ function parseSliderBlock(
     // → a case study) whose href has nowhere else to go once the slide becomes a card.
     const links: Array<{ label: string; href: string }> = [];
     $('a[href]').each((_: any, el: any) => {
-      const href = String($(el).attr('href') || '').trim();
+      const href = toRelativeCtaHref(String($(el).attr('href') || '').trim());
       const label = $(el).text().replace(/\s+/g, ' ').trim();
       if (href && !href.startsWith('#')) links.push({ label: label || href, href });
     });
@@ -3169,7 +3299,7 @@ function findSimpleCardsSection(refSections: RefSectionDef[]): SlideCardsDef | n
       if (score > bestScore) {
         bestScore = score;
         const ctaField = sub.find(
-          (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'),
+          (f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'),
         );
         best = {
           def: r,
@@ -3259,7 +3389,7 @@ function findCarouselCardSection(refSections: RefSectionDef[]): CarouselCardDef 
     if (!titleUid) continue;
     const subtitleUid = texts.find((u: string) => u !== titleUid && /sub|body|text/i.test(u));
     const iconField = sub.find((f: any) => f?.data_type === 'file');
-    const ctaField = sub.find((f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'));
+    const ctaField = sub.find((f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'));
     return {
       def: r,
       vfUid: vf.uid,
@@ -3344,7 +3474,7 @@ function parseAccordionBlock(
     $('svg').remove(); // expand/collapse chrome
     const links: Array<{ label: string; href: string }> = [];
     $('a[href]').each((_: any, el: any) => {
-      const href = String($(el).attr('href') || '').trim();
+      const href = toRelativeCtaHref(String($(el).attr('href') || '').trim());
       if (href && !href.startsWith('#')) links.push({ label: $(el).text().replace(/\s+/g, ' ').trim() || href, href });
     });
     const hasImage = $('img').length > 0;
@@ -3381,7 +3511,7 @@ function pickStatsVariant(variantsField: any): any | null {
   for (const b of blocks) {
     const s: any[] = Array.isArray(b?.schema) ? b.schema : [];
     const statsField = s.find(
-      (f: any) => f?.data_type === 'global_field' && f?.multiple && referenceTargets(f).some((t: string) => /^stats$/i.test(t)),
+      (f: any) => f?.data_type === 'global_field' && f?.multiple && referenceTargets(f).some((t: string) => /^stats(_final)?$/i.test(t)),
     );
     if (!statsField) continue;
     const score = 10 - s.length; // fewer other fields = leaner, less to leave unfilled
@@ -3401,16 +3531,19 @@ function findStatsSection(
     const variant = vf ? pickStatsVariant(vf) : null;
     if (!variant) continue;
     const statsField = (variant.schema || []).find(
-      (f: any) => f?.data_type === 'global_field' && f?.multiple && referenceTargets(f).some((t: string) => /^stats$/i.test(t)),
+      (f: any) => f?.data_type === 'global_field' && f?.multiple && referenceTargets(f).some((t: string) => /^stats(_final)?$/i.test(t)),
     );
     if (statsField) return { def: r, variant, vfUid: vf.uid, statsUid: statsField.uid };
   }
   return null;
 }
 
-/** A number-shaped heading text ("20%", "8", "1,200+", "$500K", "10x") — distinguishes a stat from prose. */
+/**
+ * A number-shaped heading text ("20%", "8", "1,200+", "$500K", "10x") — distinguishes a stat from prose.
+ * Also matches a hyphenated range ("$5-36K", "10-20%"), which authors use for a min-max stat.
+ */
 function looksLikeStatNumber(text: string): boolean {
-  return /^[$]?[\d][\d,.]*\s*[%+]?\s*[a-zA-Z]{0,3}[%+]?$/.test(text.trim());
+  return /^[$]?[\d][\d,.]*\s*(-\s*[$]?[\d][\d,.]*)?\s*[%+]?\s*[a-zA-Z]{0,3}[%+]?$/.test(text.trim());
 }
 
 interface TabSectionDef {
@@ -3565,12 +3698,17 @@ function parseStatsColumns(block: any): Array<{ number: string; subtitle: string
 }
 
 /**
- * A stats-band row authored with an eyebrow "badge" label above each number (e.g. "Enterprise" / "20K+" /
- * "Over two million trained professionals…") instead of isStatsColumns' plain heading+paragraph shape —
- * the number itself is also a paragraph (metadata.name "Stat"), not a heading. WordPress nests the badge
- * in its own group and the number/subtitle pair in a further core/columns inside each outer column, but
- * both wrappers are transparent (unwrapped by linearize), so each outer column reduces to a flat 2- or
- * 3-paragraph sequence, one of which is recognizably the number.
+ * A stats-band row authored with an eyebrow "badge" label above/below each number (e.g. "Enterprise" /
+ * "20K+" / "Over two million trained professionals…") instead of isStatsColumns' fixed 2-leaf
+ * heading+paragraph shape. The number itself may be a paragraph (metadata.name "Stat") OR a heading —
+ * WordPress authors have used both, and even swapped which of label/number is the heading vs. the
+ * paragraph, inconsistently across pages (e.g. "Earn more"[heading]/"$5-36K"[paragraph]/subtitle vs.
+ * "EARN MORE"[paragraph]/"$5-36K"[heading]/subtitle). Wrapping groups/covers around the badge and the
+ * number/subtitle pair are transparent (unwrapped by linearize), so each outer column reduces to a flat
+ * 2- or 3-leaf sequence (heading or paragraph, in any position) where exactly one leaf is number-shaped —
+ * parseStatsCardColumns locates it by content, not by blockName or fixed position. A per-card `core/cover`
+ * background photo, if any, surfaces here as a synthetic `core/image` leaf (see linearizeContentBlocks) —
+ * dropped from consideration since stats_final has no per-stat image field to carry it into.
  */
 function isStatsCardColumns(block: any): boolean {
   if (block?.blockName !== 'core/columns') return false;
@@ -3578,10 +3716,10 @@ function isStatsCardColumns(block: any): boolean {
   if (columns.length < 2) return false;
   return columns.every((col: any) => {
     const leaves = Array.from(linearizeContentBlocks(col?.innerBlocks || [])).filter(
-      (b: any) => !['core/spacer', 'core/separator'].includes((b as any)?.blockName),
+      (b: any) => !['core/spacer', 'core/separator', 'core/image'].includes((b as any)?.blockName),
     ) as any[];
     if (leaves.length < 2 || leaves.length > 3) return false;
-    if (!leaves.every((b: any) => b?.blockName === 'core/paragraph')) return false;
+    if (!leaves.every((b: any) => b?.blockName === 'core/paragraph' || b?.blockName === 'core/heading')) return false;
     return leaves.some((b: any) => looksLikeStatNumber(stripHtmlTags(serializeBlockToHtml(b)).replace(/\s+/g, ' ').trim()));
   });
 }
@@ -3592,7 +3730,7 @@ function parseStatsCardColumns(block: any): Array<{ title?: string; number: stri
   const stats: Array<{ title?: string; number: string; subtitle: string }> = [];
   for (const col of columns) {
     const leaves = Array.from(linearizeContentBlocks(col?.innerBlocks || [])).filter(
-      (b: any) => !['core/spacer', 'core/separator'].includes((b as any)?.blockName),
+      (b: any) => !['core/spacer', 'core/separator', 'core/image'].includes((b as any)?.blockName),
     ) as any[];
     const texts = leaves.map((b) => stripHtmlTags(serializeBlockToHtml(b)).replace(/\s+/g, ' ').trim());
     const numberIdx = texts.findIndex((t) => looksLikeStatNumber(t));
@@ -3881,7 +4019,7 @@ function buildModularBody(
     if (rtDef && rtSlot && rtBlockUid) {
       const blockHtmls = buffer;
       buffer = [];
-      const toValue = rtSlot.json ? RteJsonConverter : normalizeHtmlFragment;
+      const toValue = rtSlot.json ? (h: string) => RteJsonConverter(h, assetData) : normalizeHtmlFragment;
       sections.push(
         ...packRichTextSections(blockHtmls, toValue, (value) => ({ [rtBlockUid]: { [rtSlot.uid]: value } })),
       );
@@ -3890,7 +4028,7 @@ function buildModularBody(
     if (flexSection && flexProseVar && flexProseSubUid) {
       const blockHtmls = buffer;
       buffer = [];
-      const packed = packRichTextSections(blockHtmls, RteJsonConverter, (v) => ({ [flexProseVar.uid]: { [flexProseSubUid]: v } }));
+      const packed = packRichTextSections(blockHtmls, (h) => RteJsonConverter(h, assetData), (v) => ({ [flexProseVar.uid]: { [flexProseSubUid]: v } }));
       if (packed.length) { reserveFlexSlot(); flexVariants.push(...packed); }
       return;
     }
@@ -4073,7 +4211,7 @@ function buildModularBody(
     const store = ctx?.sideEntries?.[faqDef.refCtUid] ?? (ctx?.sideEntries ? (ctx.sideEntries[faqDef.refCtUid] = {}) : undefined);
     for (const it of items) {
       const faqUid = idCorrector(`${ctx?.uid || 'faq'}_faq_${faqSeq++}`);
-      const answerJson = it.answerHtml && hasMeaningfulHtmlContent(it.answerHtml) ? RteJsonConverter(it.answerHtml) : RteJsonConverter('<p></p>');
+      const answerJson = it.answerHtml && hasMeaningfulHtmlContent(it.answerHtml) ? RteJsonConverter(it.answerHtml, assetData) : RteJsonConverter('<p></p>', assetData);
       if (store) {
         store[faqUid] = {
           uid: faqUid,
@@ -4183,7 +4321,7 @@ function buildModularBody(
       .map((tab) => {
         const jUid = jsonSubUid(tabSectionDef.variant.schema);
         const variantSub: Record<string, any> = {};
-        if (jUid && hasMeaningfulHtmlContent(tab.html)) variantSub[jUid] = RteJsonConverter(tab.html);
+        if (jUid && hasMeaningfulHtmlContent(tab.html)) variantSub[jUid] = RteJsonConverter(tab.html, assetData);
         const tabSub: Record<string, any> = { [tabSectionDef.tabTitleUid]: tab.title };
         if (Object.keys(variantSub).length) tabSub[tabSectionDef.variantsUid] = [{ [tabSectionDef.variant.uid]: variantSub }];
         return { [tabSectionDef.tabBlockUid]: tabSub };
@@ -4239,7 +4377,7 @@ function buildModularBody(
         .map((tab) => {
           const jUid = jsonSubUid(tabSectionDef.variant.schema);
           const variantSub: Record<string, any> = {};
-          if (jUid && hasMeaningfulHtmlContent(tab.html)) variantSub[jUid] = RteJsonConverter(tab.html);
+          if (jUid && hasMeaningfulHtmlContent(tab.html)) variantSub[jUid] = RteJsonConverter(tab.html, assetData);
           const tabSub: Record<string, any> = { [tabSectionDef.tabTitleUid]: tab.title };
           if (Object.keys(variantSub).length) tabSub[tabSectionDef.variantsUid] = [{ [tabSectionDef.variant.uid]: variantSub }];
           return { [tabSectionDef.tabBlockUid]: tabSub };
@@ -4323,6 +4461,14 @@ function buildModularBody(
           if (peopleGridDef.thumbnailUid && asset) cardVal[peopleGridDef.thumbnailUid] = asset;
           if (peopleGridDef.nameUid && c.name) cardVal[peopleGridDef.nameUid] = c.name;
           if (peopleGridDef.designationUid && c.designation) cardVal[peopleGridDef.designationUid] = c.designation;
+          // A board-advisor row's trailing "Connect on LinkedIn"-style line — same cta shape (title_url +
+          // open_in_new_tab) every other social/CTA global field in this model uses.
+          if (peopleGridDef.socialUid && c.social) {
+            cardVal[peopleGridDef.socialUid] = {
+              title_url: { title: c.social.label, href: c.social.href },
+              open_in_new_tab: c.social.newTab,
+            };
+          }
           if (Object.keys(cardVal).length) peopleGridCards.push(cardVal);
         }
         speakerSection = null;
@@ -4642,11 +4788,11 @@ function buildModularBody(
           flush();
           const sub: Record<string, any> = {};
           if (cardGridDef.headingUid && heading) sub[cardGridDef.headingUid] = heading;
-          if (cardGridDef.introUid && introHtml && hasMeaningfulHtmlContent(introHtml)) sub[cardGridDef.introUid] = RteJsonConverter(introHtml);
+          if (cardGridDef.introUid && introHtml && hasMeaningfulHtmlContent(introHtml)) sub[cardGridDef.introUid] = RteJsonConverter(introHtml, assetData);
           sub[cardGridDef.cardsUid] = cards.map((c) => {
             const card: Record<string, any> = {};
             if (cardGridDef.titleUid && c.title) card[cardGridDef.titleUid] = c.title;
-            if (cardGridDef.descUid && c.descHtml && hasMeaningfulHtmlContent(c.descHtml)) card[cardGridDef.descUid] = RteJsonConverter(c.descHtml);
+            if (cardGridDef.descUid && c.descHtml && hasMeaningfulHtmlContent(c.descHtml)) card[cardGridDef.descUid] = RteJsonConverter(c.descHtml, assetData);
             if (cardGridDef.iconUid && c.iconId != null) {
               const asset = assetData?.[`assets_${c.iconId}`];
               if (asset) card[cardGridDef.iconUid] = asset;
@@ -4683,7 +4829,7 @@ function buildModularBody(
         const sub: Record<string, any> = {};
         if (headingText) sub[section.headingUid] = headingText;
         if (hasMeaningfulHtmlContent(html)) {
-          const value = section.slot.json ? RteJsonConverter(html) : normalizeHtmlFragment(html);
+          const value = section.slot.json ? RteJsonConverter(html, assetData) : normalizeHtmlFragment(html);
           if (value) sub[section.slot.uid] = value;
         }
         emit(section.blockUid, Object.keys(sub).length ? sub : null);
@@ -4820,7 +4966,7 @@ function buildModularBody(
           }
         }
         if (textUids[0] && title) sub[textUids[0]] = title;
-        if (jUid && hasMeaningfulHtmlContent(bodyHtml)) sub[jUid] = RteJsonConverter(bodyHtml);
+        if (jUid && hasMeaningfulHtmlContent(bodyHtml)) sub[jUid] = RteJsonConverter(bodyHtml, assetData);
         if (!Object.keys(sub).length) return false; // nothing resolved at all — let it fall through to prose
         const align = alignmentChoiceFor(sourceBlock, alignField, { defaultLeft: true });
         if (align) sub[alignField.uid] = align;
@@ -4837,10 +4983,10 @@ function buildModularBody(
         const s: any[] = flexCtaVar.schema || [];
         const textUids = plainTextSubUids(s);
         const jUid = jsonSubUid(s);
-        const gf = s.find((f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta'));
+        const gf = s.find((f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'));
         const sub: Record<string, any> = {};
         if (textUids[0] && parsed.title) sub[textUids[0]] = parsed.title;
-        if (jUid && hasMeaningfulHtmlContent(parsed.bodyHtml)) sub[jUid] = RteJsonConverter(parsed.bodyHtml);
+        if (jUid && hasMeaningfulHtmlContent(parsed.bodyHtml)) sub[jUid] = RteJsonConverter(parsed.bodyHtml, assetData);
         if (gf && parsed.ctas.length) {
           const primary = ctaTypeChoices.find((c) => /primary/i.test(c)) || ctaTypeChoices[0];
           const values = parsed.ctas.map((c) => ({
@@ -4959,13 +5105,13 @@ function buildModularBody(
         const jUid = jsonSubUid(flexImageVar.schema);
         const idAttr = Number(raw?.attrs?.id);
         let asset = Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined;
-        if (!asset) asset = resolveAssetByUrl(assetData, html.match(/src=["']([^"']+)["']/i)?.[1]);
+        if (!asset) asset = resolveAssetByUrl(assetData, html.match(/src=["']([^"']+)["']/i)?.[1], html);
         const caption = cheerio.load(html)('figcaption').first().text().replace(/\s+/g, ' ').trim();
         // Same rule as media-text: a resolved asset is required, since the file field can't hold a
         // URL. Without one the block falls through to prose, preserving <img src> AND the caption.
         if (fUid && asset) {
           const sub: Record<string, any> = { [fUid]: asset };
-          if (jUid && caption) sub[jUid] = RteJsonConverter(`<p>${caption}</p>`);
+          if (jUid && caption) sub[jUid] = RteJsonConverter(`<p>${caption}</p>`, assetData);
           // core/image carries its side in `align` (left/right); center/full/wide are widths and are
           // correctly ignored. No default here — a standalone image has no implied side.
           const imgAlignField = (flexImageVar.schema || []).find(
@@ -5120,7 +5266,7 @@ export function buildEntryFromSchema(
       if (headingSource) {
         const section = extractHeadingListSection(blocks, headingSource.label);
         if (section) {
-          if (sub?.data_type === 'json') g[sub.uid] = RteJsonConverter(section.html);
+          if (sub?.data_type === 'json') g[sub.uid] = RteJsonConverter(section.html, assetData);
           // A multiple text field (e.g. quick_facts) expects an array of strings — one per list item —
           // not all items joined into a single string instance.
           else if (sub?.data_type === 'text') g[sub.uid] = sub?.multiple ? section.items : section.items.join('; ');
@@ -5140,7 +5286,7 @@ export function buildEntryFromSchema(
       // JSON/rich-text sub-field with a genuine postmeta source: convert its HTML into a JSON RTE value.
       if (sub?.data_type === 'json') {
         const html = typeof raw === 'string' ? raw.trim() : '';
-        if (html && hasMeaningfulHtmlContent(html)) g[sub.uid] = RteJsonConverter(html);
+        if (html && hasMeaningfulHtmlContent(html)) g[sub.uid] = RteJsonConverter(html, assetData);
         continue;
       }
       const mv = coerceMeta(sub?.data_type, raw);
@@ -5193,7 +5339,7 @@ export function buildEntryFromSchema(
     if (dt === 'blocks') {
       const body = buildModularBody(field, blocks, ctx.assetData, bodyCtx);
       if (body.length) entry[uid] = body;
-    } else if (dt === 'reference' && referenceTargets(field).includes('author')) {
+    } else if (dt === 'reference' && referenceTargets(field).some((t) => t === 'author' || t === 'author_final')) {
       if (ctx.authorData?.length) entry[uid] = ctx.authorData;
     } else if (dt === 'reference' && /parent/i.test(uid)) {
       // WordPress's `wp:post_parent` (0 when top-level) — every migrated item's uid is `posts_<post_id>`
@@ -5279,7 +5425,7 @@ export function buildEntryFromSchema(
         const rawTitle = String(item?.title ?? '').trim();
         const slugTitle = item?.['wp:post_name'] ? humanizeSlug(item['wp:post_name']) : '';
         entry[uid] = dedupeTitle(ctx, ct?.uid, rawTitle || slugTitle);
-      } else if (uid === 'url' && ct?.uid === 'external_link') {
+      } else if (uid === 'url' && ct?.uid === 'external_link_final') {
         // On external_link the `url` field IS the external destination the post points to, not this
         // entry's own page path — unlike every other content type, where `url` is the live page slug.
         const dest = coerceMeta('text', metaFor(uid));
@@ -5288,7 +5434,7 @@ export function buildEntryFromSchema(
         entry[uid] = toEntryUrlPath(permalink);
       } else if (uid === 'excerpt' && excerptText) {
         entry[uid] = excerptText;
-      } else if (ct?.uid === 'course' && uid === 'template_variant') {
+      } else if (ct?.uid === 'course_final' && uid === 'template_variant') {
         // No WP field carries this — it's a fixed per-post-id assignment from the content-inventory doc's
         // 4 layout groupings (see COURSE_TEMPLATE_VARIANT_BY_POST_ID). A course post id not in that list
         // (e.g. a newly authored course outside the original 30) is left unset rather than guessed.
@@ -5299,7 +5445,7 @@ export function buildEntryFromSchema(
         // skipping out-of-range values so we never write an invalid enum.
         const choice = matchDropdownChoice(field, metaFor(uid));
         if (choice !== undefined) entry[uid] = choice;
-      } else if (uid === 'source_name' && ct?.uid === 'external_link') {
+      } else if (uid === 'source_name' && ct?.uid === 'external_link_final') {
         // No WP source ever carries a distinct "source name" (site name) value for these links — only
         // the destination URL. Derive it from the URL's hostname so a mandatory field isn't left blank.
         const dest = coerceMeta('text', metaFor('url')) ?? '';
@@ -5410,7 +5556,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
               if (columnsChild && rteField) {
                 const columnHtml = collectHtmlFromInnerBlocks(blockForProcessing);
                 if (hasMeaningfulHtmlContent(columnHtml)) {
-                  const columnRte = RteJsonConverter(columnHtml);
+                  const columnRte = RteJsonConverter(columnHtml, assetData);
                   if (columnRte) {
                     const mk = getLastUid(columnsChild.contentstackFieldUid);
                     const fk = getLastUid(rteField.contentstackFieldUid);
@@ -6016,10 +6162,10 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
 
               // Only set when there is visible text or media/embeds; do not assign `undefined` (avoids false from `a && fn()` in multi-RTE).
               if (hasMeaningfulHtml ) {
-                formatted = RteJsonConverter(htmlContent);
+                formatted = RteJsonConverter(htmlContent, assetData);
               }
               else if (value !== undefined) {
-                formatted = RteJsonConverter(value);
+                formatted = RteJsonConverter(value, assetData);
                 
               }
               break;
@@ -6052,7 +6198,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
             case 'link': {
               const attrs = child?.attrs ?? child?.attributes ?? {};
               if (attrs.service) {
-                formatted = { title: attrs.service, href: attrs.url };
+                formatted = { title: attrs.service, href: attrs.url ? toRelativeCtaHref(attrs.url) : attrs.url };
                 break;
               }
               // Use the first inner block if it exists; otherwise fall back to the block itself.
@@ -6087,7 +6233,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
                   (html ? stripHtmlTags(html).trim() : '') ||
                   '';
               }
-              formatted = { title, href: href || '' };
+              formatted = { title, href: href ? toRelativeCtaHref(href) : '' };
               break;
             }
 
@@ -6800,7 +6946,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
     await fs.promises.mkdir(path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
       MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME), { recursive: true });
   }
-  const authorContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'author');
+  const authorContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'author' || contentType?.contentstackUid === 'author_final');
   if(authorContentTypes?.length > 0){
     const postsFolderName = mapperKeys[authorContentTypes?.[0]?.contentstackUid] ? mapperKeys[authorContentTypes?.[0]?.contentstackUid] : authorContentTypes?.[0]?.contentstackUid;
   
@@ -6856,6 +7002,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   const postContentTypes = contentTypes?.filter(
     (contentType: any) =>
       contentType?.contentstackUid !== 'author' &&
+      contentType?.contentstackUid !== 'author_final' &&
       contentType?.contentstackUid !== 'terms'
   );
   
@@ -7968,7 +8115,7 @@ async function saveAssetFromUrl(
   const fileExtension = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')) : '';
   const nameWithoutExt = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
 
-  const customId = `${nameWithoutExt?.replace(/-/g, '_')?.toLowerCase()}`;
+  const customId = `${nameWithoutExt?.replace(/[.-]/g, '_')?.toLowerCase()}`;
   const filename = `${customId}${fileExtension}`;
   const filePath = path.resolve(assetsSave, "files", customId, filename);
 

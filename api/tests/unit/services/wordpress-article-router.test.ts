@@ -136,7 +136,7 @@ describe('Article body-section router', () => {
  * the mapping is derived from the content type, not hardcoded per type.
  */
 const articleCt = {
-  uid: 'article',
+  uid: 'article_final',
   options: { is_page: true },
   schema: [
     { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
@@ -260,7 +260,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
 
   it('resolves SEO og_image (a file field) to a downloaded asset, not a URL; drops it when no asset', async () => {
     const seoCt = {
-      uid: 'article', options: { is_page: true },
+      uid: 'article_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'seo', data_type: 'global_field', reference_to: 'seo' },
@@ -300,7 +300,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'content_blocks', data_type: 'blocks', blocks: [
-          { uid: 'hero_section', schema: [
+          { uid: 'hero_section_final', schema: [
             { uid: 'subheadline', data_type: 'text', field_metadata: { multiline: true } },
             { uid: 'background_image', data_type: 'file' },
           ] },
@@ -316,7 +316,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
     const e = buildEntryFromSchema(eventCt, blocks, { ...engineItem, 'wp:post_type': 'event' }, engineCtx);
     const kinds = (e.content_blocks || []).map((s: any) => Object.keys(s)[0]);
     expect(kinds).toContain('rich_text_section'); // not dropped, not mis-routed to hero_section
-    expect(kinds).not.toContain('hero_section');
+    expect(kinds).not.toContain('hero_section_final');
     const rts = (e.content_blocks || []).find((s: any) => s.rich_text_section);
     expect(rts.rich_text_section.body).toBeTruthy(); // filled under the block's actual slot uid
   });
@@ -362,7 +362,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
 
   it('fills a case_study_details group: customer_name/logo(file) from postmeta, key_takeaways/quick_facts(text) from body headings, never from the stale case_study_results ACF field', async () => {
     const csCt = {
-      uid: 'article', options: { is_page: true },
+      uid: 'article_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'case_study_details', data_type: 'group', schema: [
@@ -451,12 +451,12 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'content_blocks', data_type: 'blocks', blocks: [
-          { uid: 'hero_section', schema: [
+          { uid: 'hero_section_final', schema: [
             { uid: 'headline', data_type: 'text' }, { uid: 'background_image', data_type: 'file' },
-            { uid: 'primary_cta', data_type: 'global_field', reference_to: 'cta' },
+            { uid: 'primary_cta', data_type: 'global_field', reference_to: 'cta_final' },
           ] },
           { uid: 'button', schema: [
-            { uid: 'cta', data_type: 'global_field', reference_to: 'cta' },
+            { uid: 'cta', data_type: 'global_field', reference_to: 'cta_final' },
             { uid: 'align', data_type: 'text', enum: { choices: [{ value: 'left' }, { value: 'center' }] }, field_metadata: { default_value: 'left' } },
           ] },
           { uid: 'rich_text_section', schema: [{ uid: 'body', data_type: 'text', field_metadata: { allow_rich_text: true } }] },
@@ -474,7 +474,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
     // Article-style: an exact `cta_section` that ALSO carries a primary_cta global field must still use
     // the heading/body builder, not the global-field one.
     const articleLikeCt = {
-      uid: 'article',
+      uid: 'article_final',
       options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
@@ -483,7 +483,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
           { uid: 'cta_section', schema: [
             { uid: 'heading', data_type: 'text' },
             { uid: 'body', data_type: 'json', field_metadata: { allow_json_rte: true } },
-            { uid: 'primary_cta', data_type: 'global_field', reference_to: 'cta' },
+            { uid: 'primary_cta', data_type: 'global_field', reference_to: 'cta_final' },
           ] },
         ] },
       ],
@@ -552,7 +552,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
   it('fills a postmeta-fed dropdown by normalizing to a valid choice, skipping out-of-range values', async () => {
     // course_level ← `level` postmeta; WP label is capitalized, choices are lowercase.
     const courseCt = {
-      uid: 'course', options: { is_page: true },
+      uid: 'course_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'course_level', data_type: 'text', display_type: 'dropdown', enum: { choices: [{ value: 'foundational' }, { value: 'intermediate' }, { value: 'advanced' }] } },
@@ -576,7 +576,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
       `<!-- wp:paragraph --><p>Duration: 90 min.</p><!-- /wp:paragraph --><!-- wp:list --><ul><li>45 questions</li></ul><!-- /wp:list -->` +
       `<!-- wp:heading --><h2>After exam</h2><!-- /wp:heading --><!-- wp:paragraph --><p>Next steps.</p><!-- /wp:paragraph -->`;
     const courseCt = {
-      uid: 'course', options: { is_page: true },
+      uid: 'course_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'page_sections', data_type: 'blocks', blocks: [
@@ -602,7 +602,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
 
   it('fills a non-SEO global field (metadata → review_metadata) from postmeta via its referenced schema', async () => {
     const ctWithMeta = {
-      uid: 'course', options: { is_page: true },
+      uid: 'course_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'metadata', data_type: 'global_field', reference_to: 'review_metadata' },
@@ -675,7 +675,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
   it('routes a Vidyard embed to video_embed, reconstructing the player URL from videoId', async () => {
     const vidyardMarkup = `<!-- wp:salsa-blocks/vidyard-embed {"videoId":"ap3Y1QsCXEqHyponyhE7wh"} --><img class="vidyard-player-embed" src="https://play.vidyard.com/ap3Y1QsCXEqHyponyhE7wh.jpg" data-uuid="ap3Y1QsCXEqHyponyhE7wh"/><!-- /wp:salsa-blocks/vidyard-embed -->`;
     const ctWithVideo = {
-      uid: 'course', options: { is_page: true },
+      uid: 'course_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'page_sections', data_type: 'blocks', blocks: [
@@ -706,7 +706,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
       { uid: 'answer', data_type: 'json', mandatory: true },
     ] };
     const courseCtWithFaq = {
-      uid: 'course', options: { is_page: true },
+      uid: 'course_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'page_sections', data_type: 'blocks', blocks: [
@@ -741,7 +741,7 @@ describe('Generic schema-driven engine (buildEntryFromSchema)', () => {
       `<!-- wp:column --><div class="wp-block-column"><!-- wp:heading {"level":3} --><h3>Card Two</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Desc two.</p><!-- /wp:paragraph --></div><!-- /wp:column -->` +
       `</div><!-- /wp:columns --></div><!-- /wp:group -->`;
     const courseCtWithGrid = {
-      uid: 'course', options: { is_page: true },
+      uid: 'course_final', options: { is_page: true },
       schema: [
         { uid: 'title', data_type: 'text', field_metadata: { _default: true } },
         { uid: 'page_sections', data_type: 'blocks', blocks: [
@@ -776,13 +776,13 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
   // Load the REAL exported content models so the test validates against the shipped schema shapes,
   // not a hand-authored stand-in. generic_pages.page_sections references standalone section content
   // types; flexible_layouts is the prose/media sink.
-  const genericPagesCt = modelCt('generic_pages');
-  const flexibleLayoutsCt = modelCt('flexible_layouts');
-  const heroSectionCt = modelCt('hero_section');
+  const genericPagesCt = modelCt('generic_pages_final');
+  const flexibleLayoutsCt = modelCt('flexible_layouts_final');
+  const heroSectionCt = modelCt('hero_section_final');
   const contentTypesByUid = new Map<string, any>([
-    ['generic_pages', genericPagesCt],
-    ['flexible_layouts', flexibleLayoutsCt],
-    ['hero_section', heroSectionCt],
+    ['generic_pages_final', genericPagesCt],
+    ['flexible_layouts_final', flexibleLayoutsCt],
+    ['hero_section_final', heroSectionCt],
   ]);
 
   const pageItem = {
@@ -832,16 +832,16 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     const block = entry.page_sections[0];
     expect(Object.keys(block)[0]).toBe('flexible_layout');
     const ref = block.flexible_layout.flexible_layout[0];
-    expect(ref._content_type_uid).toBe('flexible_layouts');
+    expect(ref._content_type_uid).toBe('flexible_layouts_final');
     // The referenced side entry exists in the flexible_layouts bucket.
-    const flexEntries = sideEntries.flexible_layouts || {};
+    const flexEntries = sideEntries.flexible_layouts_final || {};
     expect(Object.keys(flexEntries)).toContain(ref.uid);
   });
 
   it('routes each block to its typed variant with ZERO content loss', async () => {
     const asset = { uid: 'blt_hero', url: 'https://scaledagile.com/wp-content/uploads/hero.png' };
     const { sideEntries } = await runPage({ assets_12345: asset });
-    const flexEntry = Object.values(sideEntries.flexible_layouts)[0] as any;
+    const flexEntry = Object.values(sideEntries.flexible_layouts_final)[0] as any;
     const variants: any[] = flexEntry.variants;
     const kinds = variants.map((v) => Object.keys(v)[0]);
     // Prose (heading+intro), image, video, quote, and trailing prose all land as typed variants.
@@ -882,7 +882,7 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
 
   it('falls back to prose (never drops) when an image asset cannot be resolved', async () => {
     const { sideEntries } = await runPage({}); // no assetData → image asset unresolved
-    const flexEntry = Object.values(sideEntries.flexible_layouts)[0] as any;
+    const flexEntry = Object.values(sideEntries.flexible_layouts_final)[0] as any;
     const allText = JSON.stringify(flexEntry.variants);
     // The unresolved image still contributes its caption; no block silently vanishes.
     expect(allText).toContain('hero caption');
@@ -905,7 +905,7 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     const order = entry.page_sections.map((s: any) => Object.keys(s)[0]);
     expect(order).toEqual(['hero_block', 'flexible_layout', 'marketo_form']);
 
-    const heroEntry = Object.values(sideEntries.hero_section)[0] as any;
+    const heroEntry = Object.values(sideEntries.hero_section_final)[0] as any;
     const heroVariant: any = Object.values(heroEntry.variants[0])[0];
     expect(heroVariant.image).toEqual({ uid: 'blt_bg', url: 'https://scaledagile.com/wp-content/uploads/bg_7.png' });
     expect(heroVariant.title).toBe('Scale with SAFe');
@@ -913,8 +913,8 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
     expect(heroVariant.cta[0].title_url).toEqual({ title: 'Get started', href: '/start' });
 
     // The hero reference points at the side entry; the body prose becomes its own flex section.
-    expect(entry.page_sections[0].hero_block.hero_section[0]._content_type_uid).toBe('hero_section');
-    const flexEntry = Object.values(sideEntries.flexible_layouts)[0] as any;
+    expect(entry.page_sections[0].hero_block.hero_section[0]._content_type_uid).toBe('hero_section_final');
+    const flexEntry = Object.values(sideEntries.flexible_layouts_final)[0] as any;
     expect(JSON.stringify(flexEntry.variants)).toContain('Body prose after the hero');
   });
 
@@ -930,16 +930,16 @@ describe('Reference-section engine (generic_pages) — 100% lossless page body',
 });
 
 describe('Section-reference bodies against the real export-data model', () => {
-  const articleCtReal = modelCt('article');
-  const eventCtReal = modelCt('event_revised');
-  const genericPagesCtReal = modelCt('generic_pages');
+  const articleCtReal = modelCt('article_final');
+  const eventCtReal = modelCt('event_final');
+  const genericPagesCtReal = modelCt('generic_pages_final');
   const ctMap = new Map<string, any>([
-    ['article', articleCtReal],
-    ['event_revised', eventCtReal],
-    ['flexible_layouts', modelCt('flexible_layouts')],
-    ['hero_section', modelCt('hero_section')],
+    ['article_final', articleCtReal],
+    ['event_final', eventCtReal],
+    ['flexible_layouts_final', modelCt('flexible_layouts_final')],
+    ['hero_section_final', modelCt('hero_section_final')],
   ]);
-  const gfMap = new Map<string, any>([['cta', modelGf('cta')]]);
+  const gfMap = new Map<string, any>([['cta_final', modelGf('cta_final')]]);
   const baseCtx = (sideEntries: any, uid: string) => ({
     uid, link: 'https://scaledagile.com/x/', assetData: {}, authorData: [], taxonomies: [],
     locale: 'en-us', contentTypesByUid: ctMap, globalFieldsByUid: gfMap, sideEntries,
@@ -954,9 +954,9 @@ describe('Section-reference bodies against the real export-data model', () => {
     const e = buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(md), item, baseCtx(sideEntries, 'posts_1') as any);
     // body_section is a reference array, not modular blocks.
     expect(Array.isArray(e.body_section)).toBe(true);
-    expect(e.body_section[0]._content_type_uid).toBe('flexible_layouts');
-    const flex = Object.values(sideEntries.flexible_layouts)[0] as any;
-    expect(Object.keys(sideEntries.flexible_layouts)).toContain(e.body_section[0].uid);
+    expect(e.body_section[0]._content_type_uid).toBe('flexible_layouts_final');
+    const flex = Object.values(sideEntries.flexible_layouts_final)[0] as any;
+    expect(Object.keys(sideEntries.flexible_layouts_final)).toContain(e.body_section[0].uid);
     // Prose and quote both survive, in their typed variants.
     const kinds = flex.variants.map((v: any) => Object.keys(v)[0]);
     expect(kinds).toContain('rich_text');
@@ -976,17 +976,17 @@ describe('Section-reference bodies against the real export-data model', () => {
     // The parent item's own title is used unchanged instead.
     let side: Record<string, Record<string, any>> = {};
     await buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(withHeading), item, baseCtx(side, 'p1') as any);
-    expect((Object.values(side.flexible_layouts)[0] as any).title).toBe('T');
+    expect((Object.values(side.flexible_layouts_final)[0] as any).title).toBe('T');
 
     // 2) no heading → the parent item's title (not the generic 'Content')
     side = {};
     await buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(noHeading), { ...item, title: 'Airbus Case Study' }, baseCtx(side, 'p2') as any);
-    expect((Object.values(side.flexible_layouts)[0] as any).title).toBe('Airbus Case Study');
+    expect((Object.values(side.flexible_layouts_final)[0] as any).title).toBe('Airbus Case Study');
 
     // 3) no heading AND an empty item title → humanized slug
     side = {};
     await buildEntryFromSchema(articleCtReal, await setupWordPressBlocks(noHeading), { ...item, title: '', 'wp:post_name': 'jp-training' }, baseCtx(side, 'p3') as any);
-    expect((Object.values(side.flexible_layouts)[0] as any).title).toBe('Jp Training');
+    expect((Object.values(side.flexible_layouts_final)[0] as any).title).toBe('Jp Training');
   });
 
   it('creates exactly ONE flexible_layouts entry per item, even when sections interrupt the body', async () => {
@@ -998,8 +998,8 @@ describe('Section-reference bodies against the real export-data model', () => {
     const side: Record<string, Record<string, any>> = {};
     const entry = buildEntryFromSchema(genericPagesCtReal, await setupWordPressBlocks(md), { ...item, title: 'Repeated' }, baseCtx(side, 'p4') as any);
 
-    expect(Object.keys(side.flexible_layouts)).toHaveLength(1);
-    const flex = Object.values(side.flexible_layouts)[0] as any;
+    expect(Object.keys(side.flexible_layouts_final)).toHaveLength(1);
+    const flex = Object.values(side.flexible_layouts_final)[0] as any;
     // Both prose runs live inside that one entry.
     const dump = JSON.stringify(flex.variants);
     expect(dump).toContain('First chunk');
@@ -1015,7 +1015,7 @@ describe('Section-reference bodies against the real export-data model', () => {
   it('emits no flexible_layouts entry (and no dangling reference) when there is no body content', async () => {
     const side: Record<string, Record<string, any>> = {};
     const entry = buildEntryFromSchema(genericPagesCtReal, await setupWordPressBlocks(''), item, baseCtx(side, 'p5') as any);
-    expect(Object.keys(side.flexible_layouts || {})).toHaveLength(0);
+    expect(Object.keys(side.flexible_layouts_final || {})).toHaveLength(0);
     expect((entry.page_sections || []).some((s: any) => s == null)).toBe(false);
   });
 
@@ -1031,7 +1031,7 @@ describe('Section-reference bodies against the real export-data model', () => {
     // ...and the prose still lands in a flexible_layouts reference, ordered before the speaker.
     expect(kinds).toContain('rich_text_section');
     expect(kinds.indexOf('rich_text_section')).toBeLessThan(kinds.indexOf('speaker'));
-    expect(Object.keys(sideEntries.flexible_layouts || {}).length).toBe(1);
+    expect(Object.keys(sideEntries.flexible_layouts_final || {}).length).toBe(1);
   });
 });
 
@@ -1042,7 +1042,7 @@ describe('page-remap.json (per-page content-type overrides)', () => {
 
   it('is scoped to the page post type with generic_pages as the default', () => {
     expect(remap.postType).toBe('page');
-    expect(remap.defaultContentType).toBe('generic_pages');
+    expect(remap.defaultContentType).toBe('generic_pages_final');
   });
 
   it('routes every rule to a content type authored in the model', () => {
@@ -1069,27 +1069,27 @@ describe('page-remap.json (per-page content-type overrides)', () => {
     }
     expect(Object.keys(remap.rules)).toHaveLength(43);
     expect(counts).toEqual({
-      article: 17,
-      case_studies: 11,
-      course: 11,
-      review_videos: 3,
-      event_revised: 1,
+      article_final: 17,
+      case_studies_final: 11,
+      course_final: 11,
+      videos_final: 3,
+      event_final: 1,
     });
   });
 });
 
 describe('No-data-loss edge cases', () => {
-  const flexCt = modelCt('flexible_layouts');
-  const articleCt2 = modelCt('article');
+  const flexCt = modelCt('flexible_layouts_final');
+  const articleCt2 = modelCt('article_final');
   const ctMap2 = new Map<string, any>([
-    ['article', articleCt2],
-    ['flexible_layouts', flexCt],
+    ['article_final', articleCt2],
+    ['flexible_layouts_final', flexCt],
   ]);
   const it0 = { title: 'T', link: 'https://scaledagile.com/x/', 'wp:post_id': '1', 'wp:post_type': 'post', 'wp:postmeta': [] };
 
   const buildBlob = async (markup: string) => {
     const side: Record<string, Record<string, any>> = {};
-    const e = buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+    const e = buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(markup), it0, {
       uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [], locale: 'en-us',
       contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
@@ -1109,11 +1109,11 @@ describe('No-data-loss edge cases', () => {
     const markup = `<!-- wp:media-text {"mediaId":12345,"mediaPosition":"right"} --><div class="wp-block-media-text"><figure class="wp-block-media-text__media"><img src="https://scaledagile.com/wp-content/uploads/hero.png"/></figure><div class="wp-block-media-text__content"><!-- wp:heading --><h3>Build Your Blueprint</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Customized in-person training.</p><!-- /wp:paragraph --></div></div><!-- /wp:media-text -->`;
     const side: Record<string, Record<string, any>> = {};
     const asset = { uid: 'blt_img', url: 'https://scaledagile.com/wp-content/uploads/hero.png' };
-    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+    buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(markup), it0, {
       uid: 'p', link: it0.link, assetData: { assets_12345: asset }, authorData: [], taxonomies: [],
       locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
-    const flex = Object.values(side.flexible_layouts)[0] as any;
+    const flex = Object.values(side.flexible_layouts_final)[0] as any;
     const kinds = flex.variants.map((v: any) => Object.keys(v)[0]);
     expect(kinds).toContain('text_image');
     expect(kinds).not.toContain('text_cta'); // must NOT be dumped into the generic RTE sink
@@ -1128,11 +1128,11 @@ describe('No-data-loss edge cases', () => {
     const asset = { uid: 'blt1', url: 'https://x/a.png' };
     const align = async (markup: string) => {
       const side: Record<string, Record<string, any>> = {};
-      buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+      buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(markup), it0, {
         uid: 'p', link: it0.link, assetData: { assets_1: asset }, authorData: [], taxonomies: [],
         locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
       } as any);
-      const flex = Object.values(side.flexible_layouts)[0] as any;
+      const flex = Object.values(side.flexible_layouts_final)[0] as any;
       return flex.variants.find((v: any) => v.text_image)?.text_image?.image_aligment;
     };
     const mt = (attrs: string) =>
@@ -1171,11 +1171,11 @@ describe('No-data-loss edge cases', () => {
     // Asset downloaded → linked as a real asset reference on the image variant.
     const side: Record<string, Record<string, any>> = {};
     const asset = { uid: 'blt_bg', url: 'https://scaledagile.com/wp-content/uploads/bg_7.png' };
-    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(markup), it0, {
+    buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(markup), it0, {
       uid: 'p', link: it0.link, assetData: { assets_1: asset }, authorData: [], taxonomies: [],
       locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
-    const flex = Object.values(side.flexible_layouts)[0] as any;
+    const flex = Object.values(side.flexible_layouts_final)[0] as any;
     expect(JSON.stringify(flex.variants)).toContain('blt_bg');
     expect(JSON.stringify(flex.variants)).toContain('Overlay copy'); // overlay content still flows
 
@@ -1186,12 +1186,12 @@ describe('No-data-loss edge cases', () => {
   });
 
   it('routes a slider to cards_section.sliding_cards, hoisting a shared heading', async () => {
-    const gp = modelCt('generic_pages');
+    const gp = modelCt('generic_pages_final');
     const ctMap3 = new Map<string, any>([
-      ['generic_pages', gp],
-      ['flexible_layouts', modelCt('flexible_layouts')],
-      ['cards_section', modelCt('cards_section')],
-      ['hero_section', modelCt('hero_section')],
+      ['generic_pages_final', gp],
+      ['flexible_layouts_final', modelCt('flexible_layouts_final')],
+      ['cards_section_final', modelCt('cards_section_final')],
+      ['hero_section_final', modelCt('hero_section_final')],
     ]);
     const slide = (h: string, quote: string, cite = '') =>
       `<!-- wp:salsa-blocks/slider-item --><salsa-carousel-slide><!-- wp:heading --><h3>${h}</h3><!-- /wp:heading --><!-- wp:quote --><blockquote><p>${quote}</p>${cite ? `<cite>${cite}</cite>` : ''}</blockquote><!-- /wp:quote --></salsa-carousel-slide><!-- /wp:salsa-blocks/slider-item -->`;
@@ -1204,7 +1204,7 @@ describe('No-data-loss edge cases', () => {
       locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
     expect(entry.page_sections.map((s: any) => Object.keys(s)[0])).toContain('card_collection_block');
-    const cs = Object.values(side.cards_section)[0] as any;
+    const cs = Object.values(side.cards_section_final)[0] as any;
     const variant: any = Object.values(cs.variants[0])[0];
     expect(variant.cards).toHaveLength(2);
     expect(variant.cards[0].title).toBe('Product Development');
@@ -1221,7 +1221,7 @@ describe('No-data-loss edge cases', () => {
       uid: 'p2', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
       locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side2,
     } as any);
-    const cs2 = Object.values(side2.cards_section)[0] as any;
+    const cs2 = Object.values(side2.cards_section_final)[0] as any;
     const variant2: any = Object.values(cs2.variants[0])[0];
     expect(cs2.title).toBe('T');
     expect(variant2.cards.every((c: any) => c.title === undefined)).toBe(true);
@@ -1230,11 +1230,11 @@ describe('No-data-loss edge cases', () => {
   it('routes core/table to the table variant, keeping every cell of a wide table', async () => {
     const two = `<!-- wp:table --><figure class="wp-block-table"><table><tbody><tr><td>Name:</td><td>Scaled Agile, Inc.</td></tr><tr><td>Role:</td><td>Controller</td></tr></tbody></table></figure><!-- /wp:table -->`;
     const side: Record<string, Record<string, any>> = {};
-    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(two), it0, {
+    buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(two), it0, {
       uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
       locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
-    const flex = Object.values(side.flexible_layouts)[0] as any;
+    const flex = Object.values(side.flexible_layouts_final)[0] as any;
     const table = flex.variants.find((v: any) => v.table)?.table;
     expect(table.table_columns).toHaveLength(1);
     expect(table.table_columns[0].rows).toEqual([
@@ -1246,11 +1246,11 @@ describe('No-data-loss edge cases', () => {
     // so no cell is truncated by the model's 2-slot rows.
     const three = `<!-- wp:table --><figure class="wp-block-table"><table><thead><tr><th>Purpose</th><th>Data</th><th>Basis</th></tr></thead><tbody><tr><td>Billing</td><td>Card</td><td>Contract</td></tr></tbody></table></figure><!-- /wp:table -->`;
     const side2: Record<string, Record<string, any>> = {};
-    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(three), it0, {
+    buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(three), it0, {
       uid: 'p2', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
       locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side2,
     } as any);
-    const t2 = (Object.values(side2.flexible_layouts)[0] as any).variants.find((v: any) => v.table).table;
+    const t2 = (Object.values(side2.flexible_layouts_final)[0] as any).variants.find((v: any) => v.table).table;
     expect(t2.table_columns.map((c: any) => c.title)).toEqual(['Data', 'Basis']);
     expect(JSON.stringify(t2)).toContain('Card');
     expect(JSON.stringify(t2)).toContain('Contract');
@@ -1259,23 +1259,23 @@ describe('No-data-loss edge cases', () => {
   it('leaves a table containing links as rich text (text cells cannot hold an href)', async () => {
     const md = `<!-- wp:table --><figure class="wp-block-table"><table><tbody><tr><td>Contact:</td><td><a href="mailto:support@scaledagile.com">support@scaledagile.com</a></td></tr></tbody></table></figure><!-- /wp:table -->`;
     const side: Record<string, Record<string, any>> = {};
-    buildEntryFromSchema(ctMap2.get('article'), await setupWordPressBlocks(md), it0, {
+    buildEntryFromSchema(ctMap2.get('article_final'), await setupWordPressBlocks(md), it0, {
       uid: 'p', link: it0.link, assetData: {}, authorData: [], taxonomies: [],
       locale: 'en-us', contentTypesByUid: ctMap2, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
-    const flex = Object.values(side.flexible_layouts)[0] as any;
+    const flex = Object.values(side.flexible_layouts_final)[0] as any;
     expect(flex.variants.map((v: any) => Object.keys(v)[0])).not.toContain('table');
     expect(JSON.stringify(flex.variants)).toContain('mailto:support@scaledagile.com');
   });
 
   it('routes an accordion to the plain cards section (course has no vertical_tabs reference)', async () => {
-    const courseCt = modelCt('course');
+    const courseCt = modelCt('course_final');
     const ctMap3 = new Map<string, any>([
-      ['course', courseCt],
-      ['flexible_layouts', modelCt('flexible_layouts')],
-      ['cards_section', modelCt('cards_section')],
-      ['hero_section', modelCt('hero_section')],
-      ['stats_section', modelCt('stats_section')],
+      ['course_final', courseCt],
+      ['flexible_layouts_final', modelCt('flexible_layouts_final')],
+      ['cards_section_final', modelCt('cards_section_final')],
+      ['hero_section_final', modelCt('hero_section_final')],
+      ['stats_section_final', modelCt('stats_section_final')],
     ]);
     const child = (t: string, b: string) =>
       `<!-- wp:esab/accordion-child --><div class="wp-block-esab-accordion-child"><div class="esab__head"><div class="esab__heading_txt"><p class="esab__heading_tag">${t}</p></div><div class="esab__icon"><svg viewBox="0 0 24 24"><path d="m1 1"/></svg></div></div><div class="esab__body"><p>${b}</p></div></div><!-- /wp:esab/accordion-child -->`;
@@ -1286,7 +1286,7 @@ describe('No-data-loss edge cases', () => {
       locale: 'en-us', contentTypesByUid: ctMap3, globalFieldsByUid: new Map(), sideEntries: side,
     } as any);
     expect(entry.page_sections.map((s: any) => Object.keys(s)[0])).toContain('card_grid');
-    const cs = Object.values(side.cards_section)[0] as any;
+    const cs = Object.values(side.cards_section_final)[0] as any;
     const variant: any = Object.values(cs.variants[0])[0];
     expect(variant.cards).toHaveLength(2);
     expect(variant.cards[0].title).toBe('Optimize flow');
@@ -1324,8 +1324,8 @@ describe('No-data-loss edge cases', () => {
   it('does not turn plain buttons into a form section', async () => {
     // `marketo_form` carries a cta global field, so a loose CTA matcher would emit a bogus form for
     // every button on the page.
-    const gp = modelCt('generic_pages');
-    const ctMap3 = new Map<string, any>([['generic_pages', gp], ['flexible_layouts', modelCt('flexible_layouts')]]);
+    const gp = modelCt('generic_pages_final');
+    const ctMap3 = new Map<string, any>([['generic_pages_final', gp], ['flexible_layouts_final', modelCt('flexible_layouts_final')]]);
     const md = `<!-- wp:buttons --><div class="wp-block-buttons"><!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link" href="https://scaledagile.com/case_study/fedex/">Read more</a></div><!-- /wp:button --></div><!-- /wp:buttons -->`;
     const side: Record<string, Record<string, any>> = {};
     const entry = buildEntryFromSchema(gp, await setupWordPressBlocks(md), it0, {
