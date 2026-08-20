@@ -83,7 +83,9 @@
   background-color: $color-base-white-5;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  // Stretch (not flex-start) so the path row keeps the container's full width — flex-start
+  // let it shrink-to-fit for short/invalid paths, visibly narrowing the input (CMG-1113).
+  align-items: stretch;
   margin-left: 20px !important;
   border: 1px solid $color-brand-fail-base;
   border-radius: var(--TermCount, 5px);
