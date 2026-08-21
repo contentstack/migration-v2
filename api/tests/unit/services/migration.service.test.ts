@@ -203,6 +203,22 @@ const createMockReq = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as any;
 
+/**
+ * mockProjectUpdate's own implementation applies each updater function to a
+ * throwaway data object and discards it, so it can't be inspected after the
+ * fact directly. startMigration calls ProjectModelLowdb.update() more than
+ * once per run (isMigrationStarted=true at the top, then again on a genuine
+ * failure) — replaying every captured updater against a fresh object and
+ * checking whether ANY of them lands on the expected value is what actually
+ * proves the reset happened, as opposed to just proving *some* update ran.
+ */
+const projectUpdateSetsIsMigrationStarted = (expected: boolean): boolean =>
+  mockProjectUpdate.mock.calls.some(([fn]: [(data: any) => void]) => {
+    const data = { projects: [{ ...mockProjects[0] }] };
+    fn(data);
+    return data.projects[0].isMigrationStarted === expected;
+  });
+
 describe('migration.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -756,6 +772,12 @@ describe('migration.service', () => {
         'error',
         expect.stringContaining('Migration import failed'),
       );
+      // Regression: isMigrationStarted is set true at the top of startMigration
+      // and nothing else on this failure path ever clears it — without the
+      // reset, the project is stuck looking "in progress" forever, which the
+      // UI reads as a reason to disable both "New Project" and this project's
+      // own "Start Migration" button, even though nothing is actually running.
+      expect(projectUpdateSetsIsMigrationStarted(false)).toBe(true);
     });
 
     it('stops before the CLI import when building the SAP SmartEdit migration data fails', async () => {
@@ -790,6 +812,8 @@ describe('migration.service', () => {
       );
       expect(sapSmarteditService.createVersionFile).not.toHaveBeenCalled();
       expect(utilsCli.runCli).not.toHaveBeenCalled();
+      // Same reset requirement as the runCli-failure case above.
+      expect(projectUpdateSetsIsMigrationStarted(false)).toBe(true);
     });
   });
 

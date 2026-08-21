@@ -1171,6 +1171,18 @@ const startMigration = async (req: Request): Promise<any> => {
             'error',
             `SAP SmartEdit migration failed while building local migration data: ${err?.message ?? err}`,
           );
+          // isMigrationStarted was set true at the top of this function and is
+          // never cleared by anything else on this failure path — left as-is,
+          // the project would look permanently "in progress" (the UI disables
+          // both "New Project" and this project's own "Start Migration" button
+          // on exactly that state) even though nothing is actually running
+          // anymore. Reset it so a retry is just clicking the button again,
+          // not a full project restart.
+          if (index > -1) {
+            await ProjectModelLowdb.update((data: any) => {
+              data.projects[index].isMigrationStarted = false;
+            });
+          }
           return;
         }
         await sapSmarteditService?.createVersionFile(
@@ -1430,6 +1442,16 @@ const startMigration = async (req: Request): Promise<any> => {
         'error',
         `Migration import failed: ${err?.message ?? err}`,
       );
+      // See the identical reset in the getAllAssets/createEntry catch above:
+      // without this, isMigrationStarted (set true at the top of this
+      // function) never clears on a genuine import failure, permanently
+      // disabling both "New Project" and this project's own "Start
+      // Migration" button even though nothing is actually still running.
+      if (index > -1) {
+        await ProjectModelLowdb.update((data: any) => {
+          data.projects[index].isMigrationStarted = false;
+        });
+      }
       return;
     }
 
