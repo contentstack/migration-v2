@@ -1387,9 +1387,18 @@ const createEntry = async ({
           ? uidCorrector(`${parseData.title}_${parseData.templateType}`)
           : uidCorrector(parseData.templateType);
       }
-      const uid = modelId && !usedEntryUids.has(modelId)
-        ? modelId
-        : uuidv4?.()?.replace?.(/-/g, '');
+      // A stable modelId already seen earlier in this same run means this file is a
+      // duplicate export of a page already processed (AEM can emit both a page's generic
+      // model and its template's structure/model definition as separate files sharing the
+      // same id — see CMG-1112). Skip it instead of minting a fresh random uid: a random
+      // uid here would create a second, permanent duplicate entry that mints yet another
+      // untracked random uid (another duplicate) on every subsequent delta iteration,
+      // since it can never match anything recorded in entry_mapper. This mirrors
+      // extractEntries's collision policy in upload-api's migration-aem.
+      if (modelId && usedEntryUids.has(modelId)) {
+        continue;
+      }
+      const uid = modelId || uuidv4?.()?.replace?.(/-/g, '');
       usedEntryUids.add(uid);
       const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
