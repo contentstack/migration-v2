@@ -50,12 +50,38 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
   }, [newMigrationData]);
 
   // Handle file format extraction - RUN IMMEDIATELY ON MOUNT AND WHENEVER THE FILE PATH CHANGES.
-  // The displayed format is always derived from the ACTUAL uploaded file extension, never from a
-  // stale selectedFileFormat (which gets pre-seeded to the CMS default on CMS selection). This is
-  // why editing the file path (e.g. zip → json) now updates the label, icon, and Redux in sync.
+  // Most CMS types have exactly one allowed format (e.g. Sitecore is always Zip) — for those, the
+  // displayed format must stay locked to that fixed format regardless of what extension the user
+  // types in the path; the separate validation effect below already flags a mismatched upload.
+  // Only when the selected CMS allows more than one format (currently just stack-to-stack
+  // Contentstack, which accepts JSON or Zip) do we derive the displayed format from the actual
+  // uploaded file extension, since there's genuinely more than one valid answer to show.
   useEffect(() => {
     const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '';
     const currentFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.title;
+    const allowedFormats = newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats;
+
+    if (!validateArray(allowedFormats) || allowedFormats.length <= 1) {
+      const fixedFormat = allowedFormats?.[0];
+      if (fixedFormat) {
+        setFileIcon(fixedFormat?.title);
+        setFileDisplayTitle(getDisplayTitle(fixedFormat?.title));
+        if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() !== fixedFormat?.fileformat_id?.toLowerCase()) {
+          const latest = newMigrationDataRef.current;
+          dispatch(updateNewMigrationData({
+            ...latest,
+            legacy_cms: {
+              ...latest?.legacy_cms,
+              selectedFileFormat: fixedFormat
+            }
+          }));
+        }
+      } else if (!isEmptyString(currentFormat)) {
+        setFileIcon(currentFormat);
+        setFileDisplayTitle(getDisplayTitle(currentFormat));
+      }
+      return;
+    }
 
     // No file yet — fall back to whatever format is already in Redux (e.g. SQL/directory CMS types
     // that don't carry a localPath).
@@ -110,7 +136,8 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
   }, [
     newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
     newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id,
-    newMigrationData?.legacy_cms?.selectedFileFormat?.title
+    newMigrationData?.legacy_cms?.selectedFileFormat?.title,
+    newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats
   ]);
 
   // Validate the uploaded file's format against the selected CMS's allowed formats.
