@@ -441,11 +441,18 @@ const processFieldByType = (
 
     case 'file': {
       // File/Asset processing with proper validation and cleanup
+      // Note: earlier processing (processFieldData) may have already resolved
+      // the raw target_id into an asset reference object - pass those through
+      // as-is instead of re-deriving `assets_${value}` from the object.
       if (fieldMapping.advanced?.multiple) {
         // Multiple files
         if (Array.isArray(value)) {
           const validAssets = value
             ?.map((assetRef) => {
+              if (assetRef && typeof assetRef === 'object' && assetRef?.uid) {
+                return assetRef; // Already resolved
+              }
+
               const assetKey = `assets_${assetRef}`;
               const assetReference = assetId?.[assetKey];
 
@@ -464,6 +471,10 @@ const processFieldByType = (
         }
       } else {
         // Single file
+        if (value && typeof value === 'object' && value?.uid) {
+          return value; // Already resolved
+        }
+
         const assetKey = `assets_${value}`;
         const assetReference = assetId?.[assetKey];
 
@@ -479,16 +490,23 @@ const processFieldByType = (
 
     case 'reference': {
       // Reference processing
+      // Note: earlier processing (processFieldData) may have already resolved
+      // reference ids into reference objects - pass those through as-is.
       if (fieldMapping.advanced?.multiple) {
         // Multiple references
         if (Array.isArray(value)) {
-          return value?.map(
-            (refId) =>
-              referenceId?.[`content_type_entries_title_${refId}`] || refId,
-          );
+          return value?.map((refId) => {
+            if (refId && typeof refId === 'object' && refId?.uid) {
+              return refId; // Already resolved
+            }
+            return referenceId?.[`content_type_entries_title_${refId}`] || refId;
+          });
         }
       } else {
         // Single reference
+        if (value && typeof value === 'object' && value?.uid) {
+          return [value]; // Already resolved
+        }
         return [referenceId?.[`content_type_entries_title_${value}`] || value];
       }
       return value;
