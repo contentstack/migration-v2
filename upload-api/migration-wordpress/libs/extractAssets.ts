@@ -65,47 +65,83 @@ const isValidImageUrl = (url: string): boolean => {
   return true;
 };
 
-// Mirrors wordpress.service.ts's toCheckUrl — keep in sync.
-const toCheckUrl = (url: string, baseSiteUrl: string): string => {
+/** True if URL path ends with a common image extension (for <a href> image links). Mirrors
+ * wordpress.service.ts's looksLikeImageFileUrl — keep in sync. */
+const looksLikeImageFileUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  const pathOnly = url.trim().split('?')[0].split('#')[0];
+  return /\.(jpe?g|png|gif|webp|svg|bmp|ico|avif|heic|heif)$/i.test(pathOnly);
+};
+
+// Mirrors wordpress.service.ts's toCheckUrl, except a relative URL with no baseSiteUrl to
+// resolve against returns null instead of building an unreachable "undefined/..." string —
+// the real run's own toCheckUrl produces exactly that unreachable URL in this case, so a row
+// here would describe an asset the run can never actually create.
+const toCheckUrl = (url: string, baseSiteUrl: string | undefined): string | null => {
   const validPattern = /^(https?:\/\/|www\.)/;
-  return validPattern.test(url) ? url : `${baseSiteUrl}${url.replace(/^\/+/, '')}`;
+  if (validPattern.test(url)) return url;
+  if (!baseSiteUrl) return null;
+  return `${baseSiteUrl}${url.replace(/^\/+/, '')}`;
 };
 
 /**
- * Finds embedded image URLs in a post's content:encoded, covering the img
- * src/data-src/srcset cases — the common WordPress block-editor patterns.
- * Mirrors (a practical subset of) wordpress.service.ts's
- * extractImageUrlsFromContent, which is what the actual migration run scans
- * to decide which content-embedded images to download. Keep in sync: if that
- * function's matching rules grow, this should too, or rows will exist here
- * for images the real run doesn't find (or vice versa).
+ * Finds embedded image (and audio) URLs in a post's content:encoded. Mirrors
+ * wordpress.service.ts's extractImageUrlsFromContent — img src/data-src/srcset,
+ * <a href> links to image files, <audio>/<source> src, and CSS background-image
+ * (inline style attributes and <style> blocks) — which is what the actual
+ * migration run scans to decide what to download. Keep this in sync: if that
+ * function's matching rules change, mirror the change here too, or rows will
+ * exist for images the real run doesn't find (or vice versa).
  */
-const extractImageUrlsFromContent = (htmlContent: string, baseSiteUrl: string): string[] => {
+const extractImageUrlsFromContent = (htmlContent: string, baseSiteUrl: string | undefined): string[] => {
   if (!htmlContent || typeof htmlContent !== 'string') return [];
   const imageUrls = new Set<string>();
+  const addIfValid = (url: string | undefined) => {
+    if (!url || !isValidImageUrl(url)) return;
+    const fullUrl = toCheckUrl(url, baseSiteUrl);
+    if (fullUrl && isValidImageUrl(fullUrl)) imageUrls.add(fullUrl);
+  };
   try {
     const $ = cheerio.load(htmlContent);
+
     $('img').each((_, element) => {
       const el = $(element);
-      const src = el.attr('src');
-      if (src && isValidImageUrl(src)) {
-        const fullUrl = toCheckUrl(src, baseSiteUrl);
-        if (isValidImageUrl(fullUrl)) imageUrls.add(fullUrl);
-      }
-      const dataSrc = el.attr('data-src');
-      if (dataSrc && isValidImageUrl(dataSrc)) {
-        const fullUrl = toCheckUrl(dataSrc, baseSiteUrl);
-        if (isValidImageUrl(fullUrl)) imageUrls.add(fullUrl);
-      }
+      addIfValid(el.attr('src'));
+      addIfValid(el.attr('data-src'));
       const srcset = el.attr('srcset');
       if (srcset) {
-        srcset.split(',').map((s) => s.trim().split(/\s+/)[0]).forEach((url) => {
-          if (isValidImageUrl(url)) {
-            const fullUrl = toCheckUrl(url, baseSiteUrl);
-            if (isValidImageUrl(fullUrl)) imageUrls.add(fullUrl);
-          }
-        });
+        srcset.split(',').map((s) => s.trim().split(/\s+/)[0]).forEach(addIfValid);
       }
+    });
+
+    $('a[href]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href && isValidImageUrl(href) && looksLikeImageFileUrl(href)) {
+        const fullUrl = toCheckUrl(href, baseSiteUrl);
+        if (fullUrl && isValidImageUrl(fullUrl) && looksLikeImageFileUrl(fullUrl)) imageUrls.add(fullUrl);
+      }
+    });
+
+    $('audio').each((_, element) => {
+      addIfValid($(element).attr('src'));
+      $(element).find('source').each((_, srcEl) => {
+        addIfValid($(srcEl).attr('src'));
+      });
+    });
+
+    $('[style*="background-image"]').each((_, element) => {
+      const style = $(element).attr('style');
+      const bgImageMatch = style?.match(/background-image:\s*url\(['"]?([^'")]+)['"]?\)/i);
+      if (bgImageMatch?.[1]) addIfValid(bgImageMatch[1]);
+    });
+
+    $('style').each((_, element) => {
+      const styleContent = $(element).html();
+      const bgImageMatches = styleContent?.match(/background-image:\s*url\(['"]?([^'")]+)['"]?\)/gi);
+      bgImageMatches?.forEach((match) => {
+        const urlMatch = match.match(/url\(['"]?([^'")]+)['"]?\)/i);
+        if (urlMatch?.[1]) addIfValid(urlMatch[1]);
+      });
     });
   } catch {
     // Malformed content:encoded — treat as no embedded images rather than failing extraction.
@@ -139,7 +175,7 @@ const extractAssets = async (filePath: string): Promise<AssetMappingRow[]> => {
     const rawData = await fs.promises.readFile(filePath, 'utf8');
     const jsonData = JSON.parse(rawData);
     const items = normalizeArray(jsonData?.rss?.channel?.item);
-    const baseSiteUrl = jsonData?.rss?.channel?.['wp:base_site_url'] ?? jsonData?.channel?.['wp:base_site_url'] ?? '';
+    const baseSiteUrl = jsonData?.rss?.channel?.['wp:base_site_url'] || jsonData?.channel?.['wp:base_site_url'];
 
     const seenIds = new Set<string>();
     // Absolute URLs already represented by a formal attachment item — skip these when scanning
@@ -164,7 +200,8 @@ const extractAssets = async (filePath: string): Promise<AssetMappingRow[]> => {
       const title = getTitle(item, filename);
 
       if (assetPath) {
-        attachmentUrls.add(toCheckUrl(assetPath, baseSiteUrl));
+        const resolvedAssetPath = toCheckUrl(assetPath, baseSiteUrl);
+        if (resolvedAssetPath) attachmentUrls.add(resolvedAssetPath);
       }
 
       rows.push({

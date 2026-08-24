@@ -61,24 +61,24 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
     const currentFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.title;
     const allowedFormats = newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats;
 
-    if (!validateArray(allowedFormats) || allowedFormats.length <= 1) {
-      const fixedFormat = allowedFormats?.[0];
-      if (fixedFormat) {
-        setFileIcon(fixedFormat?.title);
-        setFileDisplayTitle(getDisplayTitle(fixedFormat?.title));
-        if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() !== fixedFormat?.fileformat_id?.toLowerCase()) {
-          const latest = newMigrationDataRef.current;
-          dispatch(updateNewMigrationData({
-            ...latest,
-            legacy_cms: {
-              ...latest?.legacy_cms,
-              selectedFileFormat: fixedFormat
-            }
-          }));
-        }
-      } else if (!isEmptyString(currentFormat)) {
-        setFileIcon(currentFormat);
-        setFileDisplayTitle(getDisplayTitle(currentFormat));
+    // Lock only when the CMS has EXACTLY one allowed format. An empty array means the CMS
+    // isn't resolved yet (e.g. DEFAULT_CMS_TYPE while a multi-version CMS like Sitecore is
+    // still waiting on the user to pick a version card) — that's "unknown", not "one fixed
+    // format", and must fall through to the extension-derived behavior below rather than
+    // lock to a blank format and blank the field.
+    if (validateArray(allowedFormats) && allowedFormats.length === 1) {
+      const fixedFormat = allowedFormats[0];
+      setFileIcon(fixedFormat?.title);
+      setFileDisplayTitle(getDisplayTitle(fixedFormat?.title));
+      if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() !== fixedFormat?.fileformat_id?.toLowerCase()) {
+        const latest = newMigrationDataRef.current;
+        dispatch(updateNewMigrationData({
+          ...latest,
+          legacy_cms: {
+            ...latest?.legacy_cms,
+            selectedFileFormat: fixedFormat
+          }
+        }));
       }
       return;
     }
