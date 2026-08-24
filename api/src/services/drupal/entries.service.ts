@@ -469,6 +469,23 @@ const processFieldByType = (
 
           return validAssets?.length > 0 ? validAssets : undefined; // Return undefined if no valid assets
         }
+
+        // processFieldData resolves asset target_ids to a single reference
+        // object even for multiple-value fields - normalize into an array
+        // instead of returning a bare object where Contentstack expects one.
+        if (value && typeof value === 'object' && value?.uid) {
+          return [value];
+        }
+
+        const assetKey = `assets_${value}`;
+        const assetReference = assetId?.[assetKey];
+
+        if (assetReference && typeof assetReference === 'object') {
+          return [assetReference];
+        }
+
+        console.error(`Asset ${assetKey} not found or invalid, removing field`);
+        return undefined;
       } else {
         // Single file
         if (value && typeof value === 'object' && value?.uid) {
@@ -508,7 +525,14 @@ const processFieldByType = (
           // processFieldData normalizes reference target_ids into an array of
           // resolved reference objects even for single-value fields - return
           // as-is instead of wrapping again into a nested array [[{uid,...}]].
-          return value;
+          // Mirror the `multiple` branch above and resolve any raw (unresolved)
+          // IDs still present, e.g. from _tid fields built in the ctValue loop.
+          return value.map((refId) => {
+            if (refId && typeof refId === 'object' && refId?.uid) {
+              return refId; // Already resolved
+            }
+            return referenceId?.[`content_type_entries_title_${refId}`] || refId;
+          });
         }
         if (value && typeof value === 'object' && value?.uid) {
           return [value]; // Already resolved
@@ -695,8 +719,11 @@ const processFieldData = async (
         const assetReference = assetId?.[assetKey];
         if (assetReference && typeof assetReference === 'object') {
           processedData[dataKey] = assetReference;
+        } else {
+          console.error(`Asset ${assetKey} not found or invalid, removing field`);
         }
-        // If asset reference is not properly structured, skip the field
+      } else {
+        console.error(`Asset ${assetKey} not found or invalid, removing field`);
       }
       // If asset not found in assets index, mark field as skipped
       skippedFields?.add(dataKey);
