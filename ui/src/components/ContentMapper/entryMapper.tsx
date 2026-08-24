@@ -30,7 +30,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping, ENTRY_MAPPER_EMPTY_STATE, MAPPER_SEARCH_EMPTY_STATE } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
 
 // Interface
@@ -52,11 +52,11 @@ import {
   mapEntriesToRows,
   buildSelectedEntryRowIds,
   applySelectionToEntries,
-  selectableInitialRows,
   filterContentTypesByStatus,
   applyContentTypeStatus,
 } from './entryMapper.utils';
 import { toSelectedMap, computeChangedUids } from './assetMapper.utils';
+import { useMeasuredTableHeight } from './useMeasuredTableHeight';
 
 // Styles and Assets
 import './index.scss';
@@ -109,18 +109,34 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [persistedRowIds, setPersistedRowIds] = useState<Record<string, boolean>>({});
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
-  const [initialRowSelectedData, setInitialRowSelectedData] = useState<EntryMapperType[]>([]);
 
   // Locale dropdown — sourced from project.json (master_locale + locales) so it reflects the
   // user's configured mapping regardless of redux hydration timing on restart.
   const [localeOptions, setLocaleOptions] = useState<{ label: string; value: string }[]>([]);
   const [selectedLocale, setSelectedLocale] = useState<{ label: string; value: string } | null>(null);
+  // True once the locale-fetch effect below has settled (success or failure). Used as a
+  // safety net: if getProject fails, or the project has no master_locale/locales at all,
+  // selectedLocale stays null forever and the entries-fetch effect (keyed on
+  // contentTypeUid && selectedLocale) would never fire — leaving Map Entry on an empty
+  // table with no spinner and no error. Once resolution has settled with no options, fall
+  // back to the unfiltered fetch (server-side getEntryMapping already falls open when no
+  // locale is provided).
+  const [localesResolved, setLocalesResolved] = useState(false);
 
   /** ALL HOOKS HERE */
   const { projectId = '' } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const filterRef = useRef<HTMLDivElement | null>(null);
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Monotonic id per fetchEntries call. Any response whose id no longer matches the
+  // latest issued call is ignored — prevents a stale in-flight fetch from a previous
+  // locale/content-type from clobbering the current view's rowIds / persistedRowIds
+  // when responses land out of order.
+  const fetchGenerationRef = useRef(0);
+  // Bumped after every successful seedSelection fetch. Used as part of the Table's
+  // `key` so the Table remounts with FRESH rowIds already committed — remounting on
+  // locale change alone was too early (rowIds was still the previous locale's).
+  const [tableRevision, setTableRevision] = useState(0);
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -170,18 +186,34 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
         if (opts?.length > 0) setSelectedLocale(opts[0]);
       } catch (err) {
         console.error('Failed to load project locales', err);
+      } finally {
+        setLocalesResolved(true);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, selectedOrganisation?.uid]);
 
-  // Refetch the entry list when the user switches locale so isUpdate reflects the per-locale flag.
+  // Fetch the entry list once both contentTypeUid AND selectedLocale are ready, and refetch
+  // whenever either changes. Depending on both handles the initial-mount race where content
+  // types load before/after the locale mapping — whichever resolves last triggers the fetch,
+  // so we never call the API without a locale filter (which would return mixed-locale rows
+  // and clobber the Venus Table's initial selection snapshot).
   useEffect(() => {
     if (contentTypeUid && selectedLocale?.value) {
       fetchEntries(contentTypeUid, searchText || '', { seedSelection: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLocale?.value]);
+  }, [selectedLocale?.value, contentTypeUid]);
+
+  // Safety net: locale resolution settled (getProject failed, or the project has no
+  // master_locale/locales at all) with nothing selected — fall back to the unfiltered
+  // fetch instead of leaving the table empty forever with no spinner and no error.
+  useEffect(() => {
+    if (contentTypeUid && localesResolved && !selectedLocale?.value) {
+      fetchEntries(contentTypeUid, searchText || '', { seedSelection: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentTypeUid, localesResolved]);
 
   /********** HELPERS *************/
   /********** CONTENT TYPE LIST (left panel) *************/
@@ -199,9 +231,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle ?? '');
       setContentTypeUid(data?.contentTypes?.[0]?.id ?? '');
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid ?? '');
-      if (data?.contentTypes?.[0]?.id) {
-        fetchEntries(data?.contentTypes?.[0]?.id, searchVal ?? '', { seedSelection: true });
-      }
+      // Don't fetch entries here — the locale-effect at [selectedLocale.value] will fire
+      // once both contentTypeUid and selectedLocale are ready. Fetching now would run
+      // without a locale filter (selectedLocale is still null on initial mount), so the
+      // server would return all-locale rows and Venus's Table would snapshot that mixed
+      // selection state before the correct per-locale fetch could overwrite it.
     } catch (error) {
       setIsLoading(false);
       console.error(error);
@@ -216,7 +250,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     setTotalCounts(0);
     setRowIds({});
     setPersistedRowIds({});
-    setInitialRowSelectedData([]);
     setOtherCmsTitle('');
     setContentTypeUid('');
     setOtherCmsUid('');
@@ -232,7 +265,9 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setContentTypes(next);
       setFilteredContentTypes(next);
       setCount(next?.length ?? 0);
-      if (!next?.length) clearEntryTableState();
+      // When the search matches no content types, keep the currently-selected content
+      // type and its entries on the right — only the left list shows "No Content Types
+      // Found." Clearing the table here would strand the user on "No Records Found".
     } catch (error) {
       console.error(error);
       return error;
@@ -253,11 +288,10 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     setActive(i);
     const ct = filteredContentTypes?.[i];
     setOtherCmsTitle(ct?.otherCmsTitle ?? '');
-    setContentTypeUid(ct?.id ?? '');
     setOtherCmsUid(ct?.otherCmsUid ?? '');
-    if (ct?.id) {
-      fetchEntries(ct.id, searchText || '', { seedSelection: true });
-    }
+    // setContentTypeUid alone re-triggers the [contentTypeUid, selectedLocale] data-load
+    // effect above — calling fetchEntries directly here too would double the request.
+    setContentTypeUid(ct?.id ?? '');
   };
 
   const handleSchemaPreview = async (title: string, ctId: string) => {
@@ -313,11 +347,9 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       const first = nextList[0];
       setActive(0);
       setOtherCmsTitle(first?.otherCmsTitle ?? '');
-      setContentTypeUid(first?.id ?? '');
       setOtherCmsUid(first?.otherCmsUid ?? '');
-      if (first?.id) {
-        fetchEntries(first.id, searchText || '', { seedSelection: true });
-      }
+      // setContentTypeUid alone re-triggers the data-load effect — see handleOpenContentType.
+      setContentTypeUid(first?.id ?? '');
     }
     setShowFilter(false);
   };
@@ -342,10 +374,17 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     searchVal: string,
     { skip = 0, limit = 30, seedSelection = false }: { skip?: number; limit?: number; seedSelection?: boolean } = {},
   ) => {
+    const gen = ++fetchGenerationRef.current;
     try {
       setLoading(true);
 
       const { data } = await getEntryMapping(ctId || '', skip, limit, searchVal, projectId, selectedLocale?.value);
+
+      // Ignore this response entirely if the user has since triggered another fetch —
+      // e.g. quickly switched locales or content types. Without this, an earlier fetch
+      // finishing after a later one would overwrite rowIds/persistedRowIds with data
+      // for the wrong locale, silently deselecting entries the user just saved.
+      if (gen !== fetchGenerationRef.current) return;
 
       setLoading(false);
 
@@ -353,7 +392,6 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       const total = data?.count ?? validTableData?.length ?? 0;
 
       setTotalCounts(total);
-      setInitialRowSelectedData(selectableInitialRows(validTableData));
 
       if (!seedSelection) {
         // Re-apply the user's current selection onto the freshly fetched page;
@@ -366,9 +404,15 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       setTableData(validTableData ?? []);
       setRowIds(initialSelected);
       setPersistedRowIds(initialSelected);
+      // Force the Table to remount so it re-reads initialSelectedRowIds with the
+      // just-committed rowIds. Venus's InfiniteScrollTable snapshots that prop at
+      // mount and ignores subsequent updates; without a remount, switching locales
+      // shows the previous locale's checkboxes on the new data.
+      setTableRevision((r) => r + 1);
       // Reflect any pre-existing entry selections on the content type icon (green when present).
       updateContentTypeStatus(ctId, Object.keys(initialSelected ?? {}).length > 0);
     } catch (error) {
+      if (gen !== fetchGenerationRef.current) return;
       console.error('fetchEntries -> error', error);
       setLoading(false);
     }
@@ -475,13 +519,14 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       ),
       accessor: accessorCall,
       id: 'uuid',
-      width: '250px',
+      width: '340px',
     },
     {
       disableSortBy: true,
       Header: <span>{`${newMigrationData?.legacy_cms?.selectedCms?.title} UIDs:`}</span>,
       accessor: accessorForCMSUid,
-      id: '1'
+      id: '1',
+      width: '360px',
     },
     {
       disableSortBy: true,
@@ -491,11 +536,11 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
     }
   ];
 
-  // Must match the .Table__body height in index.scss so the react-window list is exactly
-  // as tall as the scroll body. Leave ~140px below for the search row, pagination bar and
-  // Save footer; the body scrolls internally so all rows of a page stay reachable.
-  const calcHeight = () => window.innerHeight - 520;
-  const tableHeight = calcHeight();
+  // Responsive table height for the entry mapper — see useMeasuredTableHeight for the why.
+  const tableHeight = useMeasuredTableHeight(tableWrapperRef, [contentTypeUid, tableData?.length], {
+    panelSelector: '.TablePanel',
+    footerSelector: '.mapper-footer',
+  });
 
   return (
     isLoading || newMigrationData?.isprojectMapped
@@ -504,7 +549,7 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
       </div>
       :
       <div className="step-container">
-        {(contentTypes?.length > 0 || tableData?.length > 0) ?
+        {(contentTypes?.length > 0 || tableData?.length > 0 || searchContentType?.length > 0) ?
           <div className="d-flex flex-wrap table-container">
             {/* Content Types List */}
             <div className="content-types-list-wrapper">
@@ -617,72 +662,95 @@ const EntryMapper = ({ handleStepChange }: entryMapperProps) => {
 
             {/* Entry Mapping Table */}
             <div className="content-types-fields-wrapper">
-              <div className="table-wrapper" ref={tableWrapperRef}>
-                <div className={`entry-mapper-container${localeOptions?.length > 0 ? ' has-locale-select' : ''}`}>
-                  {localeOptions?.length > 0 && (
-                    <div className="locale-select-inline">
-                      <Select
-                        className="locale-select"
-                        value={selectedLocale}
-                        options={localeOptions}
-                        onChange={(opt: { label: string; value: string }) => setSelectedLocale(opt)}
-                        isSearchable={false}
-                        isClearable={false}
-                        placeholder="Select locale"
-                        width="240px"
-                        version="v2"
-                      />
-                    </div>
-                  )}
+              <div
+                className={`entry-table-wrapper entry-mapper-container${localeOptions?.length > 0 ? ' has-locale-select' : ''}`}
+                ref={tableWrapperRef}
+              >
+                {localeOptions?.length > 0 && (
+                  <div className="locale-select-inline">
+                    <Select
+                      className="locale-select"
+                      value={selectedLocale}
+                      options={localeOptions}
+                      onChange={(opt: { label: string; value: string }) => setSelectedLocale(opt)}
+                      isSearchable={false}
+                      isClearable={false}
+                      placeholder="Select locale"
+                      width="240px"
+                      version="v2"
+                    />
+                  </div>
+                )}
+                <div className="entry-mapper-table">
                   <InfiniteScrollTable
-                    key={contentTypeUid || 'entry-mapper-table'}
-                    loading={loading}
-                    canSearch={true}
-                    totalCounts={totalCounts ?? 0}
-                    data={[...tableData]}
-                    columns={columns}
-                    uniqueKey={'id'}
-                    isRowSelect={true}
-                    fullRowSelect={true}
-                    fetchTableData={fetchData}
-                    tableHeight={tableHeight}
-                    equalWidthColumns={true}
-                    columnSelector={false}
-                    v2Features={{ pagination: true, isNewEmptyState: true }}
-                    rowPerPageOptions={[10, 30, 50, 100]}
-                    minBatchSizeToFetch={30}
-                    initialRowSelectedData={initialRowSelectedData}
-                    initialSelectedRowIds={rowIds}
-                    itemSize={70}
-                    getSelectedRow={handleSelectedEntries}
-                    rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
-                    name={{
-                      singular: '',
-                      plural: `${totalCounts === 0 ? 'Count' : ''}`
-                    }}
-                  />
-                  {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
-                    <div className="mapper-footer">
-                      <div>
-                        {/* Total Entries: <strong>{totalCounts}</strong> */}
-                      </div>
-                      <Button
-                        className="saveButton"
-                        onClick={handleSaveContentType}
-                        version="v2"
-                        // Lock the Save button only while a migration is actively in flight.
-                        // Using migrationStarted alone would permanently lock revisits on delta
-                        // iterations since migrationStarted stays true after completion.
-                        disabled={
-                          !!newMigrationData?.migration_execution?.migrationStarted &&
-                          !newMigrationData?.migration_execution?.migrationCompleted
-                        }
-                        isLoading={isLoadingSaveButton}
-                      >
-                        Save
-                      </Button>
+                  // `tableRevision` bumps AFTER a seedSelection fetch commits rowIds — so
+                  // the Table remounts with the correct initial selection already in state.
+                  // Keying on selectedLocale alone would remount too early (rowIds still
+                  // holding the previous locale's data, since the new fetch is still
+                  // in flight).
+                  key={`${contentTypeUid || 'entry-mapper-table'}::${tableRevision}`}
+                  loading={loading}
+                  canSearch={true}
+                  totalCounts={totalCounts ?? 0}
+                  data={[...tableData]}
+                  columns={columns}
+                  uniqueKey={'id'}
+                  isRowSelect={true}
+                  fullRowSelect={true}
+                  fetchTableData={fetchData}
+                  tableHeight={tableHeight}
+                  equalWidthColumns={false}
+                  columnSelector={false}
+                  v2Features={{ pagination: true, isNewEmptyState: true }}
+                  rowPerPageOptions={[10, 30, 50, 100]}
+                  minBatchSizeToFetch={30}
+                  initialSelectedRowIds={rowIds}
+                  itemSize={70}
+                  getSelectedRow={handleSelectedEntries}
+                  rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+                  name={{
+                    singular: '',
+                    plural: `${totalCounts === 0 ? 'Count' : ''}`
+                  }}
+                  customEmptyState={
+                    <EmptyState
+                      forPage="list"
+                      heading={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_HEADING}
+                      description={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_DESCRIPTION}
+                      moduleIcon={MAPPER_SEARCH_EMPTY_STATE.NO_MATCH_ICON}
+                      className="custom-empty-state"
+                    />
+                  }
+                />
+                {(totalCounts > 0 || (tableData?.length ?? 0) > 0) && (
+                  <div className="mapper-footer">
+                    <div>
+                      {/* Total Entries: <strong>{totalCounts}</strong> */}
                     </div>
-                  )}
+                    <Button
+                      className="saveButton"
+                      onClick={handleSaveContentType}
+                      version="v2"
+                      // Lock the Save button only while a migration is actively in flight.
+                      // Using migrationStarted alone would permanently lock revisits on delta
+                      // iterations since migrationStarted stays true after completion.
+                      // Also lock when there's nothing to save: no pending selection AND the
+                      // current page has no mappable row. tableData is only the current
+                      // server-paginated page, so we must fall back to rowIds (persisted +
+                      // pending selection) — otherwise a content type whose mappable rows sit
+                      // on page 2+ would wrongly disable Save.
+                      disabled={
+                        (!!newMigrationData?.migration_execution?.migrationStarted &&
+                          !newMigrationData?.migration_execution?.migrationCompleted) ||
+                        (Object.keys(rowIds ?? {}).length === 0 &&
+                          !tableData?.some((row) => row?._canSelect))
+                      }
+                      isLoading={isLoadingSaveButton}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                )}
                 </div>
               </div>
             </div>

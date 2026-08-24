@@ -7885,8 +7885,13 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     return assets["wp:post_id"];
   } catch (err: any) {
     const assetName = assets["title"] || nameWithoutExt;
-    failedJSON[assets["wp:post_id"]] = {
-      failedUid: assets["wp:post_id"],
+    // Must be keyed by customId (assets_<wp:post_id>), not the bare wp:post_id — that's
+    // the otherCmsAssetUid extractAssets.ts assigns this row, and the only key
+    // getAssetMapping looks up in cs_failed.json to resolve a row's status. Keying by the
+    // bare id here (as this used to) meant a failed attachment was queried as
+    // `assets_<id>`, never matched, and silently showed as "ok" instead of "failed".
+    failedJSON[customId] = {
+      failedUid: customId,
       name: assetName,
       url,
       reason_for_error: err?.message || "error",

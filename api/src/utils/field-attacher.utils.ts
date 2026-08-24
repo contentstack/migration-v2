@@ -119,9 +119,11 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
         })
       }
 
+      // Always create the content type on a test migration (skip the iteration-based
+      // dedupe entirely) or on the first real iteration. The skip logic below only
+      // applies to delta iterations of a real migration.
       if (iteration === 1) {
         await contenTypeMaker({ contentType, destinationStackId: safeDestinationStackId, projectId: safeProjectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
-
       }
       else {
         const shouldSkip = await shouldSkipContentTypeCreation(safeProjectId, contentType?.otherCmsUid, iteration);

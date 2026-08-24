@@ -250,4 +250,10 @@ export interface AssetMapperType {
   isChanged?: boolean;
   contentstackAssetUid?: string;
   _canSelect?: boolean;
+  hasSource?: boolean;
+  // 'missing' — no url/upload in the source at all, nothing to retry.
+  // 'failed' — had a source but the last migration run's download attempt threw; retriable.
+  // 'ok' — no known issue.
+  status?: 'missing' | 'failed' | 'ok';
+  errorMessage?: string;
 }

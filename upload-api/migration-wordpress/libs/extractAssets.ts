@@ -78,7 +78,10 @@ const extractAssets = async (filePath: string): Promise<AssetMappingRow[]> => {
 
       rows.push({
         id,
-        otherCmsAssetUid: id,
+        // Must match the `assets_<wp:post_id>` key wordpress.service.ts uses as the
+        // asset's customId/uid when staging it for CLI import — that's the key the CLI
+        // writes back into uid-mapping.json, and the read path looks this up verbatim.
+        otherCmsAssetUid: `assets_${id}`,
         filename,
         title,
         file_size: '',

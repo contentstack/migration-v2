@@ -22,6 +22,11 @@ const {
   mockUidMapperDb,
   getEntryMapperDbMock,
   getUidMapperDbMock,
+  mockRetryFailedAsset,
+  mockAssetMapperDb,
+  getAssetMapperDbMock,
+  mockFsExistsSync,
+  mockFsReadFileSync,
 } = vi.hoisted(() => {
   const mockContentTypesMapperRead = vi.fn();
   const mockContentTypesMapperUpdate = vi.fn();
@@ -63,6 +68,13 @@ const {
     chain: { get: mockUidMapperChainGet },
     data: { entry: {} as Record<string, unknown>, assets: {} as Record<string, unknown> },
   };
+  const mockAssetMapperRead = vi.fn();
+  const mockAssetMapperChainGet = vi.fn();
+  const mockAssetMapperDb = {
+    read: mockAssetMapperRead,
+    chain: { get: mockAssetMapperChainGet },
+    data: { asset_mapper: [] as unknown[] },
+  };
   return {
     mockHttps: vi.fn(),
     mockGetAuthToken: vi.fn(),
@@ -85,6 +97,11 @@ const {
     mockUidMapperDb,
     getEntryMapperDbMock: vi.fn(() => mockEntryMapperDb),
     getUidMapperDbMock: vi.fn(() => mockUidMapperDb),
+    mockRetryFailedAsset: vi.fn(),
+    mockAssetMapperDb,
+    getAssetMapperDbMock: vi.fn(() => mockAssetMapperDb),
+    mockFsExistsSync: vi.fn(() => false),
+    mockFsReadFileSync: vi.fn(() => '{}'),
   };
 });
 
@@ -131,11 +148,26 @@ vi.mock('../../../src/models/uidMapper.js', () => ({
   default: getUidMapperDbMock,
 }));
 
+vi.mock('../../../src/models/assetMapper.js', () => ({
+  default: getAssetMapperDbMock,
+}));
+
+vi.mock('../../../src/services/contentful.service.js', () => ({
+  contentfulService: { retryFailedAsset: mockRetryFailedAsset },
+}));
+
 vi.mock('fs', () => {
   const mkdirSync = vi.fn();
   return {
-    default: { promises: mockFsPromises, mkdirSync },
+    default: {
+      promises: mockFsPromises,
+      mkdirSync,
+      existsSync: mockFsExistsSync,
+      readFileSync: mockFsReadFileSync,
+    },
     mkdirSync,
+    existsSync: mockFsExistsSync,
+    readFileSync: mockFsReadFileSync,
     promises: mockFsPromises,
   };
 });
@@ -147,13 +179,15 @@ const createChain = (opts: {
   find?: unknown;
   findIndex?: number;
   value?: unknown;
+  filter?: unknown[];
 }) => {
   const findValue = opts.find !== undefined ? opts.find : null;
   const findIndexValue = opts.findIndex !== undefined ? opts.findIndex : -1;
+  const filterValue = opts.filter !== undefined ? opts.filter : [];
   return {
     find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(findValue) }),
     findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(findIndexValue) }),
-    filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
+    filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(filterValue) }),
   };
 };
 
@@ -165,12 +199,16 @@ describe('contentMapper.service', () => {
     (mockFieldDb.chain.get as ReturnType<typeof vi.fn>).mockReset();
     (mockEntryMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReset();
     (mockUidMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReset();
+    (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReset();
     mockGetAuthToken.mockResolvedValue('cs-auth-token');
     mockProjectRead.mockResolvedValue(undefined);
     mockContentTypesMapperRead.mockResolvedValue(undefined);
     mockFieldMapperRead.mockResolvedValue(undefined);
     (mockEntryMapperDb.read as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
     (mockUidMapperDb.read as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (mockAssetMapperDb.read as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    mockFsExistsSync.mockReturnValue(false);
+    mockFsReadFileSync.mockReturnValue('{}');
     mockProjectUpdate.mockImplementation(async (fn: (d: any) => void) => {
       const data = ProjectModelLowdb.data as any;
       if (!data.projects) data.projects = [];
@@ -202,11 +240,13 @@ describe('contentMapper.service', () => {
     mockFieldDb.data = { field_mapper: [] };
     mockEntryMapperDb.data = { entry_mapper: [] };
     mockUidMapperDb.data = { entry: {}, assets: {} };
+    mockAssetMapperDb.data = { asset_mapper: [] };
     (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(createChain({ find: null, findIndex: -1 }));
     (mockContentTypesDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(createChain({ find: null, findIndex: -1 }));
     (mockFieldDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(createChain({ find: null, findIndex: -1 }));
     (mockEntryMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(createChain({ find: null, findIndex: -1 }));
     (mockUidMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(createChain({ find: null, findIndex: -1 }));
+    (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(createChain({ filter: [] }));
   });
 
   describe('putTestData', () => {
@@ -885,6 +925,213 @@ describe('contentMapper.service', () => {
 
       expect(result.status).toBe(404);
       expect(result.data).toBe('Project not found');
+    });
+  });
+
+  describe('retryAssetDownload', () => {
+    it('returns 400 when assetUid is missing', async () => {
+      const req = { params: { projectId: 'proj-1' } } as any;
+
+      const result = await contentMapperService.retryAssetDownload(req);
+
+      expect(result.status).toBe(400);
+      expect(result.data.message).toMatch(/assetUid/i);
+    });
+
+    it('returns 400 when the project has no destination stack or source file path', async () => {
+      const project = { id: 'proj-1', legacy_cms: { cms: 'contentful' } };
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: project })
+      );
+
+      const req = { params: { projectId: 'proj-1', assetUid: 'src-1' } } as any;
+      const result = await contentMapperService.retryAssetDownload(req);
+
+      expect(result.status).toBe(400);
+      expect(result.data.message).toMatch(/destination stack|source file/i);
+    });
+
+    it('returns 400 for a non-Contentful project', async () => {
+      const project = {
+        id: 'proj-1',
+        destination_stack_id: 'stack-1',
+        legacy_cms: { cms: 'wordpress', file_path: '/tmp/export.xml' },
+      };
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: project })
+      );
+
+      const req = { params: { projectId: 'proj-1', assetUid: 'src-1' } } as any;
+      const result = await contentMapperService.retryAssetDownload(req);
+
+      expect(result.status).toBe(400);
+      expect(result.data.message).toMatch(/Contentful/i);
+    });
+
+    it('returns 200 with success:true when the retry succeeds', async () => {
+      const project = {
+        id: 'proj-1',
+        destination_stack_id: 'stack-1',
+        legacy_cms: { cms: 'contentful', file_path: '/tmp/export.json' },
+      };
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: project })
+      );
+      mockRetryFailedAsset.mockResolvedValue({
+        success: true,
+        message: 'Asset downloaded successfully. It will be included in the next migration run.',
+      });
+
+      const req = { params: { projectId: 'proj-1', assetUid: 'src-1' } } as any;
+      const result = await contentMapperService.retryAssetDownload(req);
+
+      expect(mockRetryFailedAsset).toHaveBeenCalledWith('/tmp/export.json', 'stack-1', 'proj-1', 'src-1');
+      expect(result.status).toBe(200);
+      expect(result.data.success).toBe(true);
+    });
+
+    it('returns 400 with the failure reason when the retry fails again', async () => {
+      const project = {
+        id: 'proj-1',
+        destination_stack_id: 'stack-1',
+        legacy_cms: { cms: 'contentful', file_path: '/tmp/export.json' },
+      };
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: project })
+      );
+      mockRetryFailedAsset.mockResolvedValue({ success: false, message: 'DNS lookup failed.' });
+
+      const req = { params: { projectId: 'proj-1', assetUid: 'src-1' } } as any;
+      const result = await contentMapperService.retryAssetDownload(req);
+
+      expect(result.status).toBe(400);
+      expect(result.data.success).toBe(false);
+      expect(result.data.message).toBe('DNS lookup failed.');
+    });
+  });
+
+  describe('getAssetMapping', () => {
+    const project = { id: 'proj-1', destination_stack_id: 'stack1', iteration: 1 };
+    const baseReq = (overrides: Record<string, unknown> = {}) =>
+      ({
+        params: { projectId: 'proj-1', skip: '0', limit: '10', searchText: '', ...overrides },
+        query: {},
+      }) as any;
+
+    beforeEach(() => {
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: project })
+      );
+    });
+
+    it('returns assets with an ok status when nothing failed', async () => {
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-1', contentstackAssetUid: 'cs-1', filename: 'a.jpg', title: 'A' },
+          ],
+        })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq());
+
+      expect(result.status).toBe(200);
+      expect(result.count).toBe(1);
+      expect(result.assetMapping[0].status).toBe('ok');
+      expect(result.missingCount).toBe(0);
+      expect(result.failedCount).toBe(0);
+    });
+
+    it('marks assets with no source file as missing', async () => {
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-2', hasSource: false, filename: 'b.jpg', title: 'B' },
+          ],
+        })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq());
+
+      expect(result.assetMapping[0].status).toBe('missing');
+      expect(result.missingCount).toBe(1);
+    });
+
+    it('marks assets recorded in cs_failed.json as failed', async () => {
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-3', filename: 'c.jpg', title: 'C' },
+          ],
+        })
+      );
+      mockFsExistsSync.mockReturnValue(true);
+      mockFsReadFileSync.mockReturnValue(
+        JSON.stringify({ 'src-3': { reason_for_error: 'Timeout downloading asset.' } })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq());
+
+      expect(result.assetMapping[0].status).toBe('failed');
+      expect(result.assetMapping[0].errorMessage).toBe('Timeout downloading asset.');
+      expect(result.failedCount).toBe(1);
+    });
+
+    it('filters by the requested status', async () => {
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-1', contentstackAssetUid: 'cs-1', filename: 'a.jpg', title: 'A' },
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-2', hasSource: false, filename: 'b.jpg', title: 'B' },
+          ],
+        })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq({}));
+      const filteredResult = await contentMapperService.getAssetMapping({
+        params: { projectId: 'proj-1', skip: '0', limit: '10', searchText: '' },
+        query: { status: 'missing' },
+      } as any);
+
+      expect(result.count).toBe(2);
+      expect(filteredResult.count).toBe(1);
+      expect(filteredResult.assetMapping[0].status).toBe('missing');
+    });
+
+    it('filters by search text against filename and title', async () => {
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-1', contentstackAssetUid: 'cs-1', filename: 'windmill.jpg', title: 'Windmill' },
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-2', contentstackAssetUid: 'cs-2', filename: 'sunset.jpg', title: 'Sunset' },
+          ],
+        })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq({ searchText: 'wind' }));
+
+      expect(result.count).toBe(1);
+      expect(result.assetMapping[0].filename).toBe('windmill.jpg');
+    });
+
+    it('shows brand-new assets alongside previously-migrated ones on iteration 2+', async () => {
+      (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({ find: { ...project, iteration: 2 } })
+      );
+      mockUidMapperDb.data = { entry: {}, assets: { 'src-1': 'cs-1' } };
+      (mockAssetMapperDb.chain.get as ReturnType<typeof vi.fn>).mockReturnValue(
+        createChain({
+          filter: [
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-1', contentstackAssetUid: 'cs-1', filename: 'a.jpg', title: 'A' },
+            { projectId: 'proj-1', otherCmsAssetUid: 'src-2', filename: 'b.jpg', title: 'B' },
+          ],
+        })
+      );
+
+      const result = await contentMapperService.getAssetMapping(baseReq());
+
+      expect(result.count).toBe(2);
+      expect(result.assetMapping.map((item: any) => item.otherCmsAssetUid).sort()).toEqual(['src-1', 'src-2']);
     });
   });
 });

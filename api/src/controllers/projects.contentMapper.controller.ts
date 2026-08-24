@@ -212,6 +212,18 @@ const updateAssetStatus = async (req: Request, res: Response): Promise<void> => 
   res.status(resp?.status).json(resp);
 };
 
+/**
+ * Re-attempts the download for one asset that failed during the last migration run.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const retryAssetDownload = async (req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.retryAssetDownload(req);
+  res.status(resp?.status).json(resp);
+};
+
 export const contentMapperController = {
   getContentTypes,
   getFieldMapping,
@@ -229,5 +241,6 @@ export const contentMapperController = {
   getEntryMapping,
   updateEntryStatus,
   getAssetMapping,
-  updateAssetStatus
+  updateAssetStatus,
+  retryAssetDownload
 };

@@ -15,6 +15,7 @@ import {
   CONTENT_TYPE_STATUS,
   VALIDATION_ERRORS,
   MIGRATION_DATA_CONFIG,
+  CMS,
 } from '../constants/index.js';
 import logger from '../utils/logger.js';
 import { config } from '../config/index.js';
@@ -34,6 +35,9 @@ import getUidMapperDb from "../models/uidMapper.js";
 import { isDuplicateEntry } from '../utils/entry-duplicate.utils.js';
 import { getSourceLocaleForDestination } from '../utils/locale-migration.utils.js';
 import { loadPreviousAssetMetadata } from '../utils/asset-update.utils.js';
+import { flattenNestedUidMap } from '../utils/uid-mapper.utils.js';
+import { contentfulService } from './contentful.service.js';
+import { sanitizeStackId, assertResolvedPathUnderBase } from '../utils/sanitize-path.utils.js';
 
 
 const idCorrector = ({ id }: { id: string }) => {
@@ -175,11 +179,7 @@ const putTestData = async (req: Request) => {
 
     const uidMapperCurrent = getUidMapperDb(projectId, iteration);
     await uidMapperCurrent.read();
-    let uidMapperPrev: any = null;
-    if (iteration > 1) {
-      uidMapperPrev = getUidMapperDb(projectId, iteration - 1);
-      await uidMapperPrev.read();
-    }
+    const uidMapperPrev: any = iteration > 1 ? await getNearestPriorUidMapper(projectId, iteration) : null;
 
     const mergeEntry = (base: any, incoming: any) => {
       const keep = { ...(base ?? {}) };
@@ -482,15 +482,29 @@ const getContentTypes = async (req: Request) => {
     );
 
     // Delta migration: from iteration 2 onwards, split content types into new vs old
-    // relative to the previous iteration so Step 3 (field mapping) shows only new types
-    // and Step 4 (entry mapping) shows only already-migrated types. Iteration 1 is untouched.
+    // relative to EVERY prior iteration (1..N-1) so Step 3 (field mapping) shows only
+    // genuinely-never-seen types and Step 4 (entry mapping) shows every already-migrated
+    // type. Comparing only against iteration N-1 misclassified any content type that
+    // was migrated in iteration 1 but absent from the iteration-2 source as "new" on
+    // iteration 3 — sending already-migrated types back to Map Content Fields and
+    // hiding them from Map Entry. Iteration 1 is untouched.
     if (iteration > 1) {
-      const PrevContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration - 1);
-      await PrevContentTypesMapperModelLowdb.read();
-      const prevContentMapper =
-        PrevContentTypesMapperModelLowdb.chain.get('ContentTypesMappers').value() ?? [];
+      const seenPrevCts: ContentTypesMapper[] = [];
+      const seenPrevUids = new Set<string>();
+      for (let i = 1; i < iteration; i++) {
+        const priorModel = getContentTypesMapperDb(projectId, i);
+        await priorModel.read();
+        const cts = priorModel.chain.get('ContentTypesMappers').value() ?? [];
+        for (const ct of cts) {
+          const uid = ct?.otherCmsUid;
+          if (uid && !seenPrevUids.has(uid)) {
+            seenPrevUids.add(uid);
+            seenPrevCts.push(ct);
+          }
+        }
+      }
 
-      const filtered = filterContentTypesByIteration(content_mapper, prevContentMapper, filter);
+      const filtered = filterContentTypesByIteration(content_mapper, seenPrevCts, filter);
       content_mapper.length = 0;
       content_mapper.push(...filtered);
 
@@ -1984,7 +1998,7 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
 
 const updateEntryStatus = async (req: Request) => {
   const { projectId } = req?.params;
-  const { ids } = req?.body;
+  const { ids, locale } = req?.body;
   const validatedUids: string[] = Array.isArray(ids) ? ids : [];
   const srcFunc = "updateEntryMapping";
   if (isEmpty(validatedUids)) {
@@ -2008,21 +2022,42 @@ const updateEntryStatus = async (req: Request) => {
       .find({ id: projectId })
       .value();
     const iteration = projectData?.iteration || 1;
-    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
-    await EntryMapperModel.read();
-    const foundEntry: EntryMapper[] = [];
-    // Rows in entry_mapper are already per-(entry × source-locale), so each id uniquely
-    // identifies one locale variant; toggling isUpdate directly is correct.
-    await EntryMapperModel.update((data: any) => {
-      data?.entry_mapper?.forEach((entry: any) => {
-        if (validatedUids.includes(entry?.id)) {
-          entry.isUpdate = !entry.isUpdate;
-          foundEntry.push(entry);
-        }
-      });
-    });
+    // Rows in entry_mapper are per-(entry × source-locale); each id is unique per row.
+    // Also scope the toggle by source-locale as a safety net so a same-id collision
+    // (if it ever happens) can't flip a sibling locale's row and clobber the user's
+    // selection state on the other locale. Only enforced when the row actually carries
+    // a language — legacy rows created before language-tagging existed have none, and
+    // requiring a match against them would make them permanently untoggleable.
+    const sourceLocale = locale
+      ? getSourceLocaleForDestination(projectData ?? {}, locale)
+      : null;
 
-    if (foundEntry) {
+    const toggleInModel = async (iter: number): Promise<EntryMapper[]> => {
+      const model = getEntryMapperDb(projectId, iter);
+      await model.read();
+      const matched: EntryMapper[] = [];
+      await model.update((data: any) => {
+        data?.entry_mapper?.forEach((entry: any) => {
+          if (!validatedUids.includes(entry?.id)) return;
+          if (sourceLocale && entry?.language && entry.language !== sourceLocale) return;
+          entry.isUpdate = !entry.isUpdate;
+          matched.push(entry);
+        });
+      });
+      return matched;
+    };
+
+    let foundEntry = await toggleInModel(iteration);
+
+    // Fallback: mirrors getEntryMapping's read-side fallback (contentMapper.service.ts
+    // ~2119-2131) — right after a restart, before iteration N's entry-mapper rows exist,
+    // Map Entry renders rows sourced from iteration N-1. Without this, saving those rows
+    // 404s here even though the user is looking at exactly what the read path showed them.
+    if (!foundEntry.length && iteration > 1) {
+      foundEntry = await toggleInModel(iteration - 1);
+    }
+
+    if (foundEntry.length) {
       return {
         status: HTTP_CODES?.OK,
         data: foundEntry
@@ -2217,6 +2252,29 @@ const lookupContentstackEntryUidFromUidMap = (
   return String(resolved).trim() || undefined;
 };
 
+/**
+ * Loads the nearest prior iteration's uid-mapper model, walking backward from
+ * `iteration - 1` down to 1 — not just `iteration - 1` alone. `writeUidMapping` already
+ * merges each successful run's uid-mapper.json forward from the one before it, so the
+ * nearest prior iteration that actually has a file already carries everything from every
+ * iteration before it; we only need to skip iterations where the file is simply absent
+ * (e.g. a restart that skipped an actual "Start Migration" run for that iteration — see
+ * CMG-1095, the same gap for content types). Without this, a single skipped iteration
+ * permanently breaks uid resolution for every iteration after it.
+ */
+const getNearestPriorUidMapper = async (projectId: string, iteration: number): Promise<any | null> => {
+  for (let i = iteration - 1; i >= 1; i--) {
+    const model = getUidMapperDb(projectId, i);
+    await model.read();
+    const data = model?.data as any;
+    const hasData =
+      Object.keys(data?.entry ?? {}).length > 0 ||
+      Object.keys(data?.assets ?? {}).length > 0;
+    if (hasData) return model;
+  }
+  return null;
+};
+
 const getEntryUidMap = (uidMapperModel: any): Record<string, any> => {
   const d = uidMapperModel?.data ?? {};
   const pick = (x: unknown): Record<string, any> => {
@@ -2235,17 +2293,6 @@ const getEntryUidMap = (uidMapperModel: any): Record<string, any> => {
   return {};
 };
 
-const flattenNestedUidMap = (raw: Record<string, any>): Record<string, any> => {
-  const keys = Object?.keys(raw ?? {});
-  if (keys?.length === 0) return {};
-  const nested = keys?.every((k) => {
-    const v = raw[k];
-    return v != null && typeof v === 'object' && !Array.isArray(v);
-  });
-  if (!nested) return { ...raw };
-  return keys.reduce<Record<string, any>>((acc, k) => ({ ...acc, ...raw[k] }), {});
-};
-
 /**
  * Fill missing contentstackEntryUid from uid-mapper. Uses **current** iteration first
  * (where the latest CLI import writes), then iteration-1 so step 3 still works right
@@ -2261,11 +2308,7 @@ const enrichEntriesWithUidMapper = async (
   const currentModel = getUidMapperDb(projectId, iteration);
   await currentModel.read();
 
-  let prevModel: any = null;
-  if (iteration > 1) {
-    prevModel = getUidMapperDb(projectId, iteration - 1);
-    await prevModel.read();
-  }
+  const prevModel: any = iteration > 1 ? await getNearestPriorUidMapper(projectId, iteration) : null;
 
   return entries?.map((item: any) => {
     if (!item) return item;
@@ -2352,12 +2395,83 @@ const updateAssetStatus = async (req: Request) => {
   }
 };
 
+/**
+ * Re-attempts the download for one asset that failed during the last migration run
+ * (currently CMS Contentful only — the `cs_failed.json` file this reads is written by
+ * contentfulService.createAssets). Only re-stages the asset locally; it lands in the
+ * destination stack on the next migration run (Start Migration), same as any other asset.
+ */
+const retryAssetDownload = async (req: Request) => {
+  const srcFunc = "retryAssetDownload";
+  const projectId = req?.params?.projectId;
+  const assetUid = req?.params?.assetUid;
+
+  if (!assetUid) {
+    return {
+      status: HTTP_CODES?.BAD_REQUEST,
+      data: { message: "Missing assetUid" },
+    };
+  }
+
+  try {
+    await ProjectModelLowdb.read();
+    const projectData: any = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+
+    const destinationStackId = projectData?.destination_stack_id;
+    const filePath = projectData?.legacy_cms?.file_path;
+    const cms = projectData?.legacy_cms?.cms;
+
+    if (!destinationStackId || !filePath) {
+      return {
+        status: HTTP_CODES?.BAD_REQUEST,
+        data: { message: "Project is missing a destination stack or source file path." },
+      };
+    }
+    if (cms !== CMS.CONTENTFUL) {
+      return {
+        status: HTTP_CODES?.BAD_REQUEST,
+        data: { message: "Asset retry is only supported for Contentful projects." },
+      };
+    }
+
+    const cleanLocalPath = filePath.replace(/\/$/, '');
+    const result = await contentfulService.retryFailedAsset(
+      cleanLocalPath,
+      destinationStackId,
+      projectId,
+      assetUid,
+    );
+
+    return {
+      status: result.success ? HTTP_CODES?.OK : HTTP_CODES?.BAD_REQUEST,
+      data: result,
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while retrying asset download",
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+    );
+  }
+};
+
 const getAssetMapping = async (req: Request) => {
   const srcFunc = "getAssetMapping";
   const projectId = req?.params?.projectId;
   const skip: any = req?.params?.skip;
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
+  // Optional status filter: ?status=failed | missing | ok. Absent/anything else = no filter.
+  const statusFilter = req?.query?.status as string | undefined;
 
   let result: any[] = [];
   let filteredResult = [];
@@ -2390,15 +2504,13 @@ const getAssetMapping = async (req: Request) => {
     }
 
     // Fill missing contentstackAssetUid from uid-mapper (current first, then
-    // the previous iteration) so rows saved before the import resolve later.
+    // the nearest prior iteration that actually has one) so rows saved before
+    // the import resolve later.
     const uidMapperCurrent = getUidMapperDb(projectId, iteration);
     await uidMapperCurrent.read();
-    let uidMapperPrev: any = null;
-    if (iteration > 1) {
-      uidMapperPrev = getUidMapperDb(projectId, iteration - 1);
-      await uidMapperPrev.read();
-    }
-    const enrichedMapping = (assetMapping ?? []).map((item: any) => {
+    const uidMapperPrev: any = iteration > 1 ? await getNearestPriorUidMapper(projectId, iteration) : null;
+
+    let uidEnriched = (assetMapping ?? []).map((item: any) => {
       if (!item) return item;
       const existing = item?.contentstackAssetUid;
       if (existing != null && String(existing).trim() !== '') {
@@ -2410,23 +2522,76 @@ const getAssetMapping = async (req: Request) => {
       return resolved ? { ...item, contentstackAssetUid: resolved } : item;
     });
 
-    if (!isEmpty(enrichedMapping)) {
+    // Status per row for the UI: 'missing' (no url/upload in the source at all — nothing
+    // to retry), 'failed' (had a source but the last migration run's download attempt
+    // threw — retriable), or 'ok'. Read once per request; cs_failed.json is only written
+    // after an actual migration run, so it's absent (empty status) before that.
+    let failedAssets: Record<string, any> = {};
+    const destinationStackId = projectData?.destination_stack_id;
+    // destination_stack_id is DB-stored, but Snyk's taint tracker still traces it back to
+    // the HTTP projectId param via the lowdb lookup above — sanitize it the same way the
+    // rest of this codebase does (sanitizeStackId strips it to an allowlisted charset,
+    // assertResolvedPathUnderBase re-confirms the joined path can't escape the data dir)
+    // before it reaches a readFileSync sink.
+    const safeDestinationStackId = sanitizeStackId(destinationStackId);
+    if (safeDestinationStackId) {
+      const assetsBase = path.resolve(MIGRATION_DATA_CONFIG.DATA);
+      const failedPath = path.join(assetsBase, safeDestinationStackId, MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME, MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE);
+      try {
+        assertResolvedPathUnderBase(assetsBase, failedPath);
+        if (fs.existsSync(failedPath)) {
+          failedAssets = JSON.parse(fs.readFileSync(failedPath, 'utf-8')) || {};
+        }
+      } catch {
+        failedAssets = {};
+      }
+    }
+    const enrichedMapping = uidEnriched.map((item: any) => {
+      if (!item) return item;
+      if (item?.hasSource === false) {
+        return { ...item, status: 'missing', errorMessage: 'No source file found for this asset — nothing to migrate.' };
+      }
+      const failure = failedAssets?.[item?.otherCmsAssetUid];
+      if (failure) {
+        return { ...item, status: 'failed', errorMessage: failure?.reason_for_error || 'Failed to download this asset during the last migration run.' };
+      }
+      return { ...item, status: 'ok' };
+    });
+
+    // Show every asset regardless of iteration — brand-new-this-iteration assets
+    // alongside previously-migrated/updatable ones — matching getEntryMapping's
+    // behavior for entries. Consistent across all CMS connectors since this read
+    // path is shared.
+    const displayMapping = enrichedMapping;
+
+    // Aggregate counts across the FULL (unpaginated, unsearched) visible set — the banner
+    // needs "3 assets won't migrate" regardless of which page or search term is active.
+    const missingCount = displayMapping.filter((item: any) => item?.status === 'missing').length;
+    const failedCount = displayMapping.filter((item: any) => item?.status === 'failed').length;
+
+    const statusFiltered = statusFilter && ['ok', 'missing', 'failed'].includes(statusFilter)
+      ? displayMapping.filter((item: any) => item?.status === statusFilter)
+      : displayMapping;
+
+    if (!isEmpty(statusFiltered)) {
       if (search) {
-        filteredResult = enrichedMapping?.filter?.((item: any) =>
+        filteredResult = statusFiltered?.filter?.((item: any) =>
           item?.filename?.toLowerCase().includes(search) ||
           item?.title?.toLowerCase().includes(search)
         );
         totalCount = filteredResult?.length;
         result = filteredResult?.slice(skip, Number(skip) + Number(limit));
       } else {
-        totalCount = enrichedMapping?.length;
-        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
+        totalCount = statusFiltered?.length;
+        result = statusFiltered?.slice(skip, Number(skip) + Number(limit));
       }
     }
     return {
       status: HTTP_CODES?.OK,
       count: totalCount,
-      assetMapping: result
+      assetMapping: result,
+      missingCount,
+      failedCount,
     };
 
   } catch (error: any) {
@@ -2465,4 +2630,5 @@ export const contentMapperService = {
   updateEntryStatus,
   getAssetMapping,
   updateAssetStatus,
+  retryAssetDownload,
 };
