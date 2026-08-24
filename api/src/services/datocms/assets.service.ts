@@ -68,21 +68,36 @@ export async function createAssets(
       const size = (await fs.promises.stat(destPath)).size;
       const ext = (asset.format || path.extname(asset.filename || '').replace('.', '') || '').toLowerCase();
 
+      // DatoCMS keeps alt text and a human title per locale under
+      // `default_field_metadata`. Both have direct Contentstack homes and were
+      // previously discarded: alt text is accessibility/SEO copy someone wrote by
+      // hand, and without the title every asset reads as its raw filename.
+      // Keyed by DatoCMS locale, not the destination locale code — prefer `en`,
+      // else the first entry that actually carries text.
+      const meta: Record<string, any> = asset.default_field_metadata ?? {};
+      const localeMeta =
+        meta.en ?? Object.values(meta).find((m: any) => m?.alt || m?.title) ?? Object.values(meta)[0] ?? {};
+      const alt = typeof (localeMeta as any)?.alt === 'string' ? (localeMeta as any).alt.trim() : '';
+      const assetTitle = typeof (localeMeta as any)?.title === 'string' ? (localeMeta as any).title.trim() : '';
+      // `tags` are author-curated; `smart_tags` are DatoCMS's AI guesses and are
+      // deliberately left out — see docs/features/datocms-connector/migration-decisions.md
+      const tags = Array.isArray(asset.tags) ? asset.tags.filter((t: any) => typeof t === 'string' && t.trim()) : [];
+
       index[uid] = {
         uid,
         urlPath: `/assets/${uid}`,
         status: true,
         content_type: getMimeTypeFromExtension(ext) || asset.mime_type || 'application/octet-stream',
         file_size: `${size}`,
-        tag: [],
+        tag: tags,
         filename: asset.filename || localFilename,
         url: '',
         is_dir: false,
         parent_uid: null,
         _version: 1,
-        title: asset.filename || localFilename,
+        title: assetTitle || asset.filename || localFilename,
         publish_details: [],
-        description: '',
+        description: alt,
       };
     }
   } catch (err: any) {

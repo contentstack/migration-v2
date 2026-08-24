@@ -124,10 +124,15 @@ function ensureMandatoryFields(
     fieldMapping.unshift(row);
   }
 
-  // A source `url` field stays exactly as DatoCMS declared it — never forced to
-  // mandatory, and never invented when the source has none.
-  const url = fieldMapping.find((f) => topLevel(f) && f.contentstackFieldUid === 'url');
-  if (url) url.advanced = { ...url.advanced, mandatory: false };
+  // A source `url` field is left exactly as DatoCMS declared it — its `required`
+  // and `unique` validators come through `applySourceMeta` like any other field's.
+  //
+  // It is still never INVENTED: a content type whose source has no `url` gets
+  // none, and `buildCtOptions` marks it non-page so the CMA never demands one.
+  // That, not a forced `mandatory: false`, is what keeps those content types
+  // valid — an earlier version overrode the source here and silently discarded 12
+  // required+unique constraints to solve a problem the page-type split had
+  // already solved.
 
   orderMandatoryFirst(fieldMapping);
 }
@@ -234,6 +239,18 @@ async function extractContentTypes(
 
       enrichDropdownChoices(fieldMapping, recordsByTypeId.get(ct.id) ?? []);
       ensureMandatoryFields(fieldMapping, ct.api_key, sourceFields);
+
+      // Content-type-level settings have to ride on a field row: the mapper DB
+      // (contentTypesMapper) stores a fixed set of CT keys and would drop an extra
+      // one, whereas `advanced` on a field survives the createDummyData ->
+      // fieldAttacher round trip. Same channel `urlPrefix` already uses. `title`
+      // is the carrier because every content type is guaranteed to have one.
+      if (ct.singleton) {
+        const titleRow = fieldMapping.find(
+          (f) => !f.uid.includes('.') && f.contentstackFieldUid === 'title',
+        );
+        if (titleRow) titleRow.advanced = { ...titleRow.advanced, ctSingleton: true };
+      }
 
       const contentstackUid = blocksById.get(ct.id)!.contentstackUid;
       const contentType = {

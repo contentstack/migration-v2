@@ -1,6 +1,8 @@
 # DatoCMS connector — Use case
 
-**Slug:** `datocms-connector` · **Author:** Chirag Chavan · **Date:** 2026-07-01 · **Status:** Draft
+**Slug:** `datocms-connector` · **Author:** Chirag Chavan · **Date:** 2026-07-01 · **Status:** Superseded — connector implemented
+
+> **This is a point-in-time Stage-1 brief and is kept as a historical record.** Its "Current behaviour" section describes the repo *before* the connector existed and is deliberately not rewritten. For the current design, see [prd.md](prd.md) and [trd.md](trd.md) (both reconciled with code on 2026-08-14). The one design decision that changed: DatoCMS block types became real Contentstack **content types**, not global fields.
 
 ## Summary
 
@@ -77,14 +79,16 @@ A user can upload a DatoCMS export (the folder/zip shape above) and have the too
 ## Success criteria
 
 - A DatoCMS export in the sample's folder shape (or an equivalent zip) can be uploaded and validated by the tool.
-- All 32 content types are created in Contentstack, with the 19 block types represented as global fields/blocks referenced from the 13 entry-level content types.
+- All 32 content types are created in Contentstack, with the 19 block types represented as their own content types, referenced from the 13 entry-level content types via `reference` / `modular_blocks`.
 - All 1,806 records migrate with correct field values across all 5 locales (`en` master).
 - All 144 assets are migrated and `file`/`gallery`/`video` fields resolve to them.
 - Test migration and full migration both work end-to-end (both `migration.service.ts` switches wired).
 
 ## Open questions
 
-- Exact mapping for `structured_text` and `rich_text` block/inline-link resolution onto Contentstack RTE, and whether record linking needs the Validations-tab-style setup noted in memory — for the TRD.
-- Which locale, if any, DatoCMS itself designates as its "default" locale in a live project (not present in this static export) — confirm `en` is safe to assume as master beyond this sample.
-- Whether `seo` and `lat_lon` field types need bespoke Contentstack field-group mappings or can fall back to JSON — for the TRD.
-- Whether the stray `upload-api/datocmsMigrationData/` folder and the uncommitted `package.json` line should be cleaned up / built on top of when development starts (flag to `feature-develop`).
+*(Resolutions added 2026-08-14; see the TRD for detail.)*
+
+- ~~Exact mapping for `structured_text` and `rich_text` block/inline-link resolution onto Contentstack RTE~~ — **resolved:** `rich_text` → `modular_blocks`; `structured_text` → `json` (JSON RTE) with allowed content types on `advanced.embedObjects`. Validations-tab setup still applies when testing linked structured text.
+- Which locale, if any, DatoCMS itself designates as its "default" locale in a live project (not present in this static export) — **still open**; `en` remains the assumed master.
+- ~~Whether `seo` and `lat_lon` field types need bespoke Contentstack field-group mappings or can fall back to JSON~~ — **resolved:** both became `group` fields with fixed sub-fields (`lat_lon` uses `latitude`/`longitude`).
+- ~~Whether the stray `upload-api/datocmsMigrationData/` folder and the uncommitted `package.json` line should be cleaned up~~ — **resolved:** folder removed, dependency line now resolves to the real `migration-datocms` package.

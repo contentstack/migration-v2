@@ -140,7 +140,25 @@ function remapReferenceUids(uids: string | string[], keyMapper?: Record<string, 
   if (!keyMapper || !Object.keys(keyMapper).length) return uidsArray;
   return uidsArray?.map(uid => keyMapper?.[uid] ?? keyMapper?.[uidCorrector({ uid })] ?? uid);
 }
+/**
+ * DatoCMS `hint` -> Contentstack `field_metadata.description`.
+ *
+ * Injected here rather than at each construction site: `buildFieldSchemaInner`
+ * builds `field_metadata` in ~17 places (one per data type), and patching each
+ * one is how three of them got done and the other fourteen did not — 79 hints
+ * reduced to 5 landing. One wrapper covers every type, including nested group
+ * and block children, since the recursion goes through here too.
+ */
 function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', keyMapper?: Record<string, string>): any {
+  const built = buildFieldSchemaInner(item, marketPlacePath, parentUid, keyMapper);
+  const description = item?.advanced?.description;
+  if (built && typeof built === 'object' && typeof description === 'string' && description.trim()) {
+    built.field_metadata = { ...(built.field_metadata ?? {}), description: description.trim() };
+  }
+  return built;
+}
+
+function buildFieldSchemaInner(item: any, marketPlacePath: string, parentUid = '', keyMapper?: Record<string, string>): any {
   if (item?.isDeleted === true) return null;
 
   const getCleanUid = (uid: string): string => {
@@ -618,7 +636,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
           "field_metadata": {
             "allow_json_rte": true,
             "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
-            "description": "",
+            "description": field?.advanced?.description ?? "",
             "default_value": "",
             "multiline": false,
             "rich_text_type": "advanced",
@@ -831,7 +849,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
         "display_name": field?.title,
         "uid": cleanedUid,
         "field_metadata": {
-          "description": "",
+          "description": field?.advanced?.description ?? "",
           "markdown": true,
           "placeholder": field?.advanced?.default_value ?? ''
         },
@@ -965,7 +983,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
         "uid": cleanedUid,
         "field_metadata": {
           "allow_rich_text": true,
-          "description": "",
+          "description": field?.advanced?.description ?? "",
           "multiline": false,
           "rich_text_type": "advanced",
           "version": 3,
@@ -1466,10 +1484,10 @@ const hasUrlField = (schema: any[]): boolean =>
  * same URL — in the source they live under `/resources/article/` and
  * `/resources/video/`.
  */
-const buildCtOptions = (cms?: string, schema: any[] = [], urlPrefix?: string) => {
+const buildCtOptions = (cms?: string, schema: any[] = [], urlPrefix?: string, singleton = false) => {
   const pageOptions = {
     is_page: true,
-    singleton: false,
+    singleton,
     title: 'title',
     url_pattern: '/:title',
     url_prefix: urlPrefix || '/',
@@ -1478,7 +1496,7 @@ const buildCtOptions = (cms?: string, schema: any[] = [], urlPrefix?: string) =>
   if (String(cms).toLowerCase() !== CMS.DATOCMS) return { ...pageOptions, url_prefix: '/' };
   return hasUrlField(schema)
     ? pageOptions
-    : { is_page: false, singleton: false, title: 'title' };
+    : { is_page: false, singleton, title: 'title' };
 };
 
 /**
@@ -1490,7 +1508,15 @@ const urlPrefixFromMapping = (fieldMapping: any[] = []): string | undefined =>
     (f: any) => f?.contentstackFieldUid === 'url' && f?.advanced?.urlPrefix,
   )?.advanced?.urlPrefix;
 
-const mergeTwoCts = async (ct: any, mergeCts: any, cms?: string, urlPrefix?: string) => {
+/**
+ * DatoCMS "single instance" models. The flag rides on the `title` row's
+ * `advanced` because the mapper DB stores a fixed set of content-type keys and
+ * would drop an extra one — the same channel `urlPrefix` uses.
+ */
+const singletonFromMapping = (fieldMapping: any[] = []): boolean =>
+  fieldMapping.some((f: any) => f?.advanced?.ctSingleton === true);
+
+const mergeTwoCts = async (ct: any, mergeCts: any, cms?: string, urlPrefix?: string, singleton = false) => {
   const ctData: any = {
     ...ct,
     title: mergeCts?.title,
@@ -1508,7 +1534,7 @@ const mergeTwoCts = async (ct: any, mergeCts: any, cms?: string, urlPrefix?: str
 
   // AFTER the merge — the destination may contribute a `url` field the migration
   // side didn't have, and page-vs-non-page depends on the final schema.
-  ctData.options = buildCtOptions(cms, ctData.schema, urlPrefix);
+  ctData.options = buildCtOptions(cms, ctData.schema, urlPrefix, singleton);
 
   return ctData;
 }
@@ -1531,6 +1557,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   }
 
   const urlPrefix = urlPrefixFromMapping(contentType?.fieldMapping || []);
+  const singleton = singletonFromMapping(contentType?.fieldMapping || []);
 
   // Safe: ensures we never pass undefined to the builder
   const ctData: any[] = buildSchemaTree(contentType?.fieldMapping || []);
@@ -1549,7 +1576,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   ct.schema = removeDuplicateFields(ct.schema || []);
 
   if (currentCt?.uid) {
-    ct = await mergeTwoCts(ct, currentCt, cms, urlPrefix);
+    ct = await mergeTwoCts(ct, currentCt, cms, urlPrefix, singleton);
   } else if (String(cms).toLowerCase() === CMS.DATOCMS) {
     // FRESH content type (no merge). Without an explicit `options` block the CMA
     // defaults to page-type, which then rejects every content type that has no
@@ -1558,7 +1585,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
     // options have to be written here too — `mergeTwoCts` only covers the
     // update path. Other connectors keep the previous behaviour (no options
     // written on create).
-    ct = { ...ct, options: buildCtOptions(cms, ct.schema, urlPrefix) } as ContentType;
+    ct = { ...ct, options: buildCtOptions(cms, ct.schema, urlPrefix, singleton) } as ContentType;
   }
   if (ct?.uid && Array.isArray(ct?.schema) && ct?.schema.length) {
     if (contentType?.type === 'global_field') {

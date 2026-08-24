@@ -191,7 +191,45 @@ const singleBlockField = (field: DatoField, ctx: MapperCtx): Field => {
   return row;
 };
 
+/**
+ * Carry DatoCMS's own field-level settings onto the emitted row. Applied once, to
+ * whichever row represents THIS field — synthetic rows (group children, block
+ * rows) are skipped, since the setting belongs to the parent field, not to them.
+ *
+ * The api's `buildFieldSchema` already reads `advanced.unique`,
+ * `advanced.default_value` and `advanced.description`, so these only had to be
+ * supplied — they were being discarded here, not there.
+ *
+ * `validators.required` -> `mandatory` is applied to every required field. Note
+ * DatoCMS does not enforce a validator retroactively, so source data can violate
+ * its own constraint: `article.header_image` is required but empty on 3 of 285
+ * records (all unpublished). Contentstack WILL reject those entries at import.
+ * That trade was chosen deliberately — 92 of 93 required fields are satisfied,
+ * and a handful of rejections is easier to see and fix than a silently dropped
+ * constraint. `/dato-verify`'s export stage predicts which entries will fail.
+ */
+const applySourceMeta = (rows: Field[], field: DatoField): Field[] => {
+  for (const row of rows) {
+    if (row.otherCmsField !== field.api_key) continue;
+    const advanced = { ...(row.advanced ?? {}) };
+    if (field.validators?.required) advanced.mandatory = true;
+    if (field.validators?.unique) advanced.unique = true;
+    const hint = typeof field.hint === 'string' ? field.hint.trim() : '';
+    if (hint) advanced.description = hint;
+    const dv = field.default_value;
+    if (dv !== undefined && dv !== null && dv !== '') advanced.default_value = dv;
+    row.advanced = advanced;
+  }
+  return rows;
+};
+
 export const mapField = (
+  field: DatoField,
+  ctx: MapperCtx,
+  blockFieldsById: Map<string, DatoField[]>,
+): Field[] => applySourceMeta(mapFieldType(field, ctx, blockFieldsById), field);
+
+const mapFieldType = (
   field: DatoField,
   ctx: MapperCtx,
   blockFieldsById: Map<string, DatoField[]>,

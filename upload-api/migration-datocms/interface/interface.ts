@@ -56,6 +56,11 @@ export interface DatoContentType {
   name: string;
   modular_block: boolean;
   all_locales_required?: boolean;
+  /** DatoCMS "single instance" model — at most one record. Maps to CS `options.singleton`. */
+  singleton?: boolean;
+  /** The field DatoCMS itself designates as the record title (id, or `{id}`). */
+  title_field?: string | { id: string } | null;
+  presentation_title_field?: string | { id: string } | null;
 }
 
 export interface DatoFieldValidators {
@@ -78,6 +83,10 @@ export interface DatoField {
   validators: DatoFieldValidators;
   appearance?: { editor?: string; parameters?: Record<string, any>; field_extension?: string };
   item_type: { id: string; type: 'item_type' };
+  /** Editor help text shown under the field. Maps to CS `field_metadata.description`. */
+  hint?: string | null;
+  /** Preset value for new records. Maps to CS `field_metadata.default_value`. */
+  default_value?: any;
 }
 
 export interface DatoFieldsEntry {
