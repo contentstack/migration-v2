@@ -105,6 +105,7 @@ const AssetMapper = ({
   const tableHeight = useMeasuredTableHeight(tableWrapperRef, [tableData?.length], {
     panelSelector: '.TablePanel',
     footerSelector: '.mapper-footer',
+    toolbarSelector: '.asset-mapper-toolbar',
   });
 
   // Single server-paginated fetch (same pattern as entryMapper's fetchEntries). The
