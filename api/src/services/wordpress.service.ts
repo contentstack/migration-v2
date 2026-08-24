@@ -2057,6 +2057,50 @@ function findPeopleGridDef(
 }
 
 /**
+ * An inline "graphic and tiles" block (e.g. generic_pages.page_sections.graphic_and_tiles): an optional
+ * top-level background image + heading + sub-heading, plus a repeating group of tiles each carrying an
+ * icon, a title, a description and its own CTA. Shares the same file+2-text-fields shape family as
+ * findPeopleGridDef's card, so distinguished by TWO positive signals people-grid never has: a top-level
+ * `file` field (the background image) on the block itself, and a `global_field` (the CTA) inside the
+ * repeating tile group.
+ */
+function findGraphicTilesDef(
+  blocksField: any,
+): { blockUid: string; bgUid?: string; headingUid?: string; subHeadingUid?: string; tilesUid: string; iconUid?: string; tileTitleUid?: string; tileDescUid?: string; ctaUid?: string } | null {
+  for (const b of Array.isArray(blocksField?.blocks) ? blocksField.blocks : []) {
+    const topSchema: any[] = Array.isArray(b?.schema) ? b.schema : [];
+    if (topSchema.some((f: any) => f?.data_type === 'reference')) continue;
+    const bgField = topSchema.find((f: any) => f?.data_type === 'file');
+    if (!bgField) continue;
+    const tilesField = topSchema.find((f: any) => f?.data_type === 'group' && f?.multiple);
+    if (!tilesField) continue;
+    const tileSchema: any[] = Array.isArray(tilesField?.schema) ? tilesField.schema : [];
+    const iconField = tileSchema.find((f: any) => f?.data_type === 'file');
+    const ctaField = tileSchema.find((f: any) => f?.data_type === 'global_field');
+    if (!iconField || !ctaField) continue;
+    const tileTexts = tileSchema.filter((f: any) => f?.data_type === 'text');
+    if (tileTexts.length < 2) continue;
+    const tileTitleUid = tileTexts.find((f: any) => /title/i.test(f?.uid || ''))?.uid || tileTexts[0]?.uid;
+    const tileDescUid = tileTexts.find((f: any) => f.uid !== tileTitleUid)?.uid;
+    const topTexts = topSchema.filter((f: any) => f?.data_type === 'text');
+    const headingUid = topTexts.find((f: any) => /head/i.test(f?.uid || ''))?.uid || topTexts[0]?.uid;
+    const subHeadingUid = topTexts.find((f: any) => f.uid !== headingUid && /sub/i.test(f?.uid || ''))?.uid;
+    return {
+      blockUid: b.uid,
+      bgUid: bgField.uid,
+      headingUid,
+      subHeadingUid,
+      tilesUid: tilesField.uid,
+      iconUid: iconField.uid,
+      tileTitleUid,
+      tileDescUid,
+      ctaUid: ctaField.uid,
+    };
+  }
+  return null;
+}
+
+/**
  * Split a paragraph block's text on internal `<br>` breaks into separate lines instead of collapsing
  * them into one run-on string (e.g. a name and affiliation authored as one `<p>Name<br>Company</p>` —
  * without this, stripping tags directly loses the line break and fuses them, "NameCompany").
@@ -2809,6 +2853,67 @@ function parseColumnsTierCardPair(
 }
 
 /**
+ * A `core/columns` row where each column is a "graphic and tiles" card: one icon image, one heading (the
+ * tile's own title, e.g. "Benefits of SAFe"), one or more description paragraphs, and at most one CTA
+ * button — distinct from isColumnsTierCardPair (no heading, 2 fixed paragraphs) and isColumnsCardPair (no
+ * image/button at all). Real example: the "What is SAFe" page's 4-tile benefits row.
+ */
+function isColumnsGraphicTiles(block: any): boolean {
+  if (block?.blockName !== 'core/columns') return false;
+  const columns = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'core/column');
+  if (columns.length < 2) return false;
+  return columns.every((col: any) => {
+    const leaves = Array.from(linearizeContentBlocks(col?.innerBlocks || []));
+    const meaningful = leaves.filter((b: any) => !['core/spacer', 'core/separator'].includes((b as any)?.blockName));
+    if (!meaningful.length) return false;
+    const imageCount = meaningful.filter((b: any) => (b as any)?.blockName === 'core/image').length;
+    const headingCount = meaningful.filter((b: any) => (b as any)?.blockName === 'core/heading').length;
+    const paraCount = meaningful.filter((b: any) => (b as any)?.blockName === 'core/paragraph').length;
+    const buttonCount = meaningful.filter((b: any) => (b as any)?.blockName === 'core/button').length;
+    return (
+      imageCount === 1 &&
+      headingCount === 1 &&
+      paraCount >= 1 &&
+      buttonCount <= 1 &&
+      imageCount + headingCount + paraCount + buttonCount === meaningful.length
+    );
+  });
+}
+
+/** Parse a graphic-and-tiles row (see isColumnsGraphicTiles) into one tile per column. */
+function parseColumnsGraphicTiles(
+  block: any,
+  assetData: any,
+): Array<{ title?: string; description?: string; icon?: any; cta?: { label: string; href: string; newTab: boolean } }> {
+  const columns = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'core/column');
+  return columns
+    .map((col: any) => {
+      let title = '';
+      const bodyParts: string[] = [];
+      let icon: any;
+      let cta: { label: string; href: string; newTab: boolean } | undefined;
+      for (const lf of Array.from(linearizeContentBlocks(col?.innerBlocks || []))) {
+        const nm = (lf as any)?.blockName;
+        if (nm === 'core/image') {
+          const idAttr = Number((lf as any)?.attrs?.id);
+          icon = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
+            || resolveAssetByUrl(assetData, (lf as any)?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(lf)));
+        } else if (nm === 'core/heading' && !title) {
+          title = stripHtmlTags(serializeBlockToHtml(lf)).replace(/\s+/g, ' ').trim();
+        } else if (nm === 'core/paragraph') {
+          const t = stripHtmlTags(serializeBlockToHtml(lf)).replace(/\s+/g, ' ').trim();
+          if (t) bodyParts.push(t);
+        } else if (nm === 'core/button') {
+          const p = parseButtonAnchor(lf);
+          if (p) cta = p;
+        }
+      }
+      return { title: title || undefined, description: bodyParts.join(' ') || undefined, icon, cta };
+    })
+    .filter((c: any) => c.title || c.description || c.icon || c.cta);
+}
+
+/**
  * A `core/block` (reusable/synced-pattern reference — see coreBlockOverrideHtml) whose per-instance
  * override content (attrs.content) is shaped like an image+text card: exactly ONE entry that is
  * image-shaped (has a url/id and no text) plus at least one entry that is text-shaped (a non-empty
@@ -3365,6 +3470,8 @@ interface CarouselCardDef {
   iconUid?: string;
   ctaUid?: string;
   ctaMultiple?: boolean;
+  sectionTitleUid?: string;
+  sectionSubtitleUid?: string;
 }
 
 /**
@@ -3390,6 +3497,11 @@ function findCarouselCardSection(refSections: RefSectionDef[]): CarouselCardDef 
     const subtitleUid = texts.find((u: string) => u !== titleUid && /sub|body|text/i.test(u));
     const iconField = sub.find((f: any) => f?.data_type === 'file');
     const ctaField = sub.find((f: any) => f?.data_type === 'global_field' && referenceTargets(f).includes('cta_final'));
+    // The variant's OWN title/subtitle (sibling to "cards", not the per-card fields just resolved above)
+    // — a home for a heading/paragraph authored in the SAME wrapping block as the carousel itself.
+    const topTexts = (b?.schema || []).filter((f: any) => f?.data_type === 'text' && !f?.enum);
+    const sectionTitleUid = topTexts.find((f: any) => /^title$/i.test(f?.uid || ''))?.uid;
+    const sectionSubtitleUid = topTexts.find((f: any) => f.uid !== sectionTitleUid && /sub/i.test(f?.uid || ''))?.uid;
     return {
       def: r,
       vfUid: vf.uid,
@@ -3400,6 +3512,8 @@ function findCarouselCardSection(refSections: RefSectionDef[]): CarouselCardDef 
       iconUid: iconField?.uid,
       ctaUid: ctaField?.uid,
       ctaMultiple: Boolean(ctaField?.multiple),
+      sectionTitleUid,
+      sectionSubtitleUid,
     };
   }
   return null;
@@ -3524,7 +3638,7 @@ function pickStatsVariant(variantsField: any): any | null {
 function findStatsSection(
   refSections: RefSectionDef[],
   flexSection: RefSectionDef,
-): { def: RefSectionDef; variant: any; vfUid: string; statsUid: string } | null {
+): { def: RefSectionDef; variant: any; vfUid: string; statsUid: string; titleUid?: string; descUid?: string } | null {
   for (const r of refSections) {
     if (r.refCtUid === flexSection.refCtUid) continue;
     const vf = variantsBlocksField(r.refCt);
@@ -3533,7 +3647,70 @@ function findStatsSection(
     const statsField = (variant.schema || []).find(
       (f: any) => f?.data_type === 'global_field' && f?.multiple && referenceTargets(f).some((t: string) => /^stats(_final)?$/i.test(t)),
     );
-    if (statsField) return { def: r, variant, vfUid: vf.uid, statsUid: statsField.uid };
+    if (statsField) {
+      // The variant's OWN title/description (sibling to the stats field, e.g. bento_box's `title` +
+      // `description`) — a home for a heading/paragraph authored in the SAME wrapping block as the stats
+      // row itself, distinct from each individual stat's own stat_title/subtitle inside statsField.
+      const texts = (variant.schema || []).filter((f: any) => f?.data_type === 'text' && !f?.enum);
+      const titleUid = texts.find((f: any) => /^title$/i.test(f?.uid || ''))?.uid || texts[0]?.uid;
+      const descUid = texts.find((f: any) => f.uid !== titleUid && /desc/i.test(f?.uid || ''))?.uid;
+      return { def: r, variant, vfUid: vf.uid, statsUid: statsField.uid, titleUid, descUid };
+    }
+  }
+  return null;
+}
+
+interface IndustryProofDef {
+  def: RefSectionDef;
+  vfUid: string;
+  variantUid: string;
+  titleUid?: string;
+  descUid?: string;
+  tilesUid?: string;
+  tileTitleUid?: string;
+  tileCtaUid?: string;
+  logosUid?: string;
+}
+
+/**
+ * The "industry proof" stats_section variant (title/description + a repeating group of CTA tiles + a
+ * multi-file logo strip — e.g. the homepage's "2 Million Professionals..." band with its Government/
+ * Financial Services/Healthcare/Automotive CTAs and Lockheed/Amex/CVS/FedEx/Chevron logos). Distinguished
+ * from pickStatsVariant's numeric-stats variants by the OPPOSITE signal: no `stats`-referencing global
+ * field at all — this variant only ever holds logos and CTA tiles, never per-number stats.
+ */
+function findIndustryProofDef(refSections: RefSectionDef[], flexSection: RefSectionDef): IndustryProofDef | null {
+  for (const r of refSections) {
+    if (r.refCtUid === flexSection.refCtUid) continue;
+    const vf = variantsBlocksField(r.refCt);
+    for (const b of Array.isArray(vf?.blocks) ? vf.blocks : []) {
+      const schema: any[] = Array.isArray(b?.schema) ? b.schema : [];
+      const hasStatsField = schema.some(
+        (f: any) => f?.data_type === 'global_field' && f?.multiple && referenceTargets(f).some((t: string) => /^stats(_final)?$/i.test(t)),
+      );
+      if (hasStatsField) continue;
+      const logosField = schema.find((f: any) => f?.data_type === 'file' && f?.multiple);
+      const tilesField = schema.find((f: any) => f?.data_type === 'group' && f?.multiple);
+      if (!logosField || !tilesField) continue;
+      const tileSchema: any[] = Array.isArray(tilesField?.schema) ? tilesField.schema : [];
+      const ctaField = tileSchema.find((f: any) => f?.data_type === 'global_field');
+      if (!ctaField) continue;
+      const tileTitleUid = tileSchema.find((f: any) => f?.data_type === 'text')?.uid;
+      const texts = schema.filter((f: any) => f?.data_type === 'text');
+      const titleField = texts.find((f: any) => /^title$/i.test(f?.uid || '')) || texts[0];
+      const descField = texts.find((f: any) => f.uid !== titleField?.uid);
+      return {
+        def: r,
+        vfUid: vf.uid,
+        variantUid: b.uid,
+        titleUid: titleField?.uid,
+        descUid: descField?.uid,
+        tilesUid: tilesField.uid,
+        tileTitleUid,
+        tileCtaUid: ctaField.uid,
+        logosUid: logosField.uid,
+      };
+    }
   }
   return null;
 }
@@ -3744,6 +3921,29 @@ function parseStatsCardColumns(block: any): Array<{ title?: string; number: stri
   return stats;
 }
 
+/**
+ * For a stats-card-columns row (see isStatsCardColumns), resolve each column's own per-card image — a
+ * `core/cover` background surfacing as a synthetic `core/image` leaf (see linearizeContentBlocks), or a
+ * real authored `core/image` — in column order. `stats_final` (bento_box/standard/metrix_box) has no
+ * per-stat image field, so when this returns anything the row is routed to the `industry_proof` variant
+ * instead (see the dispatch site), which has a `logos` field but no number field of its own — the
+ * number/label/subtitle are folded into that tile's title text there rather than lost.
+ */
+function statsCardColumnImages(block: any, assetData: any): any[] {
+  const columns = (block?.innerBlocks || []).filter((b: any) => b?.blockName === 'core/column');
+  const images: any[] = [];
+  for (const col of columns) {
+    const leaves = Array.from(linearizeContentBlocks(col?.innerBlocks || [])) as any[];
+    const img = leaves.find((b) => b?.blockName === 'core/image');
+    if (!img) continue;
+    const idAttr = Number(img?.attrs?.id);
+    const asset = (Number.isFinite(idAttr) && idAttr > 0 ? assetData?.[`assets_${idAttr}`] : undefined)
+      || resolveAssetByUrl(assetData, img?.attrs?.url || firstImgSrcFromInnerHtml(serializeBlockToHtml(img)));
+    if (asset) images.push(asset);
+  }
+  return images;
+}
+
 
 /** Build a `cta` global-field value from a WP button block, honoring the gf's declared `type` enum. */
 function buildCtaGfValue(typeChoices: string[], block: any): Record<string, any> | null {
@@ -3914,20 +4114,79 @@ function buildModularBody(
       })
       .filter((s) => Object.keys(s).length);
     if (!statsArr.length) return false;
+    // A heading/paragraph authored in the SAME wrapping block as the stats row itself (e.g. a
+    // `core/group` holding both an intro heading and the stats columns as siblings) is the section's own
+    // title/description, not unrelated prose — reclaimed from the buffer the same way graphic-and-tiles
+    // and people-grid reclaim their own heading, only when the resolved variant has a field to hold it.
+    let sectionTitle = '';
+    let sectionDesc = '';
+    if (statsSection.titleUid || statsSection.descUid) {
+      let k = buffer.length;
+      if (k > 0 && /^\s*<p/i.test(buffer[k - 1])) { sectionDesc = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+      if (k > 0 && /^\s*<h[1-6]/i.test(buffer[k - 1])) { sectionTitle = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+      if (sectionTitle || sectionDesc) buffer = buffer.slice(0, k);
+    }
     flush();
     const entryUid = idCorrector(`${ctx?.uid || 'entry'}_stats_${statsSeq++}`);
     const store = sideStoreFor(ctx, statsSection.def.refCtUid);
     if (store) {
+      const variantSub: Record<string, any> = { [statsSection.statsUid]: statsArr };
+      if (statsSection.titleUid && sectionTitle) variantSub[statsSection.titleUid] = sectionTitle;
+      if (statsSection.descUid && sectionDesc) variantSub[statsSection.descUid] = sectionDesc;
       store[entryUid] = {
         uid: entryUid,
         title: sectionEntryTitle(statsSection.def.refCtUid, 'Stats'),
-        [statsSection.vfUid]: [{ [statsSection.variant.uid]: { [statsSection.statsUid]: statsArr } }],
+        [statsSection.vfUid]: [{ [statsSection.variant.uid]: variantSub }],
         locale: ctx?.locale || 'en-us',
         publish_details: [],
       };
     }
     sections.push({
       [statsSection.def.blockUid]: { [statsSection.def.refField]: [{ uid: entryUid, _content_type_uid: statsSection.def.refCtUid }] },
+    });
+    return true;
+  };
+  // A stats-card row where every card also carries its OWN image (see statsCardColumnImages) is routed
+  // here instead of emitStatsSection — stats_final (bento_box/standard/metrix_box) has no per-stat image
+  // field, but industry_proof's `logos` can hold them. industry_proof's tiles have no number field of
+  // their own, so each card's number/label/subtitle fold into one combined title_text rather than being
+  // lost — same reasoning as emitStatsSection's own title/description reclaim, reused here for the
+  // section-level heading/paragraph.
+  const emitIndustryProofFromStatsCards = (parsed: Array<{ title?: string; number: string; subtitle: string }>, images: any[]): boolean => {
+    if (!industryProofDef || !industryProofDef.tileTitleUid || !parsed.length) return false;
+    const tiles = parsed
+      .map((s) => {
+        const label = [s.title, s.number, s.subtitle].filter(Boolean).join(' — ');
+        return label ? { [industryProofDef.tileTitleUid!]: label } : null;
+      })
+      .filter((t): t is Record<string, any> => !!t);
+    if (!tiles.length) return false;
+    let sectionTitle = '';
+    let sectionDesc = '';
+    if (industryProofDef.titleUid || industryProofDef.descUid) {
+      let k = buffer.length;
+      if (k > 0 && /^\s*<p/i.test(buffer[k - 1])) { sectionDesc = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+      if (k > 0 && /^\s*<h[1-6]/i.test(buffer[k - 1])) { sectionTitle = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+      if (sectionTitle || sectionDesc) buffer = buffer.slice(0, k);
+    }
+    flush();
+    const entryUid = idCorrector(`${ctx?.uid || 'entry'}_stats_${statsSeq++}`);
+    const store = sideStoreFor(ctx, industryProofDef.def.refCtUid);
+    if (store) {
+      const variantSub: Record<string, any> = { [industryProofDef.tilesUid!]: tiles };
+      if (images.length) variantSub[industryProofDef.logosUid!] = images;
+      if (industryProofDef.titleUid && sectionTitle) variantSub[industryProofDef.titleUid] = sectionTitle;
+      if (industryProofDef.descUid && sectionDesc) variantSub[industryProofDef.descUid] = sectionDesc;
+      store[entryUid] = {
+        uid: entryUid,
+        title: sectionEntryTitle(industryProofDef.def.refCtUid, 'Stats'),
+        [industryProofDef.vfUid]: [{ [industryProofDef.variantUid]: variantSub }],
+        locale: ctx?.locale || 'en-us',
+        publish_details: [],
+      };
+    }
+    sections.push({
+      [industryProofDef.def.blockUid]: { [industryProofDef.def.refField]: [{ uid: entryUid, _content_type_uid: industryProofDef.def.refCtUid }] },
     });
     return true;
   };
@@ -4135,23 +4394,35 @@ function buildModularBody(
   const faqDef = findFaqSectionDef(blocksField, ctx?.contentTypesByUid);
   const cardGridDef = findCardGridDef(blocksField);
   const peopleGridDef = findPeopleGridDef(blocksField);
+  const graphicTilesDef = findGraphicTilesDef(blocksField);
   const resourceListDef = findResourceListDef(blocksField);
-  // The hero banner is a POSITIONAL role, not a shape: whichever core/cover is literally first in the
-  // page is the hero, whatever it contains — later covers are ordinary page content, never a second
-  // banner, regardless of how simple they look.
-  let firstCoverSeen = false;
+  const industryProofDef = flexSection ? findIndustryProofDef(refSections, flexSection) : null;
+  // The hero banner is a POSITIONAL role, not a shape: whichever core/cover OR core/group is literally
+  // first in the page is the hero, whatever it contains — later covers/groups are ordinary page content,
+  // never a second banner, regardless of how simple they look. Some pages author their hero as a plain
+  // core/group (a solid background color, no actual image) instead of a core/cover — e.g. "What Is SAFe?"
+  // and "SAFe Explained eBook", both two-column heroes (title/subtitle/paragraph/button/image or embed)
+  // with no core/cover anywhere in them. `heroBlockRef` records exactly WHICH block was claimed so the
+  // dispatch site below can single it out from every other legitimately-kept-whole group (FAQ, card-grid,
+  // image+text, CTA banner) that also reaches it as a `core/group` leaf.
+  let firstHeroCandidateSeen = false;
+  let heroBlockRef: any = null;
   const keepWhole = (block: any): boolean => {
     if (block?.blockName === 'core/cover') {
-      const isFirstCover = !firstCoverSeen;
-      firstCoverSeen = true;
-      return !!heroSection && isFirstCover;
+      const isFirst = !firstHeroCandidateSeen;
+      firstHeroCandidateSeen = true;
+      const claim = !!heroSection && isFirst;
+      if (claim) heroBlockRef = block;
+      return claim;
     }
     // A stats-band row (a number heading + label paragraph, repeated across columns) is detected by
     // shape alone, same reasoning as the people-grid row below.
     if (statsSection && isStatsColumns(block)) return true;
     // Same stats-band section, authored with a badge label + paragraph-based number instead of a plain
-    // heading — detected by shape alone, same reasoning as isStatsColumns above.
-    if (statsSection && isStatsCardColumns(block)) return true;
+    // heading — detected by shape alone, same reasoning as isStatsColumns above. Also kept whole when
+    // only industryProofDef (not statsSection) resolved, since an image-bearing row routes there instead
+    // (see the dispatch site) and must survive linearize the same way.
+    if ((statsSection || industryProofDef) && isStatsCardColumns(block)) return true;
     // A people-grid row (photo + name + role, repeated across columns) is detected by shape alone, not
     // by the section being named "leadership"/"team" — keep it whole so its column boundaries survive
     // instead of being flattened away like an ordinary layout column.
@@ -4168,6 +4439,9 @@ function buildModularBody(
     // A row of "tier" cards (title + description + 1+ badge icons per column) — detected by shape alone,
     // same reasoning as the plain columns-card-pair row above.
     if (iconCardsDef && isColumnsTierCardPair(block)) return true;
+    // A row of "graphic and tiles" cards (icon + own heading + description + optional CTA per column) —
+    // detected by shape alone, same reasoning as the tier-card row above.
+    if (graphicTilesDef && isColumnsGraphicTiles(block)) return true;
     // A heading/paragraph + button "CTA banner" authored as columns (any column count) — same reasoning
     // as above, checked before the core/group-only gate below since core/columns has no pattern name.
     // An image paired with a quote (portrait/logo beside its attribution) — same visual unit whether
@@ -4178,6 +4452,13 @@ function buildModularBody(
       return false;
     }
     if (block?.blockName !== 'core/group') return false;
+    // A plain group is the hero exactly when it's the first cover-or-group candidate on the page (see
+    // above) — checked before the named-pattern checks below so a hero-shaped group is never instead
+    // reinterpreted as, say, an unnamed image+text group.
+    if (!firstHeroCandidateSeen) {
+      firstHeroCandidateSeen = true;
+      if (heroSection) { heroBlockRef = block; return true; }
+    }
     const pat = groupPatternName(block).toLowerCase();
     if (faqDef && /faq/.test(pat)) return true;
     // Real authored pattern names for a card-grid vary beyond the literal "card grid" — e.g.
@@ -4238,6 +4519,45 @@ function buildModularBody(
     emit(peopleGridDef.blockUid, sub);
     peopleGridCards = [];
     peopleGridTitle = '';
+  };
+
+  // A standalone CTA button (semantic 'cta_section', no declared top-level CTA block) is normally folded
+  // straight into flexCtaVar one at a time — but when industryProofDef exists, a RUN of 2+ such buttons
+  // immediately followed by an all-images columns row is actually the CTA-tiles half of an "industry
+  // proof" band (see the isColumnsAllImages dispatch below), not N independent CTA sections. Buttons are
+  // deferred here so that decision can be made once the next block is known, instead of each button being
+  // irreversibly absorbed the moment it's seen.
+  let pendingCtaButtons: any[] = [];
+  const flushPendingCtaButtons = () => {
+    if (!pendingCtaButtons.length) return;
+    const buttons = pendingCtaButtons;
+    pendingCtaButtons = [];
+    for (const btn of buttons) {
+      const c = buildCtaGfValue(ctaTypeChoices, btn);
+      if (!c || !flexCtaVar) continue;
+      const s: any[] = flexCtaVar.schema || [];
+      const gf = s.find((f: any) => f?.data_type === 'global_field' && f?.multiple) || s.find((f: any) => f?.data_type === 'global_field');
+      if (!gf) continue;
+      flush();
+      reserveFlexSlot();
+      flexVariants.push({ [flexCtaVar.uid]: { [gf.uid]: gf.multiple ? [c] : c } });
+    }
+  };
+
+  // Graphic-and-tiles rows (see isColumnsGraphicTiles) accumulate the same way people-grid rows do, into
+  // ONE graphic_and_tiles entry, with an optional preceding heading/sub-heading reclaimed from the buffer.
+  let graphicTilesCards: Array<Record<string, any>> = [];
+  let graphicTilesHeading = '';
+  let graphicTilesSubHeading = '';
+  const flushGraphicTiles = () => {
+    if (!graphicTilesDef || !graphicTilesCards.length) return;
+    const sub: Record<string, any> = { [graphicTilesDef.tilesUid]: graphicTilesCards };
+    if (graphicTilesDef.headingUid && graphicTilesHeading) sub[graphicTilesDef.headingUid] = graphicTilesHeading;
+    if (graphicTilesDef.subHeadingUid && graphicTilesSubHeading) sub[graphicTilesDef.subHeadingUid] = graphicTilesSubHeading;
+    emit(graphicTilesDef.blockUid, sub);
+    graphicTilesCards = [];
+    graphicTilesHeading = '';
+    graphicTilesSubHeading = '';
   };
 
   // Columns-card-pair rows (see isColumnsCardPair) accumulate across consecutive matching `core/columns`
@@ -4407,9 +4727,12 @@ function buildModularBody(
       }
     }
 
-    // Hero-shaped cover (kept whole by linearize above) → its own hero_section reference. Falls back to
-    // buffering the overlay content so nothing is lost when no usable hero fields parse.
-    if (name === 'core/cover' && heroSection) {
+    // Hero-shaped cover OR group (kept whole by linearize above, and specifically the one claimed as
+    // heroBlockRef — a later group reaching this point via FAQ/card-grid/image-text/CTA-banner detection
+    // is NOT the hero, only the literal first cover-or-group on the page is) → its own hero_section
+    // reference. Falls back to buffering the overlay content so nothing is lost when no usable hero
+    // fields parse.
+    if ((name === 'core/cover' || name === 'core/group') && heroSection && raw === heroBlockRef) {
       flush();
       if (heroEmitted || !emitHero(raw)) {
         // Hero couldn't be built — keep the cover's background as well as its overlay content, so
@@ -4432,9 +4755,17 @@ function buildModularBody(
     }
     // Same section authored with a badge label above a paragraph-based number (isStatsCardColumns) —
     // checked after the plain heading-based shape above so a genuinely simpler stats row is never
-    // reparsed through the badge-aware path.
-    if (name === 'core/columns' && statsSection && !isStatsColumns(raw) && isStatsCardColumns(raw)) {
-      if (emitStatsSection(parseStatsCardColumns(raw))) { speakerSection = null; continue; }
+    // reparsed through the badge-aware path. When every card also carries its own image (see
+    // statsCardColumnImages), route to industry_proof instead of the plain numeric stats variant, which
+    // has nowhere to put the image — checked BEFORE the plain path so the image is never silently
+    // dropped when a home for it exists.
+    if (name === 'core/columns' && !isStatsColumns(raw) && isStatsCardColumns(raw)) {
+      const cardImages = industryProofDef ? statsCardColumnImages(raw, assetData) : [];
+      if (cardImages.length && emitIndustryProofFromStatsCards(parseStatsCardColumns(raw), cardImages)) {
+        speakerSection = null;
+        continue;
+      }
+      if (statsSection && emitStatsSection(parseStatsCardColumns(raw))) { speakerSection = null; continue; }
     }
 
     // People-grid row (kept whole by linearize above because it matched the shape) → accumulate its
@@ -4476,6 +4807,40 @@ function buildModularBody(
       }
     }
     if (peopleGridCards.length) flushPeopleGrid();
+
+    // Graphic-and-tiles row (kept whole by linearize above because it matched the shape) → accumulate its
+    // tiles; consecutive rows merge into ONE graphic_and_tiles entry, same consolidation as people-grid.
+    if (name === 'core/columns' && graphicTilesDef && isColumnsGraphicTiles(raw)) {
+      const tiles = parseColumnsGraphicTiles(raw, assetData);
+      if (tiles.length) {
+        if (!graphicTilesCards.length) {
+          // Reclaim a preceding heading and, if present, the paragraph right after it (closer to the
+          // tiles row) from the buffer as this block's own heading/sub-heading — same order as the
+          // stats-section and industry-proof reclaim below (heading, then its own intro paragraph).
+          let k = buffer.length;
+          if (k > 0 && /^\s*<p/i.test(buffer[k - 1])) { graphicTilesSubHeading = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+          if (k > 0 && /^\s*<h[1-6]/i.test(buffer[k - 1])) { graphicTilesHeading = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+          if (graphicTilesHeading || graphicTilesSubHeading) buffer = buffer.slice(0, k);
+          flush();
+        }
+        for (const t of tiles) {
+          const tileVal: Record<string, any> = {};
+          if (graphicTilesDef.iconUid && t.icon) tileVal[graphicTilesDef.iconUid] = t.icon;
+          if (graphicTilesDef.tileTitleUid && t.title) tileVal[graphicTilesDef.tileTitleUid] = t.title;
+          if (graphicTilesDef.tileDescUid && t.description) tileVal[graphicTilesDef.tileDescUid] = t.description;
+          if (graphicTilesDef.ctaUid && t.cta) {
+            tileVal[graphicTilesDef.ctaUid] = {
+              title_url: { title: t.cta.label, href: t.cta.href },
+              open_in_new_tab: t.cta.newTab,
+            };
+          }
+          if (Object.keys(tileVal).length) graphicTilesCards.push(tileVal);
+        }
+        speakerSection = null;
+        continue;
+      }
+    }
+    if (graphicTilesCards.length) flushGraphicTiles();
 
     // Columns-card-pair row (kept whole by linearize above because it matched the shape) → each column
     // becomes one card; consecutive rows (e.g. a 2x2 "Benefits of..." grid split across two `core/columns`
@@ -4559,6 +4924,17 @@ function buildModularBody(
     if (carouselCardDef && /gutenslider$/i.test(String(name ?? ''))) {
       const slides = parseGutensliderCarousel(raw, assetData);
       if (slides.length) {
+        // A heading/paragraph authored in the SAME wrapping block as the carousel itself is the
+        // section's own title/subtitle — reclaimed from the buffer BEFORE flush(), same reasoning and
+        // order as the stats-section/industry-proof/graphic-tiles reclaims above.
+        let sectionTitle = '';
+        let sectionSubtitle = '';
+        if (carouselCardDef.sectionTitleUid || carouselCardDef.sectionSubtitleUid) {
+          let k = buffer.length;
+          if (k > 0 && /^\s*<p/i.test(buffer[k - 1])) { sectionSubtitle = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+          if (k > 0 && /^\s*<h[1-6]/i.test(buffer[k - 1])) { sectionTitle = stripHtmlTags(buffer[k - 1]).replace(/\s+/g, ' ').trim(); k--; }
+          if (sectionTitle || sectionSubtitle) buffer = buffer.slice(0, k);
+        }
         flush();
         const cards = slides
           .map((s) => {
@@ -4577,10 +4953,13 @@ function buildModularBody(
           const entryUid = idCorrector(`${ctx?.uid || 'entry'}_carousel_${carouselSeq++}`);
           const store = sideStoreFor(ctx, carouselCardDef.def.refCtUid);
           if (store) {
+            const variantSub: Record<string, any> = { [carouselCardDef.cardsUid]: cards };
+            if (carouselCardDef.sectionTitleUid && sectionTitle) variantSub[carouselCardDef.sectionTitleUid] = sectionTitle;
+            if (carouselCardDef.sectionSubtitleUid && sectionSubtitle) variantSub[carouselCardDef.sectionSubtitleUid] = sectionSubtitle;
             store[entryUid] = {
               uid: entryUid,
               title: sectionEntryTitle(carouselCardDef.def.refCtUid, 'Carousel'),
-              [carouselCardDef.vfUid]: [{ [carouselCardDef.variantUid]: { [carouselCardDef.cardsUid]: cards } }],
+              [carouselCardDef.vfUid]: [{ [carouselCardDef.variantUid]: variantSub }],
               locale: ctx?.locale || 'en-us',
               publish_details: [],
             };
@@ -4860,20 +5239,21 @@ function buildModularBody(
     }
     // A standalone button with no declared top-level CTA block on the target (e.g. event_revised's
     // "Register now") — route it into the flex section's text_cta-shaped variant instead of letting it
-    // flatten into an inert <a> inside rich text.
+    // flatten into an inert <a> inside rich text. Deferred into pendingCtaButtons (see its declaration)
+    // rather than absorbed immediately, so a RUN of 2+ such buttons immediately followed by an
+    // industry-proof-shaped logo row can still be recognized as one unit below.
     if (semantic === 'cta_section' && !ctaResolved && flexSection && flexCtaVar) {
-      const c = buildCtaGfValue(ctaTypeChoices, raw);
-      if (c) {
-        const s: any[] = flexCtaVar.schema || [];
-        const gf = s.find((f: any) => f?.data_type === 'global_field' && f?.multiple) || s.find((f: any) => f?.data_type === 'global_field');
-        if (gf) {
-          flush();
-          reserveFlexSlot();
-          flexVariants.push({ [flexCtaVar.uid]: { [gf.uid]: gf.multiple ? [c] : c } });
-          speakerSection = null;
-          continue;
-        }
-      }
+      pendingCtaButtons.push(raw);
+      speakerSection = null;
+      continue;
+    }
+    // The current block isn't itself a pending CTA button, so any run just finished — resolve it now,
+    // unless this very block might complete an industry-proof band (decided in that block's own check
+    // below), in which case the decision (and any leftover flush) is deferred to there.
+    if (pendingCtaButtons.length) {
+      const mayBeIndustryProof =
+        !!industryProofDef && name === 'core/columns' && pendingCtaButtons.length >= 2 && isColumnsAllImages(raw);
+      if (!mayBeIndustryProof) flushPendingCtaButtons();
     }
     // media-text is NOT in the global semantic map (it means different things per model); route it to
     // speaker ONLY when the target declares a speaker-shaped block — today just the event model. Every
@@ -5070,6 +5450,61 @@ function buildModularBody(
         const parsed = parseColumnsImageText(raw, assetData);
         if (parsed && emitImageTextVariant(parsed, raw)) continue;
       }
+      // An all-image row immediately preceded by a heading/paragraph and 2+ pending CTA buttons (see
+      // pendingCtaButtons — e.g. the homepage's "2 Million Professionals..." band: intro copy, 4 industry
+      // CTAs, then a logo strip) is an "industry proof" band, not a plain decorative icon strip — claim it
+      // here, before the generic all-images handling below, into one industry_proof entry. Gated on the
+      // buttons actually being pending so an unrelated logo strip (no CTA lead-in) still falls through to
+      // the plain handling unchanged; any pending buttons NOT consumed here (no heading/description found,
+      // or no images resolved) are flushed the normal way before falling through.
+      if (name === 'core/columns' && industryProofDef && pendingCtaButtons.length >= 2 && isColumnsAllImages(raw)) {
+        let descHtml = '';
+        let headingHtml = '';
+        let j = buffer.length;
+        if (j > 0 && /^\s*<p/i.test(buffer[j - 1])) { descHtml = buffer[j - 1]; j--; }
+        if (j > 0 && /^\s*<h[1-6]/i.test(buffer[j - 1])) { headingHtml = buffer[j - 1]; j--; }
+        const assets = (headingHtml || descHtml) ? parseColumnsAllImages(raw, assetData) : [];
+        if (assets.length) {
+          buffer = buffer.slice(0, j);
+          flush();
+          const tiles = pendingCtaButtons
+            .map(parseButtonAnchor)
+            .filter((p): p is { label: string; href: string; newTab: boolean } => !!p)
+            .map((p) => {
+              const t: Record<string, any> = {};
+              if (industryProofDef.tileTitleUid) t[industryProofDef.tileTitleUid] = p.label;
+              if (industryProofDef.tileCtaUid) {
+                t[industryProofDef.tileCtaUid] = { title_url: { title: p.label, href: p.href }, open_in_new_tab: p.newTab };
+              }
+              return t;
+            });
+          pendingCtaButtons = [];
+          const sub: Record<string, any> = {};
+          if (industryProofDef.titleUid && headingHtml) sub[industryProofDef.titleUid] = stripHtmlTags(headingHtml).replace(/\s+/g, ' ').trim();
+          if (industryProofDef.descUid && descHtml) sub[industryProofDef.descUid] = stripHtmlTags(descHtml).replace(/\s+/g, ' ').trim();
+          if (industryProofDef.tilesUid && tiles.length) sub[industryProofDef.tilesUid] = tiles;
+          if (industryProofDef.logosUid) sub[industryProofDef.logosUid] = assets;
+          const entryUid = idCorrector(`${ctx?.uid || 'entry'}_stats_${statsSeq++}`);
+          const store = sideStoreFor(ctx, industryProofDef.def.refCtUid);
+          if (store) {
+            store[entryUid] = {
+              uid: entryUid,
+              title: sectionEntryTitle(industryProofDef.def.refCtUid, 'Industry Proof'),
+              [industryProofDef.vfUid]: [{ [industryProofDef.variantUid]: sub }],
+              locale: ctx?.locale || 'en-us',
+              publish_details: [],
+            };
+          }
+          sections.push({
+            [industryProofDef.def.blockUid]: {
+              [industryProofDef.def.refField]: [{ uid: entryUid, _content_type_uid: industryProofDef.def.refCtUid }],
+            },
+          });
+          speakerSection = null;
+          continue;
+        }
+        flushPendingCtaButtons();
+      }
       // An all-image row (e.g. a 3-icon strip with no accompanying text) — one text_image entry holding
       // every resolved image together, not N disconnected single-image entries. Doesn't go through
       // emitImageTextVariant since that assumes exactly one asset; the file field is multiple here.
@@ -5191,6 +5626,8 @@ function buildModularBody(
     }
   }
   flushPeopleGrid();
+  flushGraphicTiles();
+  flushPendingCtaButtons();
   flushColumnsCardPair();
   flushTierCardPair();
   flush();
