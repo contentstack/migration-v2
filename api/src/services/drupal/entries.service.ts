@@ -504,6 +504,12 @@ const processFieldByType = (
         }
       } else {
         // Single reference
+        if (Array.isArray(value)) {
+          // processFieldData normalizes reference target_ids into an array of
+          // resolved reference objects even for single-value fields - return
+          // as-is instead of wrapping again into a nested array [[{uid,...}]].
+          return value;
+        }
         if (value && typeof value === 'object' && value?.uid) {
           return [value]; // Already resolved
         }
