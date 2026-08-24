@@ -23,6 +23,13 @@ export interface MeasuredTableHeightOptions {
   panelSelector: string;
   /** Selector for the Save footer, resolved within `wrapperRef`. */
   footerSelector: string;
+  /**
+   * Selector for an extra chrome row above the table (e.g. the asset mapper's status-filter
+   * toolbar) that takes its own flex-flow height, resolved within `wrapperRef`. Omit when the
+   * mapper has no such row (e.g. the entry mapper, whose locale select is absolutely positioned
+   * and doesn't need reserving).
+   */
+  toolbarSelector?: string;
 }
 
 // Fixed chrome fallbacks, used only until the real elements are mounted/measured.
@@ -42,7 +49,7 @@ const TOGGLE_SELECTOR = '.mapper-view-toggle';
 export function useMeasuredTableHeight(
   wrapperRef: RefObject<HTMLElement | null>,
   deps: unknown[],
-  { panelSelector, footerSelector }: MeasuredTableHeightOptions,
+  { panelSelector, footerSelector, toolbarSelector }: MeasuredTableHeightOptions,
 ): number {
   // Pre-measure guess: same model as measure() (box fallback − reserve), clamped to the floor
   // so the one frame react-window renders before the effect runs never gets a negative height.
@@ -61,6 +68,9 @@ export function useMeasuredTableHeight(
       const toggle = box?.querySelector(TOGGLE_SELECTOR) as HTMLElement | null;
       const panel = wrapper.querySelector(panelSelector) as HTMLElement | null;
       const footer = wrapper.querySelector(footerSelector) as HTMLElement | null;
+      const toolbar = toolbarSelector
+        ? (wrapper.querySelector(toolbarSelector) as HTMLElement | null)
+        : null;
 
       if (import.meta.env.DEV) {
         // A rename/markup change in venus would drop us to the magic constants and quietly
@@ -68,6 +78,7 @@ export function useMeasuredTableHeight(
         if (!box) console.warn(`useMeasuredTableHeight: "${BOX_SELECTOR}" not found — falling back.`);
         if (!panel) console.warn(`useMeasuredTableHeight: "${panelSelector}" not found — using ${PANEL_FALLBACK}px fallback.`);
         if (!footer) console.warn(`useMeasuredTableHeight: "${footerSelector}" not found — using ${FOOTER_FALLBACK}px fallback.`);
+        if (toolbarSelector && !toolbar) console.warn(`useMeasuredTableHeight: "${toolbarSelector}" not found — not reserving space for it.`);
       }
 
       // `||` not `??`: a momentarily 0-height box (measured before layout settles) should
@@ -77,6 +88,7 @@ export function useMeasuredTableHeight(
         (toggle?.offsetHeight ?? 0) +
         (panel?.offsetHeight ?? PANEL_FALLBACK) +
         (footer?.offsetHeight ?? FOOTER_FALLBACK) +
+        (toolbar?.offsetHeight ?? 0) +
         PAGINATION_AND_BUFFER;
       // Clamp rather than skip: at extreme zoom `avail` can dip low, but keeping the previous
       // (possibly large) value would re-expose the overflow this hook exists to prevent.
