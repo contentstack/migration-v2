@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE IsoDateOffsetTest; uid[unique=true]; name; activeFrom; activeUntil
+                                ; date-test-1; Date Offset Test; 2026-07-14T00:00:00+0000; 2026-07-21T23:59:59+0530

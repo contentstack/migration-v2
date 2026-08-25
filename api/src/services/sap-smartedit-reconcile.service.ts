@@ -351,7 +351,13 @@ function checkRows(
   add: (f: Finding) => void,
 ): void {
   const seenUids = new Set<string>();
-  const titles = new Map<string, string[]>();
+  // Keyed by title -> the DISTINCT entry ids sharing it. A Set, not an array: several
+  // source rows legitimately share one id when they merge into a single entry (the
+  // multi-block-merge case — the same uid split across INSERT_UPDATE then UPDATE
+  // blocks), and this loop below runs once per ROW, not once per entry. An array would
+  // count that one merged entry against itself once per contributing row, reporting a
+  // false "3 entries share this title" for an entry split across 3 blocks.
+  const titles = new Map<string, Set<string>>();
   // The SAP export's own $lang macro is independent from the project's real
   // master locale (see sap-smartedit.service.ts's localizedValueOf) — the raw
   // parsed default for a row can therefore hold a DIFFERENT language's text
@@ -391,8 +397,8 @@ function checkRows(
     }
 
     const t = String(entry.title ?? '');
-    if (!titles.has(t)) titles.set(t, []);
-    titles.get(t)!.push(id);
+    if (!titles.has(t)) titles.set(t, new Set());
+    titles.get(t)!.add(id);
 
     // Value-presence: every non-empty source cell must be represented somewhere in
     // the entry, however it was mapped/transformed.
@@ -440,8 +446,9 @@ function checkRows(
     }
   }
 
-  for (const [title, ids] of titles) {
-    if (ids.length > 1) {
+  for (const [title, idSet] of titles) {
+    if (idSet.size > 1) {
+      const ids = [...idSet];
       add({
         severity: 'warning',
         check: 'title.duplicate',
@@ -468,6 +475,9 @@ function checkRows(
  * A source value survives if it appears verbatim, as a reference/asset key, or as a
  * member of a comma-separated list (ImpEx multi-value columns).
  */
+const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+const NUMERIC_RE = /^-?\d+(\.\d+)?$/;
+
 function isValueRepresented(raw: string, present: Set<string>): boolean {
   const val = raw.trim();
   if (!val) return true;
@@ -476,6 +486,34 @@ function isValueRepresented(raw: string, present: Set<string>): boolean {
   // Booleans/numbers are coerced to other primitive spellings.
   const lowered = val.toLowerCase();
   for (const p of present) if (p.toLowerCase() === lowered) return true;
+
+  // A number field genuinely round-trips the source value, but never necessarily the
+  // source STRING: transformField stores Number(value), and JS's own Number->string
+  // coercion drops trailing zeros/leading zeros ("42.50" -> 42.5, "61.00" -> 61) —
+  // confirmed against real output where the stored value was numerically identical,
+  // just reformatted. Compare the parsed numbers instead of the raw strings.
+  if (NUMERIC_RE.test(val)) {
+    const rawNum = Number(val);
+    for (const p of present) {
+      if (NUMERIC_RE.test(p) && Number(p) === rawNum) return true;
+    }
+  }
+
+  // An isodate field genuinely round-trips the source instant, but never the source
+  // STRING: transformField normalizes it via Date.toISOString(), which rewrites SAP's
+  // own "+0000"/"+05:30"-style offset into ".000Z"/milliseconds-and-Z. Comparing raw
+  // strings after that always fails even when the value is 100% correct — confirmed
+  // against real output where the stored value was the exact same instant, just
+  // reformatted. Parse both sides as dates and compare the actual instant instead.
+  if (ISO_DATETIME_RE.test(val)) {
+    const rawMs = new Date(val).getTime();
+    if (!isNaN(rawMs)) {
+      for (const p of present) {
+        if (!ISO_DATETIME_RE.test(p)) continue;
+        if (new Date(p).getTime() === rawMs) return true;
+      }
+    }
+  }
 
   // References and assets are stored under a derived uid, and ImpEx multi-value
   // columns are comma-separated lists of them.

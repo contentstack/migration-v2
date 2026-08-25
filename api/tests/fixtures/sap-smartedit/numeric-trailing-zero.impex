@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE NumericTrailingZeroTest; uid[unique=true]; name; price; stock
+                                     ; num-test-1; Numeric Format Test; 42.50; 61.00

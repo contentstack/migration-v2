@@ -342,6 +342,187 @@ describe('reconcile — reports the ambiguous-label trade rather than hiding it'
   });
 });
 
+describe('reconcile — title.duplicate counts distinct entries, not contributing source rows', () => {
+  // Regression: checkRows iterates once per SOURCE ROW, and a uid legitimately split
+  // across several INSERT_UPDATE/UPDATE blocks (the multi-block-merge case) produces
+  // several rows for the SAME final entry. The old code pushed into a plain array
+  // keyed by title, so that one merged entry got counted against itself once per
+  // contributing row: "mergeTest1" (name "Header Slot", split across 2 blocks, used
+  // by no other row) would falsely report as if 2 DIFFERENT entries shared that
+  // title, even though there is genuinely only one entry with that name.
+  const MERGE_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/multi-block-merge.impex');
+  const STACK_MT = `${STACK}-mergetitles`;
+  const OUT_MT = path.join(process.cwd(), './cmsMigrationData', STACK_MT);
+
+  const nameOntoTitleMerge = {
+    otherCmsTitle: 'MultiBlockMergeTest',
+    otherCmsUid: 'cs_multiblockmergetest',
+    contentstackTitle: 'MultiBlockMergeTest',
+    contentstackUid: 'cs_multiblockmergetest',
+    type: 'content_type',
+    fieldMapping: [
+      { ...field('name'), uid: 'title', contentstackField: 'title', contentstackFieldUid: 'title', backupFieldUid: 'title' },
+      field('template'),
+      field('position', 'number'),
+    ],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_MT, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(MERGE_FIXTURE, STACK_MT, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+    await sapSmarteditService.createEntry(MERGE_FIXTURE, '', STACK_MT, 'test-project', [nameOntoTitleMerge], {}, LOCALE, {});
+    const ctDir = path.join(OUT_MT, 'content_types');
+    fs.mkdirSync(ctDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ctDir, 'cs_multiblockmergetest.json'),
+      JSON.stringify({ title: 'MultiBlockMergeTest', uid: 'cs_multiblockmergetest', schema: [] }),
+    );
+  });
+
+  it('does not report title.duplicate for one entry merged from 2 blocks, even though it contributes 2 rows', () => {
+    const r = reconcile(MERGE_FIXTURE, OUT_MT);
+    const f = r.findings.find((x) => x.check === 'title.duplicate');
+    expect(f).toBeUndefined();
+  });
+
+  it('still creates exactly one entry titled "Header Slot" (sanity check on the setup itself)', () => {
+    const r = reconcile(MERGE_FIXTURE, OUT_MT);
+    expect(r.summary.entriesWritten).toBe(1);
+    expect(r.findings.some((x) => x.check === 'row.missing')).toBe(false);
+  });
+});
+
+describe('reconcile — an isodate value survives reformatting, not just verbatim', () => {
+  // Regression: transformField normalizes every isodate value through
+  // Date.toISOString(), which rewrites SAP's own "+0000"/"+0530"-style offset into
+  // ".000Z"/milliseconds-and-Z. Checked against real generated output, the stored
+  // value was the exact same instant, just reformatted — but isValueRepresented
+  // only ever compared raw strings, so it reported "field.missing" for a value
+  // that had migrated correctly.
+  const DATE_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/isodate-offset.impex');
+  const STACK_DATE = `${STACK}-isodate`;
+  const OUT_DATE = path.join(process.cwd(), './cmsMigrationData', STACK_DATE);
+
+  const isoDateOffsetCt = {
+    otherCmsTitle: 'IsoDateOffsetTest',
+    otherCmsUid: 'cs_isodateoffsettest',
+    contentstackTitle: 'IsoDateOffsetTest',
+    contentstackUid: 'cs_isodateoffsettest',
+    type: 'content_type',
+    fieldMapping: [
+      field('name'),
+      field('activeFrom', 'isodate'),
+      field('activeUntil', 'isodate'),
+    ],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_DATE, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(DATE_FIXTURE, STACK_DATE, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+    await sapSmarteditService.createEntry(DATE_FIXTURE, '', STACK_DATE, 'test-project', [isoDateOffsetCt], {}, LOCALE, {});
+    const ctDir = path.join(OUT_DATE, 'content_types');
+    fs.mkdirSync(ctDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ctDir, 'cs_isodateoffsettest.json'),
+      JSON.stringify({ title: 'IsoDateOffsetTest', uid: 'cs_isodateoffsettest', schema: [] }),
+    );
+  });
+
+  it('does not report field.missing for a UTC ("+0000") source offset normalized to "Z"', () => {
+    const r = reconcile(DATE_FIXTURE, OUT_DATE);
+    const f = r.findings.find((x) => x.check === 'field.missing' && x.detail.includes('activeFrom'));
+    expect(f).toBeUndefined();
+  });
+
+  it('does not report field.missing for a non-UTC ("+0530") source offset requiring real instant comparison', () => {
+    const r = reconcile(DATE_FIXTURE, OUT_DATE);
+    const f = r.findings.find((x) => x.check === 'field.missing' && x.detail.includes('activeUntil'));
+    expect(f).toBeUndefined();
+  });
+
+  it('still flags a genuinely wrong date value, not just any date-shaped string', () => {
+    const brokenDir = path.join(process.cwd(), './cmsMigrationData', `${STACK_DATE}-broken`);
+    fs.rmSync(brokenDir, { recursive: true, force: true });
+    fs.cpSync(OUT_DATE, brokenDir, { recursive: true });
+    const entryPath = path.join(brokenDir, 'entries', 'cs_isodateoffsettest', LOCALE, `${LOCALE}.json`);
+    const entries = JSON.parse(fs.readFileSync(entryPath, 'utf8'));
+    for (const uid of Object.keys(entries)) entries[uid].activefrom = '2099-01-01T00:00:00.000Z';
+    fs.writeFileSync(entryPath, JSON.stringify(entries, null, 2));
+
+    const r = reconcile(DATE_FIXTURE, brokenDir);
+    const f = r.findings.find((x) => x.check === 'field.missing' && x.detail.includes('activeFrom'));
+    expect(f).toBeDefined();
+  });
+});
+
+describe('reconcile — a number value survives trailing-zero reformatting, not just verbatim', () => {
+  // Regression: transformField stores Number(value), and JS's own number->string
+  // coercion drops trailing/leading zeros ("42.50" -> 42.5, "61.00" -> 61). Checked
+  // against real generated output, the stored value was numerically identical to the
+  // source — but isValueRepresented only ever compared raw strings, so it reported
+  // "field.missing" for a value that had migrated correctly.
+  const NUM_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/numeric-trailing-zero.impex');
+  const STACK_NUM = `${STACK}-numeric`;
+  const OUT_NUM = path.join(process.cwd(), './cmsMigrationData', STACK_NUM);
+
+  const numericCt = {
+    otherCmsTitle: 'NumericTrailingZeroTest',
+    otherCmsUid: 'cs_numerictrailingzerotest',
+    contentstackTitle: 'NumericTrailingZeroTest',
+    contentstackUid: 'cs_numerictrailingzerotest',
+    type: 'content_type',
+    fieldMapping: [
+      field('name'),
+      field('price', 'number'),
+      field('stock', 'number'),
+    ],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_NUM, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(NUM_FIXTURE, STACK_NUM, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+    await sapSmarteditService.createEntry(NUM_FIXTURE, '', STACK_NUM, 'test-project', [numericCt], {}, LOCALE, {});
+    const ctDir = path.join(OUT_NUM, 'content_types');
+    fs.mkdirSync(ctDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ctDir, 'cs_numerictrailingzerotest.json'),
+      JSON.stringify({ title: 'NumericTrailingZeroTest', uid: 'cs_numerictrailingzerotest', schema: [] }),
+    );
+  });
+
+  it('does not report field.missing for a trailing-decimal-zero value ("42.50" -> 42.5)', () => {
+    const r = reconcile(NUM_FIXTURE, OUT_NUM);
+    const f = r.findings.find((x) => x.check === 'field.missing' && x.detail.includes('price'));
+    expect(f).toBeUndefined();
+  });
+
+  it('does not report field.missing for a trailing-integer-zero value ("61.00" -> 61)', () => {
+    const r = reconcile(NUM_FIXTURE, OUT_NUM);
+    const f = r.findings.find((x) => x.check === 'field.missing' && x.detail.includes('stock'));
+    expect(f).toBeUndefined();
+  });
+
+  it('still flags a genuinely wrong number, not just any numeric-looking string', () => {
+    const brokenDir = path.join(process.cwd(), './cmsMigrationData', `${STACK_NUM}-broken`);
+    fs.rmSync(brokenDir, { recursive: true, force: true });
+    fs.cpSync(OUT_NUM, brokenDir, { recursive: true });
+    const entryPath = path.join(brokenDir, 'entries', 'cs_numerictrailingzerotest', LOCALE, `${LOCALE}.json`);
+    const entries = JSON.parse(fs.readFileSync(entryPath, 'utf8'));
+    for (const uid of Object.keys(entries)) entries[uid].price = 999;
+    fs.writeFileSync(entryPath, JSON.stringify(entries, null, 2));
+
+    const r = reconcile(NUM_FIXTURE, brokenDir);
+    const f = r.findings.find((x) => x.check === 'field.missing' && x.detail.includes('price'));
+    expect(f).toBeDefined();
+  });
+});
+
 describe('reconcile — authoritative vs heuristic type mapping', () => {
   // contenTypeMaker persists contentType.contentstackTitle (the DESTINATION
   // display title, renameable during "Map Content Fields") as the content-type
