@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { sapSmarteditService } from '../../../src/services/sap-smartedit.service.js';
+import { sapSmarteditService, assetKey } from '../../../src/services/sap-smartedit.service.js';
 
 /**
  * Integration-style regression tests for the api-side ImpEx parser and entry
@@ -720,23 +720,26 @@ describe('sap-smartedit getAllAssets — Media sourced from a real URL', () => {
   };
 
   it('downloads the real bytes and uses the content-type from the HTTP response header', () => {
-    const asset = readIndex()['assets_urlMediaHappy'];
+    const key = assetKey('urlMediaHappy');
+    const asset = readIndex()[key];
     expect(asset).toBeDefined();
     expect(asset.content_type).toBe('image/png');
-    const onDisk = path.join(OUT_URL, 'assets', 'files', 'assets_urlMediaHappy', asset.filename);
+    const onDisk = path.join(OUT_URL, 'assets', 'files', key, asset.filename);
     expect(fs.readFileSync(onDisk).equals(REAL_PNG_BYTES)).toBe(true);
   });
 
   it('records a non-2xx response as a failure, not a crash', () => {
     const failures = readFailures();
-    expect(failures['assets_urlMediaHttpError']).toContain('404');
-    expect(readIndex()['assets_urlMediaHttpError']).toBeUndefined();
+    const key = assetKey('urlMediaHttpError');
+    expect(failures[key]).toContain('404');
+    expect(readIndex()[key]).toBeUndefined();
   });
 
   it('records a network-level exception as a failure, not a crash', () => {
     const failures = readFailures();
-    expect(failures['assets_urlMediaNetworkError']).toBeDefined();
-    expect(readIndex()['assets_urlMediaNetworkError']).toBeUndefined();
+    const key = assetKey('urlMediaNetworkError');
+    expect(failures[key]).toBeDefined();
+    expect(readIndex()[key]).toBeUndefined();
   });
 });
 
@@ -784,7 +787,7 @@ describe('sap-smartedit getAllAssets — a hanging URL fetch does not hang forev
 
     const failuresFile = path.join(OUT_HANG, 'assets', 'logs', 'assets', 'cs_failed.json');
     const failures = JSON.parse(fs.readFileSync(failuresFile, 'utf8'));
-    expect(failures['assets_urlMediaHanging']).toContain('timed out');
+    expect(failures[assetKey('urlMediaHanging')]).toContain('timed out');
   });
 });
 
@@ -992,5 +995,97 @@ describe('sap-smartedit createEntry/getAllAssets — a genuine crash is not swal
     await expect(
       sapSmarteditService.getAllAssets(MISSING_PATH, '', STACK_CRASH, 'test-project'),
     ).rejects.toThrow(/Could not locate the export/);
+  });
+});
+
+/**
+ * Regression test for a real finding: the SAME uid legitimately appears across
+ * several merged ImpEx blocks (a real SAP pattern — an INSERT_UPDATE followed
+ * by a later, narrower UPDATE-style block for the same item). createEntry used
+ * to rebuild `entry` from scratch for every matching row and unconditionally
+ * overwrite entryData[uid] with whichever row it processed last — so a later
+ * row carrying only a subset of columns silently wiped out every field only
+ * present on the earlier, fuller row, with no error anywhere. Fixed to start
+ * from whatever entry already exists for a uid and only ever patch fields a
+ * given row actually declares.
+ */
+describe('sap-smartedit createEntry — a uid split across multiple ImpEx blocks merges instead of overwrites', () => {
+  const STACK_MERGE = 'test-stack-sap-smartedit-multi-block-merge';
+  const OUT_MERGE = path.join(process.cwd(), './cmsMigrationData', STACK_MERGE);
+  const MERGE_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/multi-block-merge.impex');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_MERGE, { recursive: true, force: true });
+    await sapSmarteditService.createEntry(MERGE_FIXTURE, '', STACK_MERGE, 'test-project', [
+      {
+        otherCmsTitle: 'MultiBlockMergeTest', contentstackUid: 'cs_multiblockmergetest',
+        fieldMapping: [
+          { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+          { otherCmsField: 'template', contentstackFieldUid: 'template', contentstackFieldType: 'single_line_text' },
+          { otherCmsField: 'position', contentstackFieldUid: 'position', contentstackFieldType: 'single_line_text' },
+        ],
+      },
+    ], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_MERGE, { recursive: true, force: true });
+  });
+
+  it('keeps fields from the earlier, fuller block instead of losing them to the later partial block', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_MERGE, 'entries', 'cs_multiblockmergetest', 'en-us', 'en-us.json'), 'utf8'));
+    expect(Object.keys(entries)).toHaveLength(1);
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.template).toBe('tmpl1');
+  });
+
+  it('also applies the field the later block DOES declare', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_MERGE, 'entries', 'cs_multiblockmergetest', 'en-us', 'en-us.json'), 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.position).toBe('2');
+  });
+
+  it('keeps the title the earlier block established, rather than resetting it to the bare id', () => {
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_MERGE, 'entries', 'cs_multiblockmergetest', 'en-us', 'en-us.json'), 'utf8'));
+    const entry = Object.values(entries)[0] as any;
+    expect(entry.title).toBe('Header Slot');
+  });
+});
+
+/**
+ * Regression test for a real finding: assetKey used to strip every
+ * non-alphanumeric character from a Media `code` with no collision check, so two
+ * distinct declared codes differing only by punctuation (`hero-banner` vs
+ * `hero_banner`) collapsed onto the identical key — the second Media row silently
+ * overwrote the first's metadata in the assets index, and reconciliation could
+ * never detect the misattribution (it computes the same colliding key and finds
+ * *an* asset present). Fixed to hash the code, the same way toEntryUid already
+ * disambiguates entry ids.
+ */
+describe('sap-smartedit getAllAssets — Media codes differing only by punctuation do not collide', () => {
+  const STACK_ASSET_COLLIDE = 'test-stack-sap-smartedit-asset-code-collision';
+  const OUT_ASSET_COLLIDE = path.join(process.cwd(), './cmsMigrationData', STACK_ASSET_COLLIDE);
+  const COLLISION_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/asset-collision/collision.impex');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_ASSET_COLLIDE, { recursive: true, force: true });
+    await sapSmarteditService.getAllAssets(COLLISION_FIXTURE, '', STACK_ASSET_COLLIDE, 'test-project');
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_ASSET_COLLIDE, { recursive: true, force: true });
+  });
+
+  it('gives "hero-banner" and "hero_banner" distinct keys instead of colliding', () => {
+    expect(assetKey('hero-banner')).not.toBe(assetKey('hero_banner'));
+  });
+
+  it('keeps BOTH Media records in the index, each with its own file', () => {
+    const indexPath = path.join(OUT_ASSET_COLLIDE, 'assets', 'index.json');
+    const index = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+    const euKey = assetKey('hero-banner');
+    const usKey = assetKey('hero_banner');
+    expect(index[euKey]?.filename).toBe('hero-banner-eu.png');
+    expect(index[usKey]?.filename).toBe('hero-banner-us.png');
   });
 });

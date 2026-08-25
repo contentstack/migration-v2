@@ -149,8 +149,21 @@ const FALLBACK_LOCALE_NAMES: Record<string, string> = {
 const toEntryUid = (id: string): string =>
   'blt' + createHash('md5').update(String(id)).digest('hex').slice(0, 16);
 
-/** Stable asset key shared by getAllAssets (index key) and createEntry (lookup). */
-const assetKey = (code: string): string => `assets_${String(code).replace(/[^a-z0-9]/gi, '')}`;
+/**
+ * Stable asset key shared by getAllAssets (index key) and createEntry (lookup).
+ *
+ * Previously stripped every non-alphanumeric character with no collision check, so two
+ * distinct declared Media codes differing only by punctuation (e.g. `hero-banner` vs
+ * `hero_banner`) collapsed onto the identical key — whichever Media row was processed
+ * second silently overwrote the first's metadata in the assets index, and any entry
+ * referencing the first code got misattributed to the second's file with no error
+ * anywhere (reconciliation cannot catch this: it computes the same colliding key, finds
+ * *an* asset present, and calls it correct). Hashed the same way toEntryUid already
+ * disambiguates entry ids, so distinct codes can never collide while staying fully
+ * deterministic across runs (required for delta re-imports to resolve the same code to
+ * the same key every time).
+ */
+const assetKey = (code: string): string => `assets_${createHash('md5').update(String(code)).digest('hex').slice(0, 16)}`;
 
 /**
  * File extensions treated as migratable assets when sweeping the export directory.
@@ -834,8 +847,27 @@ async function createEntry(
             sapLang ? rowLocalized?.[field]?.[sapLang] : rowLocalized?.[field]?.[primaryLangCode];
           const localizedLabel = localizedValueOf('title') ?? localizedValueOf('name');
 
-          const entry: any = {
+          // The SAME uid legitimately appears across several merged ImpEx blocks
+          // (an INSERT_UPDATE followed by a later UPDATE carrying only a handful of
+          // columns) — labelOwners above already accounts for that when judging
+          // ambiguity. This loop used to rebuild `entry` from scratch for every
+          // matching row and unconditionally overwrite entryData[uid], so a later
+          // UPDATE row with only e.g. `position` silently wiped out every field
+          // only present on the earlier, fuller row. Starting from whatever entry
+          // already exists for this uid — and only ever ADDING to it below — makes
+          // a later partial row patch specific fields instead of replacing the
+          // whole entry.
+          const existingEntry = entryData[uid];
+          const entry: any = existingEntry ?? {
             uid,
+            locale: destLocale,
+            publish_details: [],
+          };
+          // Only (re)compute the title from THIS row when it actually declares a
+          // title/name value, or when there is no entry yet for this uid — a later
+          // partial row that never carries a label must not blank out or reset a
+          // title an earlier, fuller row already established.
+          if (defaultLabel || !existingEntry) {
             // Many real SAP types carry no `name`/`title` column at all (e.g.
             // ContentSlotForTemplate is uid/position/pageTemplate/contentSlot only), so
             // the fallback title matters. Use the SOURCE id verbatim: it is the row's
@@ -847,10 +879,8 @@ async function createEntry(
             // next to the title in Contentstack, so a type prefix adds nothing.
             // Ambiguity is judged on the DEFAULT label (a structural property, not a
             // locale one) — an unambiguous row's title still shows its own locale's text.
-            title: unambiguousDefault ? (localizedLabel ?? defaultLabel) : id,
-            locale: destLocale,
-            publish_details: [],
-          };
+            entry.title = unambiguousDefault ? (localizedLabel ?? defaultLabel) : id;
+          }
           for (const field of ct?.fieldMapping ?? []) {
             if (field?.isDeleted) continue;
             if (field?.contentstackFieldUid?.includes('.')) continue; // group children (n/a for ImpEx)
@@ -885,7 +915,12 @@ async function createEntry(
           //     "Section" became 8 entries titled "Section", indistinguishable in
           //     Contentstack. The earlier `title:` assignment already handled this,
           //     but the mapped value silently won.
-          if (!entry.title || !unambiguousDefault) entry.title = id;
+          // Same guard as the initial assignment above: a merge row with no label of
+          // its own must not force the title back to `id`, clobbering a title an
+          // earlier, fuller row for this uid already set correctly.
+          if (defaultLabel || !existingEntry) {
+            if (!entry.title || !unambiguousDefault) entry.title = id;
+          }
           entryData[uid] = entry;
         }
 

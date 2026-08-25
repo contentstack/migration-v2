@@ -24,6 +24,12 @@ router.get("/:projectId", asyncRouter(projectController.getProject));
 // Export a project (project record + mapper stores) as a zip archive
 router.get("/:projectId/export", asyncRouter(projectController.exportProject));
 
+// Download the project's automatically-generated reconciliation Excel report
+router.get(
+  "/:projectId/reconciliation-report",
+  asyncRouter(projectController.downloadReconciliationReport)
+);
+
 // Import a project from an exported zip archive.
 //
 // `authenticateUser` is mounted on this router in server.ts

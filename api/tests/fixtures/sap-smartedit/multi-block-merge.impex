@@ -1,0 +1,6 @@
+$lang = en
+INSERT_UPDATE MultiBlockMergeTest; uid[unique=true]; name; template
+                                  ; mergeTest1; Header Slot; tmpl1
+
+INSERT_UPDATE MultiBlockMergeTest; uid[unique=true]; position
+                                  ; mergeTest1; 2

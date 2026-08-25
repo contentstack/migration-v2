@@ -253,6 +253,11 @@ export const KEYTOREMOVE = [
 export const MIGRATION_DATA_CONFIG = {
   DATA: './cmsMigrationData',
 
+  // Where automatic post-migration reconciliation writes its customer-shareable Excel
+  // report — a dedicated folder rather than mixed into logs/, so it's obvious where to
+  // find the one file meant to actually be handed to someone.
+  RECONCILE_FILES_DIR: 'Reconcile files',
+
   BACKUP_DATA: 'migration-data',
   BACKUP_LOG_DIR: 'logs',
   BACKUP_FOLDER_NAME: 'import',

@@ -815,6 +815,42 @@ describe('migration.service', () => {
       // Same reset requirement as the runCli-failure case above.
       expect(projectUpdateSetsIsMigrationStarted(false)).toBe(true);
     });
+
+    it('resets isMigrationStarted when the assets index cannot be found on disk', async () => {
+      const projectWithDest = {
+        ...mockProjects[0],
+        destination_stack_id: 'dest-stack-1',
+        extract_path: '/tmp/extract',
+        legacy_cms: { cms: 'wordpress', file_path: '/tmp/wp' },
+        stackDetails: { master_locale: 'en-us' },
+        mapperKeys: {},
+      };
+
+      mockChainGet.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(projectWithDest) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+
+      // No index file present: lstat resolves null, so the "not found or not
+      // a regular file" branch is taken and startMigration returns early,
+      // before the migration ever actually starts running.
+      mockFsPromisesLstat.mockResolvedValueOnce(null);
+
+      const req = createMockReq({
+        params: { orgId: 'org-123', projectId: 'proj-1' },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
+      });
+
+      await expect(migrationService.startMigration(req)).resolves.not.toThrow();
+
+      expect(utilsCli.runCli).not.toHaveBeenCalled();
+      // Regression: this early return in the assets-index-loading block did
+      // not reset isMigrationStarted, unlike its sibling failure paths in the
+      // same function (SAP SmartEdit build failure, runCli failure) — leaving
+      // the project stuck looking "in progress" until someone edits the DB
+      // by hand, even though the migration never actually started.
+      expect(projectUpdateSetsIsMigrationStarted(false)).toBe(true);
+    });
   });
 
   describe('getLogs', () => {

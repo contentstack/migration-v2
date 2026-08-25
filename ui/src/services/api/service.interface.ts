@@ -1,4 +1,4 @@
-import { FileDetails } from '../../context/app/app.interface';
+import { FileDetails, ReconciliationStatus } from '../../context/app/app.interface';
 
 export interface Error {
   code: number;
@@ -38,6 +38,7 @@ export interface MigrationResponse {
   isMigrationCompleted: boolean;
   migration_execution: boolean;
   iteration?: number;
+  reconciliation?: ReconciliationStatus;
 }
 
 export interface LegacyCms {

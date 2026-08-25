@@ -260,9 +260,19 @@ export interface ITestMigration {
   isMigrationComplete: boolean;
 }
 
+export interface ReconciliationStatus {
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  summary?: { critical: number; error: number; warning: number };
+  reportPath?: string;
+  error?: string;
+}
+
 export interface IMigrationExecutionStep {
   migrationStarted: boolean;
   migrationCompleted: boolean;
+  reconciliation?: ReconciliationStatus;
 }
 export interface IAppContext {
   authToken: string;

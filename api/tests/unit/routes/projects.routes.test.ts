@@ -5,6 +5,7 @@ vi.mock('../../../src/controllers/projects.controller.js', () => ({
     getAllProjects: vi.fn((_req: any, res: any) => res.status(200).json([])),
     getProject: vi.fn((_req: any, res: any) => res.status(200).json({})),
     exportProject: vi.fn((_req: any, res: any) => res.status(200).json({})),
+    downloadReconciliationReport: vi.fn((_req: any, res: any) => res.status(200).json({})),
     importProject: vi.fn((_req: any, res: any) => res.status(201).json({})),
     createProject: vi.fn((_req: any, res: any) => res.status(201).json({})),
     updateProject: vi.fn((_req: any, res: any) => res.status(200).json({})),
@@ -169,6 +170,13 @@ describe('projects.routes', () => {
       .filter((layer: any) => layer.route?.methods?.get)
       .map((layer: any) => layer.route.path);
     expect(routes).toContain('/:projectId/export');
+  });
+
+  it('should register GET /:projectId/reconciliation-report', () => {
+    const routes = router.stack
+      .filter((layer: any) => layer.route?.methods?.get)
+      .map((layer: any) => layer.route.path);
+    expect(routes).toContain('/:projectId/reconciliation-report');
   });
 
   it('should register POST /import', () => {

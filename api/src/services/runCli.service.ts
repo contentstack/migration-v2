@@ -5,7 +5,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { v4 } from 'uuid';
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, getStepperSteps } from '../constants/index.js';
+import { CS_REGIONS, MIGRATION_DATA_CONFIG, DATABASE_FILES, getStepperSteps, CMS } from '../constants/index.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
 // import watchLogs from '../utils/watch.utils.js';
@@ -20,6 +20,7 @@ interface TestStack {
 }
 import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
 import writeUidMapping, { writePerLocaleEntryUidMapping } from '../utils/uid-mapper.utils.js';
+import { writeReconciliationWorkbook } from '../utils/reconciliation-xlsx.utils.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -155,17 +156,63 @@ export function findIncompleteLocalePairs(
   return missing;
 }
 
+/** Sleeps for the given duration; used as a fixed backoff between entry-import retries. */
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Executes CLI commands and provides real-time output
  * Uses Node's spawn to run commands asynchronously
+ *
+ * @param timeoutMs - If provided, kills the process and rejects once this much time has
+ * passed with no exit, instead of waiting indefinitely. Confirmed against real production
+ * logs: `cm:stacks:import` can hang for 15-17 minutes on a degraded connection before it
+ * finally reports "Connection failed: Unable to reach the server" — and because the CLI
+ * exits 0 regardless (the same known behavior findIncompleteLocalePairs exists to catch),
+ * our own retry loop had no way to notice and move on faster. A shorter, forced timeout
+ * lets a bounded retry budget actually cover more real attempts instead of a few very
+ * long hangs. Only pass this for the entries retry loop — the first, full-module import
+ * legitimately takes a long time on its own and isn't the call that's been observed hanging.
  */
-const runCommand = (
+export const runCommand = (
   command: string,
   args: string[] = [],
-  logFilePath?: string
+  logFilePath?: string,
+  timeoutMs?: number
 ): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
     const cmdProcess = spawn(command, args, { shell: true });
+    let settled = false;
+    let timeoutHandle: NodeJS.Timeout | undefined;
+
+    if (timeoutMs && timeoutMs > 0) {
+      timeoutHandle = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        if (logFilePath) {
+          try {
+            const timeoutLogEntry = {
+              level: 'error',
+              message: `Command timed out after ${timeoutMs}ms with no response (likely a hung connection) — killing it so a retry can start immediately instead of waiting out the hang.`,
+              timestamp: new Date().toISOString(),
+            };
+            fs.appendFileSync(logFilePath, JSON.stringify(timeoutLogEntry) + '\n');
+          } catch (err) {
+            console.error('Error writing timeout event to log file:', err);
+          }
+        }
+        cmdProcess.kill('SIGTERM');
+        // Fire-and-forget escalation if SIGTERM alone doesn't stop it — does not gate
+        // the rejection below, so the retry loop is never held up waiting for this.
+        setTimeout(() => {
+          try {
+            cmdProcess.kill('SIGKILL');
+          } catch {
+            /* already exited */
+          }
+        }, 5000);
+        reject(new Error(`Command timed out after ${timeoutMs}ms and was killed`));
+      }, timeoutMs);
+    }
 
     // For stdout handler
     cmdProcess.stdout.on('data', (data) => {
@@ -211,6 +258,13 @@ const runCommand = (
     });
 
     cmdProcess.on('close', (code) => {
+      // The timeout path above already settled (rejected) this promise and killed the
+      // process — its close event still fires afterward and must be a no-op here,
+      // otherwise this would try to resolve/reject an already-settled promise with a
+      // misleading "exit code" message that hides the real timeout cause.
+      if (settled) return;
+      settled = true;
+      if (timeoutHandle) clearTimeout(timeoutHandle);
       if (code === 0) resolve();
       else {
         // Log the error to the log file
@@ -231,6 +285,150 @@ const runCommand = (
     });
   });
 };
+
+/**
+ * Fires live reconciliation against the just-completed migration's destination stack, in
+ * the background — the caller does not await this, so a slow live export/diff never delays
+ * runCli's own return. SAP SmartEdit only: reconcile-live.ts's comparison logic parses the
+ * source ImpEx, which is specific to that connector.
+ *
+ * Reconciliation existed only as `/reconcile`, invoked by hand — nothing forced it to run,
+ * so a genuine silent import bug (a reference field's target misconfigured, dropping every
+ * value written to it) could sit undetected for an entire migration unless someone thought
+ * to check. Firing this automatically means every SAP SmartEdit migration gets checked, not
+ * just the ones someone remembered to.
+ *
+ * Never throws — a reconciliation problem (or a bug in this function itself) must not be
+ * mistaken for the migration itself having failed; it is recorded on the project's own
+ * `reconciliation` field and logged instead.
+ */
+export async function triggerPostMigrationReconciliation(
+  projectId: string,
+  stackId: string,
+  sourceFilePath: string,
+  executionLogPath: string,
+  iteration: number = 1
+): Promise<void> {
+  const log = (level: string, message: string) => {
+    try {
+      fs.appendFileSync(executionLogPath, JSON.stringify({ level, message, timestamp: new Date().toISOString() }) + '\n');
+    } catch {
+      /* best effort — a logging failure here must not derail reconciliation itself */
+    }
+  };
+
+  const startedAt = new Date().toISOString();
+  try {
+    await ProjectModelLowdb.read();
+    const idx = ProjectModelLowdb.chain.get('projects').findIndex({ id: projectId }).value();
+    if (idx > -1) {
+      ProjectModelLowdb.data.projects[idx].reconciliation = { status: 'running', startedAt };
+      await ProjectModelLowdb.write();
+    }
+  } catch (err: any) {
+    log('warn', `Could not record reconciliation start on the project record: ${err?.message ?? err}`);
+  }
+
+  log('info', `Starting automatic post-migration reconciliation against live stack ${stackId} ...`);
+
+  const jsonReportPath = path.join(path.dirname(executionLogPath), `live-reconciliation-${stackId}-${Date.now()}.json`);
+  // reconcile-live.ts exports the ENTIRE live stack over the network — the same class of
+  // hang cm:stacks:import can hit (documented elsewhere in this file as 15-17 minutes
+  // before it self-reports failure, or indefinitely with no such report). Without a bound
+  // here, a hung export leaves this call's own promise never settling, which leaves the
+  // 'running' status already written to the project record above stuck there permanently —
+  // there is no watchdog anywhere else that would ever notice or recover it. 20 minutes is
+  // generous enough for a legitimately large stack export while still guaranteeing this
+  // eventually times out and falls through to the "no readable report" failure path below.
+  const RECONCILIATION_TIMEOUT_MS = 20 * 60 * 1000;
+  try {
+    await runCommand(
+      'npx',
+      [
+        'tsx',
+        'scripts/reconcile-live.ts',
+        sourceFilePath.includes(' ') ? `"${sourceFilePath}"` : sourceFilePath,
+        stackId,
+        '--json',
+        jsonReportPath.includes(' ') ? `"${jsonReportPath}"` : jsonReportPath,
+        // We already know exactly which project/iteration this is — skip reconcile-live's
+        // own search-by-stack-id (resolveProjectForStack), which can match the WRONG
+        // project when more than one record's destination/test stack id references the
+        // same stack (common in a dev/test environment with reused stacks).
+        '--project-id',
+        projectId,
+        '--iteration',
+        String(iteration),
+      ],
+      undefined,
+      RECONCILIATION_TIMEOUT_MS
+    );
+  } catch {
+    // reconcile-live.ts exits non-zero both when it genuinely cannot run (bad source path,
+    // no stored credentials, export failure) AND when it runs fine but finds critical/error
+    // findings — a real, useful result, not a crash. The report file on disk, not the exit
+    // code, is what tells those two cases apart below, so a rejection here is not itself an
+    // error worth logging twice.
+  }
+
+  const completedAt = new Date().toISOString();
+  let parsedReport: any = null;
+  try {
+    parsedReport = JSON.parse(fs.readFileSync(jsonReportPath, 'utf8'));
+  } catch {
+    parsedReport = null;
+  }
+
+  // The JSON reconcile() itself produces is a machine-readable intermediate, not something
+  // to hand a customer or manager — build the same 3-sheet workbook a manually-run
+  // /reconcile has always produced, so the AUTOMATIC check hands back a real deliverable.
+  // Best-effort: if this fails for any reason, fall back to the JSON rather than losing
+  // the whole reconciliation result over a report-formatting problem.
+  let reportPath = jsonReportPath;
+  if (parsedReport?.summary) {
+    const reconcileFilesDir = path.join(process.cwd(), MIGRATION_DATA_CONFIG.RECONCILE_FILES_DIR);
+    const xlsxReportPath = path.join(reconcileFilesDir, `${stackId}.reconcile.xlsx`);
+    try {
+      fs.mkdirSync(reconcileFilesDir, { recursive: true });
+      await writeReconciliationWorkbook(parsedReport, { stackId, sourcePath: sourceFilePath }, xlsxReportPath);
+      reportPath = xlsxReportPath;
+    } catch (err: any) {
+      log('warn', `Could not generate the Excel reconciliation report (falling back to JSON): ${err?.message ?? err}`);
+    }
+  }
+
+  try {
+    await ProjectModelLowdb.read();
+    const idx = ProjectModelLowdb.chain.get('projects').findIndex({ id: projectId }).value();
+    if (idx === -1) return;
+
+    if (parsedReport?.summary) {
+      const { critical = 0, error = 0, warning = 0 } = parsedReport.summary;
+      ProjectModelLowdb.data.projects[idx].reconciliation = {
+        status: 'completed',
+        startedAt,
+        completedAt,
+        summary: { critical, error, warning },
+        reportPath,
+      };
+      log(
+        critical || error ? 'error' : 'info',
+        `Automatic post-migration reconciliation finished: ${critical} critical, ${error} error, ${warning} warning finding(s). Report: ${reportPath}`
+      );
+    } else {
+      ProjectModelLowdb.data.projects[idx].reconciliation = {
+        status: 'failed',
+        startedAt,
+        completedAt,
+        error: 'Reconciliation did not produce a readable report — see server logs for the underlying error.',
+      };
+      log('error', `Automatic post-migration reconciliation failed to complete for stack ${stackId} — no readable report was produced.`);
+    }
+    await ProjectModelLowdb.write();
+  } catch (err: any) {
+    log('warn', `Could not record reconciliation result on the project record: ${err?.message ?? err}`);
+  }
+}
 
 /**
  * Main CLI execution function for content migration
@@ -343,7 +541,20 @@ export const runCli = async (
       // content-types/etc already succeeded), relying on the CLI's own mapper
       // state to skip what's done and continue with what isn't, until nothing is
       // missing or a bounded number of attempts is exhausted.
-      const MAX_ENTRY_IMPORT_ATTEMPTS = 6;
+      //
+      // MAX_ENTRY_IMPORT_ATTEMPTS was 6, and a real overnight run still failed with
+      // 16 (content type, locale) pairs never imported — not because 6 retries of
+      // genuine work weren't enough, but because `cm:stacks:import` can hang for
+      // 15-17 minutes on a degraded connection before it self-reports "Connection
+      // failed", and runCommand had no way to notice sooner. Two changes together:
+      // a bounded per-attempt timeout so a hung attempt fails fast instead of
+      // eating that whole window, and a higher attempt ceiling now that most
+      // attempts are cheap (a hang-free retry is fast; a hung one no longer costs
+      // 15+ minutes). A short fixed backoff avoids immediately re-hitting a
+      // connection that just failed.
+      const MAX_ENTRY_IMPORT_ATTEMPTS = 15;
+      const ENTRY_IMPORT_ATTEMPT_TIMEOUT_MS = 6 * 60 * 1000;
+      const ENTRY_IMPORT_RETRY_BACKOFF_MS = 10 * 1000;
       let attempt = 0;
       let incomplete = findIncompleteLocalePairs(sourcePath, backupPath);
       while (incomplete.length && attempt < MAX_ENTRY_IMPORT_ATTEMPTS) {
@@ -358,7 +569,21 @@ export const runCli = async (
         };
         fs.appendFileSync(transformePath, JSON.stringify(retryLogEntry) + '\n');
 
-        await runCommand('npx', importArgs('entries'), transformePath);
+        await sleep(ENTRY_IMPORT_RETRY_BACKOFF_MS);
+        try {
+          await runCommand('npx', importArgs('entries'), transformePath, ENTRY_IMPORT_ATTEMPT_TIMEOUT_MS);
+        } catch (attemptErr: any) {
+          // A single attempt failing (including our own timeout-kill) is exactly
+          // what this loop exists to absorb — log it and let the next iteration's
+          // findIncompleteLocalePairs check decide whether more work remains,
+          // instead of letting one bad attempt abort the entire migration here.
+          const attemptFailureLog = {
+            level: 'warn',
+            message: `Entries import attempt ${attempt}/${MAX_ENTRY_IMPORT_ATTEMPTS} failed: ${attemptErr?.message ?? attemptErr}. Will retry if attempts remain.`,
+            timestamp: new Date().toISOString(),
+          };
+          fs.appendFileSync(transformePath, JSON.stringify(attemptFailureLog) + '\n');
+        }
         incomplete = findIncompleteLocalePairs(sourcePath, backupPath);
       }
 
@@ -478,6 +703,20 @@ export const runCli = async (
           : [];
         proj.migrated_locales = Array.from(new Set([...existing, ...ranLocales]));
         await ProjectModelLowdb.write();
+
+        // Fire-and-forget: reconciliation is no longer something that only runs if someone
+        // remembers to invoke /reconcile by hand. Not awaited — a slow live export/diff must
+        // never delay this function's own return, and any failure inside is captured on the
+        // project record rather than propagated here.
+        if (proj?.legacy_cms?.cms === CMS.SAP_SMARTEDIT && proj?.legacy_cms?.file_path) {
+          triggerPostMigrationReconciliation(
+            projectId,
+            stack_uid,
+            proj.legacy_cms.file_path,
+            transformePath,
+            proj?.iteration || 1
+          ).catch((err) => console.error('Post-migration reconciliation trigger crashed unexpectedly:', err));
+        }
       }
     } else {
       console.info('User not found.');

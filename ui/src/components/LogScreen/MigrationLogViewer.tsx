@@ -125,6 +125,14 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     }
   }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
 
+  // React Router reuses this component instance across a client-side navigation between
+  // different projects on the same route (it doesn't unmount just because :projectId
+  // changed) — so hasShownCompletionNotification could otherwise carry a stale `true` over
+  // from a PREVIOUS project's completed run into a brand new one that hasn't finished yet.
+  useEffect(() => {
+    setHasShownCompletionNotification(false);
+  }, [projectId]);
+
   
   /**
    * Scrolls to the top of the logs container.
@@ -179,52 +187,118 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
+  // Both the "migration completed" flip and the reconciliation-status updates read AND
+  // write the SAME migration_execution sub-object. These used to live in two separate
+  // effects, each spreading ...newMigrationData?.migration_execution from THIS render's
+  // own — necessarily stale, since redux hasn't re-rendered in between — snapshot. Because
+  // updateNewMigrationData does a SHALLOW merge at the top level (migration_execution gets
+  // replaced wholesale, not deep-merged), whichever effect dispatched SECOND silently
+  // overwrote the first one's change. In practice the reconciliation effect ran after the
+  // completion effect, so its dispatch (built from a snapshot that still said
+  // migrationCompleted: false) clobbered the completion flip back to false the instant
+  // reconciliation started — even though a moment earlier, in the same pass, it had
+  // correctly been set true. That is exactly why reconciliation status displayed correctly
+  // (its own dispatch was the last writer) while "migration completed" never stuck. Fixed
+  // by computing everything in ONE pass and issuing at most one combined dispatch.
   useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
 
+    let migrationExecutionPatch: Record<string, any> = {};
+    let shouldNotifyCompletion = false;
+
     logs?.forEach((log) => {
-      try {
-        //const logObject = JSON.parse(log);
-        const message = log.message;
+      const message = log.message ?? '';
 
-        if (message === 'Migration Process Completed' && !hasShownCompletionNotification) {
-          setIsModalOpen(true);
-          setHasShownCompletionNotification(true);
-
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            migration_execution: {
-              ...newMigrationData?.migration_execution,
-              migrationStarted: false,
-              migrationCompleted: true
-            }
+      if (message === 'Migration Process Completed') {
+        if (!newMigrationData?.migration_execution?.migrationCompleted) {
+          migrationExecutionPatch = {
+            ...migrationExecutionPatch,
+            migrationStarted: false,
+            migrationCompleted: true
             // stepValue is deliberately NOT changed here: the execute-step CTA stays
             // "Start Migration" and goes disabled on completion, rather than becoming a
             // "Restart Migration" button that invites re-running a finished migration.
           };
-
-          dispatch(updateNewMigrationData(newMigrationDataObj));
-
-          /**
-           * Updates the Migration excution step as completed in backend if migration completes.
-           */
-          //await updateCurrentStepData(selectedOrganisation.value, projectId);
-
-          Notification({
-            notificationContent: { text: message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
         }
-      } catch (error) {
-        console.error('Invalid JSON string', error);
+        if (!hasShownCompletionNotification) {
+          shouldNotifyCompletion = true;
+        }
+      }
+
+      // Read the patch accumulated so far in THIS pass first: a "Starting..." and its
+      // "finished..."/"failed..." log can land in the same socket batch, so falling back
+      // straight to the (stale, pre-batch) redux snapshot here would lose the startedAt
+      // this same forEach loop just computed a few iterations earlier.
+      const currentReconciliation =
+        migrationExecutionPatch.reconciliation ?? newMigrationData?.migration_execution?.reconciliation;
+
+      if (
+        message.startsWith('Starting automatic post-migration reconciliation') &&
+        currentReconciliation?.status !== 'running' &&
+        currentReconciliation?.status !== 'completed' &&
+        currentReconciliation?.status !== 'failed'
+      ) {
+        migrationExecutionPatch = {
+          ...migrationExecutionPatch,
+          reconciliation: { status: 'running', startedAt: log.timestamp ?? new Date().toISOString() }
+        };
+      }
+
+      const finished = message.match(
+        /^Automatic post-migration reconciliation finished: (\d+) critical, (\d+) error, (\d+) warning finding\(s\)\. Report: (.+)$/
+      );
+      if (finished && currentReconciliation?.status !== 'completed') {
+        const [, critical, error, warning, reportPath] = finished;
+        migrationExecutionPatch = {
+          ...migrationExecutionPatch,
+          reconciliation: {
+            status: 'completed',
+            startedAt: currentReconciliation?.startedAt ?? '',
+            completedAt: log.timestamp ?? new Date().toISOString(),
+            summary: { critical: Number(critical), error: Number(error), warning: Number(warning) },
+            reportPath
+          }
+        };
+      }
+
+      if (
+        message.startsWith('Automatic post-migration reconciliation failed to complete') &&
+        currentReconciliation?.status !== 'failed'
+      ) {
+        migrationExecutionPatch = {
+          ...migrationExecutionPatch,
+          reconciliation: {
+            status: 'failed',
+            startedAt: currentReconciliation?.startedAt ?? '',
+            completedAt: log.timestamp ?? new Date().toISOString(),
+            error: message
+          }
+        };
       }
     });
+
+    if (Object.keys(migrationExecutionPatch).length > 0) {
+      dispatch(
+        updateNewMigrationData({
+          migration_execution: { ...newMigrationData?.migration_execution, ...migrationExecutionPatch }
+        })
+      );
+    }
+
+    if (shouldNotifyCompletion) {
+      setIsModalOpen(true);
+      setHasShownCompletionNotification(true);
+      Notification({
+        notificationContent: { text: 'Migration Process Completed' },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'success'
+      });
+    }
   }, [logs]);
 
   const navigate = useNavigate();

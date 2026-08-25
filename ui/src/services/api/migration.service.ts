@@ -21,6 +21,19 @@ export const getMigrationData = (orgId: string, projectId: string) => {
   }
 };
 
+/**
+ * Fetches the automatically-generated reconciliation Excel report as a blob, so the
+ * caller can trigger a real browser download. A plain `<a href>` to this endpoint
+ * would not work — it's behind the same app_token header auth as every other API
+ * call, which only axios (via `options()`) attaches, not a bare browser navigation.
+ */
+export const getReconciliationReport = (orgId: string, projectId: string) => {
+  return getCall(`${API_VERSION}/org/${orgId}/project/${projectId}/reconciliation-report`, {
+    ...options(),
+    responseType: 'blob'
+  });
+};
+
 export const updateLegacyCMSData = (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/legacy-cms`, data, options());

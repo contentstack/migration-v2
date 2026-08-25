@@ -48,18 +48,32 @@ export function parseArgs(args: string[]): {
   stackId?: string;
   jsonOut: string | null;
   ctPath: string | null;
+  projectId: string | null;
+  iteration: number | null;
 } {
   const jsonAt = args.indexOf('--json');
   const jsonOut = jsonAt >= 0 ? args[jsonAt + 1] : null;
   const ctAt = args.indexOf('--content-types');
   const ctPath = ctAt >= 0 ? args[ctAt + 1] : null;
+  // Set by an automated caller (e.g. runCli.service.ts's post-migration trigger) that
+  // already knows exactly which project/iteration this stack belongs to — bypasses
+  // resolveProjectForStack's search-by-stack-id below, which can match the WRONG
+  // project when more than one record's destination_stack_id/current_test_stack_id
+  // happens to reference the same stack (stale test-stack ids left over from an
+  // earlier, abandoned attempt are common in a dev/test environment).
+  const projectIdAt = args.indexOf('--project-id');
+  const projectId = projectIdAt >= 0 ? args[projectIdAt + 1] : null;
+  const iterationAt = args.indexOf('--iteration');
+  const iteration = iterationAt >= 0 ? Number(args[iterationAt + 1]) : null;
 
   const consumed = new Set<number>();
   if (jsonAt >= 0) consumed.add(jsonAt).add(jsonAt + 1);
   if (ctAt >= 0) consumed.add(ctAt).add(ctAt + 1);
+  if (projectIdAt >= 0) consumed.add(projectIdAt).add(projectIdAt + 1);
+  if (iterationAt >= 0) consumed.add(iterationAt).add(iterationAt + 1);
   const positional = args.filter((_, i) => !consumed.has(i));
 
-  return { sourcePath: positional[0], stackId: positional[1], jsonOut, ctPath };
+  return { sourcePath: positional[0], stackId: positional[1], jsonOut, ctPath, projectId, iteration };
 }
 
 function runCommand(command: string, args: string[]): Promise<void> {
@@ -212,9 +226,9 @@ function normalizeAssets(exportRoot: string, assetMap: Record<string, string>): 
 }
 
 async function main(): Promise<void> {
-  const { sourcePath, stackId, jsonOut, ctPath } = parseArgs(process.argv.slice(2));
+  const { sourcePath, stackId, jsonOut, ctPath, projectId: projectIdArg, iteration: iterationArg } = parseArgs(process.argv.slice(2));
   if (!sourcePath || !stackId) {
-    console.error('Usage: npx tsx scripts/reconcile-live.ts <source.impex|sourceFolder> <stackId> [--json out.json] [--content-types contentTypes.json]');
+    console.error('Usage: npx tsx scripts/reconcile-live.ts <source.impex|sourceFolder> <stackId> [--json out.json] [--content-types contentTypes.json] [--project-id id] [--iteration n]');
     process.exit(2);
   }
   if (!fs.existsSync(sourcePath)) {
@@ -223,7 +237,9 @@ async function main(): Promise<void> {
   }
   const contentTypes = ctPath ? JSON.parse(fs.readFileSync(ctPath, 'utf8')) : undefined;
 
-  const { projectId, iteration } = await resolveProjectForStack(stackId);
+  const { projectId, iteration } = projectIdArg
+    ? { projectId: projectIdArg, iteration: iterationArg ?? 1 }
+    : await resolveProjectForStack(stackId);
   const uidMapperDb = getUidMapperDb(projectId, iteration);
   await uidMapperDb.read();
   const entryMap: Record<string, string> = (uidMapperDb.data as any)?.entry ?? {};

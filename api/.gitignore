@@ -365,6 +365,7 @@ database/
 /sitecoreMigrationData
 /cmsMigrationData
 /migration-data
+/Reconcile files
 **/copy*
 **copy.ts
 manifest.json

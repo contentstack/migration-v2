@@ -76,6 +76,15 @@ interface Project {
   locales?: Record<string, string>;
   source_locales?: string[];
   migrated_locales?: string[];
+  /** Set by the automatic post-migration reconciliation trigger in runCli.service.ts. */
+  reconciliation?: {
+    status: 'running' | 'completed' | 'failed';
+    startedAt: string;
+    completedAt?: string;
+    summary?: { critical: number; error: number; warning: number };
+    reportPath?: string;
+    error?: string;
+  };
 }
 
 interface  ProjectDocument {

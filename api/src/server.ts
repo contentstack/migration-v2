@@ -35,6 +35,16 @@ const watcher = chokidar.watch(config.LOG_FILE_PATH, {
 
 let io: Server; // Socket.IO server instance
 
+// Byte offset already streamed to clients, PER watched file — not a single shared
+// counter. Each project gets its own log file starting at 0 bytes; a single global
+// offset left over from whichever file was watched previously would make
+// `createReadStream(path, { start: fileOffset })` start past the new file's actual
+// end, silently emitting nothing until the new file happened to grow past that
+// stale number. That is exactly why "migration completed"/reconciliation lines
+// could go missing from the live view for a NEW project while a page refresh
+// (which re-fetches state over REST, not this socket) showed them correctly.
+const fileOffsets = new Map<string, number>();
+
 // Dynamically change the log file path and update the watcher
 export async function setLogFilePath(newPath: string) {
   try {
@@ -44,6 +54,9 @@ export async function setLogFilePath(newPath: string) {
     // Stop watching the old log file
     if (config.LOG_FILE_PATH) {
       watcher.unwatch(config.LOG_FILE_PATH);
+      // The old file's offset has no meaning once we stop watching it — drop it
+      // rather than let these accumulate for every project for the life of the server.
+      fileOffsets.delete(config.LOG_FILE_PATH);
     }
     // Update the config to use the new log file path
     config.LOG_FILE_PATH = absolutePath;
@@ -111,7 +124,6 @@ try {
         credentials: true,
       },
     });
-    let fileOffset = 0;
     const CHUNK_SIZE = 1024 * 1024; // Limit batch size to 1MB
 
     // Emit initial log file content to connected clients
@@ -119,9 +131,10 @@ try {
     watcher.on('change', async (path) => {
       try {
         const fileStats = await fs.promises.stat(path);
+        const startOffset = fileOffsets.get(path) ?? 0;
 
         // Read the entire file if there is an update (new logs or changes)
-        const stream = fs.createReadStream(path, { start: fileOffset });
+        const stream = fs.createReadStream(path, { start: startOffset });
         let fileData = '';
 
         stream.on('data', (chunk) => {
@@ -138,8 +151,8 @@ try {
             index += CHUNK_SIZE; // Move to the next chunk
           }
 
-          // Update the file offset for the next read
-          fileOffset = fileStats.size;
+          // Update THIS file's offset for the next read — not a shared counter.
+          fileOffsets.set(path, fileStats.size);
         });
 
         stream.on('error', (err) => {

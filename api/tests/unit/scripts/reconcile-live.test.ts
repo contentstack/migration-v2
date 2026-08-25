@@ -38,6 +38,21 @@ describe('reconcile-live parseArgs', () => {
     expect(r.jsonOut).toBe('out.json');
     expect(r.ctPath).toBe('ct.json');
   });
+
+  it('defaults projectId/iteration to null when not passed (manual CLI usage)', async () => {
+    const { parseArgs } = await import('../../../scripts/reconcile-live.js');
+    const r = parseArgs(['source.impex', 'blt123']);
+    expect(r.projectId).toBeNull();
+    expect(r.iteration).toBeNull();
+  });
+
+  it('parses an explicit --project-id/--iteration override (automated caller, e.g. runCli.service.ts)', async () => {
+    const { parseArgs } = await import('../../../scripts/reconcile-live.js');
+    const r = parseArgs(['source.impex', 'blt123', '--project-id', 'proj1', '--iteration', '2', '--json', 'out.json']);
+    expect(r.projectId).toBe('proj1');
+    expect(r.iteration).toBe(2);
+    expect(r.jsonOut).toBe('out.json');
+  });
 });
 
 /**

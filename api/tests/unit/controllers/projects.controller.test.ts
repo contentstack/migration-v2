@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockProjectService, mockArchive, mockZipArchiveCtor, mockFs } = vi.hoisted(() => {
+const { mockProjectService, mockArchive, mockZipArchiveCtor, mockFs, mockReadStream } = vi.hoisted(() => {
   const mockArchive = {
     on: vi.fn(),
     pipe: vi.fn(),
@@ -8,11 +8,16 @@ const { mockProjectService, mockArchive, mockZipArchiveCtor, mockFs } = vi.hoist
     directory: vi.fn(),
     finalize: vi.fn().mockResolvedValue(undefined),
   };
+  const mockReadStream = {
+    on: vi.fn().mockReturnThis(),
+    pipe: vi.fn(),
+  };
   return {
     mockProjectService: {
       getAllProjects: vi.fn(),
       getProject: vi.fn(),
       exportProject: vi.fn(),
+      getReconciliationReportPath: vi.fn(),
       importProject: vi.fn(),
       createProject: vi.fn(),
       updateProject: vi.fn(),
@@ -30,10 +35,14 @@ const { mockProjectService, mockArchive, mockZipArchiveCtor, mockFs } = vi.hoist
       getMigratedStacks: vi.fn(),
     },
     mockArchive,
+    mockReadStream,
     mockZipArchiveCtor: vi.fn(function () {
       return mockArchive;
     }),
-    mockFs: { existsSync: vi.fn().mockReturnValue(false) },
+    mockFs: {
+      existsSync: vi.fn().mockReturnValue(false),
+      createReadStream: vi.fn(() => mockReadStream),
+    },
   };
 });
 
@@ -49,6 +58,7 @@ import { projectController } from '../../../src/controllers/projects.controller.
 describe('projects.controller', () => {
   let req: any;
   let res: any;
+  let next: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,7 +71,9 @@ describe('projects.controller', () => {
       json: vi.fn().mockReturnThis(),
       setHeader: vi.fn().mockReturnThis(),
       destroy: vi.fn(),
+      headersSent: false,
     };
+    next = vi.fn();
   });
 
   it('getAllProjects should return 200 with projects array', async () => {
@@ -184,6 +196,70 @@ describe('projects.controller', () => {
       await projectController.exportProject(req, res);
 
       expect(mockArchive.directory).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('downloadReconciliationReport', () => {
+    it('should stream the report with xlsx content-type and attachment headers', async () => {
+      mockProjectService.getReconciliationReportPath.mockResolvedValue({
+        project: { id: 'proj-123' },
+        reportPath: '/Reconcile files/stack1.reconcile.xlsx',
+      });
+
+      await projectController.downloadReconciliationReport(req, res, next);
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="stack1.reconcile.xlsx"'
+      );
+      expect(mockFs.createReadStream).toHaveBeenCalledWith('/Reconcile files/stack1.reconcile.xlsx');
+      expect(mockReadStream.pipe).toHaveBeenCalledWith(res);
+    });
+
+    it('routes a stream error through next() instead of destroying the connection, when no bytes have been sent yet', async () => {
+      // Regression: this used to call res.destroy(err) unconditionally, which just resets
+      // the connection — the client (and the UI's download handler) saw a raw network
+      // failure instead of the app's normal structured JSON error response.
+      mockProjectService.getReconciliationReportPath.mockResolvedValue({
+        project: { id: 'proj-123' },
+        reportPath: '/Reconcile files/stack1.reconcile.xlsx',
+      });
+      let errorHandler: ((err: Error) => void) | undefined;
+      mockReadStream.on.mockImplementation((event: string, handler: any) => {
+        if (event === 'error') errorHandler = handler;
+        return mockReadStream;
+      });
+
+      await projectController.downloadReconciliationReport(req, res, next);
+      const boom = new Error('disk read failed');
+      errorHandler?.(boom);
+
+      expect(next).toHaveBeenCalledWith(boom);
+      expect(res.destroy).not.toHaveBeenCalled();
+    });
+
+    it('still destroys the response (cannot resend headers) if the stream errors after bytes were already flushed', async () => {
+      mockProjectService.getReconciliationReportPath.mockResolvedValue({
+        project: { id: 'proj-123' },
+        reportPath: '/Reconcile files/stack1.reconcile.xlsx',
+      });
+      let errorHandler: ((err: Error) => void) | undefined;
+      mockReadStream.on.mockImplementation((event: string, handler: any) => {
+        if (event === 'error') errorHandler = handler;
+        return mockReadStream;
+      });
+      res.headersSent = true;
+
+      await projectController.downloadReconciliationReport(req, res, next);
+      const boom = new Error('disk read failed mid-stream');
+      errorHandler?.(boom);
+
+      expect(res.destroy).toHaveBeenCalledWith(boom);
+      expect(next).not.toHaveBeenCalled();
     });
   });
 

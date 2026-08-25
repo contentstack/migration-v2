@@ -20,7 +20,9 @@ import {
   NEW_PROJECT_STATUS,
   getStepperSteps,
   DATABASE_FILES,
+  MIGRATION_DATA_CONFIG,
 } from "../constants/index.js";
+import { assertResolvedPathUnderBase } from "../utils/sanitize-path.utils.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
@@ -139,6 +141,58 @@ const exportProject = async (req: Request) => {
   const databasePath = path.join(process.cwd(), DATABASE_FILES.DIRECTORY, projectId);
 
   return { project, databasePath };
+};
+
+/**
+ * Resolves the on-disk path to a project's automatically-generated reconciliation
+ * Excel report, so the caller can stream it back to whoever is allowed to see it.
+ *
+ * The stored path is validated to actually live inside the "Reconcile files"
+ * directory (not just trusted as-is) — it is written by our own backend, but this
+ * endpoint turns that stored string into a file read on request, so it is treated
+ * as a boundary the same way any other user-reachable path would be. A report that
+ * exists but is NOT under that directory (the JSON fallback path written when xlsx
+ * generation itself failed — see runCli.service.ts) is a real, if degraded, state,
+ * not a path-traversal attempt, so it is reported as "no Excel report available"
+ * rather than a generic validation error.
+ */
+const getReconciliationReportPath = async (req: Request) => {
+  const orgId = req?.params?.orgId;
+  const projectId = req?.params?.projectId;
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
+  const { user_id = '', region = '' } = decodedToken;
+
+  // Reuse the same ownership-scoped lookup as getProject/exportProject so a user
+  // can only ever reach a reconciliation report for a project they actually own.
+  const project: any = await getProjectUtil(
+    projectId,
+    { id: projectId, org_id: orgId, region, owner: user_id },
+    'getReconciliationReportPath'
+  );
+
+  const reportPath = project?.reconciliation?.reportPath;
+  if (!reportPath) {
+    throw new NotFoundError('No reconciliation report available for this project yet');
+  }
+  if (path.extname(reportPath).toLowerCase() !== '.xlsx') {
+    throw new NotFoundError('No Excel reconciliation report is available for this project (it may have fallen back to a raw JSON report)');
+  }
+
+  const reconcileFilesDir = path.join(process.cwd(), MIGRATION_DATA_CONFIG.RECONCILE_FILES_DIR);
+  assertResolvedPathUnderBase(reconcileFilesDir, reportPath);
+
+  if (!fs.existsSync(reportPath)) {
+    throw new NotFoundError('The reconciliation report file no longer exists on disk');
+  }
+
+  return { project, reportPath };
 };
 
 /**
@@ -1836,6 +1890,7 @@ export const projectService = {
   getAllProjects,
   getProject,
   exportProject,
+  getReconciliationReportPath,
   importProject,
   createProject,
   updateProject,

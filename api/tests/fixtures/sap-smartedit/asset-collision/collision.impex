@@ -1,0 +1,4 @@
+$lang = en
+INSERT_UPDATE Media; code[unique=true]; mime; realfilename
+                    ; hero-banner; image/png; hero-banner-eu.png
+                    ; hero_banner; image/png; hero-banner-us.png

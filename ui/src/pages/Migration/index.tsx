@@ -495,7 +495,8 @@ const Migration = () => {
       },
       migration_execution: {
         migrationStarted: projectData?.isMigrationStarted,
-        migrationCompleted: projectData?.isMigrationCompleted
+        migrationCompleted: projectData?.isMigrationCompleted,
+        reconciliation: projectData?.reconciliation
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks,
@@ -887,13 +888,18 @@ const Migration = () => {
     await updateMigrationKey(selectedOrganisation.value, projectId);
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-    //if (res?.status === 200) {
+    if (res?.status === 200) {
       const isDeltaIteration = (newMigrationData?.iteration ?? 1) > 1;
       const executeStepIndex = isDeltaIteration ? 5 : 4;
       handleStepChange(executeStepIndex);
       const url = `/projects/${projectId}/migration/steps/${executeStepIndex + 1}`;
       navigate(url, { replace: true });
-    //}
+    } else {
+      Notification({
+        notificationContent: { text: res?.data?.error?.message || 'Failed to proceed to Migration Execution' },
+        type: 'error'
+      });
+    }
   };
 
   /**
@@ -915,11 +921,22 @@ const Migration = () => {
       );
 
       if (migrationRes?.status === 200) {
+        // Read from the ref, not the closed-over newMigrationData: startMigration above is
+        // awaited, and redux state (e.g. from a concurrent socket update) can move on during
+        // that gap, so building this dispatch off the stale closure would silently discard it.
         const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
+          ...newMigrationDataRef?.current,
           migration_execution: {
-            ...newMigrationData?.migration_execution,
-            migrationStarted: true
+            ...newMigrationDataRef?.current?.migration_execution,
+            migrationStarted: true,
+            // A prior run in this same session can leave migrationCompleted (and its
+            // reconciliation result) stale here — without resetting both, MigrationLogViewer's
+            // "reset notification flag" effect (keyed on migrationStarted && !migrationCompleted)
+            // never fires for THIS run, so the completion banner/notification silently never
+            // shows again, and the Reconciliation block would keep showing the OLD run's result
+            // while a new migration is actually in progress.
+            migrationCompleted: false,
+            reconciliation: undefined
           }
         };
         dispatch(updateNewMigrationData(newMigrationDataObj));

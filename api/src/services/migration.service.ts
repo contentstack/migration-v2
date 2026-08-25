@@ -1321,12 +1321,27 @@ const startMigration = async (req: Request): Promise<any> => {
     let safeDeltaMigrationLogPath: string | undefined;
     const destinationStackId = project?.destination_stack_id;
 
+    // isMigrationStarted was set true at the top of this function and is never cleared by
+    // anything else on the failure paths below — left as-is, the project would look
+    // permanently "in progress" (disabling both "New Project" and this project's own "Start
+    // Migration" button) even though nothing is actually running, exactly like the
+    // SAP_SMARTEDIT and runCli failure paths this same fix was already applied to elsewhere
+    // in this function. This block has FIVE early returns of its own that were missed.
+    const resetMigrationStartedFlag = async () => {
+      if (index > -1) {
+        await ProjectModelLowdb.update((data: any) => {
+          data.projects[index].isMigrationStarted = false;
+        });
+      }
+    };
+
     const safeStackForAssets = sanitizeStackId(project?.destination_stack_id);
     if (!safeStackForAssets) {
       await customLogger(projectId, destinationStackId, 'error', 'Invalid destination stack id; cannot load assets index.');
       console.error(
         'Invalid destination stack id; cannot load assets index.',
       );
+      await resetMigrationStartedFlag();
       return;
     }
     const migrationDataBase = path.resolve(
@@ -1350,6 +1365,7 @@ const startMigration = async (req: Request): Promise<any> => {
       console.error(
         'Assets index path is outside the allowed migration-data directory.',
       );
+      await resetMigrationStartedFlag();
       return;
     }
 
@@ -1359,6 +1375,7 @@ const startMigration = async (req: Request): Promise<any> => {
         console.error(
           `Assets index not found or not a regular file at ${indexPath}`,
         );
+        await resetMigrationStartedFlag();
         return;
       }
 
@@ -1367,6 +1384,7 @@ const startMigration = async (req: Request): Promise<any> => {
         assertResolvedPathUnderBase(migrationDataBase, canonicalIndexPath);
       } catch {
           await customLogger(projectId, destinationStackId, 'error', 'Assets index resolves outside the allowed migration-data directory.');
+        await resetMigrationStartedFlag();
         return;
       }
 
@@ -1374,6 +1392,7 @@ const startMigration = async (req: Request): Promise<any> => {
       if (!raw?.trim()) {
         await customLogger(projectId, destinationStackId, 'error', 'Assets index.json is empty.');
         console.error(`Assets index.json is empty at ${indexPath}`);
+        await resetMigrationStartedFlag();
         return;
       }
       indexData = JSON.parse(raw);
@@ -1383,6 +1402,7 @@ const startMigration = async (req: Request): Promise<any> => {
         `Failed to read or parse assets index.json at ${indexPath}:`,
         error instanceof Error ? error.message : String(error),
       );
+      await resetMigrationStartedFlag();
       return;
     }
 

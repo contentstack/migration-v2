@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import fs from "node:fs";
+import path from "node:path";
 import { ZipArchive } from "archiver";
 import { projectService } from "../services/projects.service.js";
 
@@ -72,6 +73,48 @@ const exportProject = async (req: Request, res: Response): Promise<void> => {
   }
 
   await archive.finalize();
+};
+
+/**
+ * Streams a project's automatically-generated reconciliation Excel report back to
+ * the client, so the "Reconciliation" panel in the UI can offer a real download
+ * link instead of just showing the server-side path as inert text.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const downloadReconciliationReport = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { reportPath } = await projectService.getReconciliationReportPath(req);
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${path.basename(reportPath)}"`
+  );
+
+  const stream = fs.createReadStream(reportPath);
+  stream.on("error", (err: Error) => {
+    // getReconciliationReportPath already checked the file exists, but it can still
+    // vanish (or fail to read) between that check and this stream opening. Route it
+    // through the normal error-handling contract so the client gets a structured JSON
+    // error instead of a raw connection reset — unless bytes are already flowing, in
+    // which case the status/headers can no longer be changed and there's nothing left
+    // to do but tear the connection down.
+    if (res.headersSent) {
+      res.destroy(err);
+    } else {
+      next(err);
+    }
+  });
+  stream.pipe(res);
 };
 
 /**
@@ -242,6 +285,7 @@ export const projectController = {
   getAllProjects,
   getProject,
   exportProject,
+  downloadReconciliationReport,
   importProject,
   createProject,
   updateProject,

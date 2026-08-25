@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import path from 'path';
 import { createMockProject } from '../../fixtures/project.fixture.js';
 
 const {
@@ -223,6 +224,83 @@ describe('projects.service', () => {
       await expect(
         projectService.exportProject(makeReq({ orgId: 'org-123', projectId: 'p1' }, {}))
       ).rejects.toThrow('Token payload is required');
+    });
+  });
+
+  /**
+   * getReconciliationReportPath backs the "download the reconciliation Excel report"
+   * endpoint — the stored reportPath is treated as a boundary to validate (it is
+   * written by our own backend, but this turns it into a file read on request), not
+   * trusted as-is.
+   */
+  describe('getReconciliationReportPath', () => {
+    const reconcileFilesDir = path.join(process.cwd(), 'Reconcile files');
+
+    it('returns the report path when it is a real .xlsx file inside the Reconcile files directory', async () => {
+      const reportPath = path.join(reconcileFilesDir, 'stack1.reconcile.xlsx');
+      const project = createMockProject({ reconciliation: { status: 'completed', startedAt: 't', reportPath } });
+      mockGetProjectUtil.mockResolvedValue(project);
+      mockFs.existsSync.mockImplementation((p: string) => p === reportPath);
+
+      const result = await projectService.getReconciliationReportPath(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+
+      expect(result.reportPath).toBe(reportPath);
+      expect(mockGetProjectUtil).toHaveBeenCalledWith(
+        project.id,
+        expect.objectContaining({ id: project.id, org_id: 'org-123', owner: 'user-123' }),
+        'getReconciliationReportPath'
+      );
+    });
+
+    it('throws NotFoundError when the project has no reconciliation report yet', async () => {
+      const project = createMockProject({ reconciliation: undefined });
+      mockGetProjectUtil.mockResolvedValue(project);
+
+      await expect(
+        projectService.getReconciliationReportPath(
+          makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow('No reconciliation report available');
+    });
+
+    it('throws NotFoundError when reconciliation fell back to a raw JSON report (not .xlsx)', async () => {
+      const reportPath = '/some/logs/dir/live-reconciliation-stack1-123.json';
+      const project = createMockProject({ reconciliation: { status: 'completed', startedAt: 't', reportPath } });
+      mockGetProjectUtil.mockResolvedValue(project);
+
+      await expect(
+        projectService.getReconciliationReportPath(
+          makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow('No Excel reconciliation report is available');
+    });
+
+    it('rejects a reportPath that resolves outside the Reconcile files directory', async () => {
+      const project = createMockProject({
+        reconciliation: { status: 'completed', startedAt: 't', reportPath: '/etc/evil.xlsx' },
+      });
+      mockGetProjectUtil.mockResolvedValue(project);
+
+      await expect(
+        projectService.getReconciliationReportPath(
+          makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow('outside the allowed base directory');
+    });
+
+    it('throws NotFoundError when the file no longer exists on disk', async () => {
+      const reportPath = path.join(reconcileFilesDir, 'stack1.reconcile.xlsx');
+      const project = createMockProject({ reconciliation: { status: 'completed', startedAt: 't', reportPath } });
+      mockGetProjectUtil.mockResolvedValue(project);
+      mockFs.existsSync.mockReturnValue(false);
+
+      await expect(
+        projectService.getReconciliationReportPath(
+          makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow('no longer exists on disk');
     });
   });
 
