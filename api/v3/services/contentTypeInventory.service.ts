@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { csManagement } from "./csManagement.service.js";
+import { readExportedContentTypes } from "../utils/exportFolder.util.js";
 
 /**
  * v3 content type inventory — cs-content-type-selection TR-1 … TR-5, TR-26.
@@ -58,14 +59,30 @@ export class ExportUnreadableError extends Error {
 
 const asArray = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
+const isDirectory = (p: string): boolean => {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
 /**
- * Locates `content_types/schema.json`, tolerating the branch-folder layout the
- * Contentstack CLI produces as well as this repository's flat exporter output —
- * the same two shapes the audit reader already accommodates.
+ * Locates the `content_types` FOLDER, tolerating the branch-folder layout CLI v1
+ * produces as well as v2's flat output.
+ *
+ * ⚠️ Deliberately finds the folder, not `schema.json`. CLI v2 writes no aggregate at
+ * all — one `<uid>.json` per type — so keying on the aggregate made every v2 export
+ * report `export_unreadable`, putting content mapping out of action entirely
+ * (`docs/plans/cli-v1-to-v2-migration.md` §4.1).
+ *
+ * Folder presence now stands in for what file presence used to mean: absent is a
+ * broken export, present-but-empty is an export with no content types. That keeps the
+ * distinction EC-1 and EC-3 require.
  */
-const findSchemaFile = (exportDir: string): string | undefined => {
-  const direct = path.join(exportDir, "content_types", "schema.json");
-  if (fs.existsSync(direct)) return direct;
+const findContentTypesDir = (exportDir: string): string | undefined => {
+  const direct = path.join(exportDir, "content_types");
+  if (isDirectory(direct)) return direct;
 
   let entries: fs.Dirent[];
   try {
@@ -75,8 +92,8 @@ const findSchemaFile = (exportDir: string): string | undefined => {
   }
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    const nested = path.join(exportDir, entry.name, "content_types", "schema.json");
-    if (fs.existsSync(nested)) return nested;
+    const nested = path.join(exportDir, entry.name, "content_types");
+    if (isDirectory(nested)) return nested;
   }
   return undefined;
 };
@@ -129,14 +146,29 @@ export const buildContentTypeInventory = async (opts: {
   exportDir: string;
   destination?: DestinationRef;
 }): Promise<ContentTypeInventory> => {
-  const schemaFile = findSchemaFile(opts.exportDir);
-  if (!schemaFile) throw new ExportUnreadableError();
+  const typesDir = findContentTypesDir(opts.exportDir);
+  if (!typesDir) throw new ExportUnreadableError();
 
   let raw: unknown;
-  try {
-    raw = JSON.parse(fs.readFileSync(schemaFile, "utf8"));
-  } catch {
-    throw new ExportUnreadableError();
+  const aggregate = path.join(typesDir, "schema.json");
+  if (fs.existsSync(aggregate)) {
+    /*
+      v1. An aggregate that exists but will not parse is a BROKEN export, so it throws
+      rather than falling through to the per-item files — reading a corrupt export as
+      "this stack has no content types" is the silent-zero failure being removed here,
+      not a fallback worth having.
+    */
+    try {
+      raw = JSON.parse(fs.readFileSync(aggregate, "utf8"));
+    } catch {
+      throw new ExportUnreadableError();
+    }
+  } else {
+    /*
+      v2. Reassembled from the per-item files by the shared reader, which is the single
+      place that knows which files alongside them are manifests rather than content.
+    */
+    raw = readExportedContentTypes(opts.exportDir);
   }
 
   const sourceTypes = asArray<Record<string, any>>(raw).filter(

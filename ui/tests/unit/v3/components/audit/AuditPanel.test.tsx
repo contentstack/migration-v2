@@ -135,12 +135,19 @@ describe('v3 AuditPanel — analyzing state', () => {
     expect(screen.getAllByText('Queued')).toHaveLength(3);
   });
 
-  it('TC_AR_144 (positive): the counter reads "0 of 4 checks" before any check resolves', () => {
+  /*
+    ⚠️ Denominator changed from 4 to 5. `unusedTaxonomies` was added by commit 0a7b1331
+    and `AuditPanel` renders "of 5 checks"; this suite predated it and still asserted 4.
+    See the note in the api-side `auditChecks.service.test.ts` — `feature.md` still says
+    four checks and lists taxonomy auditing as a non-goal, so the spec is the piece still
+    outstanding, not the code.
+  */
+  it('TC_AR_144 (positive): the counter reads "0 of 5 checks" before any check resolves', () => {
     const store = mkStore();
     seedAnalyzing(store);
     renderPanel(store);
 
-    expect(screen.getByText('0 of 4 checks')).toBeInTheDocument();
+    expect(screen.getByText('0 of 5 checks')).toBeInTheDocument();
   });
 
   it('TC_AR_145 (positive): with two checks resolved the counter and each row reflect it', () => {
@@ -148,7 +155,7 @@ describe('v3 AuditPanel — analyzing state', () => {
     seedAnalyzing(store, ['done', 'done', 'checking', 'queued']);
     renderPanel(store);
 
-    expect(screen.getByText('2 of 4 checks')).toBeInTheDocument();
+    expect(screen.getByText('2 of 5 checks')).toBeInTheDocument();
     expect(screen.getAllByText('Done')).toHaveLength(2);
     expect(screen.getByText('Checking…')).toBeInTheDocument();
     expect(screen.getByText('Queued')).toBeInTheDocument();
@@ -179,7 +186,7 @@ describe('v3 AuditPanel — analyzing state', () => {
     // Anchor first: prove the analyzing state IS on screen. Without this the
     // absence assertions below pass against a component that renders nothing at
     // all, which is a vacuous green rather than a verified one.
-    expect(screen.getByText('0 of 4 checks')).toBeInTheDocument();
+    expect(screen.getByText('0 of 5 checks')).toBeInTheDocument();
 
     expect(screen.queryByText('Worth a look')).not.toBeInTheDocument();
     expect(screen.queryByText('Just so you know')).not.toBeInTheDocument();
@@ -198,7 +205,7 @@ describe('v3 AuditPanel — analyzing state', () => {
     seedAnalyzing(store, ['done', 'notPresent', 'unavailable', 'checking']);
     renderPanel(store);
 
-    expect(screen.getByText('3 of 4 checks')).toBeInTheDocument();
+    expect(screen.getByText('3 of 5 checks')).toBeInTheDocument();
   });
 });
 
@@ -235,7 +242,7 @@ describe('v3 AuditPanel — ready state', () => {
 
     // Anchor: the analyzing state is rendered, so the button's absence is a real
     // finding rather than a consequence of nothing being rendered.
-    expect(screen.getByText('0 of 4 checks')).toBeInTheDocument();
+    expect(screen.getByText('0 of 5 checks')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /re-run audit/i })).not.toBeInTheDocument();
   });
 
@@ -459,7 +466,7 @@ describe('v3 AuditPanel — impact panel', () => {
 
   /*
     Negative — taxonomy #4 (forbidden state): the ready state must not carry the
-    analyzing state's furniture. A leftover spinner or "n of 4 checks" counter beside
+    analyzing state's furniture. A leftover spinner or "n of N checks" counter beside
     a completed impact panel tells the user the scan is still running when it is not.
   */
   it('TC_AR_147 (negative): the ready state shows no progress counter or spinner', () => {
@@ -468,7 +475,7 @@ describe('v3 AuditPanel — impact panel', () => {
     renderPanel(store);
 
     expect(screen.getByText('Worth a look')).toBeInTheDocument();
-    expect(screen.queryByText(/of 4 checks/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/of 5 checks/)).not.toBeInTheDocument();
     expect(screen.queryByText('Checking…')).not.toBeInTheDocument();
     expect(screen.queryByText('Queued')).not.toBeInTheDocument();
   });

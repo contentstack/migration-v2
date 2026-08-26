@@ -11,6 +11,19 @@ import path from "path";
  * `contentTypeInventory.service.ts` each carry their own copy of that same
  * one-level descent; consolidating all three onto this helper is worth doing but
  * is deliberately out of scope for this change (noted in the plan).
+ *
+ * ⚠️ Reads BOTH export shapes, and must keep doing so — see
+ * `docs/plans/cli-v1-to-v2-migration.md` §4.1 and §4.3:
+ *
+ *   - CLI v1 nests modules under `<branch>/` and writes aggregate summary files
+ *     (`content_types/schema.json`, `global_fields/globalfields.json`).
+ *   - CLI v2 is flat and writes one file per item, with no aggregates at all.
+ *   - Assets live in `assets/` OR in `spaces/<space-uid>/assets/`. Which one is
+ *     decided by the ORG PLAN, not the CLI version, so neither shape ever goes
+ *     away and it cannot be known before the export runs. Never both at once.
+ *
+ * Reading only one shape does not fail loudly: a missing aggregate reads as zero,
+ * so the export looks successful and empty. That is the bug class this guards.
  */
 
 /** Module directories the CLI produces, used to recognise a module root. */
@@ -29,6 +42,9 @@ const MODULE_DIRS = [
   "custom-roles",
   "marketplace_apps",
   "personalize",
+  // v2 only, and where the assets go for an asset-spaces org — so an export that
+  // has it must still be recognised as a module root.
+  "spaces",
 ];
 
 const isDir = (p: string): boolean => {
@@ -90,6 +106,57 @@ const sumChunkFiles = (dir: string, suffix: string): number => {
   return total;
 };
 
+/**
+ * Files inside a module folder that are bookkeeping rather than content.
+ *
+ * The recurring bug in this area is a manifest counted as data, so the exclusions
+ * are explicit rather than pattern-guessed: `schema.json` and `globalfields.json`
+ * are v1's aggregates, `index.json` and `metadata.json` are chunk manifests.
+ */
+const NON_ITEM_FILES = new Set([
+  "index.json",
+  "schema.json",
+  "globalfields.json",
+  "metadata.json",
+  "folders.json",
+]);
+
+/** Counts one-file-per-item modules, the only shape v2 writes. */
+const countItemFiles = (dir: string): number => {
+  if (!isDir(dir)) return 0;
+  let total = 0;
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith(".json") || NON_ITEM_FILES.has(file)) continue;
+    total++;
+  }
+  return total;
+};
+
+/**
+ * Where this export actually keeps its assets.
+ *
+ * `assets/` for a classic org, `spaces/<space-uid>/assets/` for one whose plan has
+ * asset spaces. Returns undefined when there are none — a legitimate answer for a
+ * stack with no assets, and for a mid-export folder that has not reached them yet.
+ *
+ * Requiring the nested `assets` directory is what keeps `spaces/fields/` and
+ * `spaces/asset_types/` from being mistaken for an asset store: both sit beside the
+ * space folders and both contain a chunk index that would otherwise count as 1.
+ */
+export const resolveAssetDir = (root: string): string | undefined => {
+  const classic = path.join(root, "assets");
+  if (isDir(classic)) return classic;
+
+  const spaces = path.join(root, "spaces");
+  if (!isDir(spaces)) return undefined;
+  for (const entry of fs.readdirSync(spaces, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const candidate = path.join(spaces, entry.name, "assets");
+    if (isDir(candidate)) return candidate;
+  }
+  return undefined;
+};
+
 const countOf = (value: unknown): number => {
   if (Array.isArray(value)) return value.length;
   if (value && typeof value === "object") return Object.keys(value).length;
@@ -114,8 +181,22 @@ export interface ExportCounts {
 export const readExportCounts = (dir: string): ExportCounts => {
   const root = resolveExportRoot(dir);
 
-  const contentTypes = countOf(readJson(path.join(root, "content_types", "schema.json")));
-  const globalFields = countOf(readJson(path.join(root, "global_fields", "globalfields.json")));
+  /*
+    Per-item files first, aggregate second — in that order, and never summed.
+
+    v1 writes the aggregate AND per-item content-type files, so summing would report
+    46 for a 23-type export. v1 writes ONLY the aggregate for global fields (verified:
+    the reference export has `globalfields.json` with 14 entries and zero per-field
+    files), while v2 writes ONLY per-item files. So each needs both readers, with the
+    per-item count taking precedence when it finds anything.
+  */
+  const contentTypes =
+    countItemFiles(path.join(root, "content_types")) ||
+    countOf(readJson(path.join(root, "content_types", "schema.json")));
+
+  const globalFields =
+    countItemFiles(path.join(root, "global_fields")) ||
+    countOf(readJson(path.join(root, "global_fields", "globalfields.json")));
 
   /*
     Assets are counted from the CHUNK files, not from `assets.json`.
@@ -125,7 +206,8 @@ export const readExportCounts = (dir: string): ExportCounts => {
     Verified against a real CLI export; the first version of this function got it
     wrong precisely because the fixture invented a shape the CLI never produces.
   */
-  const assets = sumChunkFiles(path.join(root, "assets"), "-assets.json");
+  const assetDir = resolveAssetDir(root);
+  const assets = assetDir ? sumChunkFiles(assetDir, "-assets.json") : 0;
 
   // Entries live at entries/<contentType>/<locale>/<uuid>-entries.json, so the
   // total is the sum across every locale file of every content type.
@@ -156,8 +238,27 @@ export const readExportCounts = (dir: string): ExportCounts => {
  * has no content types and an empty graph.
  */
 export const readExportedContentTypes = (dir: string): any[] => {
-  const parsed = readJson(path.join(resolveExportRoot(dir), "content_types", "schema.json"));
-  return Array.isArray(parsed) ? parsed : [];
+  const root = resolveExportRoot(dir);
+
+  // v1's aggregate is preferred where it exists: it is one read instead of N, and it
+  // is the exact array the pre-CLI exporter used to return.
+  const parsed = readJson(path.join(root, "content_types", "schema.json"));
+  if (Array.isArray(parsed)) return parsed;
+
+  /*
+    v2 has no aggregate, so the types are reassembled from the per-item files. Returned
+    in directory order; the graph builder keys on uid, so order carries no meaning.
+  */
+  const dirPath = path.join(root, "content_types");
+  if (!isDir(dirPath)) return [];
+  const out: any[] = [];
+  for (const file of fs.readdirSync(dirPath)) {
+    if (!file.endsWith(".json") || NON_ITEM_FILES.has(file)) continue;
+    const ct = readJson(path.join(dirPath, file));
+    // A single unreadable file must not cost the whole graph.
+    if (ct && typeof ct === "object" && !Array.isArray(ct)) out.push(ct);
+  }
+  return out;
 };
 
 /**

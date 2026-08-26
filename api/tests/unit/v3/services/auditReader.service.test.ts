@@ -144,6 +144,7 @@ describe("v3 auditReader — directory resolution", () => {
       globalFields: false,
       assets: false,
       entries: false,
+      taxonomies: false,
     });
   });
 });
@@ -166,6 +167,10 @@ describe("v3 auditReader — layout tolerance", () => {
       globalFields: true,
       assets: true,
       entries: true,
+      // False even here: these fixtures write no `taxonomies/` folder. The flag was
+      // added with the unused-taxonomies check (commit 0a7b1331) after this suite was
+      // written — see the note on the check count in `auditChecks.service.test.ts`.
+      taxonomies: false,
     });
   });
 
@@ -187,6 +192,7 @@ describe("v3 auditReader — layout tolerance", () => {
       globalFields: false,
       assets: false,
       entries: false,
+      taxonomies: false,
     });
     expect(data.records).toEqual([]);
   });
@@ -209,6 +215,10 @@ describe("v3 auditReader — layout tolerance", () => {
       globalFields: true,
       assets: true,
       entries: true,
+      // False even here: these fixtures write no `taxonomies/` folder. The flag was
+      // added with the unused-taxonomies check (commit 0a7b1331) after this suite was
+      // written — see the note on the check count in `auditChecks.service.test.ts`.
+      taxonomies: false,
     });
     expect(recordKeys(data)).toEqual(["blog:e1:en"]);
   });
@@ -652,5 +662,135 @@ describe("v3 auditReader — variants and cache key", () => {
 
     expect(Object.keys(result.assets)).not.toContain("uuid-assets.json");
     expect(Object.keys(result.assets)).toHaveLength(1);
+  });
+});
+
+// ───── a v2-shaped export (cli-v1-to-v2-migration.md §4.1, §4.3 — Step 1) ─────
+
+/**
+ * The audit reads the export folder, so it inherits both of v2's layout changes.
+ *
+ * Content types already worked — this reader has always tried the aggregate and then
+ * the per-item files. Two things did not:
+ *
+ *   - global fields were read ONLY from `globalfields.json`, which v2 never writes
+ *   - assets were read ONLY from `assets/`, which does not exist for an org whose
+ *     plan includes asset spaces (they live at `spaces/<space-uid>/assets/`)
+ *
+ * Both failed as an empty module rather than an error, so the audit would report a
+ * clean bill of health for content it had never looked at — the exact false-clean
+ * FR-2.11 exists to prevent.
+ */
+const writeV2GlobalFields = (root: string, uids: string[]): void => {
+  for (const uid of uids) {
+    writeJson(path.join(root, "global_fields", `${uid}.json`), { uid, title: uid, schema: [] });
+  }
+};
+
+const writeSpacesAssets = (root: string, assets: Record<string, any>): void => {
+  const dir = path.join(root, "spaces", "amb7b704d0f0a5e71e", "assets");
+  writeJson(path.join(dir, "uuid-assets.json"), assets);
+  writeJson(path.join(dir, "assets.json"), { "1": "uuid-assets.json" });
+};
+
+describe("v3 auditReader — a v2-shaped export", () => {
+  it("reads global fields from the per-item files when there is no aggregate", () => {
+    const dir = path.join(TMP, "gf-items");
+    buildExport(dir, { omitModules: ["globalFields"] });
+    writeV2GlobalFields(dir, ["seo", "cards", "tabs"]);
+
+    const data = readAuditExport(dir);
+
+    expect(data.globalFields.map((g: any) => g.uid).sort()).toEqual(["cards", "seo", "tabs"]);
+    expect(data.modules.globalFields).toBe(true);
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): v1 writes ONLY the aggregate and no per-field
+    files at all, so the aggregate must still be read. Paired so the v2 path cannot be
+    added by replacing the v1 one — which would zero the global-field check for every
+    export already on disk.
+  */
+  it("still reads global fields from the aggregate, and reports absence when there is neither", () => {
+    const dir = path.join(TMP, "gf-agg");
+    buildExport(dir, { globalFields: [{ uid: "seo" }, { uid: "cards" }] });
+    expect(readAuditExport(dir).globalFields).toHaveLength(2);
+
+    const bare = path.join(TMP, `no-gf-${Math.random().toString(36).slice(2)}`);
+    buildExport(bare, { omitModules: ["globalFields"] });
+    const absent = readAuditExport(bare);
+    expect(absent.globalFields).toEqual([]);
+    // Absent, not empty: an empty module that reported `present` would give the check a
+    // clean result for data nobody read (FR-2.11).
+    expect(absent.modules.globalFields).toBe(false);
+  });
+
+  it("reads assets from spaces/<space-uid>/assets when there is no assets folder", () => {
+    const dir = path.join(TMP, "sp-assets");
+    buildExport(dir, { omitModules: ["assets"] });
+    writeSpacesAssets(dir, {
+      blt1: { uid: "blt1", filename: "a.jpg" },
+      blt2: { uid: "blt2", filename: "b.jpg" },
+    });
+
+    const data = readAuditExport(dir);
+
+    expect(Object.keys(data.assets).sort()).toEqual(["blt1", "blt2"]);
+    expect(data.modules.assets).toBe(true);
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): `spaces/` also holds `fields/` and
+    `asset_types/`, whose `fields.json` and `asset-types.json` are chunk INDEXES. Neither
+    is an asset store, and counting one would report a filename as an asset uid — the same
+    mistake that once made this reader say 11 assets for a 10-asset export.
+  */
+  it("does not treat spaces/fields or spaces/asset_types as an asset store", () => {
+    const dir = path.join(TMP, "sp-nonassets");
+    buildExport(dir, { omitModules: ["assets"] });
+    writeJson(path.join(dir, "spaces", "fields", "fields.json"), { "1": "uuid-fields.json" });
+    writeJson(path.join(dir, "spaces", "fields", "uuid-fields.json"), { f1: { uid: "f1" } });
+    writeJson(path.join(dir, "spaces", "asset_types", "asset-types.json"), {
+      "1": "uuid-asset_types.json",
+    });
+
+    const data = readAuditExport(dir);
+
+    expect(data.assets).toEqual({});
+    expect(data.modules.assets).toBe(false);
+  });
+
+  it("reads a fully v2-shaped export: per-item global fields and spaces assets together", () => {
+    const dir = path.join(TMP, "v2-full");
+    buildExport(dir, {
+      layout: "root",
+      contentTypes: [{ uid: "article", schema: [] }],
+      omitModules: ["globalFields", "assets"],
+      entries: { article: { "en-us": [{ uid: "e1", locale: "en-us", publish_details: [] }] } },
+    });
+    writeV2GlobalFields(dir, ["seo"]);
+    writeSpacesAssets(dir, { blt1: { uid: "blt1", filename: "a.jpg" } });
+
+    const data = readAuditExport(dir);
+
+    expect(data.readable).toBe(true);
+    expect(data.globalFields).toHaveLength(1);
+    expect(Object.keys(data.assets)).toEqual(["blt1"]);
+    expect(data.modules).toMatchObject({ contentTypes: true, globalFields: true, assets: true, entries: true });
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency shape): the classic layout must keep working
+    unchanged. Only asset-spaces orgs get `spaces/`; for everyone else, on both majors,
+    assets stay in `assets/`.
+  */
+  it("still reads assets from the classic assets folder", () => {
+    const dir = path.join(TMP, "classic-assets");
+    buildExport(dir, { assets: { blt9: { uid: "blt9", filename: "z.jpg" } } });
+
+    const data = readAuditExport(dir);
+
+    expect(Object.keys(data.assets)).toEqual(["blt9"]);
+    expect(data.modules.assets).toBe(true);
   });
 });

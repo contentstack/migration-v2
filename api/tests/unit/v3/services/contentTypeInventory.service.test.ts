@@ -793,3 +793,80 @@ describe("v3 content type inventory — matching against the destination", () =>
     expect(inv.destinationReadFailure).toBe("unauthorized");
   });
 });
+
+// ───── reading a v2-shaped export (cli-v1-to-v2-migration.md §4.1 — Step 1) ─────
+
+/**
+ * CLI v2 writes no `content_types/schema.json` — only one `<uid>.json` per type.
+ * Content mapping reads this inventory, so without a per-item path a v2 export
+ * produces `export_unreadable` and the mapping step is simply unusable.
+ *
+ * Shape measured from a real v2 export (`~/Documents/demo cli v2`): 23 files, each
+ * `{ title, uid, schema }`, and no aggregate.
+ */
+const writePerItemTypes = (dir: string, contentTypes: Record<string, any>[]): void => {
+  const d = path.join(dir, "content_types");
+  fs.mkdirSync(d, { recursive: true });
+  for (const c of contentTypes) {
+    fs.writeFileSync(path.join(d, `${c.uid}.json`), JSON.stringify(c, null, 2));
+  }
+};
+
+describe("v3 content type inventory — a v2-shaped export", () => {
+  it("builds the inventory from per-item files when there is no aggregate", async () => {
+    writePerItemTypes(dir, [ct("blog_article", "Blog Article"), ct("person", "Person")]);
+
+    const inv = await buildContentTypeInventory({ exportDir: dir });
+
+    expect(inv.contentTypes.map((c) => c.uid).sort()).toEqual(["blog_article", "person"]);
+    expect(inv.contentTypes.find((c) => c.uid === "person")?.title).toBe("Person");
+  });
+
+  /*
+    Negative — taxonomy #1 (missing input): an export with no content-type data at all is
+    still a failure, not an empty stack. Paired so "read the per-item files" cannot be
+    satisfied by code that stops distinguishing a broken export from an empty one — the
+    distinction EC-1 and EC-3 require.
+  */
+  it("still reports an unreadable export when there is no content_types folder", async () => {
+    const empty = path.join(TMP, `no-cts-${Math.random().toString(36).slice(2)}`);
+    fs.mkdirSync(empty, { recursive: true });
+
+    await expect(buildContentTypeInventory({ exportDir: empty })).rejects.toMatchObject({
+      code: "export_unreadable",
+    });
+  });
+
+  it("resolves references between content types read from per-item files", async () => {
+    writePerItemTypes(dir, [
+      {
+        uid: "blog_article",
+        title: "Blog Article",
+        schema: [{ data_type: "reference", uid: "author", reference_to: ["person"] }],
+      },
+      ct("person", "Person"),
+    ]);
+
+    const inv = await buildContentTypeInventory({ exportDir: dir });
+
+    expect(inv.contentTypes.find((c) => c.uid === "blog_article")?.references).toEqual(["person"]);
+  });
+
+  /*
+    Negative — taxonomy #2 (invalid shape): an aggregate that EXISTS but cannot be parsed
+    must still fail loudly rather than falling through to the per-item files and reporting
+    an empty stack. A corrupt v1 export reading as "no content types" is precisely the
+    silent-zero failure this whole migration is meant to avoid.
+  */
+  it("reports an unreadable export when the aggregate exists but is corrupt", async () => {
+    const d = path.join(dir, "content_types");
+    fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(d, "schema.json"), "{ this is not json");
+    // A per-item file is present too, so falling through would look like success.
+    fs.writeFileSync(path.join(d, "person.json"), JSON.stringify(ct("person", "Person")));
+
+    await expect(buildContentTypeInventory({ exportDir: dir })).rejects.toMatchObject({
+      code: "export_unreadable",
+    });
+  });
+});

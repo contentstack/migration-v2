@@ -615,7 +615,21 @@ describe("v3 auditChecks — unused global fields", () => {
 // ───────────────────────── check states and totals ─────────────────────────
 
 describe("v3 auditChecks — states, labels and totals", () => {
-  it("TC_AR_043 (positive): exactly four checks are produced, with the specified labels", () => {
+  /*
+    ⚠️ Updated 2026-08-25 from four checks to FIVE. `unusedTaxonomies` was added by
+    commit 0a7b1331 ("feat: add unused-taxonomies audit check, make it excludable"),
+    which is the current product intent — but this suite predates it and was still
+    asserting four, so both cases here failed.
+
+    Not merely stale: `feature.md` still says "four checks" in five places and lists
+    taxonomy auditing as an explicit NON-GOAL (§Non-goals: "Checks beyond the four. No
+    taxonomy … auditing"), because Q-5 recorded that taxonomy data was absent from
+    every export. The CLI switch changed that — a real CLI export does contain
+    `taxonomies/` — which is presumably why the check became possible. The spec and the
+    test-case matrix have not caught up; reported rather than edited here, since neither
+    is this suite's to change.
+  */
+  it("TC_AR_043 (positive): exactly five checks are produced, with the specified labels", () => {
     const result = runAuditChecks(data());
 
     expect(result.checks.map((c) => c.label)).toEqual([
@@ -623,22 +637,28 @@ describe("v3 auditChecks — states, labels and totals", () => {
       "Unpublished entries — has publish details?",
       "Empty content types — any entries at all?",
       "Unused global fields — referenced by a schema?",
+      "Unused taxonomies — any term referenced by an entry?",
     ]);
   });
 
   /*
-    Negative — taxonomy #3 (boundary): a fifth check must never appear, and none of
-    the four may be omitted, whatever the input. A check that vanished when its
-    module was absent would silently shrink the analyzing state's "n of 4" counter.
+    Negative — taxonomy #3 (boundary): the count is FIXED, and none of the checks may be
+    omitted whatever the input. A check that vanished when its module was absent would
+    silently shrink the analyzing state's "n of N" counter.
+
+    The guard itself still matters; only the number changed. It previously read "a fifth
+    check must never appear", which is why adding `unusedTaxonomies` broke it — the
+    boundary was deliberate, not an oversight, so it is being moved knowingly rather
+    than quietly relaxed.
   */
-  it("TC_AR_043 (negative): the four checks are present even when every module is absent", () => {
+  it("TC_AR_043 (negative): all five checks are present even when every module is absent", () => {
     const result = runAuditChecks(
       data({
         modules: { contentTypes: false, globalFields: false, assets: false, entries: false },
       })
     );
 
-    expect(result.checks).toHaveLength(4);
+    expect(result.checks).toHaveLength(5);
     expect(result.checks.every((c) => c.state === "notPresent")).toBe(true);
   });
 

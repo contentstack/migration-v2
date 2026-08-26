@@ -425,6 +425,24 @@ async function runStackCliExport(
   }
 
   /*
+    A run that finished WITH casualties — one asset that would not download, one entry
+    that failed. The export succeeded and the folder is usable, so this is not an error,
+    but the operator has to be able to see what is missing from it.
+
+    Logged at WARN so the log view's level filter surfaces it: silently succeeding would
+    make a short export indistinguishable from a complete one
+    (`docs/plans/cli-v1-to-v2-migration.md` §4.6).
+  */
+  if (result.warnings?.length) {
+    pushLog(
+      jobId,
+      "WARN",
+      `Export finished with ${result.warnings.length} problem(s) — the items below were not exported.`
+    );
+    for (const warning of result.warnings) pushLog(jobId, "WARN", warning);
+  }
+
+  /*
     ⚠️ LIVENESS RE-CHECK before anything is published (cs-project-lifecycle FR-1.11).
 
     This job captured `projectId` when it started. A CLI export takes minutes, and the

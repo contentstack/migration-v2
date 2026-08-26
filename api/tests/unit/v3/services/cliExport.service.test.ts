@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
+import nodeFs from "fs";
+import nodePath from "path";
 
 /**
  * Source Export Revamp, Phase 1b — the CLI spawn boundary.
@@ -62,6 +64,12 @@ const BASE = {
 beforeEach(() => {
   mockSpawn.mockReset();
   mockAssertCli.mockReset(); // default: available
+  /*
+    `vi.stubEnv` persists across tests unless cleared, and the log-poll interval is
+    stubbed down to milliseconds further below. Leaking that into the rest of the file
+    would leave other tests polling a hundred times a second.
+  */
+  vi.unstubAllEnvs();
 });
 
 // ───────────────────────── ANSI stripping (Impact 1) ─────────────────────────
@@ -140,7 +148,7 @@ describe("v3 CLI export — the command it builds", () => {
     const done = runCliExport({ ...BASE, runs: [{ module: undefined }] });
     await tick();
 
-    expect(mockSpawn.mock.calls[0][1]).not.toContain("-m");
+    expect(mockSpawn.mock.calls[0][1]).not.toContain("--module");
 
     child.emit("close", 0);
     await done;
@@ -151,7 +159,7 @@ describe("v3 CLI export — the command it builds", () => {
     const done = runCliExport({ ...BASE, runs: [{ module: "entries" }] });
     await tick();
 
-    expect(mockSpawn.mock.calls[0][1]).toEqual(expect.arrayContaining(["-m", "entries"]));
+    expect(mockSpawn.mock.calls[0][1]).toEqual(expect.arrayContaining(["--module", "entries"]));
 
     child.emit("close", 0);
     await done;
@@ -405,7 +413,7 @@ describe("v3 CLI export — chaining runs", () => {
 
     const modules = mockSpawn.mock.calls.map((c) => {
       const args = c[1] as string[];
-      return args[args.indexOf("-m") + 1];
+      return args[args.indexOf("--module") + 1];
     });
     expect(modules).toEqual(["entries", "global-fields", "assets"]);
   });
@@ -777,5 +785,579 @@ describe("v3 CLI export — availability is checked before spawning", () => {
     child.emit("close", 0);
 
     expect((await promise).ok).toBe(true);
+  });
+});
+
+// ───────── partial vs fatal failure (cli-v1-to-v2-migration.md §4.6, Step 0) ─────────
+
+/*
+  The CLI reports two very different things at ERROR level and does not distinguish
+  them for us:
+
+    fatal   — a module threw; the chain aborted; later modules never ran
+    partial — one item failed (an asset download, one entry); the module carried on
+
+  Both call `handleAndLogError`, so both print ERROR. Treating either as a failed run
+  means ONE failed asset out of eighty discards an otherwise complete export — which is
+  what this code did before these tests. Verified in the shipped v1 plugin at
+  `assets.js:264` / `:291`.
+
+  What separates them in the output: a fatal error aborts before the CLI can print its
+  closing success line, whereas a partial failure is followed by continued work and then
+  that line. So "an error was logged AND no success line followed" is the fatal signal —
+  not "an error was logged".
+
+  Keyed on the CLI's own wording, confirmed present in all four captured v2 runs at
+  SUCCESS level:
+    "The content of branch main has been exported successfully!"
+    "The content of the stack <apiKey> has been exported successfully!"
+*/
+describe("v3 CLI export — a partial failure is not a failed run", () => {
+  it("succeeds when an item failed but the export still finished", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    child.stdout.emit(
+      "data",
+      Buffer.from(
+        "[2026-08-24 22:25:14] ERROR: Failed to download asset 'orchid.jpg' (UID: blt5d83e6)\n" +
+          "[2026-08-24 22:25:59] SUCCESS: The content of the stack blt_source_key has been exported successfully!\n"
+      )
+    );
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(true);
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): an error with NO closing success line is
+    fatal and must still fail. Paired so "a partial failure succeeds" cannot be satisfied
+    by a check that simply stopped failing anything — which would restore the original
+    bug in the opposite direction, silently accepting a truly broken export.
+  */
+  it("still fails when an error was logged and the export never finished", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    child.stdout.emit(
+      "data",
+      Buffer.from("[2026-08-24 22:25:14] ERROR: No branch found with the given name main\n")
+    );
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("No branch found");
+  });
+
+  it("surfaces the problems from a partial failure rather than dropping them", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    child.stdout.emit(
+      "data",
+      Buffer.from(
+        "[2026-08-24 22:25:14] ERROR: Failed to download asset 'a.jpg' (UID: blt1)\n" +
+          "[2026-08-24 22:25:15] ERROR: Failed to download asset 'b.jpg' (UID: blt2)\n" +
+          "[2026-08-24 22:25:59] SUCCESS: The content of the stack blt_source_key has been exported successfully!\n"
+      )
+    );
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(true);
+    // Reported, not swallowed: an operator has to be able to see that two assets are
+    // missing from an export we just called successful.
+    expect(result.warnings).toHaveLength(2);
+    expect(result.warnings?.[0]).toContain("a.jpg");
+  });
+
+  /*
+    Negative — taxonomy #1 (missing/empty): a clean run reports NO warnings. Without this,
+    "problems are surfaced" could be satisfied by code that always reports something,
+    which would put a permanent warning on every healthy export.
+  */
+  it("reports no warnings for a run that had no problems", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    child.stdout.emit(
+      "data",
+      Buffer.from(
+        "[2026-08-24 22:25:59] SUCCESS: The content of the stack blt_source_key has been exported successfully!\n"
+      )
+    );
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(true);
+    expect(result.warnings ?? []).toHaveLength(0);
+  });
+
+  it("fails on a non-zero exit even when the success line was printed", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    child.stdout.emit(
+      "data",
+      Buffer.from(
+        "[2026-08-24 22:25:59] SUCCESS: The content of the stack blt_source_key has been exported successfully!\n"
+      )
+    );
+    child.emit("close", 1);
+
+    expect((await promise).ok).toBe(false);
+  });
+
+  /*
+    Negative — taxonomy #3 (boundary): the chain must still STOP at a fatal failure in an
+    early run rather than spending minutes exporting assets into a folder that can never
+    be imported. Pairs with the partial case above, where the chain must NOT stop.
+  */
+  it("continues the chain past a partial failure but stops at a fatal one", async () => {
+    const children = queueChildren(3);
+    const promise = runCliExport({
+      ...BASE,
+      runs: [{ module: "content-types" }, { module: "assets" }, { module: "entries" }],
+    });
+    await tick();
+
+    // Run 1: an item failed, but it finished — the chain should carry on.
+    children[0].stdout.emit(
+      "data",
+      Buffer.from(
+        "[t] ERROR: Failed to download asset 'x.jpg' (UID: blt9)\n" +
+          "[t] SUCCESS: The content of the stack blt_source_key has been exported successfully!\n"
+      )
+    );
+    children[0].emit("close", 0);
+    await tick();
+
+    // Run 2: fatal — no success line. The chain must stop here.
+    children[1].stdout.emit("data", Buffer.from("[t] ERROR: Stack not found\n"));
+    children[1].emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(false);
+    expect(result.failedModule).toBe("assets");
+    expect(mockSpawn).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ───── progress and failure from the log file (§4.5, §5.4 — Step 2) ─────
+
+/*
+  v2 stops printing the per-step lines we parse off stdout, so progress has to come from
+  the CLI's own log file instead. Both majors write it, so this is proven here on v1
+  before the version changes underneath it.
+
+  The log location is made deterministic by setting `CS_CLI_LOG_PATH` on the child, which
+  is the first branch of `getLogPath()` in both majors' `cli-utilities` — ahead of user
+  config. That is chosen over parsing the CLI's "The log has been stored at …" line,
+  which differs between the versions (v1 prints the base directory with a trailing
+  period, v2 the session directory without one).
+
+  These tests read the path out of the spawn call and then write real log files into it,
+  so the wiring under test is the actual one rather than an injected stand-in.
+*/
+const LOG_POLL_MS = "5";
+
+/** The log directory the service told the child to use. */
+const logBaseFromSpawn = (call = 0): string =>
+  mockSpawn.mock.calls[call][2].env.CS_CLI_LOG_PATH;
+
+/** Writes JSONL into a CLI-shaped session directory under `base`. */
+const writeCliLog = (
+  base: string,
+  lines: Record<string, unknown>[],
+  file = "info.log"
+): string => {
+  const dir = nodePath.join(base, "2026-08-25", "cm-stacks-export-1-test");
+  nodeFs.mkdirSync(dir, { recursive: true });
+  nodeFs.appendFileSync(
+    nodePath.join(dir, file),
+    lines.map((l) => JSON.stringify(l)).join("\n") + "\n"
+  );
+  return dir;
+};
+
+const logLine = (message: string, level = "info", module = "assets") => ({
+  module,
+  level,
+  message,
+  timestamp: "2026-08-25T10:00:00.000Z",
+});
+
+const FINISHED = "The content of the stack blt_source_key has been exported successfully!";
+
+/** Waits for the service's poller to have run at least once. */
+const settle = async (ms = 40) => {
+  await new Promise((r) => setTimeout(r, ms));
+};
+
+describe("v3 CLI export — progress read from the CLI's log file", () => {
+  beforeEach(() => {
+    vi.stubEnv("V3_CLI_LOG_POLL_MS", LOG_POLL_MS);
+  });
+
+  it("tells the child where to write its logs", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    expect(base).toBeTruthy();
+    expect(nodePath.isAbsolute(base)).toBe(true);
+
+    writeCliLog(base, [logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+    await promise;
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): the variable must be set on the CHILD only.
+    Setting it in our own process would redirect the logs of every later export in this
+    server, including ones whose own base we then could not predict.
+  */
+  it("does not set the log path on our own process", async () => {
+    const before = process.env.CS_CLI_LOG_PATH;
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    writeCliLog(logBaseFromSpawn(), [logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+    await promise;
+
+    expect(process.env.CS_CLI_LOG_PATH).toBe(before);
+  });
+
+  it("emits the log file's lines to the live log as they are written", async () => {
+    const seen: { message: string; level?: string }[] = [];
+    const [child] = queueChildren(1);
+    const promise = runCliExport({
+      ...BASE,
+      runs: [{ module: "assets" }],
+      onLine: (message, _stream, level) => seen.push({ message, level }),
+    });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine("Exporting module: 'assets'..."), logLine("Exported 80 assets", "success")]);
+    await settle();
+    writeCliLog(base, [logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+    await promise;
+
+    expect(seen.map((s) => s.message)).toContain("Exporting module: 'assets'...");
+    expect(seen.find((s) => s.message === "Exported 80 assets")?.level).toBe("SUCCESS");
+  });
+
+  /*
+    Negative — taxonomy #7 (conflict): a line must reach the live log ONCE. On v1 the same
+    line appears on stdout AND in the log file, so reading both without choosing would
+    double every line in the view.
+  */
+  it("does not emit a line twice when it appears on stdout and in the log", async () => {
+    const seen: string[] = [];
+    const [child] = queueChildren(1);
+    const promise = runCliExport({
+      ...BASE,
+      runs: [{ module: "assets" }],
+      onLine: (message) => seen.push(message),
+    });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine("Exporting module: 'assets'..."), logLine(FINISHED, "success")]);
+    await settle();
+    // The same line the CLI also printed, as v1 does.
+    child.stdout.emit("data", Buffer.from("[t] INFO: Exporting module: 'assets'...\n"));
+    await settle();
+    child.emit("close", 0);
+    await promise;
+
+    expect(seen.filter((m) => m === "Exporting module: 'assets'...")).toHaveLength(1);
+  });
+
+  it("takes success from the log's closing line rather than from stdout", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    // Nothing useful on stdout at all — v2's normal state.
+    writeCliLog(logBaseFromSpawn(), [logLine("Exporting module: 'assets'..."), logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+
+    expect((await promise).ok).toBe(true);
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): an error in the log with no closing line
+    is a fatal failure, exactly as it is on stdout. The signal moved; the rule did not.
+  */
+  it("fails when the log holds an error and no closing line", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    // error.log, because that is the only file the CLI writes an error to. Putting it in
+    // info.log would let a reader that polls info.log alone pass this test.
+    writeCliLog(logBaseFromSpawn(), [logLine("No branch found with the given name main", "error")], "error.log");
+    await settle();
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("No branch found");
+  });
+
+  it("reports a partial failure from the log as a success with warnings", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const partialBase = logBaseFromSpawn();
+    // Split across the two files exactly as the CLI splits them by level.
+    writeCliLog(partialBase, [logLine("Failed to download asset 'a.jpg' (UID: blt1)", "error")], "error.log");
+    writeCliLog(partialBase, [logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): if no log file ever appears — the
+    variable ignored, the directory unwritable — we must fall back to stdout rather than
+    silently reporting every export as successful with no progress at all. Losing the log
+    must degrade to the old behaviour, not to blindness.
+  */
+  it("falls back to stdout when no log file ever appears", async () => {
+    const seen: string[] = [];
+    const [child] = queueChildren(1);
+    const promise = runCliExport({
+      ...BASE,
+      runs: [{ module: "assets" }],
+      onLine: (message) => seen.push(message),
+    });
+    await tick();
+
+    // No log written at all. stdout carries a fatal error, as v1 would print it.
+    child.stdout.emit("data", Buffer.from("[t] ERROR: Stack not found\n"));
+    await settle();
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Stack not found");
+    expect(seen).toContain("Stack not found");
+  });
+});
+
+// ───── the temporary log directory is cleaned up ─────
+
+/*
+  Each run creates its own log directory. Ours are read into the job log as they arrive, so
+  the files are redundant once the run ends — and a chained export makes one per module, so
+  leaving them behind leaks a directory per module per export forever.
+
+  Found by inspection after a real export: 527 stale directories, most of them from this
+  very test file, since `mkdtempSync` runs for real even when `spawn` is mocked.
+*/
+describe("v3 CLI export — temporary log directory", () => {
+  beforeEach(() => {
+    vi.stubEnv("V3_CLI_LOG_POLL_MS", "5");
+  });
+
+  it("removes its temporary log directory when the run finishes", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    expect(nodeFs.existsSync(base)).toBe(true);
+
+    writeCliLog(base, [logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+    await promise;
+
+    expect(nodeFs.existsSync(base)).toBe(false);
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): the directory must NOT be removed while the
+    run is still going, or the poller loses the file it is tailing halfway through and
+    progress stops moving with no error to show why.
+  */
+  it("keeps the directory while the run is still in flight", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine("Exporting module: 'assets'...")]);
+    await settle();
+
+    expect(nodeFs.existsSync(base)).toBe(true);
+
+    writeCliLog(base, [logLine(FINISHED, "success")]);
+    await settle();
+    child.emit("close", 0);
+    await promise;
+  });
+
+  it("cleans up after a failed run too", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine("Stack not found", "error")], "error.log");
+    await settle();
+    child.emit("close", 0);
+
+    expect((await promise).ok).toBe(false);
+    expect(nodeFs.existsSync(base)).toBe(false);
+  });
+
+  /*
+    Negative — taxonomy #6 (dependency failure): a run that never spawns at all must not
+    leave its directory behind either. The `error` path is the one that skips `close`
+    entirely, so it needs its own cleanup rather than sharing the close handler's.
+  */
+  it("cleans up when the process cannot be spawned", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    child.emit("error", new Error("spawn ENOENT"));
+
+    expect((await promise).ok).toBe(false);
+    expect(nodeFs.existsSync(base)).toBe(false);
+  });
+});
+
+// ───── errors live in error.log, NOT info.log ─────
+
+/*
+  ⚠️ The bug this suite exists to prevent, found by running a real failed v2 export.
+
+  The CLI keeps a SEPARATE logger per level, each writing to its own file:
+  error → error.log, warn → warn.log, info and success → info.log. An ERROR line
+  therefore NEVER appears in info.log.
+
+  The first version of the log reader polled only info.log. On a realistic failure — a
+  few modules succeed, then one throws — that produced: log active (info.log had lines),
+  zero errors seen (they were in error.log), no closing line... and the rule
+  "errors AND no closing line" evaluated false, so the run resolved as SUCCESS. A failed
+  export, reported complete, stamped and moved into place.
+
+  The deliberate-failure test missed it because that failure happened during branch
+  resolution, before any info line existed — info.log was 0 bytes, the reader fell back
+  to stdout, and the fallback caught it. The masking is why this needs its own test.
+
+  Measured from the real failed run:
+    info.log    0 bytes
+    error.log   807 bytes  {"level":"error","message":"No branch found with the given name main",…}
+    exit code   0
+*/
+describe("v3 CLI export — a fatal error that only reaches error.log", () => {
+  beforeEach(() => {
+    vi.stubEnv("V3_CLI_LOG_POLL_MS", "5");
+  });
+
+  it("fails when info.log has lines but the error is in error.log", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    // A run that got going — this is what makes the log "active".
+    writeCliLog(base, [logLine("Exporting module: 'assets'..."), logLine("Exported 12 assets", "success")]);
+    // ...and then died. The error goes ONLY here, exactly as the CLI writes it.
+    writeCliLog(base, [logLine("No branch found with the given name main", "error")], "error.log");
+    await settle();
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("No branch found");
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): a run whose error.log stays EMPTY and which
+    printed its closing line is a success. Paired so "read error.log" cannot be satisfied
+    by code that treats the file's mere existence as failure — the CLI creates it empty on
+    every single run.
+  */
+  it("succeeds when error.log exists but is empty", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine("Exporting module: 'assets'..."), logLine(FINISHED, "success")]);
+    const dir = nodePath.join(base, "2026-08-25", "cm-stacks-export-1-test");
+    nodeFs.writeFileSync(nodePath.join(dir, "error.log"), "");
+    await settle();
+    child.emit("close", 0);
+
+    expect((await promise).ok).toBe(true);
+  });
+
+  it("reports an item failure from error.log as a warning when the run still finished", async () => {
+    const [child] = queueChildren(1);
+    const promise = runCliExport({ ...BASE, runs: [{ module: "assets" }] });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine("Exporting module: 'assets'..."), logLine(FINISHED, "success")]);
+    writeCliLog(base, [logLine("Failed to download asset 'a.jpg' (UID: blt1)", "error")], "error.log");
+    await settle();
+    child.emit("close", 0);
+
+    const result = await promise;
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual(["Failed to download asset 'a.jpg' (UID: blt1)"]);
+  });
+
+  /*
+    Negative — taxonomy #1 (missing information): warnings reach the operator too. The CLI
+    writes them to their own file as well, so a reader that only knew about info.log and
+    error.log would drop them silently.
+  */
+  it("surfaces warn.log lines to the live log", async () => {
+    const seen: { message: string; level?: string }[] = [];
+    const [child] = queueChildren(1);
+    const promise = runCliExport({
+      ...BASE,
+      runs: [{ module: "assets" }],
+      onLine: (message, _s, level) => seen.push({ message, level }),
+    });
+    await tick();
+
+    const base = logBaseFromSpawn();
+    writeCliLog(base, [logLine(FINISHED, "success")]);
+    writeCliLog(base, [logLine("Asset 'x.jpg' has no publish details", "warn")], "warn.log");
+    await settle();
+    child.emit("close", 0);
+    await promise;
+
+    expect(seen.find((s) => s.message.includes("no publish details"))?.level).toBe("WARN");
   });
 });

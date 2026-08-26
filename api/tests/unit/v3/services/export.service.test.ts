@@ -1100,3 +1100,46 @@ describe("v3 export.service — a project deleted while its export runs", () => 
     expect(mockSetGraph).not.toHaveBeenCalled();
   });
 });
+
+// ───── partial-failure warnings reach the operator (§4.6 — Step 0/2) ─────
+
+/*
+  A run that finished WITH casualties is a success — the folder is usable apart from the
+  named items — but the operator has to be able to see what is missing from it. Before
+  this, `warnings` stopped at the service boundary and a short export was
+  indistinguishable from a complete one.
+*/
+describe("v3 export — a partial failure is reported without failing the export", () => {
+  it("logs each unexported item as a warning and still completes", async () => {
+    mockRunCliExport.mockResolvedValueOnce({
+      ok: true,
+      warnings: [
+        "Failed to download asset 'a.jpg' (UID: blt1)",
+        "Failed to download asset 'b.jpg' (UID: blt2)",
+      ],
+    } as any);
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("succeeded");
+    const warnings = job.logs.filter((l) => l.level === "WARN").map((l) => l.msg);
+    expect(warnings.some((m) => m.includes("2 problem"))).toBe(true);
+    expect(warnings.some((m) => m.includes("a.jpg"))).toBe(true);
+    expect(warnings.some((m) => m.includes("b.jpg"))).toBe(true);
+  });
+
+  /*
+    Negative — taxonomy #1 (missing/empty): a clean export logs NO warning lines. Without
+    this, "problems are reported" could be satisfied by code that reports something every
+    time, putting a permanent warning on every healthy export and training the operator
+    to ignore it.
+  */
+  it("logs no warnings for an export that had no problems", async () => {
+    mockRunCliExport.mockResolvedValueOnce({ ok: true } as any);
+
+    const job = await settle(startExportJob(stackInput() as any));
+
+    expect(job.status).toBe("succeeded");
+    expect(job.logs.filter((l) => l.level === "WARN")).toEqual([]);
+  });
+});

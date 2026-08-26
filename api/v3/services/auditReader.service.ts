@@ -1,6 +1,14 @@
 import fs from "fs";
 import path from "path";
 
+/*
+  Shared with the export-folder counter rather than reimplemented. Assets live in
+  `assets/` or in `spaces/<space-uid>/assets/` depending on the ORG PLAN, and having
+  two copies of that rule is how the two would drift into disagreeing about how many
+  assets an export holds (`docs/plans/cli-v1-to-v2-migration.md` §4.3).
+*/
+import { resolveAssetDir } from "../utils/exportFolder.util.js";
+
 /**
  * Reads a project's export folder into the shape the audit checks consume
  * (cs-audit-report trd.md TR-1, TR-2, TR-3).
@@ -256,19 +264,38 @@ export const readAuditExport = (exportDir: string): AuditExportData => {
   const globalFields = module<any[]>(
     "globalFields",
     () => {
+      /*
+        Two shapes, and unlike content types there is no overlap: CLI v1 writes ONLY
+        `globalfields.json` and no per-field files, v2 writes ONLY per-field files and
+        no aggregate. Reading either alone reports zero global fields for half of all
+        exports — silently, as a clean check rather than an error.
+      */
       const file = path.join(root, "global_fields", "globalfields.json");
-      if (!fs.existsSync(file)) return [];
-      const parsed = readJson(file);
-      return Array.isArray(parsed) ? parsed : Object.values(parsed as object);
+      if (fs.existsSync(file)) {
+        const parsed = readJson(file);
+        return Array.isArray(parsed) ? parsed : Object.values(parsed as object);
+      }
+      const dir = path.join(root, "global_fields");
+      if (!isDir(dir)) return [];
+      return dataFilesIn(dir)
+        .map((f) => readJson(f))
+        .filter((g: any) => g && typeof g === "object" && g.uid);
     },
     []
   );
 
+  /**
+   * Where this export keeps its assets — `assets/`, or `spaces/<space-uid>/assets/`
+   * for an org whose plan includes asset spaces. Resolved once and reused by the
+   * reader and the presence flag, so the two can never disagree.
+   */
+  const assetDir = resolveAssetDir(root);
+
   const assets = module<Record<string, any>>(
     "assets",
     () => {
-      const dir = path.join(root, "assets");
-      if (!isDir(dir)) return {};
+      const dir = assetDir;
+      if (!dir || !isDir(dir)) return {};
       const index = path.join(dir, "index.json");
       if (fs.existsSync(index)) {
         const parsed = readJson(index);
@@ -375,8 +402,11 @@ export const readAuditExport = (exportDir: string): AuditExportData => {
     readable: true,
     modules: {
       contentTypes: fileExists("content_types", "schema.json") || anyDataFile("content_types"),
-      globalFields: fileExists("global_fields", "globalfields.json"),
-      assets: fileExists("assets", "index.json") || anyDataFile("assets"),
+      // Either shape counts as present: v1's aggregate, or v2's per-field files.
+      globalFields:
+        fileExists("global_fields", "globalfields.json") || anyDataFile("global_fields"),
+      // Keyed on the RESOLVED directory, so a spaces export is not reported absent.
+      assets: !!assetDir && (fs.existsSync(path.join(assetDir, "index.json")) || dataFilesIn(assetDir).length > 0),
       // Same rule, one level deeper: a data file somewhere under entries/<ct>/<locale>/.
       // An `entries/` folder with no data file in it was not exported (FR-1.6), and
       // reporting it present would make the unpublished check say 0 of 0 — a clean

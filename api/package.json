@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/contentstack/migration-v2.git#readme",
   "dependencies": {
-    "@contentstack/cli": "^1.61.1",
+    "@contentstack/cli": "^2.0.0",
     "@contentstack/cli-utilities": "^1.18.3",
     "@contentstack/json-rte-serializer": "^3.0.5",
     "@contentstack/marketplace-sdk": "^1.5.2",
