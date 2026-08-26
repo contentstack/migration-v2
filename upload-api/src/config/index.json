@@ -4,7 +4,7 @@
       "optionLimit": 100
     }
   },
-  "cmsType": "aem",
+  "cmsType": "contentful",
   "isLocalPath": true,
   "awsData": {
     "awsRegion": "us-east-2",
@@ -25,5 +25,5 @@
     "base_url": "drupal_assets_base_url",
     "public_path": "drupal_assets_public_path"
   },
-  "localPath": "/Users/shradha.nahar/Desktop/migration-v2/Archive/templates-copy"
+  "localPath": "/Users/chetan.narkhede/Desktop/migration-v2/asic-v1.json"
 }
