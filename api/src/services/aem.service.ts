@@ -1363,8 +1363,11 @@ const createEntry = async ({
   const entryMapping: Record<string, string[]> = {};
   const usedEntryUids = new Set<string>();
 
-  // Process each entry file
-  for await (const fileName of read(entriesDir)) {
+  // Process each entry file. Sorted (not raw fs-readdir-recursive order) so that when two
+  // files legitimately collide on the same modelId+locale (see CMG-1112), which one "wins"
+  // and gets migrated is deterministic and reproducible across machines/runs, rather than
+  // depending on filesystem directory order.
+  for await (const fileName of [...read(entriesDir)].sort()) {
     const filePath = path.join(entriesDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
       continue;
@@ -1372,23 +1375,6 @@ const createEntry = async ({
     const content: unknown = await fs.promises.readFile(filePath, 'utf-8');
     if (typeof content === 'string') {
       const parseData = JSON.parse(content);
-
-      // AEM can export a page TEMPLATE's own structure/schema definition (e.g.
-      // /conf/.../settings/wcm/templates/<template>/structure[.html]) as a separate file
-      // alongside real pages that use that template — it isn't content, just the
-      // template's own component-allow-list. Exclude it outright rather than letting it
-      // compete with a real page for the same derived id (see CMG-1112): this removes the
-      // ambiguity entirely instead of leaving the outcome dependent on directory-walk order.
-      const repoPath: string | undefined = parseData?.dataLayer?.[parseData?.id]?.['repo:path'];
-      if (repoPath && /\/settings\/wcm\/templates\/[^/]+\/structure(\.html)?$/.test(repoPath)) {
-        await customLogger(
-          projectId,
-          destinationStackId,
-          'warn',
-          getLogMessage(srcFunc, `Skipped entry from "${fileName}": AEM template structure/schema definition, not real content (repo:path "${repoPath}").`, {})
-        );
-        continue;
-      }
 
       // Use the page model's stable "id" as the entry uid so uid-mapper keys
       // stay consistent across delta iterations; random uuid only as fallback.
