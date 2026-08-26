@@ -7,6 +7,7 @@ import projectReducer from './slice/project.slice';
 import auditReducer from './slice/audit.slice';
 import contentMappingReducer from './slice/contentMapping.slice';
 import toastReducer from './slice/toast.slice';
+import scopeReducer from './slice/scope.slice';
 
 /**
  * v3 store — fully independent from v2's store. Mounted via its own <Provider>
@@ -25,6 +26,12 @@ const rootReducer = combineReducers({
     contentMapping: contentMappingReducer,
   // Shared by the whole wizard, not just the Audit step (cs-audit-report FR-9.1).
   toast: toastReducer,
+  /*
+    Which project the slices above belong to. Read and written only by `useProjectScope`,
+    which clears the project-scoped slices when it changes — see that hook for why the
+    answer cannot live in a component ref.
+  */
+  scope: scopeReducer,
 });
 
 export const v3Store = configureStore({

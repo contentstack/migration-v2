@@ -21,7 +21,22 @@ export interface WizardSourceState {
  * "Not selected" and the step reads incomplete (feature.md EC-8). That is the
  * normal first-visit condition, not a fault worth surfacing in the chrome.
  */
-export const useWizardSource = (projectId: string): WizardSourceState => {
+/**
+ * @param projectId the project whose documents to read.
+ * @param activeIndex the wizard step currently shown. Included ONLY as a re-read trigger:
+ *   its value is never used, but a change of step is the moment the chrome must refresh.
+ *
+ *   ⚠️ Why it is needed. This hook derives step completion from the SERVER
+ *   (`lastExport.status === 'succeeded' || !!graph`), which is the right rule — the chrome
+ *   must not invent a second definition of "complete" out of in-memory slice state. But
+ *   with `[projectId]` alone it read once and never again, so a successful export left the
+ *   Source step without its tick until the page was refreshed, which remounted the hook.
+ *
+ *   Navigating between steps is the natural refresh point: it is exactly when the chrome's
+ *   view of "what is done" is about to be looked at, it is route-driven so it needs no
+ *   coupling to any slice, and it costs two small reads.
+ */
+export const useWizardSource = (projectId: string, activeIndex?: number): WizardSourceState => {
   const [state, setState] = useState<WizardSourceState>({
     sourceReady: false,
     destinationPersisted: false,
@@ -67,7 +82,11 @@ export const useWizardSource = (projectId: string): WizardSourceState => {
     return () => {
       live = false;
     };
-  }, [projectId]);
+    /*
+      `activeIndex` is a trigger, not an input — the effect reads nothing from it. Anything
+      that changed on every render would loop here, because the effect sets state.
+    */
+  }, [projectId, activeIndex]);
 
   return state;
 };

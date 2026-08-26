@@ -537,3 +537,86 @@ describe('v3 DestinationPanel — frozen once the destination is saved', () => {
     expect(screen.queryByRole('button', { name: /destination saved/i })).toBeNull();
   });
 });
+
+// ───── every control is frozen, not just the ones someone thought of ─────
+
+/*
+  ⚠️ Written after a real bug: the management-token NAME input stayed editable after the
+  destination was saved. The freeze work covered the Region/Organization/Stack selects, the
+  proceed button, the mapping controls and the auth cards — and missed this input, because
+  the tests asserted on the specific controls that had just been built
+  (`getAllByRole('radio')`) rather than on everything the panel contains.
+
+  That mattered more than it looks: `persistDestination` runs only inside
+  `proceedToContentMapping`, so once `proceeded` is true nothing re-persists. An edit after
+  that point changed the slice alone and silently vanished on reload — the UI showing a
+  token name the saved document did not have.
+
+  So this test is deliberately GENERIC. It enumerates every control in the panel and
+  requires each to be frozen, with a narrow allowlist for controls that change no saved
+  value. A control added later defaults to "must be frozen" instead of "not covered".
+*/
+
+/*
+  ⚠️ The management-token variant, and the reason the bug survived. Every existing seed in
+  this file uses `authToken`, so `ImportAuthCards`' management branch — which is where the
+  token-name input lives — never rendered in a single frozen-state test. The control was
+  not merely un-asserted; it was not on the page.
+*/
+const seedCompleteMgmt = (store: any) => {
+  seedComplete(store);
+  store.dispatch(destinationActions.setImportMethod('management'));
+  store.dispatch(destinationActions.setManagementTokenName('eu-marketing-import'));
+};
+
+/** Controls that legitimately stay live: dismissing a notice alters nothing saved. */
+const ALLOWED_LIVE = /dismiss/i;
+
+/** Every control in the rendered panel, with the label we would report it by. */
+const allControls = () =>
+  [...document.body.querySelectorAll('input, select, textarea, button, [role="radio"], [role="switch"], [role="checkbox"]')].map(
+    (el) => ({
+      el,
+      label:
+        el.getAttribute('aria-label') ||
+        el.getAttribute('title') ||
+        el.getAttribute('id') ||
+        (el.textContent || '').trim().slice(0, 40) ||
+        el.tagName.toLowerCase(),
+    })
+  );
+
+/** A control counts as frozen by whichever mechanism suits its markup. */
+const isFrozen = (el: Element): boolean =>
+  (el as HTMLInputElement).disabled === true || el.getAttribute('aria-disabled') === 'true';
+
+describe('v3 DestinationPanel — the whole panel freezes, control by control', () => {
+  it('TC_DEST_064 (positive): every control that writes to the saved destination is frozen once saved', () => {
+    renderPanel((s) => {
+      seedCompleteMgmt(s);
+      s.dispatch(destinationActions.setProceeded(true));
+    });
+
+    const controls = allControls();
+    // Guard against a vacuous pass: an empty panel would satisfy any `.every`.
+    expect(controls.length).toBeGreaterThan(5);
+
+    const stillLive = controls
+      .filter(({ label }) => !ALLOWED_LIVE.test(label))
+      .filter(({ el }) => !isFrozen(el))
+      .map(({ label }) => label);
+
+    expect(stillLive).toEqual([]);
+  });
+
+  /*
+    Negative — taxonomy #4 (forbidden state): before the destination is saved the panel must
+    NOT be frozen. Paired so "freeze everything" cannot be satisfied by code that disables
+    the panel permanently — which would make the step impossible to complete at all.
+  */
+  it('TC_DEST_064 (negative): the management token name is editable before the destination is saved', () => {
+    renderPanel(seedCompleteMgmt);
+
+    expect(screen.getByLabelText('Management token name')).not.toBeDisabled();
+  });
+});

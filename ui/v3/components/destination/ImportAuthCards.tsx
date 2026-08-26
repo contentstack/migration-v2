@@ -133,6 +133,13 @@ const ImportAuthCards: FC = () => {
               spellCheck={false}
               placeholder="e.g. eu-marketing-import"
               value={importAuth.managementTokenName}
+              /*
+                Frozen with the rest of the destination. Not cosmetic: `persistDestination`
+                runs only inside `proceedToContentMapping`, so once the destination is saved
+                nothing re-persists. An edit here changed the slice alone and vanished on
+                reload, leaving the panel showing a token name the saved document never had.
+              */
+              disabled={frozen}
               onChange={(e) => dispatch(destinationActions.setManagementTokenName(e.target.value))}
             />
             <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 6 }}>

@@ -21,7 +21,12 @@ const WizardChrome: FC<{ children?: ReactNode }> = ({ children }) => {
 
   // Read once for the whole chrome — the app bar and the tracker share it
   // rather than fetching per region (NFR-4).
-  const { sourceName, sourceReady, destinationPersisted } = useWizardSource(projectId);
+  /*
+    `activeIndex` is passed so the documents are re-read on every step change. Without it
+    the chrome read them once per project, and a successful export left the Source step
+    un-ticked until the page was refreshed.
+  */
+  const { sourceName, sourceReady, destinationPersisted } = useWizardSource(projectId, activeIndex);
 
   const stepContext = useMemo<StepContext>(
     () => ({ sourceReady, destinationPersisted }),
