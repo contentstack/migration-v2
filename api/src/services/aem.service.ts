@@ -1416,9 +1416,6 @@ const createEntry = async ({
         continue;
       }
       const uid = modelId || uuidv4?.()?.replace?.(/-/g, '');
-      if (collisionKey) {
-        usedEntryUids.add(collisionKey);
-      }
       const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
       const templateUid = isEFragment?.isXF ? parseData?.title : parseData?.templateName ?? parseData?.templateType;
@@ -1432,6 +1429,14 @@ const createEntry = async ({
       data.publish_details = [];
 
       if (contentType?.contentstackUid && data && mappedLocale) {
+        // Reserve the collision key only now that an entry is actually being emitted — a
+        // file that reaches the "no content type matched" / "no mapped locale" branch below
+        // must NOT consume the key, or it would permanently block a sibling file (sharing
+        // the same modelId::locale) that could otherwise have produced the real entry,
+        // leaving zero entries instead of one.
+        if (collisionKey) {
+          usedEntryUids.add(collisionKey);
+        }
         const mappedValue = (keyMapper as Record<string, string> | undefined)?.[contentType.contentstackUid];
         const resolvedCtUid: string = 
           mappedValue && mappedValue !== '' 
