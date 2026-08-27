@@ -53,6 +53,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hasShownCompletionNotification, setHasShownCompletionNotification] = useState(false);
+  const [hasShownFailureNotification, setHasShownFailureNotification] = useState(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector(
@@ -118,10 +119,23 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
   useBlockNavigation(isModalOpen);
   
-  // Reset notification flag when a new migration starts
+  useEffect(() => {
+    if (newMigrationData?.migration_execution?.migrationCompleted) {
+      dispatch(updateNewMigrationData({ stepValue: 'Restart Migration' }));
+    }
+  }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
+
+  // Reset notification flag AND purge stale logs when a new migration starts. The server
+  // streams from a monotonic file offset (server.ts) so a normal socket reconnect never
+  // replays old lines — but an API restart resets that offset to 0 and re-emits the whole
+  // log file to every client. Without this purge, a prior run's terminal message surviving
+  // in `logs` after an API restart would slip through the completion detector below and
+  // flip the UI straight back to the previous run's completion view.
   useEffect(() => {
     if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
       setHasShownCompletionNotification(false);
+      setHasShownFailureNotification(false);
+      setLogs([{ message: 'Migration logs will appear here once the process begins.', level: '' }]);
     }
   }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
 
@@ -205,27 +219,49 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
 
+    // Look for a terminal message anywhere in `logs`. Scanning the whole array is safe here
+    // because the effect above purges `logs` back to the placeholder when migrationStarted
+    // flips false→true — anything present is from the current run, not a replay.
+    // We can't inspect only the last entry: after the CLI emits "Migration Process Completed"
+    // the backend still writes uid-mapper / "No config file generated" lines, burying the
+    // terminal message mid-array on the delta path.
+    const migrationStarted = newMigrationData?.migration_execution?.migrationStarted;
+    // On iteration 1 there's only a bulk import — "Migration Process Completed" IS terminal.
+    // On iteration 2+ (delta) that message only marks the bulk-import phase; the run isn't
+    // actually done until the update/localize CLI finishes and writes
+    // "Entry Update Process Completed" afterward. Treating either as terminal on a delta run
+    // would fire the completion modal early, hiding the still-streaming localize pass (and any
+    // "Failed to update entries" error in it) behind the completion view.
+    const isDeltaIteration = (newMigrationData?.iteration ?? 1) > 1;
+    const requiredTerminalMessage = isDeltaIteration
+      ? 'Entry Update Process Completed'
+      : 'Migration Process Completed';
+    const requiredFailureMessage = isDeltaIteration
+      ? 'Entry Update Process Failed'
+      : 'Migration Process Failed';
+    const hasTerminalMessage = logs?.some(
+      (log) => log?.message === requiredTerminalMessage
+    );
+    // Mutually exclusive with the completion branch below: the backend now writes the
+    // completion marker only after every prior step actually succeeded (see
+    // runCli.service.ts / migration.service.ts), so a run's log should never carry both —
+    // but checking here too means a single pass never fires both notifications even if it
+    // somehow did.
+    const hasFailureMessage = logs?.some(
+      (log) => log?.message === requiredFailureMessage
+    );
+
+    // Both the "migration completed"/"failed" flip and the reconciliation-status updates
+    // read AND write the SAME migration_execution sub-object, and updateNewMigrationData
+    // does a SHALLOW merge at the top level — so everything below is computed into ONE patch
+    // and dispatched at most once per pass. Two separate dispatches in the same pass would
+    // let whichever one lands second silently clobber the other's change back to its own,
+    // stale snapshot of migration_execution (this is exactly the bug that used to hide the
+    // "migration completed" flip behind a same-pass reconciliation update).
     let migrationExecutionPatch: Record<string, any> = {};
-    let shouldNotifyCompletion = false;
 
     logs?.forEach((log) => {
       const message = log.message ?? '';
-
-      if (message === 'Migration Process Completed') {
-        if (!newMigrationData?.migration_execution?.migrationCompleted) {
-          migrationExecutionPatch = {
-            ...migrationExecutionPatch,
-            migrationStarted: false,
-            migrationCompleted: true
-            // stepValue is deliberately NOT changed here: the execute-step CTA stays
-            // "Start Migration" and goes disabled on completion, rather than becoming a
-            // "Restart Migration" button that invites re-running a finished migration.
-          };
-        }
-        if (!hasShownCompletionNotification) {
-          shouldNotifyCompletion = true;
-        }
-      }
 
       // Read the patch accumulated so far in THIS pass first: a "Starting..." and its
       // "finished..."/"failed..." log can land in the same socket batch, so falling back
@@ -279,27 +315,86 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       }
     });
 
-    if (Object.keys(migrationExecutionPatch).length > 0) {
+    if (migrationStarted && hasTerminalMessage && !hasFailureMessage) {
+      try {
+        const message = 'Migration Process Completed';
+
+        if (!hasShownCompletionNotification) {
+          setIsModalOpen(true);
+          setHasShownCompletionNotification(true);
+
+          dispatch(updateNewMigrationData({
+            migration_execution: {
+              ...newMigrationData?.migration_execution,
+              ...migrationExecutionPatch,
+              migrationStarted: false,
+              migrationCompleted: true
+              // stepValue is deliberately NOT changed here: the execute-step CTA stays
+              // "Start Migration" and goes disabled on completion, rather than becoming a
+              // "Restart Migration" button that invites re-running a finished migration.
+            }
+          }));
+
+          Notification({
+            notificationContent: { text: message },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'success'
+          });
+        } else if (Object.keys(migrationExecutionPatch).length > 0) {
+          // Completion already notified this run, but a reconciliation update still needs
+          // to land (e.g. it started/finished in a LATER batch than completion did).
+          dispatch(
+            updateNewMigrationData({
+              migration_execution: { ...newMigrationData?.migration_execution, ...migrationExecutionPatch }
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Invalid JSON string', error);
+      }
+    } else if (migrationStarted && hasFailureMessage && !hasShownFailureNotification) {
+      // The bulk-import CLI (non-delta) or the update/localize CLI (delta) can hard-fail
+      // instead of completing — runCli.service.ts / migration.service.ts write
+      // 'Migration Process Failed' / 'Entry Update Process Failed' respectively in that case.
+      // Without this check the UI would otherwise wait forever for a completion message that
+      // will never arrive. Reset migrationStarted so "Execute Migration" becomes clickable
+      // again instead of leaving the run permanently stuck on the spinner.
+      setHasShownFailureNotification(true);
+
+      dispatch(
+        updateNewMigrationData({
+          migration_execution: {
+            ...newMigrationData?.migration_execution,
+            ...migrationExecutionPatch,
+            migrationStarted: false,
+            migrationCompleted: false
+          }
+        })
+      );
+
+      Notification({
+        notificationContent: {
+          text: 'Migration failed. Check the execution logs above for details, then try again.'
+        },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'error'
+      });
+    } else if (Object.keys(migrationExecutionPatch).length > 0) {
+      // Neither terminal nor failure yet this pass, but reconciliation status changed on
+      // its own (e.g. "Starting..." arrived before the run itself has finished).
       dispatch(
         updateNewMigrationData({
           migration_execution: { ...newMigrationData?.migration_execution, ...migrationExecutionPatch }
         })
       );
     }
-
-    if (shouldNotifyCompletion) {
-      setIsModalOpen(true);
-      setHasShownCompletionNotification(true);
-      Notification({
-        notificationContent: { text: 'Migration Process Completed' },
-        notificationProps: {
-          position: 'bottom-center',
-          hideProgressBar: true
-        },
-        type: 'success'
-      });
-    }
-  }, [logs]);
+  }, [logs, newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.iteration]);
 
   const navigate = useNavigate();
 
@@ -346,56 +441,57 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               transition: 'transform 0.1s ease'
             }}
           >
-            {logs.map((log, index) => {
-              try {
-                //const logObject = JSON.parse(log);
-                const { level, timestamp, message } = log;
-
-                return newMigrationData?.destination_stack?.migratedStacks?.includes(
-                  newMigrationData?.destination_stack?.selectedStack?.value
-                ) ? (
-                  <div
-                    key={`${index?.toString}`}
-                    style={logStyles[level || ''] || logStyles.info}
-                    className="log-entry text-center"
-                  >
+            {(() => {
+              // Only show the "already migrated" placeholder when the user has NOT started
+              // a new run on this screen — otherwise iter 2 (which legitimately targets the
+              // same stack) would sit behind this message. Rendering it outside the .map
+              // also fixes the previous bug where the message repeated once per log line.
+              const stackAlreadyMigrated = newMigrationData?.destination_stack?.migratedStacks?.includes(
+                newMigrationData?.destination_stack?.selectedStack?.value
+              );
+              const migrationStarted = newMigrationData?.migration_execution?.migrationStarted;
+              if (stackAlreadyMigrated && !migrationStarted) {
+                return (
+                  <div style={logStyles.info} className="log-entry text-center">
                     <div className="log-message generic-log-message">
                       Migration has already done in selected stack. Please create a new project.
                     </div>
                   </div>
-                ) : (
-                  <div
-                    key={index}
-                    // style={logStyles[level || ''] || logStyles.info}
-                    // className="log-entry logs-bg"
-                  >
-                    {message === 'Migration logs will appear here once the process begins.' ? (
-                      <div
-                        style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry text-center"
-                      >
-                        <div className="log-message generic-log-message">{message}</div>
-                      </div>
-                    ) : (
-                      <div
-                        style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry"
-                      >
-                        <div className="log-time">
-                          {timestamp
-                            ? new Date(timestamp)?.toTimeString()?.split(' ')[0]
-                            : new Date()?.toTimeString()?.split(' ')[0]}
-                        </div>
-                        <div className="log-message">{message}</div>
-                      </div>
-                    )}
-                  </div>
                 );
-              } catch (error) {
-                console.error('Invalid log format', error);
-                return null;
               }
-            })}
+              return logs.map((log, index) => {
+                try {
+                  const { level, timestamp, message } = log;
+                  return (
+                    <div key={index}>
+                      {message === 'Migration logs will appear here once the process begins.' ? (
+                        <div
+                          style={logStyles[level || ''] || logStyles.info}
+                          className="log-entry text-center"
+                        >
+                          <div className="log-message generic-log-message">{message}</div>
+                        </div>
+                      ) : (
+                        <div
+                          style={logStyles[level || ''] || logStyles.info}
+                          className="log-entry"
+                        >
+                          <div className="log-time">
+                            {timestamp
+                              ? new Date(timestamp)?.toTimeString()?.split(' ')[0]
+                              : new Date()?.toTimeString()?.split(' ')[0]}
+                          </div>
+                          <div className="log-message">{message}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } catch (error) {
+                  console.error('Invalid log format', error);
+                  return null;
+                }
+              });
+            })()}
           </div>
         )}
       </div>

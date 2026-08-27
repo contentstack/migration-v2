@@ -53,8 +53,74 @@
     }
   }
 }
+// Both ContentMapper (.table-wrapper) and AssetMapper (.asset-mapper-table)
+// render venus's <Table>. Venus's own CSS sets
+// `.Table__body__column { min-width: auto !important; width: auto !important }`,
+// which overrides every column-width we configure and lets an unbreakable URL
+// expand the cell past its share, bleeding text over the next columns. Force
+// min-width: 0 on the cell so it can shrink to its flex-basis and the child
+// (.cms-field--wrap) can wrap character-by-character.
+.table-wrapper .Table__body__column,
+.asset-mapper-table .Table__body__column {
+  min-width: 0 !important;
+}
+// Belt-and-braces: clip anything that still doesn't shrink to its column's share
+// instead of visually bleeding into the next column.
+.asset-mapper-table .Table__body__column {
+  overflow: hidden;
+}
+// The header row sizes itself to its (single-line) content rather than a fixed height,
+// but the body below it starts at a fixed offset computed for that single line. A header
+// label too long for its column wraps to a 2nd line that the fixed offset doesn't account
+// for, so it spills down and gets covered by row 1. Force header labels to a single,
+// ellipsized line instead of wrapping.
+.asset-mapper-table .Table__head__column {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.table-wrapper .Table__body__column .d-flex,
+.asset-mapper-table .Table__body__column .d-flex {
+  min-width: 0;
+}
+// The wrap styling itself was only defined inside `.table-wrapper .Table`,
+// so AssetMapper's `.cms-field--wrap` cells got no wrap rules. Duplicate the
+// wrap rules under `.asset-mapper-table` so long URLs actually break there.
+.asset-mapper-table .cms-field {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+// Venus's Table row is a fixed 60px (.Table__body__row { height: 60px }) — it does not
+// grow with content, and that's too tight to reliably fit 2 wrapped lines (2 × the
+// column's 1.5rem line-height already exceeds the ~44px available after padding), which
+// bled the cell into the row below/the header above. Truncate to a single line with an
+// ellipsis instead — same pattern as the non-wrap `.cms-field` columns — and rely on the
+// native `title` attribute for the full value on hover.
+.asset-mapper-table .cms-field--wrap {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 .ct-list-wrapper {
-  height: calc(100vh - 375px);
+  // The wrapper's bottom must stay inside the viewport, else its internal
+  // scroll ends off-screen and the last few items become unreachable.
+  // Measured wrapper-top on the delta Map Entry step is ~490px (migration
+  // header + horizontal 6-step stepper + tabs + list header + search),
+  // leaving ~viewport - 490 for a fully-visible scroll region. 500px
+  // (10px buffer) keeps the wrapper inside the viewport across sizes.
+  height: calc(100vh - 500px);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -128,6 +194,16 @@
   max-width: 75%;
   width: 100%;
   padding: 0;
+  min-height: 0;
+
+  // The table wrapper fills the fields column so its child .entry-mapper-table
+  // has a bounded height to flex into (keeps pagination + Save footer in view on zoom).
+  .entry-table-wrapper.entry-mapper-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
 .cta-wrapper {
   border-top: 1px solid $color-base-gray-40;
@@ -138,7 +214,13 @@
   position: relative;
 }
 .table-container {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  // Panels sit side by side and must stretch to the container's full height so the
+  // fields column (and its internally-scrolling table) is height-bounded, not
+  // content-sized. align-content:stretch keeps a single flex line filling the height.
+  align-items: stretch;
+  align-content: stretch;
 }
 .table-wrapper {
   flex: 1;
@@ -182,15 +264,18 @@
     }
     // Asset mapper: long filenames/paths should wrap within their own column
     // instead of clamping to one line and bleeding into the next column.
+    // Unbreakable URLs made the flex cell expand past the column width — pin the
+    // wrapper to the parent's width and force per-character breaks.
     .cms-field--wrap {
       display: block;
       width: 100%;
       max-width: 100%;
+      min-width: 0;
       -webkit-line-clamp: unset;
-      overflow: visible;
+      overflow: hidden;
       white-space: normal;
       overflow-wrap: anywhere;
-      word-break: break-word;
+      word-break: break-all;
     }
     .InstructionText {
       font-size: $size-font-small;
@@ -440,7 +525,89 @@ div .table-row {
   line-height: 1.2 !important;
 }
 
+// Center the search-empty state vertically. With v2Features.isNewEmptyState on, Venus
+// wraps customEmptyState in `.Table__centerWrapper` inside the table body. The wrapper
+// collapses to content height, so make the body a flex column and let the wrapper grow
+// to fill it, then center its own content.
+.entry-mapper-container .Table:has(.Table__centerWrapper) .Table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-mapper-container .Table__centerWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  // Nudge the empty state slightly above dead-center so it reads a touch higher.
+  padding-bottom: 6rem;
+}
+
+// Asset mapper search-empty state — mirror the entry-mapper-container pattern:
+// give the .Table explicit height when it contains an .EmptyState (Venus's measured
+// tableHeight collapses to ~56px on empty results, so the centered empty state has
+// no room to display). Then make .Table__body a flex column and center the
+// .Table__centerWrapper Venus renders around the customEmptyState.
+.asset-mapper-table .Table:has(.EmptyState) {
+  height: calc(100vh - 22rem) !important;
+}
+
+.asset-mapper-table .Table:has(.Table__centerWrapper) .Table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.asset-mapper-table .Table__centerWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 300px;
+  padding-bottom: 2rem;
+}
+
+// Field mapping table (Map Content Fields step): center the search-empty state. Anchor on
+// the venus .Table and take .Table__centerWrapper out of flow (position: absolute) so it
+// overlays the full table area and centers, instead of stacking under the header rows.
+.field-mapper-container .Table:has(.Table__centerWrapper) {
+  position: relative;
+  // Absolute-positioned .Table__centerWrapper adds no height, so give the table an
+  // explicit tall area to center the empty state within.
+  height: calc(100vh - 300px);
+
+  .Table__centerWrapper {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Asset mapper table: venus's .Table sets min-height: 31.25rem, forcing the table
+// tall and pushing the pagination bar down with a dead gap. Pin an explicit height
+// so the table + pagination end where we want and the Save button can sit below.
+
+
 .custom-empty-state {
+  // Force the empty state to occupy the body area instead of collapsing into
+  // (and overlapping) the table header when the search returns zero rows.
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+
   .Icon--original {
     width: 207px !important;
     height: auto !important;
@@ -480,8 +647,17 @@ div .table-row {
 .entry-asset-mapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  // Match the usable step-content area: .stepContent is height:calc(100vh - 56px) with a
+  // 190px top padding for the fixed stepper header, so the real space below it is
+  // calc(100vh - 246px). Pinning to that makes this subtree self-bounding (the stepper
+  // tree above isn't flex, so height:100% grew to content height on zoom and pushed the
+  // Save footer off with no scroll). Inner flex distributes the rest; the body scrolls
+  // and pagination + Save stay pinned.
+  height: calc(100vh - 246px);
+  max-height: calc(100vh - 246px);
   width: 100%;
+  overflow: hidden;
+  min-height: 0;
 
   // The active child mapper (its own .step-container) fills the space left by the toggle.
   > .step-container {
@@ -572,7 +748,7 @@ div .table-row {
 .entry-mapper-container {
   // Empty state: venus renders "No Records Found" (.EmptyState) with no scroll body, so
   // the table collapses. Give .Table an explicit height so it fills like ExecutionLogs.
-  .Table:has(.EmptyState) {
+  &:not(.asset-mapper-container) .Table:has(.EmptyState) {
     height: calc(100vh - 22rem) !important;
   }
 
@@ -580,10 +756,21 @@ div .table-row {
   // prop: this keeps the venus pagination bar (a sibling below the body) visible while
   // the body scrolls internally. Height fits a full page and reserves room for the
   // search row, pagination bar and Save footer.
-  .Table__body,
-  .Table.TableWithPaginated .Table__body {
-    height: calc(100vh - 520px) !important;
-    max-height: calc(100vh - 520px) !important;
+  // Entry mapper only — the asset mapper lets venus size the body from its measured
+  // tableHeight prop, and this !important would override those inline styles.
+  // Let the scroll body flex to fill the space .entry-mapper-table hands it, rather
+  // than a fixed calc(100vh - …). 100vh doesn't shrink on zoom, so a fixed height keeps
+  // the body full-size and shoves the pagination bar under/past the Save footer. Flexing
+  // makes the body shrink with the available height so pagination + footer stay in view.
+  // The body height is driven by react-window via the measured `tableHeight` prop (see
+  // entryMapper.tsx) so its native scroll works. Don't override height here — just make it
+  // the flex item that takes the leftover space and never forces the .Table taller than its
+  // container (which would push pagination/footer off-screen).
+  &:not(.asset-mapper-container) .Table__body,
+  &:not(.asset-mapper-container) .Table.TableWithPaginated .Table__body {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
   }
 
   // Empty state ("No Records Found"): venus renders a plain .Table__body with no height,
@@ -621,14 +808,25 @@ div .table-row {
       }
     }
 
-    // Target actual column containers
+    // Target actual column containers. Honour the per-column `width` venus applies inline
+    // from the `columns` config (flex-basis: auto reads that width) as the STARTING size,
+    // instead of forcing every column to an equal `flex: 1 1 0`. flex-shrink:1 (+ min-width:0)
+    // lets the fixed-width columns give way on narrow viewports so the row never exceeds the
+    // available width and forces a horizontal scrollbar; they hold their width when there's room.
     .Table__head__column,
     .Table__body__column {
-      flex: 1 1 0 !important;
+      flex: 0 1 auto;
       min-width: 0 !important;
       display: flex !important;
       align-items: center;
       border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // The final column has no fixed width in the config — let it absorb the leftover width
+    // so the row still spans the full table.
+    .Table__head__column:last-of-type,
+    .Table__body__column:last-of-type {
+      flex: 1 1 auto;
     }
 
     // Long filenames/paths must wrap and stay inside their own column instead
@@ -651,5 +849,186 @@ div .table-row {
     .Table__body__column:last-child {
       border-right: none !important;
     }
+  }
+}
+
+// Asset mapper table — responsive like the entry mapper. Flex column that fills the
+// bounded step area; the venus table is content-sized (its body height comes from the
+// measured `tableHeight` prop in assetMapper.tsx, not CSS, so react-window's native scroll
+// works), and the Save footer stays pinned below.
+.asset-mapper-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+
+  // Size to content, not flex-grow — flex-grow would balloon the body and, since we measure
+  // to set tableHeight, create a runaway loop.
+  .Table {
+    flex: 0 0 auto;
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .Table__body {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  .TableFooter,
+  .Pagination,
+  .Table__pagination {
+    flex: 0 0 auto;
+  }
+
+  .mapper-footer {
+    flex: 0 0 auto;
+    position: static;
+  }
+}
+
+// Make the entry-mapper table area responsive so the pagination bar never slides
+// under (or past) the Save footer when the effective viewport shrinks on zoom.
+// It's a flex column that owns all the vertical space between the locale/search row
+// and the footer; the table grows/shrinks to fit and its body scrolls internally,
+// while the footer stays pinned at the bottom.
+.entry-mapper-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+
+  // Size to content, NOT flex-grow. react-window sizes the body from the measured
+  // `tableHeight` prop (entryMapper.tsx); letting .Table flex-grow would balloon the body
+  // and, since we measure to set that prop, create a runaway loop. Content-sized keeps
+  // .Table = body(tableHeight) + panel + pagination, leaving room for the footer below.
+  .Table {
+    flex: 0 0 auto;
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Keep pagination pinned just above the footer regardless of table height.
+  .TableFooter,
+  .Pagination,
+  .Table__pagination {
+    flex: 0 0 auto;
+  }
+
+  // Footer never gets pushed off-screen — it's the last flex child.
+  .mapper-footer {
+    flex: 0 0 auto;
+    position: static;
+  }
+}
+
+// Asset status column badges (Map Entry Assets tab): 'ok' (ready to migrate), 'missing'
+// (no source at all, nothing to retry) vs 'failed' (had a source, last migration run's
+// download attempt threw — shown with a Retry button).
+.asset-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+
+  svg,
+  img {
+    flex: 0 0 auto;
+  }
+
+  &--ok {
+    background-color: #e8f6ee;
+    color: #1a8245;
+    border-color: rgba(26, 130, 69, 0.2);
+  }
+
+  &--missing {
+    background-color: #f1f2f5;
+    color: #647696;
+    border-color: rgba(100, 118, 150, 0.2);
+    cursor: help;
+  }
+
+  &--failed {
+    background-color: #fdecea;
+    color: #c0392b;
+    border-color: rgba(192, 57, 43, 0.2);
+    cursor: help;
+  }
+
+  &--failed-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    padding: 0;
+    border: none;
+  }
+}
+
+.asset-retry-button {
+  padding: 0 10px !important;
+  font-weight: 600 !important;
+}
+
+// Toolbar above the asset table: broken-asset count banner (left) + status filter (right).
+.asset-mapper-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid #e6e9ef;
+  background-color: #fbfbfc;
+}
+
+.asset-broken-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: #92400e;
+  background-color: #fef3e2;
+  border: 1px solid rgba(146, 64, 14, 0.2);
+  padding: 6px 12px;
+  border-radius: 6px;
+  line-height: 1.35;
+
+  svg,
+  img {
+    flex: 0 0 auto;
+    color: #b45309;
+  }
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.asset-status-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 0 0 auto;
+
+  &__label {
+    font-size: 0.8125rem;
+    color: #647696;
+    white-space: nowrap;
   }
 }

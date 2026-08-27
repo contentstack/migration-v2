@@ -122,11 +122,11 @@ describe('utilities/constants', () => {
   });
 
   it('should export VALIDATION_DOCUMENTATION_URL', () => {
-    expect(VALIDATION_DOCUMENTATION_URL.sitecore).toContain('sitecore.pdf');
-    expect(VALIDATION_DOCUMENTATION_URL.contentful).toContain('contentful.pdf');
-    expect(VALIDATION_DOCUMENTATION_URL.wordpress).toBe('');
-    expect(VALIDATION_DOCUMENTATION_URL.drupal).toContain('Drupal.pdf');
-    expect(VALIDATION_DOCUMENTATION_URL.aem).toContain('AEM');
+    expect(VALIDATION_DOCUMENTATION_URL.sitecore).toContain('Sitecore_Data_Requirements_Documentation.pdf');
+    expect(VALIDATION_DOCUMENTATION_URL.contentful).toContain('Contentful_Data_Requirements_Documentation.pdf');
+    expect(VALIDATION_DOCUMENTATION_URL.wordpress).toContain('Wordpress_Data_Requirements_Documentation.pdf');
+    expect(VALIDATION_DOCUMENTATION_URL.drupal).toContain('Drupal_Data_Requirements_Documentation.pdf');
+    expect(VALIDATION_DOCUMENTATION_URL.aem).toContain('AEM_Data_Requirements_Documentation.pdf');
   });
 
   it('should export auditLogsConstants', () => {

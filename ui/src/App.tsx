@@ -13,6 +13,12 @@ import AppLayout from './components/layout/AppLayout';
 import { useNetworkCheck } from './components/NetworkProvider';
 
 // Styles
+// Grid + utility classes (d-flex, vh-100, row/col-*, spacing). These used to come from
+// https://ui.contentstack.com/contentstack.min.css, which now returns 402. Kept above the
+// venus import so venus's own px-scale classes (.mb-3, .ml-8 ...) keep winning.
+import 'bootstrap/dist/css/bootstrap-grid.min.css';
+import 'bootstrap/dist/css/bootstrap-utilities.min.css';
+import './scss/legacy-cdn-shim.scss';
 import '@contentstack/venus-components/build/main.css';
 import './scss/App.scss';
 

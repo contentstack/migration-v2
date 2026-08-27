@@ -1363,8 +1363,11 @@ const createEntry = async ({
   const entryMapping: Record<string, string[]> = {};
   const usedEntryUids = new Set<string>();
 
-  // Process each entry file
-  for await (const fileName of read(entriesDir)) {
+  // Process each entry file. Sorted (not raw fs-readdir-recursive order) so that when two
+  // files legitimately collide on the same modelId+locale (see CMG-1112), which one "wins"
+  // and gets migrated is deterministic and reproducible across machines/runs, rather than
+  // depending on filesystem directory order.
+  for await (const fileName of [...read(entriesDir)].sort()) {
     const filePath = path.join(entriesDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
       continue;
@@ -1372,6 +1375,7 @@ const createEntry = async ({
     const content: unknown = await fs.promises.readFile(filePath, 'utf-8');
     if (typeof content === 'string') {
       const parseData = JSON.parse(content);
+
       // Use the page model's stable "id" as the entry uid so uid-mapper keys
       // stay consistent across delta iterations; random uuid only as fallback.
       let modelId = typeof parseData?.id === 'string' && parseData.id.trim() !== ''
@@ -1381,16 +1385,37 @@ const createEntry = async ({
       // pages like content-page) carry no stable page "id"; derive a stable uid
       // from title + templateType (or just templateType when there's no title)
       // so they track across iterations (must match extractEntries in
-      // upload-api's migration-aem).
+      // upload-api/migration-aem/libs/entries/index.ts).
       if (!modelId && parseData?.templateType) {
         modelId = parseData?.title
           ? uidCorrector(`${parseData.title}_${parseData.templateType}`)
           : uidCorrector(parseData.templateType);
       }
-      const uid = modelId && !usedEntryUids.has(modelId)
-        ? modelId
-        : uuidv4?.()?.replace?.(/-/g, '');
-      usedEntryUids.add(uid);
+      // Locale must be part of the collision key, computed before the check: two
+      // locale variants of the SAME page legitimately share a modelId (that's how they
+      // end up localized onto one Contentstack entry), so keying on modelId alone would
+      // wrongly skip every locale variant after the first one instead of writing each to
+      // its own locale bucket.
+      const locale = getCurrentLocale(parseData);
+      const mappedLocale = locale ? getLocaleFromMapper(allLocales as Record<string, string>, locale) : Object?.keys?.(project?.master_locale ?? {})?.[0];
+      const collisionKey = modelId ? `${modelId}::${mappedLocale}` : '';
+      // A collisionKey (modelId + locale) already seen earlier in this same run means this
+      // file is a genuine duplicate export of the same page in the same locale — skip it
+      // instead of minting a fresh random uid. A random uid here would create a second,
+      // permanent duplicate entry that mints yet another untracked random uid (another
+      // duplicate) on every subsequent delta iteration, since it can never match anything
+      // recorded in entry_mapper (api/src/models/EntryMapper.ts) — the way extractEntries's
+      // own collision policy already works in upload-api/migration-aem/libs/entries/index.ts.
+      if (collisionKey && usedEntryUids.has(collisionKey)) {
+        await customLogger(
+          projectId,
+          destinationStackId,
+          'warn',
+          getLogMessage(srcFunc, `Skipped duplicate entry from "${fileName}": uid "${modelId}" (locale "${mappedLocale}") already used in this run.`, {})
+        );
+        continue;
+      }
+      const uid = modelId || uuidv4?.()?.replace?.(/-/g, '');
       const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
       const templateUid = isEFragment?.isXF ? parseData?.title : parseData?.templateName ?? parseData?.templateType;
@@ -1398,14 +1423,20 @@ const createEntry = async ({
       if (!contentType && parseData?.title) {
         contentType = (contentTypes as ContentType[] | undefined)?.find?.((element) => element?.otherCmsUid === parseData?.title);
       }
-      const locale = getCurrentLocale(parseData);
-      const mappedLocale = locale ? getLocaleFromMapper(allLocales as Record<string, string>, locale) : Object?.keys?.(project?.master_locale ?? {})?.[0];
       const items = parseData?.[':items']?.root?.[':items'];
       const data = containerCreator(contentType?.fieldMapping, items, title, pathToUidMap, assetDetailsMap);
       data.uid = uid;
       data.publish_details = [];
 
       if (contentType?.contentstackUid && data && mappedLocale) {
+        // Reserve the collision key only now that an entry is actually being emitted — a
+        // file that reaches the "no content type matched" / "no mapped locale" branch below
+        // must NOT consume the key, or it would permanently block a sibling file (sharing
+        // the same modelId::locale) that could otherwise have produced the real entry,
+        // leaving zero entries instead of one.
+        if (collisionKey) {
+          usedEntryUids.add(collisionKey);
+        }
         const mappedValue = (keyMapper as Record<string, string> | undefined)?.[contentType.contentstackUid];
         const resolvedCtUid: string = 
           mappedValue && mappedValue !== '' 

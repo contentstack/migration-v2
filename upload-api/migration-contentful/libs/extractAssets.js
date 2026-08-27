@@ -33,7 +33,7 @@ const { readFile } = require('../utils/helper');
  * matching the AEM/Sitecore AssetMappingRow shape.
  *
  * @param {string} cleanLocalPath - Path to the Contentful export JSON file.
- * @returns {Array<{id:string,otherCmsAssetUid:string,filename:string,title:string,file_size:(number|string),assetPath:string,isUpdate:boolean}>}
+ * @returns {Array<{id:string,otherCmsAssetUid:string,filename:string,title:string,file_size:(number|string),assetPath:string,isUpdate:boolean,hasSource:boolean}>}
  */
 const extractAssets = (cleanLocalPath) => {
   try {
@@ -71,15 +71,20 @@ const extractAssets = (cleanLocalPath) => {
       const titleValue = pickLocalized(asset?.fields?.title);
       const title = typeof titleValue === 'string' ? titleValue : '';
 
+      // Contentful serves processed assets from a protocol-relative CDN URL ("//...")
+      // in `.url`. Freshly-added, not-yet-processed assets only have `.upload`, an
+      // absolute fetch URL. Prefer `.url` (with https normalization) and fall back
+      // to `.upload` so newly-added assets aren't dropped from Map Entry.
+      let assetPath = '';
+      if (typeof file?.url === 'string' && file.url) {
+        assetPath = file.url.startsWith('//') ? `https:${file.url}` : file.url;
+      } else if (typeof file?.upload === 'string' && file.upload) {
+        assetPath = file.upload;
+      }
+
       const filename =
         (typeof file?.fileName === 'string' && file?.fileName) || title || '';
       const fileSize = file?.details?.size ?? '';
-      // Contentful serves assets from a protocol-relative CDN URL ("//...");
-      // normalize to https so downstream consumers get an absolute URL.
-      let assetPath = typeof file?.url === 'string' ? file?.url : '';
-      if (assetPath.startsWith('//')) {
-        assetPath = `https:${assetPath}`;
-      }
 
       seenIds.add(id);
 
@@ -91,6 +96,11 @@ const extractAssets = (cleanLocalPath) => {
         file_size: fileSize,
         assetPath,
         isUpdate: false,
+        // No `.url` and no `.upload` at all — nothing the migration can ever download for
+        // this asset. Still emit the row (rather than silently dropping it) so the user sees
+        // *why* it's missing instead of the asset count on Map Entry mysteriously not
+        // matching the source export. `hasSource: false` rows are always non-selectable.
+        hasSource: Boolean(assetPath),
       });
     }
 

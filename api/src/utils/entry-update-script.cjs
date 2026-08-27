@@ -4,6 +4,104 @@ const isAssetField = (value) =>
     value && typeof value === 'object' && !Array.isArray(value) &&
     'urlPath' in value && 'filename' in value;
 
+/** Shape produced by processField's 'reference' case: { uid, _content_type_uid }. */
+const isReferenceValue = (value) =>
+    value && typeof value === 'object' && !Array.isArray(value) &&
+    'uid' in value && '_content_type_uid' in value;
+
+// Loosened from `.every(...)` to `.some(...)`: producers can legitimately emit mixed arrays
+// — `processArrayFields` (contentful.service.ts) pushes the raw Contentful Link object when
+// the target isn't in the references map, and the single-reference path can inject
+// `[undefined]` — so one non-reference element would otherwise disable resolution for the
+// whole field. Per-item remap happens in resolveReferenceField.
+const isReferenceArray = (value) =>
+    Array.isArray(value) && value.length > 0 && value.some(isReferenceValue);
+
+/**
+ * Resolves a source-side entry uid to its real Contentstack destination uid.
+ *
+ * The export JSON's reference fields carry the SOURCE cms entry id (see
+ * `contentful.service.ts`'s `createRefrence`), which only happens to equal the
+ * Contentstack uid when entries are imported preserving source ids. The
+ * bulk/master-locale import resolves this correctly via the CLI's own
+ * reference pass; this update path does not, so it needs the same uid-mapper
+ * data the asset resolution above already uses (see `entryMapping`).
+ *
+ * Preference order: per-locale mapping (most precise — handles entries that
+ * ended up as distinct Contentstack uids per locale across iterations) →
+ * flat mapping → identity fallback (keeps existing behavior when no mapping
+ * data exists, e.g. simple setups where source id equals destination uid).
+ */
+const resolveReferenceUid = (sourceUid, locale, entryMapping) => {
+    if (!sourceUid) return sourceUid;
+    const newByLocale = entryMapping?.new?.byLocale?.[locale]?.[sourceUid];
+    if (newByLocale) return newByLocale;
+    const oldByLocale = entryMapping?.old?.byLocale?.[locale]?.[sourceUid];
+    if (oldByLocale) return oldByLocale;
+    const newFlat = entryMapping?.new?.flat?.[sourceUid];
+    if (newFlat) return newFlat;
+    const oldFlat = entryMapping?.old?.flat?.[sourceUid];
+    if (oldFlat) return oldFlat;
+    return sourceUid;
+};
+
+/**
+ * Remaps the uid(s) inside a reference field value (single link object or
+ * array of link objects) to their Contentstack destination uids.
+ */
+const resolveReferenceField = (fieldName, entryUid, value, locale, entryMapping) => {
+    if (isReferenceValue(value)) {
+        const resolved = resolveReferenceUid(value.uid, locale, entryMapping);
+        if (resolved !== value.uid) {
+            console.info(`[${entryUid}] "${fieldName}"${locale ? ` (${locale})` : ''}: resolved reference uid "${value.uid}" → "${resolved}"`);
+        }
+        return { ...value, uid: resolved };
+    }
+    if (isReferenceArray(value)) {
+        // Pass non-reference items through untouched so a stray non-link element (e.g. a raw
+        // Contentful link that wasn't in the references map, or `undefined` from an earlier
+        // failed resolve) doesn't crash and doesn't corrupt neighboring references.
+        return value.map((item) => {
+            if (!isReferenceValue(item)) return item;
+            const resolved = resolveReferenceUid(item.uid, locale, entryMapping);
+            return { ...item, uid: resolved };
+        });
+    }
+    return value;
+};
+
+/**
+ * Recursively walks a field value and resolves any reference shape found at any
+ * depth — group and modular-block fields nest references one or more levels deep
+ * (see processField's 'group' branch and processArrayFields in contentful.service.ts),
+ * so a shallow top-level-only check misses them and they keep their source-CMS uid on
+ * the delta/localize path. Asset field objects are left untouched (they need
+ * resolveAssetField's 3-way stack comparison, not a uid remap) so this only ever
+ * rewrites reference shapes, nothing else.
+ */
+const resolveReferencesDeep = (fieldName, entryUid, value, locale, entryMapping) => {
+    if (isReferenceValue(value)) {
+        return resolveReferenceField(fieldName, entryUid, value, locale, entryMapping);
+    }
+    // Recurse per-element rather than delegating the whole array to isReferenceArray +
+    // resolveReferenceField's shallow array handling. That shallow path only remaps
+    // elements matching isReferenceValue and passes everything else through byte-for-byte
+    // — so a MIXED array (a bare reference next to an object with a reference nested
+    // inside, e.g. a modular-block array) would leave the nested one unresolved. Recursing
+    // into every element here — reference, container, or scalar — covers that case too.
+    if (Array.isArray(value)) {
+        return value.map((item) => resolveReferencesDeep(fieldName, entryUid, item, locale, entryMapping));
+    }
+    if (value && typeof value === 'object' && !isAssetField(value)) {
+        const out = {};
+        for (const [key, val] of Object.entries(value)) {
+            out[key] = resolveReferencesDeep(`${fieldName}.${key}`, entryUid, val, locale, entryMapping);
+        }
+        return out;
+    }
+    return value;
+};
+
 /** Export JSON metadata — not Contentstack content-type field UIDs (WordPress entries are flat). */
 const FLAT_PAYLOAD_SKIP = new Set([
     'uid',
@@ -68,7 +166,7 @@ const resolveAssetField = (fieldName, entryUid, updateValue, stackValue, oldMapp
  * WordPress (and similar) write migration JSON with fields at the root (email, url, …).
  * Fetched stack entries keep custom fields under entry.content — merge flat updateData there.
  */
-const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping, updateOpts) => {
+const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping, updateOpts, locale, entryMapping) => {
     for (const field of Object.keys(updateData)) {
         if (FLAT_PAYLOAD_SKIP.has(field)) {
             continue;
@@ -89,6 +187,8 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
                 oldMapping,
                 newMapping
             );
+        } else {
+            nextVal = resolveReferencesDeep(field, entryUid, nextVal, locale, entryMapping);
         }
         entry.content[field] = nextVal;
     }
@@ -103,6 +203,9 @@ module.exports = async ({
     const assetMapping = config.__assetMapping__ || { old: {}, new: {} };
     delete config.__assetMapping__;
 
+    const entryMapping = config.__entryMapping__ || { old: { flat: {}, byLocale: {} }, new: { flat: {}, byLocale: {} } };
+    delete config.__entryMapping__;
+
     // Assets the user chose to update in place (same UID, new file).
     const assetUpdates = Array.isArray(config.__assetUpdates__) ? config.__assetUpdates__ : [];
     delete config.__assetUpdates__;
@@ -110,6 +213,7 @@ module.exports = async ({
     const oldMapping = assetMapping.old || {};
     const newMapping = assetMapping.new || {};
     console.info(`Asset mappings loaded — old: ${Object.keys(oldMapping).length}, new: ${Object.keys(newMapping).length}`);
+    console.info(`Entry mappings loaded — old: ${Object.keys(entryMapping?.old?.flat || {}).length} flat / ${Object.keys(entryMapping?.old?.byLocale || {}).length} locales, new: ${Object.keys(entryMapping?.new?.flat || {}).length} flat / ${Object.keys(entryMapping?.new?.byLocale || {}).length} locales`);
     console.info(`Asset updates to replace in place: ${assetUpdates.length}`);
 
     const contentTypes = Object.keys(config);
@@ -150,18 +254,25 @@ module.exports = async ({
             successMessage: 'Entries Updated Successfully',
             failedMessage: "Failed to update entries",
             task: async () => {
-                try {
-                    for (const contentType of contentTypes) {
-                        const entryUids = Object.keys(config[contentType]);
-                        console.info(`Processing content type: ${contentType}, entries: ${entryUids.length}`);
+                let totalCount = 0;
+                let failedCount = 0;
+                for (const contentType of contentTypes) {
+                    const entryUids = Object.keys(config[contentType]);
+                    console.info(`Processing content type: ${contentType}, entries: ${entryUids.length}`);
 
-                        for (const entryUid of entryUids) {
+                    for (const entryUid of entryUids) {
+                        totalCount++;
+                        // Declared outside the try so the catch below can still reference them
+                        // in its log message even if the failure happens before they're assigned.
+                        let locale;
+                        let realEntryUid = entryUid;
+                        try {
                             const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
                             // Per-locale config keys are "<csUid>::<locale>" with __locale/__csUid
                             // on the payload. Fall back to the bare key for legacy single-locale
                             // configs.
-                            const locale = updateData?.__locale;
-                            const realEntryUid = updateData?.__csUid || entryUid;
+                            locale = updateData?.__locale;
+                            realEntryUid = updateData?.__csUid || entryUid;
                             delete updateData?.__locale;
                             delete updateData?.__csUid;
                             const fetchOpts = locale ? { locale } : undefined;
@@ -187,13 +298,21 @@ module.exports = async ({
                                             oldMapping,
                                             newMapping
                                         );
+                                    } else {
+                                        updateData.content[field] = resolveReferencesDeep(
+                                            field,
+                                            entryUid,
+                                            updateData?.content[field],
+                                            locale,
+                                            entryMapping
+                                        );
                                     }
                                 }
                                 Object.assign(entry?.content, updateData?.content);
                                 await entry.update(updateOpts);
                             } else if (hasStackContent) {
                                 console.info(`[${realEntryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)${locale ? ` for locale "${locale}"` : ''}`);
-                                await mergeFlatPayloadIntoEntry(entry, realEntryUid, updateData, oldMapping, newMapping, updateOpts);
+                                await mergeFlatPayloadIntoEntry(entry, realEntryUid, updateData, oldMapping, newMapping, updateOpts, locale, entryMapping);
                             } else {
                                 if (updateData && entry) {
                                     for (const field of Object.keys(updateData)) {
@@ -206,6 +325,14 @@ module.exports = async ({
                                                 oldMapping,
                                                 newMapping
                                             );
+                                        } else {
+                                            updateData[field] = resolveReferencesDeep(
+                                                field,
+                                                entryUid,
+                                                updateData[field],
+                                                locale,
+                                                entryMapping
+                                            );
                                         }
                                     }
                                 }
@@ -213,12 +340,25 @@ module.exports = async ({
                                 await entry.update(updateOpts);
                             }
                             console.info(`Updated entry: ${realEntryUid}${locale ? ` (locale "${locale}")` : ''}`);
+                        } catch (error) {
+                            // A single entry's update failing (e.g. a Contentstack API validation
+                            // error such as "Entry localization failed") must not abort every
+                            // other entry still queued behind it — log and move on, matching
+                            // updateAssetTask's per-item error handling above. The failure is
+                            // still tracked and reported once, after every entry has been
+                            // attempted (see the throw below) — otherwise this task can never
+                            // fail, `Entry Update Process Completed` gets written even when every
+                            // entry failed, and `recordDeltaMigratedLocales` marks those locales
+                            // migrated purely from the config contents, silently skipping them on
+                            // the next delta iteration.
+                            failedCount++;
+                            console.error(`Failed to update entry ${realEntryUid}${locale ? ` (locale "${locale}")` : ''}:`, error?.message || error);
                         }
                     }
-                    console.info('All entries updated successfully');
-                } catch (error) {
-                    console.error(error);
-                    throw error;
+                }
+                console.info(`Processed ${totalCount} ${totalCount === 1 ? 'entry' : 'entries'} (${totalCount - failedCount} succeeded, ${failedCount} failed)`);
+                if (failedCount > 0) {
+                    throw new Error(`${failedCount} of ${totalCount} ${totalCount === 1 ? 'entry' : 'entries'} failed to update — see the log above for details.`);
                 }
             },
         };
@@ -237,3 +377,8 @@ module.exports = async ({
 module.exports.isAssetField = isAssetField;
 module.exports.resolveAssetField = resolveAssetField;
 module.exports.mergeFlatPayloadIntoEntry = mergeFlatPayloadIntoEntry;
+module.exports.isReferenceValue = isReferenceValue;
+module.exports.isReferenceArray = isReferenceArray;
+module.exports.resolveReferenceUid = resolveReferenceUid;
+module.exports.resolveReferenceField = resolveReferenceField;
+module.exports.resolveReferencesDeep = resolveReferencesDeep;

@@ -441,12 +441,14 @@ export const getAssetMapping = async (
   skip: number,
   limit: number,
   searchText: string,
-  projectId: string
+  projectId: string,
+  status?: string
 ) => {
   try {
     const encodedSearchText = encodeURIComponent(searchText);
+    const statusQuery = status ? `&status=${encodeURIComponent(status)}` : '';
     return await getCall(
-      `${API_VERSION}/mapper/assetMapping/${projectId}/${skip}/${limit}/${encodedSearchText}?`,
+      `${API_VERSION}/mapper/assetMapping/${projectId}/${skip}/${limit}/${encodedSearchText}?${statusQuery}`,
       options()
     );
   } catch (error) {
@@ -466,6 +468,25 @@ export const updateAssetMapper = async (
     return await putCall(
       `${API_VERSION}/mapper/updateAssetStatus/${projectId}`,
       data,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
+export const retryAssetDownload = async (
+  projectId: string,
+  assetUid: string
+) => {
+  try {
+    return await putCall(
+      `${API_VERSION}/mapper/retryAsset/${projectId}/${assetUid}`,
+      {},
       options()
     );
   } catch (error) {

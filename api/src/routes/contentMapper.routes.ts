@@ -137,6 +137,15 @@ router.put(
 );
 
 /**
+ * Retry downloading a single asset that failed during the last migration run
+ * @route PUT /retryAsset/:projectId/:assetUid
+ */
+router.put(
+  "/retryAsset/:projectId/:assetUid",
+  asyncRouter(contentMapperController.retryAssetDownload)
+);
+
+/**
  * Get Single Global Field data
  * @route GET /:projectId/:globalFieldUid
  */

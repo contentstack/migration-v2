@@ -12,6 +12,12 @@
   position: sticky;
   top: 0;
   z-index: 9;
+  // Duplicate the .d-flex / .justify-content-between / .align-items-center
+  // behavior locally so the header stays title-left / button-right even when
+  // Bootstrap utilities from the external CDN fail to load.
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   .back-btn {
     padding: 0;
   }

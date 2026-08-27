@@ -17,13 +17,11 @@ else
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 fi
 
-# Ensure Node.js 21 is installed and used
-NODE_VERSION=$(node -v 2>/dev/null)
-if [[ "$NODE_VERSION" != v21.* ]]; then
-  echo "Installing and using Node.js 21..."
-  nvm install 21
-fi
-nvm use 21
+# Ensure Node.js 22 is installed and used (nvm install is idempotent, so
+# checking `node -v` here is unreliable if a non-nvm Node is on PATH)
+echo "Ensuring Node.js 22 is installed via nvm..."
+nvm install 22
+nvm use 22
 
 # Return to script root
 cd "$SCRIPT_DIR" || exit 1
@@ -45,7 +43,7 @@ echo "Starting services in new terminals..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS
   osascript -e "tell application \"Terminal\" to do script \"
-  source \$HOME/.nvm/nvm.sh && nvm use 21 &&
+  source \$HOME/.nvm/nvm.sh && nvm use 22 &&
   cd '$SCRIPT_DIR/api' &&
   echo 'Cleaning API dependencies...' &&
   rm -rf node_modules package-lock.json &&
@@ -53,7 +51,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   npm run dev
   \""
   osascript -e "tell application \"Terminal\" to do script \"
-  source \$HOME/.nvm/nvm.sh && nvm use 21 &&
+  source \$HOME/.nvm/nvm.sh && nvm use 22 &&
   cd '$SCRIPT_DIR/upload-api' &&
   echo 'Cleaning upload-api dependencies...' &&
   rm -rf node_modules package-lock.json &&
@@ -62,7 +60,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   npm run start
   \""
   osascript -e "tell application \"Terminal\" to do script \"
-  source \$HOME/.nvm/nvm.sh && nvm use 21 &&
+  source \$HOME/.nvm/nvm.sh && nvm use 22 &&
   cd '$SCRIPT_DIR/ui' &&
   echo 'Cleaning UI dependencies...' &&
   rm -rf node_modules package-lock.json &&
@@ -72,9 +70,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
  
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   # Linux (GNOME Terminal)
-  gnome-terminal -- bash -c "source $HOME/.nvm/nvm.sh && nvm use 21 && cd '$SCRIPT_DIR/api' && npm install && npm run dev; exec bash"
-  gnome-terminal -- bash -c "source $HOME/.nvm/nvm.sh && nvm use 21 && cd '$SCRIPT_DIR/upload-api' && npm install && npm run start; exec bash"
-  gnome-terminal -- bash -c "source $HOME/.nvm/nvm.sh && nvm use 21 && cd '$SCRIPT_DIR/ui' && npm install && npm run start; exec bash"
+  gnome-terminal -- bash -c "source $HOME/.nvm/nvm.sh && nvm use 22 && cd '$SCRIPT_DIR/api' && npm install && npm run dev; exec bash"
+  gnome-terminal -- bash -c "source $HOME/.nvm/nvm.sh && nvm use 22 && cd '$SCRIPT_DIR/upload-api' && npm install && npm run start; exec bash"
+  gnome-terminal -- bash -c "source $HOME/.nvm/nvm.sh && nvm use 22 && cd '$SCRIPT_DIR/ui' && npm install && npm run start; exec bash"
 else
   echo "Unsupported OS: $OSTYPE"
   exit 1
