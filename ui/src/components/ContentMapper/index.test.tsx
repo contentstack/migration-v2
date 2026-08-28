@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFieldDisplayName, getFieldTooltip } from './index';
+import { getFieldDisplayName, getFieldTooltip, getDropdownOptionsOnConversion } from './index';
 
 /**
  * Regression: a source column repurposed as title (e.g. SAP's "name") kept showing its
@@ -38,5 +38,35 @@ describe('getFieldTooltip', () => {
     expect(getFieldTooltip({ contentstackFieldUid: 'parent.child', otherCmsField: 'Parent > Child' })).toBe(
       'Field: Child \nFull path: Parent > Child'
     );
+  });
+});
+
+/**
+ * The Advanced Properties "Choice" list is read-only (reorder/mark-default only) — it
+ * can never CREATE choices. So the only moment a Dropdown field's options can ever get
+ * real values is right when a field is converted into Dropdown, from its own captured
+ * source data (`sourceDistinctValues`, populated at extraction time in upload-api).
+ * Without this, a converted field would fall back to a single fake "NF" choice
+ * regardless of what the source data actually contained.
+ */
+describe('getDropdownOptionsOnConversion', () => {
+  it('builds key/value choices from the real source values when converting into Dropdown', () => {
+    const result = getDropdownOptionsOnConversion('single_line_text', 'dropdown', ['Active', 'Inactive']);
+    expect(result).toEqual([
+      { key: 'Active', value: 'Active' },
+      { key: 'Inactive', value: 'Inactive' },
+    ]);
+  });
+
+  it('returns an empty list rather than throwing when no source values were captured', () => {
+    expect(getDropdownOptionsOnConversion('single_line_text', 'dropdown', undefined)).toEqual([]);
+  });
+
+  it('does nothing when converting to any type other than dropdown', () => {
+    expect(getDropdownOptionsOnConversion('single_line_text', 'html', ['Active'])).toBeUndefined();
+  });
+
+  it('does nothing when the field was ALREADY dropdown (re-selecting it must not wipe reordered choices)', () => {
+    expect(getDropdownOptionsOnConversion('dropdown', 'dropdown', ['Active'])).toBeUndefined();
   });
 });

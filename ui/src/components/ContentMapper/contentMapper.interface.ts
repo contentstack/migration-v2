@@ -99,6 +99,11 @@ export interface Advanced {
   title?: string;
   url?: string;
   initial?: Omit<Advanced, 'initial'>;
+  /** Real distinct source-column values, captured at extraction time — used to
+   *  auto-populate `options` when a field is converted to Dropdown. */
+  sourceDistinctValues?: string[];
+  /** True distinct-value count, uncapped even when sourceDistinctValues is capped. */
+  sourceDistinctValueCount?: number;
 }
 
 export interface ItemStatus {

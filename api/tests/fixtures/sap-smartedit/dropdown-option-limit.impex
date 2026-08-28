@@ -1,0 +1,5 @@
+$lang = en
+INSERT_UPDATE DropdownLimitTest; uid[unique=true]; name; region
+                                ; item1; Item One; North
+                                ; item2; Item Two; South
+                                ; item3; Item Three; North

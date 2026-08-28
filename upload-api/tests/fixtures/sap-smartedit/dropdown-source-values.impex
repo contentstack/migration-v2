@@ -1,0 +1,6 @@
+$lang = en
+INSERT_UPDATE DropdownValuesTest; uid[unique=true]; name; status; notes; featured
+                                 ; item1; Item One; Active; A short note; true
+                                 ; item2; Item Two; Active; Another short note; false
+                                 ; item3; Item Three; Inactive; Yet another one; true
+                                 ; item4; Item Four; ; Blank status here; false

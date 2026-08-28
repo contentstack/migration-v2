@@ -39,6 +39,15 @@ const {
   CONTENT_TYPES_DIR_NAME,
 } = MIGRATION_DATA_CONFIG;
 
+/**
+ * Contentstack's Dropdown field enforces an option-count limit; exceeding it needs a
+ * superadmin to raise the stack's limit, or the extra values are unusable after
+ * migration. Matches `upload-api/src/config/index.json`'s `plan.dropdown.optionLimit`
+ * (this connector has no cross-package dependency on upload-api, by existing
+ * convention — see LOCALE_MAP's own duplication note elsewhere in this codebase).
+ */
+const DROPDOWN_OPTION_LIMIT = 100;
+
 export type Severity = 'critical' | 'error' | 'warning' | 'info';
 
 export interface Finding {
@@ -311,6 +320,7 @@ export function reconcile(
     checkRows(block, sourceType, ctUid, masterEntries, master, add);
     checkLocalizedValues(block, sourceType, ctUid, migrationDir, declaredLocales, master, add);
     checkReferenceFieldTargets(block, sourceType, ctUid, migrationDir, mappedCtUids, fieldMappingByCtUid.get(ctUid), add);
+    checkDropdownOptionLimits(block, sourceType, fieldMappingByCtUid.get(ctUid), add);
   }
 
   // ---- assets --------------------------------------------------------------
@@ -691,6 +701,39 @@ function checkReferenceFieldTargets(
       sourceType,
       detail: `"${field.uid}" is a reference field whose ${why}. ${affectedRows} source row(s) have a value for it, and EVERY one of them will be silently dropped on import.`,
     });
+  }
+}
+
+/**
+ * A field the user converted to Dropdown in the mapping UI must not carry more
+ * distinct source values than Contentstack's dropdown option limit — recomputed from
+ * the real source rows here (not from the persisted, possibly-capped
+ * `sourceDistinctValueCount`) so this check holds even if that field is ever missing.
+ */
+function checkDropdownOptionLimits(
+  block: ImpexBlock,
+  sourceType: string,
+  fieldMapping: any[] | undefined,
+  add: (f: Finding) => void,
+): void {
+  if (!fieldMapping) return; // heuristic mode has no field mapping to check dropdown types against
+
+  for (const field of fieldMapping) {
+    if (field?.contentstackFieldType !== 'dropdown') continue;
+
+    const values = block.rows
+      .map((row) => row[field.otherCmsField])
+      .filter((v) => v !== undefined && v !== '');
+    const distinctCount = new Set(values).size;
+
+    if (distinctCount > DROPDOWN_OPTION_LIMIT) {
+      add({
+        severity: 'warning',
+        check: 'field.dropdownOptionLimitExceeded',
+        sourceType,
+        detail: `"${field.contentstackFieldUid}" is a Dropdown field with ${distinctCount} distinct source values, over Contentstack's ${DROPDOWN_OPTION_LIMIT}-option limit. Values beyond the limit will not be usable after migration unless a Contentstack superadmin raises the stack's dropdown option limit first.`,
+      });
+    }
   }
 }
 

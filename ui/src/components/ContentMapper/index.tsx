@@ -196,7 +196,8 @@ const Fields: MappingFields = {
       'Single Line Textbox': 'single_line_text',
       'Multi Line Textbox': 'multi_line_text',
       'HTML Rich Text Editor': 'html',
-      'JSON Rich Text Editor': 'json'
+      'JSON Rich Text Editor': 'json',
+      'Dropdown': 'dropdown'
     },
     type: 'text'
   },
@@ -205,7 +206,8 @@ const Fields: MappingFields = {
     options: {
       'Multi Line Textbox': 'multi_line_text',
       'HTML Rich Text Editor': 'html',
-      'JSON Rich Text Editor': 'json'
+      'JSON Rich Text Editor': 'json',
+      'Dropdown': 'dropdown'
     },
     type: 'multiline'
   },
@@ -497,6 +499,21 @@ export function getFieldDisplayName(data: Pick<FieldMapType, 'contentstackFieldU
   if (data?.contentstackFieldUid === 'title') return 'title';
   const otherCmsField = data?.otherCmsField ?? '';
   return otherCmsField.includes(' > ') ? (otherCmsField.split(' > ').pop() ?? '') : otherCmsField;
+}
+
+/**
+ * Real Dropdown choices to apply when a field is converted INTO Dropdown — built from
+ * its own captured source data, never a guess. Returns undefined when the field isn't
+ * freshly becoming a dropdown (no-op for every other type change, and no-op if it was
+ * already a dropdown, so re-selecting it doesn't wipe user-reordered choices).
+ */
+export function getDropdownOptionsOnConversion(
+  previousFieldType: string | undefined,
+  newFieldType: string | undefined,
+  sourceDistinctValues: string[] | undefined
+): Array<{ key: string; value: string }> | undefined {
+  if (newFieldType !== 'dropdown' || previousFieldType === 'dropdown') return undefined;
+  return (sourceDistinctValues || []).map((v) => ({ key: v, value: v }));
 }
 
 /** Tooltip for a field-mapping row — keeps the original source column name traceable even for title. */
@@ -1587,15 +1604,25 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         // 1. Converting from non-RTE to RTE type (start fresh)
         // 2. Converting from RTE to non-RTE type (embed objects not applicable)
         const shouldPreserveEmbedSettings = wasRteType && isNowRteType;
-        
-        return { 
-          ...row, 
+
+        // Converting into Dropdown: populate real choices from the field's own real
+        // source data (captured at extraction time), not a guess — the Advanced
+        // Properties "Choice" list is read-only (reorder/mark-default only), so this
+        // is the only point real values ever get set.
+        const dropdownOptions = getDropdownOptionsOnConversion(
+          previousFieldType, newFieldType, row?.advanced?.sourceDistinctValues
+        );
+        const isNowDropdown = dropdownOptions !== undefined;
+
+        return {
+          ...row,
           contentstackFieldType: newFieldType,
           advanced: {
             ...row?.advanced,
             // Preserve embed objects when converting between RTE types, reset otherwise
             embedObjects: shouldPreserveEmbedSettings ? (row?.advanced?.embedObjects || []) : [],
-            embedObject: shouldPreserveEmbedSettings ? (row?.advanced?.embedObject || false) : false
+            embedObject: shouldPreserveEmbedSettings ? (row?.advanced?.embedObject || false) : false,
+            ...(isNowDropdown ? { options: dropdownOptions } : {})
           }
         };
       }

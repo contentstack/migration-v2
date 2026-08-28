@@ -821,3 +821,83 @@ describe('reconcile — a reference field with a misconfigured destination targe
     for (const f of findings) expect(f.severity).toBe('warning');
   });
 });
+
+/**
+ * A field the user converts to Dropdown in the mapping UI must not carry more
+ * distinct source values than Contentstack's dropdown option limit (100) — this is
+ * the QA-reported "SLTB/Dropdown ~100-value limit needing superadmin intervention"
+ * requirement. Checked here, at migration time, against the REAL source rows —
+ * not the (possibly capped) value list persisted on the field mapping — so it holds
+ * regardless of how that field got its options.
+ */
+describe('reconcile — a Dropdown field exceeding the 100-value option limit', () => {
+  const STACK_DROPDOWN = 'test-stack-sap-reconcile-dropdown-limit';
+  const OUT_DROPDOWN = path.join(process.cwd(), './cmsMigrationData', STACK_DROPDOWN);
+  const DROPDOWN_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/dropdown-option-limit.impex');
+
+  const dropdownCt = {
+    otherCmsTitle: 'DropdownLimitTest', contentstackUid: 'cs_dropdownlimittest',
+    fieldMapping: [
+      field('name'),
+      { ...field('region'), contentstackFieldType: 'dropdown' },
+    ],
+  };
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_DROPDOWN, { recursive: true, force: true });
+    await sapSmarteditService.createLocale(DROPDOWN_FIXTURE, STACK_DROPDOWN, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+    await sapSmarteditService.createEntry(DROPDOWN_FIXTURE, '', STACK_DROPDOWN, 'test-project', [dropdownCt], {}, LOCALE, {});
+  });
+
+  afterAll(() => fs.rmSync(OUT_DROPDOWN, { recursive: true, force: true }));
+
+  it('does not warn when the dropdown field has well under 100 distinct values', () => {
+    const r = reconcile(DROPDOWN_FIXTURE, OUT_DROPDOWN, [dropdownCt]);
+    expect(r.findings.some((x) => x.check === 'field.dropdownOptionLimitExceeded')).toBe(false);
+  });
+
+  it('warns when a dropdown field exceeds 100 distinct source values', async () => {
+    const bigDir = fs.mkdtempSync(path.join(process.cwd(), './cmsMigrationData', 'dropdown-big-'));
+    const bigFixture = path.join(bigDir, 'big.impex');
+    const rows = Array.from({ length: 150 }, (_, i) => `                                ; item${i}; Item ${i}; Value${i}`).join('\n');
+    fs.writeFileSync(bigFixture, `$lang = en\nINSERT_UPDATE DropdownBigTest; uid[unique=true]; name; region\n${rows}\n`);
+
+    const STACK_BIG = 'test-stack-sap-reconcile-dropdown-big';
+    const OUT_BIG = path.join(process.cwd(), './cmsMigrationData', STACK_BIG);
+    const bigCt = {
+      otherCmsTitle: 'DropdownBigTest', contentstackUid: 'cs_dropdownbigtest',
+      fieldMapping: [field('name'), { ...field('region'), contentstackFieldType: 'dropdown' }],
+    };
+
+    try {
+      fs.rmSync(OUT_BIG, { recursive: true, force: true });
+      await sapSmarteditService.createLocale(bigFixture, STACK_BIG, 'test-project', { stackDetails: { master_locale: LOCALE } });
+      await sapSmarteditService.createEntry(bigFixture, '', STACK_BIG, 'test-project', [bigCt], {}, LOCALE, {});
+
+      const r = reconcile(bigFixture, OUT_BIG, [bigCt]);
+      const f = r.findings.find((x) => x.check === 'field.dropdownOptionLimitExceeded');
+      expect(f).toBeDefined();
+      expect(f?.severity).toBe('warning');
+      expect(f?.detail).toContain('150 distinct source values');
+    } finally {
+      fs.rmSync(OUT_BIG, { recursive: true, force: true });
+      fs.rmSync(bigDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not flag a field mapped to any type other than dropdown, regardless of cardinality', () => {
+    const nonDropdownCt = {
+      otherCmsTitle: 'DropdownLimitTest', contentstackUid: 'cs_dropdownlimittest',
+      fieldMapping: [field('name'), field('region')], // region stays single_line_text
+    };
+    const r = reconcile(DROPDOWN_FIXTURE, OUT_DROPDOWN, [nonDropdownCt]);
+    expect(r.findings.some((x) => x.check === 'field.dropdownOptionLimitExceeded')).toBe(false);
+  });
+
+  it('is skipped entirely in heuristic mode (no live field mapping to check dropdown types against)', () => {
+    const r = reconcile(DROPDOWN_FIXTURE, OUT_DROPDOWN); // no contentTypes -> heuristic
+    expect(r.findings.some((x) => x.check === 'field.dropdownOptionLimitExceeded')).toBe(false);
+  });
+});

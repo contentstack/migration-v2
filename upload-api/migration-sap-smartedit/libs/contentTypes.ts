@@ -38,6 +38,19 @@ const REF_TARGETS: Record<string, string[]> = {
 const TITLE_CANDIDATES = ['title', 'name', 'label', 'heading'];
 
 /**
+ * A source column only ever becomes a Dropdown if the user manually converts it via
+ * the Map Content Fields type dropdown (single_line_text/multi_line_text -> dropdown) —
+ * this connector never auto-classifies a column as one. Its real distinct values have to
+ * be captured HERE though, since this is the one place every row of every column is
+ * already being scanned (see the classifyColumn loop below); recomputing it later, after
+ * the user picks Dropdown, would mean re-parsing the whole export from the UI. Capped so
+ * a genuinely free-text column (which would never sensibly become a dropdown, but has no
+ * way to be ruled out in advance) doesn't bloat the persisted field-mapping record —
+ * `sourceDistinctValueCount` keeps the TRUE total regardless, for the >100-limit check.
+ */
+const DROPDOWN_SOURCE_VALUES_CAP = 500;
+
+/**
  * Source columns dropped entirely — not emitted as content-type fields.
  * `uid`/`uuid` are SAP's internal identifiers; the entry identity is derived
  * from the source `uid` at transform time (and Contentstack gives every entry
@@ -294,6 +307,19 @@ async function extractContentTypes(
         if (sourceType === 'reference' || sourceType === 'referenceMultiple') {
           const targets = inferReferenceTargets(name, values, idToTypes);
           if (targets.length) field.refrenceTo = targets.map((t) => toCtUid(`${prefix}${t}`));
+        }
+
+        // Only text-like columns are ever offered "Dropdown" as a conversion target in
+        // the mapping UI — no point capturing this for booleans/numbers/dates/refs/files.
+        if (sourceType === 'string' || sourceType === 'multiline') {
+          const distinctValues = [...new Set(values.filter((v) => v !== ''))];
+          if (distinctValues.length) {
+            field.advanced = {
+              ...field.advanced,
+              sourceDistinctValues: distinctValues.slice(0, DROPDOWN_SOURCE_VALUES_CAP),
+              sourceDistinctValueCount: distinctValues.length,
+            };
+          }
         }
 
         guardReservedUid(field);
