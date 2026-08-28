@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE FolderTestType; uid[unique=true]; name
+                             ; item2; Item Two

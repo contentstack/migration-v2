@@ -209,6 +209,27 @@ const AdvancePropertise = (props: SchemaProps) => {
     }
   }, [contentTypes, props?.data?.referenceTo, props?.data?.refrenceTo, props?.data?.advanced, props?.fieldtype]);
 
+  // Re-map a previously-saved embedObjects selection (uids) back to real content type
+  // titles once contentTypes loads — mirrors the Reference-field fix above. Without this,
+  // ctValue is initialized straight from the persisted uids with the uid used as its own
+  // label (see the `embedObjects` map above), so the dropdown's OPTION list shows real
+  // names but the SELECTED chips show raw uids until the user picks something fresh.
+  useEffect(() => {
+    const savedUids = props?.value?.embedObjects;
+    if (!Array.isArray(savedUids) || savedUids.length === 0 || contentTypes.length === 0) return;
+
+    const matchedCTs = savedUids
+      .map((uid: string) => {
+        const ct = contentTypes.find((c: ContentType) => c.contentstackUid === uid);
+        return ct ? { label: ct.contentstackTitle, value: ct.contentstackUid } : null;
+      })
+      .filter(Boolean) as ContentTypeOption[];
+
+    if (matchedCTs.length > 0) {
+      setCTValue(matchedCTs);
+    }
+  }, [contentTypes, props?.value?.embedObjects]);
+
   // Update referenced taxonomies when taxonomies are fetched (only for Taxonomy fields)
   useEffect(() => {
     if (props?.fieldtype === 'Taxonomy') {
@@ -944,7 +965,13 @@ const AdvancePropertise = (props: SchemaProps) => {
                           true
                         ))
                     }
-                    disabled={props?.fieldtype === 'Modular Blocks' || props?.fieldtype === 'Block'}
+                    disabled={
+                      props?.fieldtype === 'Modular Blocks' ||
+                      props?.fieldtype === 'Block' ||
+                      // Title must always stay mandatory (see ensureMandatoryFields on the
+                      // extraction side) — lock the toggle so it can't be switched off here.
+                      props?.data?.contentstackFieldUid === 'title'
+                    }
                   />
                 </div>
               )}

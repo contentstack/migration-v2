@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE TitleRepositionTest; code[unique=true]; name
+                                  ; item1; This is a long descriptive name field value that exceeds one hundred characters in length to trigger multi-line classification heuristics used by the schema mapper for plain text without markup content here padding padding

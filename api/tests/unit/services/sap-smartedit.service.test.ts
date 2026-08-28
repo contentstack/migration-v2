@@ -1,7 +1,33 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+
+/**
+ * createLocale calls the real getAllLocales(), which hits Contentstack's live
+ * /locales API over the network — unmocked, that makes this whole suite flaky
+ * (network-dependent) and, worse, masks a real bug: when that call fails,
+ * getAllLocales resolves [error, undefined], and nameFor's fallback chain
+ * (`localeNames[code] || FALLBACK_LOCALE_NAMES[code] || ...`) throws a
+ * TypeError on `undefined[code]` instead of ever reaching the fallback table —
+ * so a live migration would crash on a transient network blip instead of
+ * degrading gracefully. Mocked here so tests are deterministic; the "fetch
+ * fails" describe block below pins the fallback behavior directly.
+ */
+const mockGetAllLocales = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/utils/index.js', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, getAllLocales: mockGetAllLocales };
+});
+
 import { sapSmarteditService, assetKey } from '../../../src/services/sap-smartedit.service.js';
+
+// Default: no live locale names available, so every test deterministically exercises
+// the FALLBACK_LOCALE_NAMES path (which is what their existing assertions already
+// expect — e.g. checking for "German - Germany"). Runs once at module load, before any
+// describe's beforeAll — several describe blocks call createLocale/createEntry from
+// their own beforeAll, which a beforeEach hook would run too late to affect. A specific
+// test can still override its own call with mockResolvedValueOnce/mockRejectedValueOnce.
+mockGetAllLocales.mockResolvedValue([null, {}]);
 
 /**
  * Integration-style regression tests for the api-side ImpEx parser and entry
@@ -569,6 +595,48 @@ describe('sap-smartedit createLocale — locales the export actually uses', () =
 });
 
 /**
+ * Regression: when the live Contentstack /locales fetch fails (network blip, timeout,
+ * rate limit), getAllLocales resolves [error, undefined] — localeNames is undefined,
+ * not just missing the requested code. nameFor's old fallback chain,
+ * `localeNames[code] || FALLBACK_LOCALE_NAMES[code] || ...`, indexed straight into that
+ * undefined and threw a TypeError, crashing the whole migration instead of falling back
+ * to FALLBACK_LOCALE_NAMES (a table that exists specifically for "the live list
+ * couldn't be fetched"). Fixed with `localeNames?.[code]`.
+ */
+describe('sap-smartedit createLocale — the live locale-name fetch fails', () => {
+  const STACK_LOC_FAIL = 'test-stack-sap-smartedit-locale-fetch-fail';
+  const OUT_LOC_FAIL = path.join(process.cwd(), './cmsMigrationData', STACK_LOC_FAIL);
+
+  beforeAll(async () => {
+    mockGetAllLocales.mockResolvedValueOnce([new Error('ETIMEDOUT'), undefined]);
+    await sapSmarteditService.createLocale(FIXTURE, STACK_LOC_FAIL, 'test-project', {
+      stackDetails: { master_locale: LOCALE },
+    });
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_LOC_FAIL, { recursive: true, force: true });
+  });
+
+  const readJson = (name: string) => {
+    const f = path.join(OUT_LOC_FAIL, 'locales', name);
+    return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
+  };
+
+  it('does not crash — still writes the master locale', () => {
+    const master = Object.values(readJson('master-locale.json') ?? {}) as any[];
+    expect(master).toHaveLength(1);
+    expect(master[0].code).toBe(LOCALE);
+  });
+
+  it('falls back to the FALLBACK_LOCALE_NAMES display name, not the code', () => {
+    const master = Object.values(readJson('master-locale.json') ?? {})[0] as any;
+    expect(master.name).not.toBe(master.code);
+    expect(master.name).toBe('English - United States');
+  });
+});
+
+/**
  * Regression test for a real finding: a genuinely unrecognized/custom language
  * code (in neither Contentstack's live locale list nor the small fallback
  * table) fell all the way through nameFor() to the code itself as the locale's
@@ -1087,5 +1155,191 @@ describe('sap-smartedit getAllAssets — Media codes differing only by punctuati
     const usKey = assetKey('hero_banner');
     expect(index[euKey]?.filename).toBe('hero-banner-eu.png');
     expect(index[usKey]?.filename).toBe('hero-banner-us.png');
+  });
+});
+
+/**
+ * Regression: a field mapped with a configured "Default Value" in the Content Mapper
+ * settings previously never made it into the migrated entry — a genuinely blank source
+ * cell just skipped the field entirely (`if (raw === undefined) continue`), so the
+ * destination entry never carried the configured default at all, even though the
+ * default WAS correctly written into the generated content type schema. Fixed to fall
+ * back to advanced.default_value when the source has nothing, running it through the
+ * SAME type-aware transform a real value would use — so this works for any field type,
+ * not just text.
+ */
+describe('sap-smartedit createEntry — a field with a configured Default Value falls back to it', () => {
+  const STACK_DEFAULT = 'test-stack-sap-smartedit-default-value';
+  const OUT_DEFAULT = path.join(process.cwd(), './cmsMigrationData', STACK_DEFAULT);
+  const DEFAULT_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/default-value-fallback.impex');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_DEFAULT, { recursive: true, force: true });
+    await sapSmarteditService.createEntry(DEFAULT_FIXTURE, '', STACK_DEFAULT, 'test-project', [
+      {
+        otherCmsTitle: 'DefaultValueTest', contentstackUid: 'cs_defaultvaluetest',
+        fieldMapping: [
+          { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+          {
+            otherCmsField: 'description', contentstackFieldUid: 'description',
+            contentstackFieldType: 'single_line_text',
+            advanced: { default_value: 'No description provided' },
+          },
+          {
+            otherCmsField: 'featured', contentstackFieldUid: 'featured',
+            contentstackFieldType: 'boolean',
+            advanced: { default_value: 'true' },
+          },
+        ],
+      },
+    ], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_DEFAULT, { recursive: true, force: true });
+  });
+
+  const readEntry = () => {
+    const entries = JSON.parse(
+      fs.readFileSync(path.join(OUT_DEFAULT, 'entries', 'cs_defaultvaluetest', 'en-us', 'en-us.json'), 'utf8'),
+    );
+    return Object.values(entries)[0] as any;
+  };
+
+  it('uses the configured default for a text field whose source cell is genuinely blank', () => {
+    expect(readEntry().description).toBe('No description provided');
+  });
+
+  it('runs the default through the field-type-appropriate transform, not just as a raw string (boolean here)', () => {
+    expect(readEntry().featured).toBe(true);
+  });
+
+  it('still uses the real source value when one is present, not the default', () => {
+    expect(readEntry().title).toBe('Item One');
+  });
+});
+
+/**
+ * Regression: a field re-typed to JSON RTE (e.g. from html/multi_line_text, via the Map
+ * Content Fields type dropdown) used to wrap its raw source value verbatim as the `text`
+ * of one bare paragraph node — so an HTML value's tags landed as literal escaped text
+ * (e.g. "<p>Hello <b>world</b></p>" shown as that literal string) instead of becoming
+ * real JSON-RTE nodes. Fixed to parse the value through the same JSDOM + htmlToJson
+ * pipeline the other connectors (Contentful/AEM/WordPress/Drupal) already use.
+ */
+describe('sap-smartedit createEntry — a field re-typed to JSON RTE converts embedded HTML', () => {
+  const STACK_JSON_RTE = 'test-stack-sap-smartedit-json-rte';
+  const OUT_JSON_RTE = path.join(process.cwd(), './cmsMigrationData', STACK_JSON_RTE);
+  const JSON_RTE_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/json-rte-html-conversion.impex');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_JSON_RTE, { recursive: true, force: true });
+    await sapSmarteditService.createEntry(JSON_RTE_FIXTURE, '', STACK_JSON_RTE, 'test-project', [
+      {
+        otherCmsTitle: 'JsonRteTest', contentstackUid: 'cs_jsonrtetest',
+        fieldMapping: [
+          { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+          { otherCmsField: 'body', contentstackFieldUid: 'body', contentstackFieldType: 'json' },
+        ],
+      },
+    ], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_JSON_RTE, { recursive: true, force: true });
+  });
+
+  const readEntries = () => {
+    const entries = JSON.parse(
+      fs.readFileSync(path.join(OUT_JSON_RTE, 'entries', 'cs_jsonrtetest', 'en-us', 'en-us.json'), 'utf8'),
+    );
+    return Object.values(entries) as any[];
+  };
+
+  it('parses embedded HTML into real JSON-RTE nodes, not literal tag text', () => {
+    const entry = readEntries().find((e) => e.title === 'Item One');
+    const paragraph = entry.body.children[0];
+    const boldNode = paragraph.children.find((c: any) => c.text === 'world');
+
+    expect(boldNode?.bold).toBe(true);
+    // the OLD, broken behavior: a single text child carrying the raw markup string
+    expect(paragraph.children.some((c: any) => c.text?.includes('<b>'))).toBe(false);
+  });
+
+  it('still produces a valid JSON-RTE doc for a plain-text value with no markup', () => {
+    const entry = readEntries().find((e) => e.title === 'Item Two');
+    expect(entry.body.type).toBe('doc');
+    expect(entry.body.children[0].children[0].text).toBe('Just plain text');
+  });
+});
+
+/**
+ * Regression coverage for a previously-untested code path: every other test in this
+ * file passes a specific `.impex` FILE as the input path, relying on
+ * `exportRoot = dirname(file)` to pick up a sibling assets folder. Nobody ever calls
+ * getAllAssets/createEntry with a genuine DIRECTORY as the input — the real "hand us a
+ * folder" flow a customer would use. This fixture is a true folder: two `.impex` files
+ * (one nested) declaring rows for the SAME content type, plus an asset nested several
+ * levels deeper still, to prove (a) multiple `.impex` files under a directory root
+ * really do get merged, not just the first one found, and (b) a Media binary resolves
+ * correctly when the root passed in IS the folder itself, not a file's parent dir.
+ */
+describe('sap-smartedit getAllAssets/createEntry — a genuine directory as the input path', () => {
+  const STACK_FOLDER = 'test-stack-sap-smartedit-folder-input';
+  const OUT_FOLDER = path.join(process.cwd(), './cmsMigrationData', STACK_FOLDER);
+  const FOLDER_INPUT = path.join(__dirname, '../../fixtures/sap-smartedit/folder-input');
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_FOLDER, { recursive: true, force: true });
+    await sapSmarteditService.getAllAssets(FOLDER_INPUT, '', STACK_FOLDER, 'test-project');
+    await sapSmarteditService.createEntry(FOLDER_INPUT, '', STACK_FOLDER, 'test-project', [
+      {
+        otherCmsTitle: 'FolderTestType', contentstackUid: 'cs_foldertesttype',
+        fieldMapping: [
+          { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+        ],
+      },
+    ], {}, 'en-us', {});
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_FOLDER, { recursive: true, force: true });
+  });
+
+  const readEntries = () => {
+    const entries = JSON.parse(
+      fs.readFileSync(path.join(OUT_FOLDER, 'entries', 'cs_foldertesttype', 'en-us', 'en-us.json'), 'utf8'),
+    );
+    return Object.values(entries) as any[];
+  };
+
+  const readAssetIndex = () => {
+    const f = path.join(OUT_FOLDER, 'assets', 'index.json');
+    return fs.existsSync(f) ? (JSON.parse(fs.readFileSync(f, 'utf8')) as Record<string, any>) : {};
+  };
+
+  it('merges rows from BOTH .impex files under the folder, not just the one at the root', () => {
+    const titles = readEntries().map((e) => e.title);
+    expect(titles).toContain('Item One');
+  });
+
+  it('finds the nested .impex file too, several directories deep', () => {
+    const titles = readEntries().map((e) => e.title);
+    expect(titles).toContain('Item Two');
+  });
+
+  it('resolves the Media binary when the root itself is the folder, not dirname(file)', () => {
+    const asset = Object.values(readAssetIndex()).find((a: any) => a.filename === 'folder-input-asset.png');
+    expect(asset).toBeDefined();
+    expect(Number(asset?.file_size)).toBeGreaterThan(0);
+  });
+
+  it('writes the real asset bytes to disk, byte-identical to the source', () => {
+    const [key, asset] = Object.entries(readAssetIndex()).find(
+      ([, a]: [string, any]) => a.filename === 'folder-input-asset.png',
+    ) as [string, any];
+    const onDisk = path.join(OUT_FOLDER, 'assets', 'files', key, asset.filename);
+    const src = path.join(FOLDER_INPUT, 'nested', 'images', 'folder-input-asset.png');
+    expect(fs.readFileSync(onDisk).equals(fs.readFileSync(src))).toBe(true);
   });
 });

@@ -1,0 +1,3 @@
+$lang = en
+INSERT_UPDATE FolderValidatorTest; uid[unique=true]; name
+                                  ; item1; Item One

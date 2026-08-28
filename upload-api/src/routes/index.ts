@@ -292,6 +292,21 @@ router.get(
       }
       const cmsType = config.cmsType?.toLowerCase();
 
+      // updateConfigFile silently leaves config.localPath at whatever it was PREVIOUSLY set
+      // to when filePath is empty (it has no path to write) — without this guard, submitting
+      // a genuinely blank local path re-validated a stale path from an earlier session and
+      // reported success, instead of telling the user the field is empty. The one legitimate
+      // reason to call this endpoint with an empty file_path is a drupal "Check Connection"
+      // MySQL-details-only update, which never touches localPath at all — so only reject when
+      // no MySQL details were sent either.
+      const hasMysqlDetails = !!(mysqlDetails.host || mysqlDetails.database || mysqlDetails.user);
+      if (!filePath && config.isLocalPath && !hasMysqlDetails) {
+        return res.status(400).json({
+          status: 400,
+          message: 'Local path is required.'
+        });
+      }
+
       if (config.isLocalPath) {
         const localPath = config?.localPath || '';
 

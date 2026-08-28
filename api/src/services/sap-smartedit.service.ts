@@ -11,6 +11,8 @@
 import fs from 'fs';
 import path from 'path';
 import { randomBytes, createHash } from 'crypto';
+import { JSDOM } from 'jsdom';
+import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { getMimeTypeFromExtension } from '../utils/mimeTypes.js';
 import { getAllLocales } from '../utils/index.js';
@@ -627,11 +629,15 @@ function transformField(
       // Contentstack HTML-RTE stores an HTML string directly.
       return String(value ?? '');
 
-    case 'json':
-      // Minimal JSON-RTE doc wrapping the text (SAP ImpEx rarely uses this path).
-      return { type: 'doc', uid: newUid(), attrs: {}, children: [
-        { type: 'p', uid: newUid(), attrs: {}, children: [{ text: String(value ?? '') }] },
-      ] };
+    case 'json': {
+      // Value may carry embedded HTML (a field re-typed from html/multi_line_text to
+      // JSON RTE) or be plain text — parse through the same JSDOM + htmlToJson pipeline
+      // the other connectors (Contentful/AEM/WordPress/Drupal) use, so markup becomes
+      // real JSON-RTE nodes instead of showing up as literal escaped tag text.
+      const dom = new JSDOM(String(value ?? ''));
+      const htmlDoc = dom.window.document.querySelector('body');
+      return htmlToJson(htmlDoc);
+    }
 
     case 'isodate': {
       if (!value) return null;
@@ -891,7 +897,7 @@ async function createEntry(
             // localizes at all (e.g. masterTemplate), which must keep using
             // its default value in every locale (already-tested convention).
             const isLocalizableField = otherCmsField !== undefined && rowLocalized?.[otherCmsField] !== undefined;
-            const raw =
+            const rawValue =
               sapLang && isLocalizableField
                 // Secondary locale, and this field IS one this row translates —
                 // use only the genuine translation. Falling back to the default
@@ -902,6 +908,21 @@ async function createEntry(
                 // locale-fallback display for it.
                 ? localizedValueOf(otherCmsField)
                 : localizedValueOf(otherCmsField) ?? row[otherCmsField];
+            // A field mapped with a configured Default Value must carry that value into
+            // the migrated entry when the source genuinely has nothing for it — previously
+            // a blank source cell just skipped the field entirely, so the destination entry
+            // never got the configured default at all. Excluded from the untranslated
+            // secondary-locale case above (rawValue undefined there on purpose): forcing a
+            // default into an untranslated locale would defeat Contentstack's own
+            // locale-fallback display, same as falling back to the primary-language text.
+            const usesDefaultFallback = !(sapLang && isLocalizableField);
+            const defaultValue = field?.advanced?.default_value;
+            const raw =
+              rawValue !== undefined
+                ? rawValue
+                : usesDefaultFallback && defaultValue !== undefined && defaultValue !== ''
+                  ? defaultValue
+                  : undefined;
             if (raw === undefined) continue;
             const val = transformField(raw, field, docIndex, ctUidByType, assetLookup, counters);
             if (val !== undefined) entry[field.contentstackFieldUid] = val;
@@ -1180,7 +1201,7 @@ async function createLocale(file_path: string, destinationStackId: string, _proj
   // avoid. The locale is still created (custom locales are supported and
   // expected), just under a name that can't collide with its own code.
   const nameFor = (code: string): string =>
-    localeNames[code] || FALLBACK_LOCALE_NAMES[code] || `Custom Locale (${code})`;
+    localeNames?.[code] || FALLBACK_LOCALE_NAMES[code] || `Custom Locale (${code})`;
 
   const uid = newUid();
   await fs.promises.writeFile(

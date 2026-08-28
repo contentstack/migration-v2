@@ -1,0 +1,6 @@
+$lang = en
+INSERT_UPDATE FolderTestType; uid[unique=true]; name
+                             ; item1; Item One
+
+INSERT_UPDATE Media; code[unique=true]; mime; realfilename
+                    ; hero-media; image/png; folder-input-asset.png

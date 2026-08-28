@@ -104,7 +104,12 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
       return;
     }
 
-    const fileFormatObj = {
+    // Prefer the CMS's own declared title for this format (e.g. "ImpEx", not a guessed
+    // "IMPEX" from .toUpperCase()) — allowedFormats is the source of truth for display text.
+    const declaredFormat = allowedFormats?.find(
+      (format: ICardType) => format?.fileformat_id?.toLowerCase() === extractedFormat?.toLowerCase()
+    );
+    const fileFormatObj = declaredFormat ?? {
       description: '',
       fileformat_id: extractedFormat,
       group_name: extractedFormat,

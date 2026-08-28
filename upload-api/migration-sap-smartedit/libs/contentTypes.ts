@@ -210,9 +210,20 @@ function ensureMandatoryFields(fieldMapping: Field[]): void {
     if (candidate) {
       candidate.uid = candidate.contentstackFieldUid = candidate.backupFieldUid = 'title';
       candidate.contentstackField = 'title';
+      // Title is always single-line and its type is locked in the mapping UI (see
+      // ContentMapper's title-row isDisabled check) — a repurposed column (e.g. one that
+      // classified as multi_line_text) must not carry that original type through, or the
+      // dropdown shows the wrong type for a field the user can no longer change.
+      candidate.contentstackFieldType = 'single_line_text';
+      candidate.backupFieldType = 'single_line_text';
       titleField = candidate;
+      // Title must always be first, whether synthesized (below) or repurposed from an
+      // existing column here — previously a repurposed column stayed at its original
+      // position in the list instead of moving to the front like the synthesized case does.
+      fieldMapping.splice(fieldMapping.indexOf(candidate), 1);
+      fieldMapping.unshift(candidate);
     } else {
-      titleField = baseField('title', 'text', 'text');
+      titleField = baseField('title', 'text', 'single_line_text');
       fieldMapping.unshift(titleField);
     }
   }

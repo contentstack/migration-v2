@@ -98,7 +98,14 @@ function getHandler(router: any, method: string, routePath: string) {
 }
 
 function mockReq(overrides: any = {}) {
-  return { headers: { projectid: 'proj-1', app_token: 'tk', affix: 'csm' }, ...overrides };
+  // file_path defaults to a non-empty placeholder: updateConfigFile is mocked in this file
+  // (it always returns the static mockConfig regardless of its actual argument), so these
+  // tests only care that config.localPath ends up set correctly — not the literal file_path
+  // value submitted. Tests that specifically exercise empty-path handling override this.
+  return {
+    headers: { projectid: 'proj-1', app_token: 'tk', affix: 'csm', file_path: 'default-test-path' },
+    ...overrides
+  };
 }
 
 function mockRes() {
@@ -233,6 +240,68 @@ describe('routes/index', () => {
 
       const sent = res.json.mock.calls[0][0];
       expect(sent.file_details.mySQLDetails.password).toBeUndefined();
+    });
+  });
+
+  describe('GET /validator — empty local path', () => {
+    // Regression: updateConfigFile leaves config.localPath at whatever it was PREVIOUSLY set to
+    // when no file_path is submitted — without an explicit guard, submitting a blank path
+    // re-validated a stale path from an earlier session and reported success instead of telling
+    // the user the field is empty.
+    it('returns 400 without touching file processing when file_path is missing entirely', async () => {
+      mockConfig.isLocalPath = true;
+      mockConfig.localPath = '/tmp/stale-path-from-earlier-session';
+
+      const handler = getHandler(router, 'get', '/validator');
+      const res = mockRes();
+      await handler(mockReq({ headers: { projectid: 'proj-1', app_token: 'tk', affix: 'csm' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 400, message: 'Local path is required.' })
+      );
+      expect(mockStatSync).not.toHaveBeenCalled();
+      expect(mockHandleFileProcessing).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when file_path is a blank/whitespace-only string', async () => {
+      mockConfig.isLocalPath = true;
+      mockConfig.localPath = '/tmp/stale-path-from-earlier-session';
+
+      const handler = getHandler(router, 'get', '/validator');
+      const res = mockRes();
+      await handler(
+        mockReq({ headers: { projectid: 'proj-1', app_token: 'tk', affix: 'csm', file_path: '   ' } }),
+        res
+      );
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(mockHandleFileProcessing).not.toHaveBeenCalled();
+    });
+
+    it('does NOT reject an empty file_path when it is a legitimate drupal MySQL-details-only update', async () => {
+      mockConfig.isLocalPath = true;
+      mockConfig.cmsType = 'drupal';
+      mockConfig.localPath = 'sql';
+      mockHandleFileProcessing.mockResolvedValue({ status: 200, message: 'OK', file_details: {} });
+
+      const handler = getHandler(router, 'get', '/validator');
+      const res = mockRes();
+      await handler(
+        mockReq({
+          headers: {
+            projectid: 'proj-1',
+            app_token: 'tk',
+            affix: 'csm',
+            mysql_host: '127.0.0.1',
+            mysql_database: 'mydb',
+            mysql_user: 'root'
+          }
+        }),
+        res
+      );
+
+      expect(res.status).not.toHaveBeenCalledWith(400);
     });
   });
 

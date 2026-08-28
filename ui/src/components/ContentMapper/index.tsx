@@ -487,6 +487,27 @@ const matchRowAgainstModularBlocks = (
   }
 };
 
+/**
+ * The row label for a field-mapping row. title is always locked to Contentstack's own
+ * "title" field regardless of which source column (name/label/heading/...) it was
+ * repurposed from — show that Contentstack identity as the label rather than the raw
+ * source column name, so it's visually obvious which row is the mandatory title field.
+ */
+export function getFieldDisplayName(data: Pick<FieldMapType, 'contentstackFieldUid' | 'otherCmsField'>): string {
+  if (data?.contentstackFieldUid === 'title') return 'title';
+  const otherCmsField = data?.otherCmsField ?? '';
+  return otherCmsField.includes(' > ') ? (otherCmsField.split(' > ').pop() ?? '') : otherCmsField;
+}
+
+/** Tooltip for a field-mapping row — keeps the original source column name traceable even for title. */
+export function getFieldTooltip(data: Pick<FieldMapType, 'contentstackFieldUid' | 'otherCmsField'>): string {
+  if (data?.contentstackFieldUid === 'title') return `Field: title \nSource: ${data?.otherCmsField}`;
+  const cleanFieldName = getFieldDisplayName(data);
+  return data?.otherCmsField?.includes(' > ')
+    ? `Field: ${cleanFieldName} \nFull path: ${data.otherCmsField}`
+    : `Field: ${cleanFieldName}`;
+}
+
 const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
   /** ALL CONTEXT HERE */
 
@@ -614,7 +635,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       } else if(field?.backupFieldType === 'taxonomy' && referenceToArray?.length === 0) {
         field._canSelect = false;
       }
-      else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
+      // Identify the title/url fields by their fixed uid (ensureMandatoryFields always sets
+      // it to exactly 'title'/'url'), not by field TYPE — a title repurposed from an existing
+      // source column keeps whatever backupFieldType it originally classified as, so the old
+      // `backupFieldType !== 'text'` check let a repurposed title be unchecked/excluded here.
+      else if (field?.contentstackFieldUid !== 'title' && field?.contentstackFieldUid !== 'url') {
         field._canSelect = true;
       }
     });
@@ -1225,14 +1250,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   };
 
   const accessorCall = (data: FieldMapType) => {
-    // Clean field name (remove parent hierarchy)
-    const cleanFieldName = data?.otherCmsField?.includes(' > ') 
-      ? data.otherCmsField.split(' > ').pop() 
-      : data?.otherCmsField;
-    
-    const tooltipContent = data?.otherCmsField?.includes(' > ') 
-      ? `Field: ${cleanFieldName} \nFull path: ${data.otherCmsField}`
-      : `Field: ${cleanFieldName}`;
+    const displayFieldName = getFieldDisplayName(data);
+    const tooltipContent = getFieldTooltip(data);
 
     // Simple checks for visual indicators
     const isModularBlock = data?.contentstackFieldType === 'modular_blocks';
@@ -1272,7 +1291,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {isGroup && <Icon icon="Group" size="small" className="mr-8 mt-1" />}
             
             <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>
-              {cleanFieldName}
+              {displayFieldName}
             </div>
             
             {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
@@ -1665,6 +1684,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           isClearable={false}
           options={option}
           isDisabled={
+              // Title's type is locked to Single Line Textbox — the user can pick any OTHER
+              // single_line_text/multi_line_text/html/json field to become an RTE, but not
+              // title itself.
+              data?.contentstackFieldUid === 'title' ||
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
@@ -2532,10 +2555,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
-            isDisabled: !(data?.contentstackFieldType === 'single_line_text' ||
+            // Title's type is locked to Single Line Textbox here too — same rule as the
+            // primary type-dropdown above, kept in sync since this is a separate render
+            // path (existing-content-type field matching), not a shared component.
+            isDisabled: data?.contentstackFieldUid === 'title' ||
+              !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined
-              
+
           }
           : {
             label: `${selectedOption} matches`,

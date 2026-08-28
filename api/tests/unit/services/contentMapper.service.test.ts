@@ -625,6 +625,75 @@ describe('contentMapper.service', () => {
       expect(result.status).toBe(200);
       expect(result.data).toBeDefined();
     });
+
+    it('re-asserts mandatory:true for title/url even if the saved payload tries to turn it off', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 3 }];
+      mockContentTypesDb.data.ContentTypesMappers = [{ id: 'ct-1', projectId: 'proj-1', status: 1 }];
+      mockFieldDb.data.field_mapper = [
+        { id: 'f-title', contentTypeId: 'ct-1', contentstackFieldType: 'single_line_text', contentstackFieldUid: 'title', advanced: { mandatory: true } },
+        { id: 'f-url', contentTypeId: 'ct-1', contentstackFieldType: 'url', contentstackFieldUid: 'url', advanced: { mandatory: true } },
+      ];
+
+      (mockContentTypesDb.chain.get as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(createChain({ findIndex: 0 }))
+        .mockReturnValue(createChain({ find: { id: 'ct-1', projectId: 'proj-1', status: 1 } }));
+
+      const req = {
+        params: { orgId: 'org-1', projectId: 'proj-1', contentTypeId: 'ct-1' },
+        body: {
+          token_payload: { region: 'NA', user_id: 'user-1' },
+          contentTypeData: {
+            otherCmsTitle: 'Blog',
+            contentstackTitle: 'Blog',
+            contentstackUid: 'ct-1',
+            fieldMapping: [
+              { id: 'f-title', contentTypeId: 'ct-1', contentstackFieldType: 'single_line_text', contentstackFieldUid: 'title', advanced: { mandatory: false } },
+              { id: 'f-url', contentTypeId: 'ct-1', contentstackFieldType: 'url', contentstackFieldUid: 'url', advanced: { mandatory: false } },
+            ],
+          },
+        },
+      } as any;
+
+      const result = await contentMapperService.updateContentType(req);
+
+      expect(result.status).toBe(200);
+      expect(mockFieldDb.data.field_mapper[0].advanced.mandatory).toBe(true);
+      expect(mockFieldDb.data.field_mapper[1].advanced.mandatory).toBe(true);
+    });
+
+    it('leaves mandatory as submitted for a non-title/url field', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      ProjectModelLowdb.data.projects = [{ status: 1, current_step: 3 }];
+      mockContentTypesDb.data.ContentTypesMappers = [{ id: 'ct-1', projectId: 'proj-1', status: 1 }];
+      mockFieldDb.data.field_mapper = [
+        { id: 'f-summary', contentTypeId: 'ct-1', contentstackFieldType: 'single_line_text', contentstackFieldUid: 'summary', advanced: { mandatory: true } },
+      ];
+
+      (mockContentTypesDb.chain.get as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(createChain({ findIndex: 0 }))
+        .mockReturnValue(createChain({ find: { id: 'ct-1', projectId: 'proj-1', status: 1 } }));
+
+      const req = {
+        params: { orgId: 'org-1', projectId: 'proj-1', contentTypeId: 'ct-1' },
+        body: {
+          token_payload: { region: 'NA', user_id: 'user-1' },
+          contentTypeData: {
+            otherCmsTitle: 'Blog',
+            contentstackTitle: 'Blog',
+            contentstackUid: 'ct-1',
+            fieldMapping: [
+              { id: 'f-summary', contentTypeId: 'ct-1', contentstackFieldType: 'single_line_text', contentstackFieldUid: 'summary', advanced: { mandatory: false } },
+            ],
+          },
+        },
+      } as any;
+
+      const result = await contentMapperService.updateContentType(req);
+
+      expect(result.status).toBe(200);
+      expect(mockFieldDb.data.field_mapper[0].advanced.mandatory).toBe(false);
+    });
   });
 
   describe('resetToInitialMapping', () => {

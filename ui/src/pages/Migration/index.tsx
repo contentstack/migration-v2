@@ -268,7 +268,7 @@ const Migration = () => {
 
     // const fileName = filePath?.split('/')?.pop();
     //const ext = fileName?.split('.')?.pop();
-    const validExtensionRegex = /\.(pdf|zip|xml|json|directory|sql)$/i;
+    const validExtensionRegex = /\.(pdf|zip|xml|json|directory|sql|impex)$/i;
     return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
  

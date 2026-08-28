@@ -1,0 +1,4 @@
+$lang = en
+INSERT_UPDATE JsonRteTest; uid[unique=true]; name; body
+                         ; item1; Item One; <p>Hello <b>world</b></p>
+                         ; item2; Item Two; Just plain text

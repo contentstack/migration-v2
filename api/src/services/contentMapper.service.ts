@@ -1010,6 +1010,18 @@ const updateContentType = async (req: Request) => {
             const existingField = data?.field_mapper?.[fieldIndex];
             const preservedInitial = existingField?.advanced?.initial;
 
+            // title/url are guaranteed mandatory by ensureMandatoryFields at extraction
+            // time; re-assert it here so a save can't turn either off (the "Mandatory"
+            // toggle is locked for title in the UI, and url's Advanced Properties panel
+            // isn't reachable at all — but this is the single choke point every save goes
+            // through, so it's the right place for the invariant to hold regardless).
+            if (
+              field?.contentstackFieldUid === 'title' ||
+              field?.contentstackFieldUid === 'url'
+            ) {
+              field.advanced = { ...field.advanced, mandatory: true };
+            }
+
             data.field_mapper[fieldIndex] = field;
 
             if (preservedInitial && field?.advanced) {

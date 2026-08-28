@@ -514,7 +514,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
   {
     const fileName = filePath?.split( '/' )?.pop();
     const ext = fileName?.split( '.' )?.pop();
-    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
+    const validExtensionRegex = /\.(pdf|zip|xml|json|impex)$/i;
     return ext && validExtensionRegex?.test( `.${ext}` ) ? `${ext}` : 'zip';
   };
 
@@ -812,7 +812,11 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
             isLoading={ isLoading }
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
+            // An empty path field must never be clickable: without this, clicking Validate on a
+            // blank field re-submitted no file_path to the backend, which silently re-validated
+            // whatever path was already saved from a PRIOR session instead of surfacing an error
+            // for the empty input actually on screen.
+            disabled={isEmptyString(fileDetails?.localPath) || !(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
           >
             { fileFormat?.toLowerCase() === 'sql' ? 'Check Connection' : 'File Validate' }
           </Button>
