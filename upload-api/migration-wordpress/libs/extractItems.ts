@@ -566,6 +566,33 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
       
     }
 
+    // Featured image — WordPress stores the post thumbnail as a `_thumbnail_id` postmeta pointing at
+    // an attachment item. Add a single file field so saveEntry can attach the already-downloaded
+    // asset. Added only when an item in this post type actually declares a featured image.
+    const hasFeaturedImage = item?.some?.((data: any) => {
+      const postMeta = Array?.isArray(data?.['wp:postmeta'])
+        ? data['wp:postmeta']
+        : (data?.['wp:postmeta'] ? [data['wp:postmeta']] : []);
+      return postMeta?.some?.(
+        (meta: any) => meta?.['wp:meta_key'] === '_thumbnail_id' && meta?.['wp:meta_value']
+      );
+    });
+    if (hasFeaturedImage && !isAllContentEmpty) {
+      CT?.push?.({
+        "isDeleted": false,
+        "uid": 'featured_image',
+        "backupFieldUid": 'featured_image',
+        "otherCmsField": '_thumbnail_id',
+        "otherCmsType": 'file',
+        "contentstackField": 'Featured Image',
+        "contentstackFieldUid": 'featured_image',
+        "contentstackFieldType": 'file',
+        "backupFieldType": 'file',
+        "advanced": {
+          "mandatory": false}
+      });
+    }
+
     const filePath = path.join(contentTypeFolderPath, `${type?.toLowerCase()}.json`);
         const contentType: Record<string, any> = {
             "status": 1,
