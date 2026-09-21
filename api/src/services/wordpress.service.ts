@@ -1189,6 +1189,51 @@ const extractCategoryReference = (categories: any) => {
 
 }
 
+/** xml2js emits a lone repeated child as an object rather than a one-element array. */
+const normalizePostMeta = (postMeta: any): any[] => {
+  if (!postMeta) return [];
+  return Array.isArray(postMeta) ? postMeta : [postMeta];
+};
+
+const findPostMetaValue = (postMeta: any, metaKey: string): string => {
+  const match = normalizePostMeta(postMeta).find(
+    (meta: any) => meta?.["wp:meta_key"] === metaKey && meta?.["wp:meta_value"]
+  );
+  const value = match?.["wp:meta_value"];
+  return typeof value === "string" ? value : (value != null ? String(value) : "");
+};
+
+/**
+ * WordPress keeps image alt text on the attachment as the `_wp_attachment_image_alt` postmeta. It is
+ * the canonical accessibility/SEO text for an image, so it is preferred over the usually-empty
+ * description/content fallbacks when setting the Contentstack asset's description. For a featured
+ * image this is what surfaces as `featured_image.description` on the entry.
+ */
+export const getAttachmentAltText = (assets: any): string =>
+  findPostMetaValue(assets?.["wp:postmeta"], "_wp_attachment_image_alt");
+
+/**
+ * Resolve a post's featured image to an already-downloaded Contentstack asset.
+ *
+ * WordPress points at the post thumbnail via the `_thumbnail_id` postmeta, whose value is the
+ * attachment's `wp:post_id` — and saveAsset registers every attachment under `assets_<wp:post_id>`,
+ * so the id resolves in one hop. Returns undefined when the post has no featured image, or when the
+ * attachment never made it into assetData (a failed download); a dangling uid would break the import.
+ */
+export const resolveFeaturedImageAsset = (item: any, assetData: any): any => {
+  const thumbnailId = findPostMetaValue(item?.["wp:postmeta"], "_thumbnail_id");
+  if (!thumbnailId) return undefined;
+
+  const asset = assetData?.[`assets_${thumbnailId}`];
+  if (!asset) {
+    console.warn(
+      `Featured image asset assets_${thumbnailId} not found for post ${item?.["wp:post_id"]}; leaving featured_image unset.`
+    );
+    return undefined;
+  }
+  return asset;
+};
+
 const extractTermsReference = (terms: any) => {
   const termArray = Array?.isArray(terms) ? terms : [terms];
   const termReference = termArray?.filter((term: any) => term?.attributes?.domain !== 'category');
@@ -1288,6 +1333,10 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           }
           entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
           entryData[uid]['author'] = authorData;
+          const featuredImage = resolveFeaturedImageAsset(item, assetData);
+          if (featuredImage) {
+            entryData[uid]['featured_image'] = featuredImage;
+          }
           entryData[uid]['locale'] = locale;
           entryData[uid]['publish_details'] = [];
           
@@ -1837,6 +1886,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   const nameWithoutExt = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
 
   let description =
+    getAttachmentAltText(assets) ||
     assets["description"] ||
     assets["content:encoded"] ||
     assets["excerpt:encoded"] ||
