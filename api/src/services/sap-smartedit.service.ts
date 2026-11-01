@@ -606,6 +606,13 @@ function rowSourceId(row: Record<string, string>, block: ImpexBlock): string | n
     .filter((v) => v !== undefined && v !== '');
   return parts.length ? parts.join('-') : null;
 }
+
+/** A SAP ContentPage's route: `/` for the homepage, else its label with one leading slash. */
+function contentPageUrl(row: Record<string, string>): string | null {
+  if (row.homepage === 'true') return '/';
+  const label = (row.label ?? '').trim();
+  return label ? `/${label.replace(/^\/+/, '')}` : null;
+}
 interface Counters { assetsSkipped: number; refsSkipped: number }
 
 /** Transform one ImpEx cell value to its Contentstack field value, by target type. */
@@ -941,6 +948,14 @@ async function createEntry(
           // earlier, fuller row for this uid already set correctly.
           if (defaultLabel || !existingEntry) {
             if (!entry.title || !unambiguousDefault) entry.title = id;
+          }
+          // Every CT is a page with a mandatory `url` (ensureMandatoryFields), but SAP
+          // ContentPage has no url column: its route is the `label` (/faq), and the
+          // homepage flag means `/`. Without this every migrated page had an empty url,
+          // so a storefront querying pages by url found none.
+          if (srcType === 'ContentPage' && !entry.url) {
+            const pageUrl = contentPageUrl(row);
+            if (pageUrl) entry.url = pageUrl;
           }
           entryData[uid] = entry;
         }
