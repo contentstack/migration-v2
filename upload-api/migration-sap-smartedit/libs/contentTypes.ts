@@ -3,7 +3,7 @@ import path from 'path';
 import config from '../config/index.json';
 import { CT, DataConfig, Field } from '../interface/interface';
 import mapField, { baseField } from './schemaMapper';
-import { ensureDir, writeJson, parseImpexPath, ImpexColumnDef } from '../utils/helper';
+import { ensureDir, writeJson, parseImpexPath, ImpexColumnDef, ImpexTypeBlock } from '../utils/helper';
 
 const { contentTypes: contentTypesConfig } = config.modules;
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
@@ -253,6 +253,31 @@ function ensureMandatoryFields(fieldMapping: Field[]): void {
 }
 
 /**
+ * The api writes the source id as the entry title when a row's label is blank or
+ * shared by several items (two CMSNavigationNodes both titled "Accessories"), so
+ * titles stay unique. That overwrote the only copy of the label: the SAP text was
+ * lost, and a storefront could not tell "untitled in SAP" from a real title. When
+ * any row would fall back like that, keep the label column as its own field too.
+ */
+function keepSourceLabel(fieldMapping: Field[], block: ImpexTypeBlock): void {
+  const titleField = fieldMapping.find((f) => f.contentstackFieldUid === 'title');
+  const col = titleField?.otherCmsField;
+  if (!col || !block.columns.has(col)) return; // synthesized title: no label column to keep
+  const owners = new Map<string, Set<string>>();
+  let blank = false;
+  for (const row of block.rows) {
+    const label = row[col];
+    if (!label) { blank = true; continue; }
+    if (!owners.has(label)) owners.set(label, new Set());
+    owners.get(label)!.add(row.uid ?? row.code ?? JSON.stringify(row));
+  }
+  if (!blank && [...owners.values()].every((ids) => ids.size === 1)) return;
+  const field = baseField(`source_${col}`, 'string', 'single_line_text');
+  field.otherCmsField = col;
+  fieldMapping.push(field);
+}
+
+/**
  * Parse the ImpEx export into Contentstack content-type schemas.
  *
  * The emitted CT object shape (`otherCmsTitle` / `otherCmsUid` /
@@ -327,6 +352,7 @@ async function extractContentTypes(
       }
 
       ensureMandatoryFields(fieldMapping);
+      keepSourceLabel(fieldMapping, block);
 
       const contentType = {
         otherCmsTitle: type,
