@@ -1,0 +1,10 @@
+INSERT_UPDATE ContentPage; uid[unique=true]; name; label; homepage
+                          ; homepage; "Homepage"; homepage; true
+                          ; faq; "FAQ"; /faq; false
+                          ; shipping; "Shipping"; shipping; false
+                          ; nolabel; "No Label"; ; false
+                          ; campaign; "Campaign"; campaign; TRUE
+                          ; legacyhome; "Legacy Home"; homepage; false
+
+UPDATE ContentPage; uid[unique=true]; name
+                   ; faq; "FAQ"

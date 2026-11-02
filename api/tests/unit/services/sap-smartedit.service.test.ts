@@ -1343,3 +1343,96 @@ describe('sap-smartedit getAllAssets/createEntry — a genuine directory as the 
     expect(fs.readFileSync(onDisk).equals(fs.readFileSync(src))).toBe(true);
   });
 });
+
+/**
+ * Every content type is created as a page with a mandatory `url`, but SAP
+ * ContentPage has no url column — its route lives in `label`, and the homepage
+ * is flagged `homepage=true`. Every migrated page used to get an empty url, so
+ * a storefront looking pages up by url (Spartacus) found none of them.
+ */
+describe('sap-smartedit createEntry — ContentPage url from label/homepage', () => {
+  const STACK_URL = 'test-stack-sap-smartedit-contentpage-url';
+  const OUT_URL = path.join(process.cwd(), './cmsMigrationData', STACK_URL);
+  const URL_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/contentpage-url.impex');
+  const CT = {
+    otherCmsTitle: 'ContentPage', contentstackUid: 'cs_contentpage',
+    fieldMapping: [
+      { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+      { otherCmsField: 'label', contentstackFieldUid: 'label', contentstackFieldType: 'single_line_text' },
+    ],
+  };
+  let byTitle: Record<string, any>;
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_URL, { recursive: true, force: true });
+    await sapSmarteditService.createEntry(URL_FIXTURE, '', STACK_URL, 'test-project', [CT], {}, 'en-us', {});
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_URL, 'entries', 'cs_contentpage', 'en-us', 'en-us.json'), 'utf8'));
+    byTitle = Object.fromEntries(Object.values(entries).map((e: any) => [e.title, e]));
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_URL, { recursive: true, force: true });
+  });
+
+  it('gives the homepage the root url', () => {
+    expect(byTitle.Homepage.url).toBe('/');
+  });
+
+  it('uses a label that is already a path as-is', () => {
+    expect(byTitle.FAQ.url).toBe('/faq');
+  });
+
+  it('adds the leading slash to a bare label', () => {
+    expect(byTitle.Shipping.url).toBe('/shipping');
+  });
+
+  it('writes no url when the page has neither label nor homepage flag', () => {
+    expect('url' in byTitle['No Label']).toBe(false);
+  });
+
+  it('keeps the url when a later partial UPDATE row carries no label', () => {
+    expect(byTitle.FAQ.url).toBe('/faq');
+  });
+
+  it('reads the homepage flag in any case (TRUE)', () => {
+    expect(byTitle.Campaign.url).toBe('/');
+  });
+
+  it('keeps /homepage for a page labelled homepage whose flag is false', () => {
+    expect(byTitle['Legacy Home'].url).toBe('/homepage');
+  });
+});
+
+/** HAC exports often have no `homepage` column; SAP's default homepage label is `homepage`. */
+describe('sap-smartedit createEntry — ContentPage url without a homepage column', () => {
+  const STACK_NOFLAG = 'test-stack-sap-smartedit-contentpage-url-no-flag';
+  const OUT_NOFLAG = path.join(process.cwd(), './cmsMigrationData', STACK_NOFLAG);
+  const NOFLAG_FIXTURE = path.join(__dirname, '../../fixtures/sap-smartedit/contentpage-url-no-flag.impex');
+  const CT = {
+    otherCmsTitle: 'ContentPage', contentstackUid: 'cs_contentpage',
+    fieldMapping: [
+      { otherCmsField: 'name', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' },
+      { otherCmsField: 'label', contentstackFieldUid: 'label', contentstackFieldType: 'single_line_text' },
+    ],
+  };
+  let byTitle: Record<string, any>;
+
+  beforeAll(async () => {
+    fs.rmSync(OUT_NOFLAG, { recursive: true, force: true });
+    await sapSmarteditService.createEntry(NOFLAG_FIXTURE, '', STACK_NOFLAG, 'test-project', [CT], {}, 'en-us', {});
+    const entries = JSON.parse(fs.readFileSync(path.join(OUT_NOFLAG, 'entries', 'cs_contentpage', 'en-us', 'en-us.json'), 'utf8'));
+    byTitle = Object.fromEntries(Object.values(entries).map((e: any) => [e.title, e]));
+  });
+
+  afterAll(() => {
+    fs.rmSync(OUT_NOFLAG, { recursive: true, force: true });
+  });
+
+  it('gives the page labelled homepage the root url', () => {
+    expect(byTitle.Home.url).toBe('/');
+  });
+
+  it('still routes other pages by label', () => {
+    expect(byTitle.About.url).toBe('/about');
+  });
+});

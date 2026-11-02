@@ -1,0 +1,3 @@
+INSERT_UPDATE ContentPage; uid[unique=true]; name; label
+                          ; home; "Home"; homepage
+                          ; about; "About"; about
