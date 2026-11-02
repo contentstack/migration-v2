@@ -607,10 +607,17 @@ function rowSourceId(row: Record<string, string>, block: ImpexBlock): string | n
   return parts.length ? parts.join('-') : null;
 }
 
-/** A SAP ContentPage's route: `/` for the homepage, else its label with one leading slash. */
+/**
+ * A SAP ContentPage's route: `/` for the homepage, else its label with one leading slash.
+ * Exports without a `homepage` column (HAC exports often omit it) fall back to SAP's
+ * default homepage label, `homepage`.
+ */
 function contentPageUrl(row: Record<string, string>): string | null {
-  if (row.homepage === 'true') return '/';
   const label = (row.label ?? '').trim();
+  const isHome = row.homepage === undefined
+    ? /^\/?homepage$/i.test(label)
+    : String(row.homepage).trim().toLowerCase() === 'true';
+  if (isHome) return '/';
   return label ? `/${label.replace(/^\/+/, '')}` : null;
 }
 interface Counters { assetsSkipped: number; refsSkipped: number }
